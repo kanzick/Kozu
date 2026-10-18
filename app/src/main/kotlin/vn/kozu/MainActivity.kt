@@ -66,6 +66,8 @@ import androidx.palette.graphics.Palette
 import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import coil3.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 import vn.kozu.player.MusicPlayerManager
 import vn.kozu.data.local.FavoritesStore
 import vn.kozu.domain.model.Beatmap
@@ -91,32 +93,38 @@ private enum class KozuTab(
     LIBRARY("Library", Icons.Filled.LibraryMusic),
     SETTINGS("Settings", Icons.Filled.Settings)
 }
+
 private val demoBeatmaps = listOf(
     Beatmap(
         id = 1L,
         title = "夜に駆ける",
         artist = "YOASOBI",
+        mapper = "Demo mapper",
         beatmapsetId = null
     ),
     Beatmap(
         id = 2L,
         title = "Lemon",
         artist = "Kenshi Yonezu",
-        beatmapsetId = null
+        mapper = "Tripticon",
+        beatmapsetId = 1313117L
     ),
     Beatmap(
         id = 3L,
         title = "Megalovania",
         artist = "Toby Fox",
-        beatmapsetId = null
+        mapper = "Kyshiro",
+        beatmapsetId = 387700L
     ),
     Beatmap(
         id = 4L,
         title = "Bad Apple!!",
         artist = "Masayoshi Minoshima",
-        beatmapsetId = null
+        mapper = "Pisapou",
+        beatmapsetId = 1936770L
     )
 )
+
 
 private fun getWallpaperSeed(context: android.content.Context): Color {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -393,6 +401,37 @@ private fun KozuApp() {
     }
 }
 
+
+@Composable
+private fun BeatmapCover(
+    beatmap: Beatmap,
+    modifier: Modifier = Modifier
+) {
+    val coverUrl = beatmap.coverUrl
+
+    if (coverUrl != null) {
+        AsyncImage(
+            model = coverUrl,
+            contentDescription = "${beatmap.title} cover",
+            modifier = modifier,
+            contentScale = ContentScale.Crop
+        )
+    } else {
+        Surface(
+            modifier = modifier,
+            shape = RoundedCornerShape(14.dp),
+            color = MaterialTheme.colorScheme.secondaryContainer
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    text = "♫",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun HomeScreen(
     favorites: Set<Long>,
@@ -543,6 +582,7 @@ private fun QuickPickCard(
     }
 }
 
+
 @Composable
 private fun BeatmapRow(
     beatmap: Beatmap,
@@ -563,18 +603,10 @@ private fun BeatmapRow(
             modifier = Modifier.padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Surface(
-                modifier = Modifier.size(48.dp),
-                shape = RoundedCornerShape(14.dp),
-                color = MaterialTheme.colorScheme.secondaryContainer
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = "♫",
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                }
-            }
+            BeatmapCover(
+                beatmap = beatmap,
+                modifier = Modifier.size(48.dp)
+            )
 
             Spacer(Modifier.width(12.dp))
 
@@ -607,6 +639,8 @@ private fun BeatmapRow(
         }
     }
 }
+
+
 @Composable
 private fun MiniPlayer(
     beatmap: Beatmap,
@@ -639,18 +673,10 @@ private fun MiniPlayer(
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Surface(
-                    modifier = Modifier.size(44.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surface
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = "♫",
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                    }
-                }
+                BeatmapCover(
+                    beatmap = beatmap,
+                    modifier = Modifier.size(44.dp)
+                )
 
                 Spacer(Modifier.width(12.dp))
 
