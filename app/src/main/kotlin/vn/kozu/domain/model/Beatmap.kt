@@ -1,10 +1,15 @@
-
 package vn.kozu.domain.model
 
 data class Beatmap(
-    val id: Long,
     val title: String,
     val artist: String,
-    val mapper: String,
-    val coverUrl: String? = null
-)
+    val id: Long,
+    val mapper: String = "",
+    val beatmapsetId: Long? = null
+) {
+    val coverUrl: String?
+        get() {
+            val setId = beatmapsetId ?: return null
+            return "https://assets.ppy.sh/beatmaps/$setId/covers/cover.jpg"
+        }
+}

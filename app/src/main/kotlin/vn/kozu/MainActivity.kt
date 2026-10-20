@@ -54,7 +54,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.toArgb
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -62,7 +62,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
-import androidx.compose.runtime.DisposableEffect
+import androidx.palette.graphics.Palette
+import android.content.Context
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import coil3.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 import vn.kozu.player.MusicPlayerManager
 import vn.kozu.data.local.FavoritesStore
 import vn.kozu.domain.model.Beatmap
@@ -94,27 +99,32 @@ private val demoBeatmaps = listOf(
         id = 1L,
         title = "夜に駆ける",
         artist = "YOASOBI",
-        mapper = "Demo mapper"
+        mapper = "Demo mapper",
+        beatmapsetId = null
     ),
     Beatmap(
         id = 2L,
         title = "Lemon",
         artist = "Kenshi Yonezu",
-        mapper = "Demo mapper"
+        mapper = "Tripticon",
+        beatmapsetId = 1313117L
     ),
     Beatmap(
         id = 3L,
         title = "Megalovania",
         artist = "Toby Fox",
-        mapper = "Demo mapper"
+        mapper = "Kyshiro",
+        beatmapsetId = 387700L
     ),
     Beatmap(
         id = 4L,
         title = "Bad Apple!!",
         artist = "Masayoshi Minoshima",
-        mapper = "Demo mapper"
+        mapper = "Pisapou",
+        beatmapsetId = 1936770L
     )
 )
+
 
 private fun getWallpaperSeed(context: android.content.Context): Color {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -162,6 +172,44 @@ private fun makeKozuColorScheme(
         )
     }
 }
+
+private suspend fun extractCoverColor(
+    context: Context,
+    imageUrl: String?
+): Color? = withContext(Dispatchers.IO) {
+    if (imageUrl.isNullOrBlank()) {
+        return@withContext null
+    }
+
+    try {
+        val connection = java.net.URL(imageUrl)
+            .openConnection() as java.net.HttpURLConnection
+
+        connection.connectTimeout = 8000
+        connection.readTimeout = 8000
+        connection.doInput = true
+
+        try {
+            connection.connect()
+
+            val bitmap = connection.inputStream.use { stream ->
+                android.graphics.BitmapFactory.decodeStream(stream)
+            } ?: return@withContext null
+
+            val palette = Palette.from(bitmap).generate()
+
+            val rgb = palette.vibrantSwatch?.rgb
+                ?: palette.dominantSwatch?.rgb
+                ?: palette.mutedSwatch?.rgb
+
+            rgb?.let { Color(it) }
+        } finally {
+            connection.disconnect()
+        }
+    } catch (e: Exception) {
+        null
+    }
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun KozuApp() {
@@ -190,11 +238,25 @@ private fun KozuApp() {
         getWallpaperSeed(context)
     }
 
+    var albumSeed by remember {
+        mutableStateOf<Color?>(null)
+    }
+
+    LaunchedEffect(selectedBeatmap?.coverUrl) {
+        albumSeed = extractCoverColor(
+            context = context,
+            imageUrl = selectedBeatmap?.coverUrl
+        )
+    }
     val isDarkTheme = selectedTab == KozuTab.SEARCH || selectedTab == KozuTab.SETTINGS
 
-    val kozuColors = remember(wallpaperSeed, isDarkTheme) {
+    val kozuColors = remember(
+        wallpaperSeed,
+        albumSeed,
+        isDarkTheme
+    ) {
         makeKozuColorScheme(
-            seed = wallpaperSeed,
+            seed = albumSeed ?: wallpaperSeed,
             dark = isDarkTheme
         )
     }
@@ -334,6 +396,37 @@ private fun KozuApp() {
                         description = "Customize your listening experience."
                     )
                 }
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun BeatmapCover(
+    beatmap: Beatmap,
+    modifier: Modifier = Modifier
+) {
+    val coverUrl = beatmap.coverUrl
+
+    if (coverUrl != null) {
+        AsyncImage(
+            model = coverUrl,
+            contentDescription = "${beatmap.title} cover",
+            modifier = modifier,
+            contentScale = ContentScale.Crop
+        )
+    } else {
+        Surface(
+            modifier = modifier,
+            shape = RoundedCornerShape(14.dp),
+            color = MaterialTheme.colorScheme.secondaryContainer
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    text = "♫",
+                    style = MaterialTheme.typography.headlineSmall
+                )
             }
         }
     }
@@ -489,6 +582,7 @@ private fun QuickPickCard(
     }
 }
 
+
 @Composable
 private fun BeatmapRow(
     beatmap: Beatmap,
@@ -509,18 +603,10 @@ private fun BeatmapRow(
             modifier = Modifier.padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Surface(
-                modifier = Modifier.size(48.dp),
-                shape = RoundedCornerShape(14.dp),
-                color = MaterialTheme.colorScheme.secondaryContainer
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = "♫",
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                }
-            }
+            BeatmapCover(
+                beatmap = beatmap,
+                modifier = Modifier.size(48.dp)
+            )
 
             Spacer(Modifier.width(12.dp))
 
@@ -553,6 +639,8 @@ private fun BeatmapRow(
         }
     }
 }
+
+
 @Composable
 private fun MiniPlayer(
     beatmap: Beatmap,
@@ -585,18 +673,10 @@ private fun MiniPlayer(
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Surface(
-                    modifier = Modifier.size(44.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surface
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = "♫",
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                    }
-                }
+                BeatmapCover(
+                    beatmap = beatmap,
+                    modifier = Modifier.size(44.dp)
+                )
 
                 Spacer(Modifier.width(12.dp))
 
