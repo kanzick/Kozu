@@ -16,19 +16,22 @@ class FakeBeatmapRepository {
             id = 2L,
             title = "Lemon",
             artist = "Kenshi Yonezu",
-            mapper = "Sample mapper"
+            mapper = "Tripticon",
+            beatmapsetId = 1313117L
         ),
         Beatmap(
             id = 3L,
             title = "Megalovania",
             artist = "Toby Fox",
-            mapper = "Sample mapper"
+            mapper = "Kyshiro",
+            beatmapsetId = 387700L
         ),
         Beatmap(
             id = 4L,
             title = "Bad Apple!!",
             artist = "Masayoshi Minoshima",
-            mapper = "Sample mapper"
+            mapper = "Pisapou",
+            beatmapsetId = 1936770L
         )
     )
 
