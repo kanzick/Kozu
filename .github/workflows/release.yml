@@ -1,9 +1,9 @@
-name: Release APK
+name: Release Android APK
 
 on:
   push:
-    tags:
-      - '*'
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   release:
-    name: Release APK
+    name: Build and publish APK
     runs-on: ubuntu-latest
 
     steps:
@@ -51,14 +51,7 @@ jobs:
 
       - name: Set release version
         id: version
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "name=0.0.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
-          else
-            TAG_NAME="${GITHUB_REF#refs/tags/}"
-            CLEAN_TAG="${TAG_NAME#v}"
-            echo "name=${CLEAN_TAG}" >> "$GITHUB_OUTPUT"
-          fi
+        run: echo "name=1.0.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
 
       - name: Build signed release APK
         env:

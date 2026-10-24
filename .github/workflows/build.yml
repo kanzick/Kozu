@@ -2,13 +2,10 @@ name: Android Build
 
 on:
   push:
-    branches: [ "main", "dev" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "main", "dev" ]
-    paths-ignore:
-      - '**.md'
-      - 'LICENSE'
-      - '.github/**'
+    branches: [ "main" ]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -19,24 +16,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: checkout
+      - name: Checkout
         uses: actions/checkout@v7
 
-      - name: set up jdk
+      - name: Set up Java
         uses: actions/setup-java@v6
         with:
           java-version: '25'
           distribution: 'temurin'
 
-      - name: setup gradle
+      - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: grant execute permission for gradlew
-        run: |
-          sed -i 's/\r$//' gradlew
-          chmod +x gradlew
-      - name: compile code
-        run: ./gradlew compileDebugSources
+      - name: Build debug APK
+        run: ./gradlew :app:assembleDebug
 
-      - name: Clean Gradle Cache
-        run: ./gradlew clean
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v6
+        with:
+          name: kozu-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
