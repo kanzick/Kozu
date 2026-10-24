@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - '*'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -51,9 +52,13 @@ jobs:
       - name: Set release version
         id: version
         run: |
-          TAG_NAME="${GITHUB_REF#refs/tags/}"
-          CLEAN_TAG="${TAG_NAME#v}"
-          echo "name=${CLEAN_TAG}" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "name=0.0.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          else
+            TAG_NAME="${GITHUB_REF#refs/tags/}"
+            CLEAN_TAG="${TAG_NAME#v}"
+            echo "name=${CLEAN_TAG}" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Build signed release APK
         env:
