@@ -1,2 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources />
+<resources>
+    <color name="kozu_window_background">#FFFFF7F9</color>
+</resources>
