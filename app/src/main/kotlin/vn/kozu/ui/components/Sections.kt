@@ -26,7 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-/** Tiêu đề section kèm nút mũi tên tròn bên phải (tuỳ chọn). */
+
 @Composable
 fun SectionHeader(
     title: String,
@@ -70,7 +70,7 @@ fun SectionHeader(
     }
 }
 
-/** Trạng thái rỗng: biểu tượng trong khối tròn + tiêu đề + mô tả. */
+
 @Composable
 fun EmptyState(
     icon: ImageVector,
@@ -117,7 +117,7 @@ fun EmptyState(
     }
 }
 
-/** Hình bo góc cho danh sách phân đoạn: đầu/cuối bo lớn, giữa bo nhỏ. */
+
 fun segmentedShape(index: Int, count: Int, large: Dp = 26.dp, small: Dp = 6.dp): Shape {
     val top = if (index == 0) large else small
     val bottom = if (index == count - 1) large else small

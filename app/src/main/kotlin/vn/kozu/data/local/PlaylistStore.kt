@@ -20,7 +20,7 @@ class PlaylistStore(context: Context) {
 
     val playlists: Flow<List<Playlist>> = store.data.map { read(it) }
 
-    /** Tạo playlist mới (có thể kèm bài đầu tiên) và trả về id. */
+
     suspend fun create(name: String, firstTrack: Beatmap? = null): String {
         val id = UUID.randomUUID().toString()
         update { list ->

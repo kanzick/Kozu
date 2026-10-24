@@ -12,7 +12,7 @@ import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
 
-/** Lấy màu chủ đạo từ ảnh bìa để làm màu gốc của theme khi đang phát nhạc. */
+
 object ArtworkPalette {
 
     private const val TAG = "ArtworkPalette"

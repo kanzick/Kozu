@@ -6,7 +6,7 @@ import androidx.compose.ui.unit.sp
 
 private val base = Typography()
 
-/** Kiểu chữ "expressive": đậm, to, tracking chặt cho tiêu đề; thân chữ giữ dễ đọc. */
+
 val KozuTypography = Typography(
     displayLarge = base.displayLarge.copy(fontWeight = FontWeight.ExtraBold, letterSpacing = (-2).sp),
     displayMedium = base.displayMedium.copy(fontWeight = FontWeight.ExtraBold, letterSpacing = (-1.5).sp),

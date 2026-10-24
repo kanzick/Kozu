@@ -48,11 +48,11 @@ import vn.kozu.ui.components.BeatmapArt
 import vn.kozu.ui.components.bounceClick
 import kotlin.math.abs
 
-/**
- * Mini player nổi phía trên thanh điều hướng.
- * Dấu ấn riêng: ảnh bìa tròn xoay như đĩa, bao quanh bởi vòng tiến trình (approach circle của osu!).
- * Vuốt lên để mở player, vuốt ngang để chuyển bài.
- */
+
+
+
+
+
 @Composable
 fun MiniPlayer(
     beatmap: Beatmap,

@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Box
 
-/** Số thứ tự kiểu "hit circle" của osu! – chi tiết nhận diện riêng của Kozu. */
+
 @Composable
 fun HitCircle(
     number: Int,

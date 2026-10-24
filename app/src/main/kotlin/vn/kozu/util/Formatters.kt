@@ -4,13 +4,13 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/** 3:07 */
+
 fun formatTime(milliseconds: Long): String {
     val totalSeconds = (milliseconds / 1000).coerceAtLeast(0)
     return "%d:%02d".format(Locale.US, totalSeconds / 60, totalSeconds % 60)
 }
 
-/** 4h 35m / 12m / 0m */
+
 fun formatDuration(milliseconds: Long): String {
     val totalMinutes = (milliseconds / 60_000).coerceAtLeast(0)
     val hours = totalMinutes / 60
@@ -18,6 +18,6 @@ fun formatDuration(milliseconds: Long): String {
     return if (hours > 0) "${hours}h ${minutes}m" else "${minutes}m"
 }
 
-/** Khoá ngày dạng yyyy-MM-dd theo múi giờ máy. */
+
 fun dayKey(timeMillis: Long): String =
     SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(timeMillis))

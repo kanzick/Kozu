@@ -27,7 +27,7 @@ data class DiscoverState(
     val error: String? = null
 )
 
-/** Nguồn dữ liệu chung cho Home và Explore: tải lại khi đổi API key hoặc khi gọi refresh(). */
+
 class DiscoverFeed(
     private val catalog: BeatmapRepository,
     settings: SettingsStore

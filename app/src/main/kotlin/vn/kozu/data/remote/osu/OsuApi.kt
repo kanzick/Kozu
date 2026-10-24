@@ -9,7 +9,7 @@ import retrofit2.http.Query
 
 interface OsuApi {
 
-    /** OAuth client-credentials: https://osu.ppy.sh/docs/index.html#client-credentials-grant */
+
     @FormUrlEncoded
     @POST("/oauth/token")
     suspend fun requestToken(

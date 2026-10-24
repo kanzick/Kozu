@@ -88,7 +88,7 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // ---- Appearance ----
+
             SettingsGroup(
                 title = "Appearance",
                 items = listOf(
@@ -156,7 +156,7 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // ---- osu! API ----
+
             var clientId by remember(settings.osuClientId) { mutableStateOf(settings.osuClientId) }
             var clientSecret by remember(settings.osuClientSecret) { mutableStateOf(settings.osuClientSecret) }
             SettingsGroup(
@@ -242,7 +242,7 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // ---- Data ----
+
             SettingsGroup(
                 title = "Data",
                 items = listOf(

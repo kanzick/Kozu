@@ -14,10 +14,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 
-/**
- * Theme gốc của Kozu (Material 3 Expressive).
- * Đổi [seed] -> toàn bộ màu chuyển mượt sang bảng màu mới.
- */
+
+
+
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun KozuTheme(

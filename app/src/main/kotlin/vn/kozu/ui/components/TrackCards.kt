@@ -27,11 +27,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import vn.kozu.domain.model.Beatmap
 
-/**
- * Thẻ ảnh bìa vuông với tiêu đề bên dưới.
- * @param badge nhãn nhỏ trên ảnh (ví dụ "RANKED").
- * @param rank nếu có sẽ hiện số thứ tự kiểu hit-circle ở góc.
- */
+
+
+
+
+
 @Composable
 fun CoverCard(
     beatmap: Beatmap,
@@ -129,7 +129,7 @@ fun CoverCard(
     }
 }
 
-/** Viên thuốc nhỏ: ảnh tròn + tên + nghệ sĩ (dùng cho "Recently played"). */
+
 @Composable
 fun TrackPill(
     beatmap: Beatmap,

@@ -24,10 +24,10 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import vn.kozu.domain.model.Beatmap
 
-/**
- * Ảnh bìa với nền gradient theo theme làm placeholder (hiện khi đang tải, lỗi mạng hoặc bài demo).
- * @param large dùng ảnh banner độ phân giải cao (cho player / thẻ lớn) thay vì thumbnail.
- */
+
+
+
+
 @Composable
 fun BeatmapArt(
     beatmap: Beatmap,

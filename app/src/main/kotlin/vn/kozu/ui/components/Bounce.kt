@@ -11,10 +11,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import vn.kozu.ui.theme.KozuMotion
 
-/**
- * Click kèm hiệu ứng "nảy" co lại khi nhấn – cảm giác expressive cho nút và thẻ.
- * Chỉ gọi được trong composable (vì cần theo dõi trạng thái nhấn).
- */
+
+
+
+
 @Composable
 fun Modifier.bounceClick(
     enabled: Boolean = true,

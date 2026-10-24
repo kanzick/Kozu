@@ -14,17 +14,17 @@ import vn.kozu.util.dayKey
 
 data class PlayEvent(val beatmapId: Long, val at: Long)
 
-/** Lịch sử nghe: nhật ký lượt phát (cũ -> mới), metadata các bài, và thời gian nghe theo ngày. */
+
 data class History(
     val tracks: Map<Long, Beatmap> = emptyMap(),
     val events: List<PlayEvent> = emptyList(),
     val dailyMs: Map<String, Long> = emptyMap()
 ) {
-    /** Các bài nghe gần đây, mới nhất trước, không trùng. */
+
     val recent: List<Beatmap>
         get() = events.asReversed().map { it.beatmapId }.distinct().mapNotNull { tracks[it] }
 
-    /** Các bài nghe nhiều nhất mọi thời gian. */
+
     val mostPlayed: List<Beatmap>
         get() = events.groupingBy { it.beatmapId }.eachCount()
             .entries.sortedByDescending { it.value }

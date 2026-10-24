@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import vn.kozu.domain.model.Beatmap
 
-/** Ảnh ghép 2x2 từ 4 bài đầu của một bộ sưu tập (ô thiếu để trống). */
+
 @Composable
 fun MosaicCover(
     tracks: List<Beatmap>,

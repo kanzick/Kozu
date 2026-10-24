@@ -6,7 +6,7 @@ enum class SearchSort(val label: String, val apiValue: String?) {
     NEWEST("Newest", "ranked_desc")
 }
 
-/** Thể loại của osu! (tham số `g` của API). */
+
 enum class SearchCategory(val title: String, val genreId: Int, val emoji: String) {
     ANIME("Anime", 3, "🌸"),
     VIDEO_GAME("Video Game", 2, "🎮"),

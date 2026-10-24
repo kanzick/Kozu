@@ -44,7 +44,7 @@ class SearchViewModel(private val container: AppContainer) : ViewModel() {
 
     init {
         viewModelScope.launch {
-            // Gõ tới đâu tìm tới đó (chờ 350ms sau lần gõ cuối); đổi từ khoá thì huỷ yêu cầu cũ.
+
             request
                 .debounce(350)
                 .distinctUntilChanged { old, new ->
@@ -76,7 +76,7 @@ class SearchViewModel(private val container: AppContainer) : ViewModel() {
 
     fun useRecent(query: String) = push { it.copy(query = query) }
 
-    /** Gọi khi người dùng nhấn Search trên bàn phím hoặc chọn một kết quả. */
+
     fun remember() {
         val query = _ui.value.query
         viewModelScope.launch { container.settings.addRecentSearch(query) }

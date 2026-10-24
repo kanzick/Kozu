@@ -11,7 +11,7 @@ import vn.kozu.data.repository.BeatmapRepository
 import vn.kozu.data.repository.DiscoverFeed
 import vn.kozu.player.PlaybackController
 
-/** Nơi tạo và giữ các singleton của app (không dùng thư viện DI cho gọn). */
+
 class AppContainer(context: Context) {
     private val appContext = context.applicationContext
 

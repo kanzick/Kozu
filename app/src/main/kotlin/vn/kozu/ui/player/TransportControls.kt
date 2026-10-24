@@ -42,10 +42,10 @@ import vn.kozu.player.RepeatState
 import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.theme.KozuMotion
 
-/**
- * Hàng nút điều khiển kiểu "button group" của M3 Expressive:
- * nút đang bị nhấn nở rộng ra, nút phát/tạm dừng đổi hình giữa viên thuốc và hình vuông bo góc.
- */
+
+
+
+
 @Composable
 fun TransportControls(
     isPlaying: Boolean,
@@ -137,7 +137,7 @@ private fun RowScope.TransportButton(
     }
 }
 
-/** Dãy 3 nút phân đoạn: Shuffle – Repeat – Like. */
+
 @Composable
 fun PlayerToggleRow(
     shuffle: Boolean,

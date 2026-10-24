@@ -82,7 +82,7 @@ private fun SheetTrackHeader(beatmap: Beatmap) {
     }
 }
 
-/** Menu thao tác cho một bài hát. */
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TrackMenuSheet(
@@ -121,7 +121,7 @@ fun TrackMenuSheet(
     }
 }
 
-/** Chọn playlist để thêm bài, hoặc tạo playlist mới. */
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaylistPickerSheet(
@@ -174,7 +174,7 @@ fun PlaylistPickerSheet(
     }
 }
 
-/** Hộp thoại nhập tên playlist (tạo mới hoặc đổi tên). */
+
 @Composable
 fun NamePlaylistDialog(
     title: String,

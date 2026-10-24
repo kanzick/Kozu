@@ -1,10 +1,16 @@
 name: Release Android APK
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
+    inputs:
+      version_name:
+        description: Android versionName, for example 1.2.0
+        required: true
+        type: string
+      version_code:
+        description: Positive Android versionCode, greater than the previous release
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -29,7 +35,7 @@ jobs:
           distribution: temurin
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v3
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Validate signing secrets
         env:
@@ -37,11 +43,18 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          RELEASE_VERSION_NAME: ${{ inputs.version_name }}
+          RELEASE_VERSION_CODE: ${{ inputs.version_code }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           test -n "$ANDROID_KEYSTORE_BASE64" || { echo "::error::Missing ANDROID_KEYSTORE_BASE64 secret"; exit 1; }
           test -n "$ANDROID_KEYSTORE_PASSWORD" || { echo "::error::Missing ANDROID_KEYSTORE_PASSWORD secret"; exit 1; }
           test -n "$ANDROID_KEY_ALIAS" || { echo "::error::Missing ANDROID_KEY_ALIAS secret"; exit 1; }
           test -n "$ANDROID_KEY_PASSWORD" || { echo "::error::Missing ANDROID_KEY_PASSWORD secret"; exit 1; }
+          [[ "$RELEASE_VERSION_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::Version name must use MAJOR.MINOR.PATCH format"; exit 1; }
+          [[ "$RELEASE_VERSION_CODE" =~ ^[1-9][0-9]*$ ]] && [ "$RELEASE_VERSION_CODE" -le 2100000000 ] || { echo "::error::Version code must be an integer from 1 to 2100000000"; exit 1; }
+          tag_status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --header "Authorization: Bearer $GH_TOKEN" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/git/ref/tags/v$RELEASE_VERSION_NAME")"
+          [ "$tag_status" = "404" ] || { echo "::error::Release tag v$RELEASE_VERSION_NAME already exists or could not be checked"; exit 1; }
 
       - name: Prepare release keystore
         env:
@@ -49,18 +62,16 @@ jobs:
         run: |
           python3 -c 'import base64, os, pathlib; pathlib.Path(os.environ["RUNNER_TEMP"], "kozu-release.jks").write_bytes(base64.b64decode(os.environ["ANDROID_KEYSTORE_BASE64"], validate=True))'
 
-      - name: Set release version
-        id: version
-        run: echo "name=1.0.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
-
       - name: Build signed release APK
         env:
           ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/kozu-release.jks
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          APP_VERSION_NAME: ${{ inputs.version_name }}
+          APP_VERSION_CODE: ${{ inputs.version_code }}
         run: |
-          ./gradlew :app:assembleRelease "-PappVersion=${{ steps.version.outputs.name }}" "-PappVersionCode=$GITHUB_RUN_NUMBER"
+          ./gradlew :app:assembleRelease "-PappVersion=$APP_VERSION_NAME" "-PappVersionCode=$APP_VERSION_CODE"
 
       - name: Verify APK signature
         run: |
@@ -69,10 +80,10 @@ jobs:
           "$apksigner" verify --verbose app/build/outputs/apk/release/app-release.apk
 
       - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
-          tag_name: v${{ steps.version.outputs.name }}
-          name: Kozu v${{ steps.version.outputs.name }}
+          tag_name: v${{ inputs.version_name }}
+          name: Kozu v${{ inputs.version_name }}
           target_commitish: ${{ github.sha }}
           generate_release_notes: true
           fail_on_unmatched_files: true

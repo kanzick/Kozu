@@ -33,7 +33,7 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
     fun setArtworkColors(enabled: Boolean) = viewModelScope.launch { container.settings.setArtworkColors(enabled) }
     fun setDisplayName(name: String) = viewModelScope.launch { container.settings.setDisplayName(name) }
 
-    /** Lưu client id / secret rồi thử lấy token để báo kết quả ngay. */
+
     fun saveAndVerify(clientId: String, clientSecret: String) {
         viewModelScope.launch {
             _verify.value = VerifyState.Checking

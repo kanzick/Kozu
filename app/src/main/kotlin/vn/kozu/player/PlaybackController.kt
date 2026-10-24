@@ -34,10 +34,10 @@ import vn.kozu.domain.model.Beatmap
 import vn.kozu.util.dayKey
 import java.util.Locale
 
-/**
- * Cầu nối giữa UI và [PlaybackService].
- * Mọi màn hình (mini player, player, thông báo) đều đọc cùng một [state] nên luôn đồng bộ.
- */
+
+
+
+
 class PlaybackController(
     context: Context,
     private val history: HistoryStore
@@ -96,9 +96,9 @@ class PlaybackController(
         startTicker()
     }
 
-    // region ---- Commands ----
 
-    /** Phát danh sách [queue] bắt đầu từ [startIndex], giữ nguyên chế độ shuffle/repeat hiện tại. */
+
+
     fun playQueue(queue: List<Beatmap>, startIndex: Int = 0) {
         if (queue.isEmpty()) return
         withController { c ->
@@ -185,9 +185,9 @@ class PlaybackController(
         }
     }
 
-    // endregion
 
-    // region ---- Internals ----
+
+
 
     private fun withController(block: (MediaController) -> Unit) {
         val c = controller
@@ -242,7 +242,7 @@ class PlaybackController(
         )
     }
 
-    /** Vòng lặp nhẹ: cập nhật vị trí phát và cộng dồn thời gian nghe để lưu vào thống kê. */
+
     private fun startTicker() {
         scope.launch {
             var last = SystemClock.elapsedRealtime()
@@ -311,7 +311,7 @@ class PlaybackController(
             .setArtworkUri(thumbUrl?.toUri())
             .setExtras(extras)
             .build()
-        // Không có bản nghe thử online -> phát file demo đi kèm app.
+
         val uri = previewUrl ?: "android.resource://${appContext.packageName}/${R.raw.test}"
         return MediaItem.Builder()
             .setMediaId(id.toString())
@@ -332,7 +332,7 @@ class PlaybackController(
         )
     }
 
-    // endregion
+
 
     private companion object {
         const val TAG = "PlaybackController"

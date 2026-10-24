@@ -5,7 +5,6 @@ import org.json.JSONException
 import org.json.JSONObject
 import vn.kozu.domain.model.Beatmap
 
-/** (De)serialize Beatmap bằng org.json để không phụ thuộc reflection (an toàn với R8). */
 internal object BeatmapJson {
 
     fun encode(beatmap: Beatmap): JSONObject = JSONObject()

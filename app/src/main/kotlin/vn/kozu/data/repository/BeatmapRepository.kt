@@ -10,10 +10,10 @@ import vn.kozu.domain.model.SearchCategory
 import vn.kozu.domain.model.SearchSort
 import java.io.IOException
 
-/**
- * @param isSample true khi danh sách lấy từ dữ liệu mẫu (chưa có key hoặc lỗi mạng).
- * @param error mô tả lỗi (nếu có) để UI hiển thị.
- */
+
+
+
+
 data class CatalogResult(
     val items: List<Beatmap>,
     val isSample: Boolean,
@@ -51,7 +51,7 @@ class BeatmapRepository(
         fallback = { SampleBeatmaps.all.shuffled(java.util.Random(7)) }
     )
 
-    /** Kiểm tra credentials trong Settings. */
+
     suspend fun verifyCredentials(): Result<Unit> = try {
         val token = auth.bearer(force = true)
         if (token == null) Result.failure(IllegalStateException("Enter both client ID and secret first"))

@@ -26,9 +26,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
-/**
- * Thanh tiêu đề cố định phía trên, nền primaryContainer bo góc dưới – kéo dài xuống sau status bar.
- */
+
+
+
 @Composable
 fun ScreenHeader(
     modifier: Modifier = Modifier,
@@ -53,7 +53,7 @@ fun ScreenHeader(
     }
 }
 
-/** Tiêu đề lớn dùng cho Explore / Library / Search. */
+
 @Composable
 fun HeaderTitle(text: String) {
     Text(
@@ -63,7 +63,7 @@ fun HeaderTitle(text: String) {
     )
 }
 
-/** Nút tròn trong header (settings, search, ...). */
+
 @Composable
 fun HeaderAction(
     icon: ImageVector,

@@ -6,7 +6,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import vn.kozu.data.local.SettingsStore
 
-/** Lấy & cache access token từ client id / secret mà người dùng nhập trong Settings. */
+
 class OsuAuth(
     private val api: OsuApi,
     private val settings: SettingsStore
@@ -16,7 +16,7 @@ class OsuAuth(
     private var tokenOwner: String? = null
     private var expiresAtMs = 0L
 
-    /** Trả về null nếu chưa nhập credentials. Ném exception nếu server từ chối. */
+
     suspend fun bearer(force: Boolean = false): String? {
         return mutex.withLock {
             val current = settings.settings.first()

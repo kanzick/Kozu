@@ -29,10 +29,10 @@ import androidx.compose.ui.unit.dp
 import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.theme.KozuMotion
 
-/**
- * Thanh điều hướng nổi: 3 tab trong một viên thuốc (tab đang chọn nở ra kèm nhãn)
- * và nút Search tròn riêng bên phải.
- */
+
+
+
+
 @Composable
 fun FloatingNavBar(
     selected: KozuTab,

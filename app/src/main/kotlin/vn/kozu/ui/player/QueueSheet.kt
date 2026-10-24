@@ -36,7 +36,7 @@ import vn.kozu.ui.components.BeatmapArt
 import vn.kozu.ui.components.EqualizerBars
 import vn.kozu.ui.components.bounceClick
 
-/** Danh sách chờ phát: chạm để nhảy tới bài, bấm X để bỏ khỏi hàng chờ. */
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QueueSheet(
@@ -91,7 +91,11 @@ fun QueueSheet(
                             Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
                                 BeatmapArt(beatmap, Modifier.size(48.dp), shape = RoundedCornerShape(15.dp))
                                 if (isCurrent) {
-                                    EqualizerBars(isPlaying = isPlaying, color = Color.White)
+                                    EqualizerBars(
+                                        isPlaying = isPlaying,
+                                        color = Color.White,
+                                        modifier = Modifier.size(20.dp)
+                                    )
                                 }
                             }
                             Spacer(Modifier.width(12.dp))

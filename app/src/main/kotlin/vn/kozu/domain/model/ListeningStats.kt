@@ -4,16 +4,16 @@ import vn.kozu.data.local.History
 import vn.kozu.util.dayKey
 import java.util.Calendar
 
-/** Thống kê nghe nhạc từ đầu tuần (Thứ 2) đến hôm nay. */
+
 data class ListeningStats(
     val totalMs: Long = 0L,
     val plays: Int = 0,
     val avgPerDayMs: Long = 0L,
     val topTrack: Beatmap? = null,
     val topTrackPlays: Int = 0,
-    /** 7 giá trị, Thứ 2 -> Chủ nhật. */
+
     val dayMs: List<Long> = List(7) { 0L },
-    /** 0 = Thứ 2 ... 6 = Chủ nhật. */
+
     val todayIndex: Int = 0
 ) {
     companion object {

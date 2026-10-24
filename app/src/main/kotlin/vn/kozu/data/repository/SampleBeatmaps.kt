@@ -2,7 +2,7 @@ package vn.kozu.data.repository
 
 import vn.kozu.domain.model.Beatmap
 
-/** Dữ liệu mẫu, dùng khi chưa nhập osu! API key hoặc khi mất mạng. */
+
 object SampleBeatmaps {
 
     val all: List<Beatmap> = listOf(

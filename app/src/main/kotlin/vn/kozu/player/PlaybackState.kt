@@ -12,6 +12,6 @@ data class PlaybackState(
     val repeat: RepeatState = RepeatState.OFF,
     val queue: List<Beatmap> = emptyList(),
     val queueIndex: Int = -1,
-    /** Ví dụ "44.1 kHz • 128 kbps • MP3". */
+
     val audioInfo: String? = null
 )

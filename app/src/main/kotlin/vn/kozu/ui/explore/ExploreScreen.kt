@@ -227,7 +227,7 @@ fun ExploreScreen(
     }
 }
 
-/** Thẻ bộ sưu tập: lưới ảnh 2x2 + tên + số bài + nút phát. */
+
 @Composable
 private fun CollectionCard(collection: LibraryCollection, onClick: () -> Unit) {
     Surface(

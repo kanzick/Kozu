@@ -79,7 +79,7 @@ import vn.kozu.ui.theme.KozuMotion
 import vn.kozu.ui.theme.KozuTheme
 import vn.kozu.ui.theme.OsuPink
 
-/** Gốc của app: chọn màu theme (hồng osu! hoặc màu ảnh bìa khi đang phát) rồi dựng giao diện. */
+
 @Composable
 fun KozuApp() {
     val context = LocalContext.current
@@ -96,7 +96,7 @@ fun KozuApp() {
         ThemeMode.DARK -> true
     }
 
-    // Đang phát -> theo màu bài hát; tạm dừng / không phát -> màu chính của app.
+
     var artworkSeed by remember { mutableStateOf<Color?>(null) }
     val currentArt = state.current?.thumbUrl
     LaunchedEffect(currentArt, settings.artworkColors) {
@@ -135,7 +135,7 @@ private fun KozuShell(container: vn.kozu.di.AppContainer) {
     var menuTarget by remember { mutableStateOf<Beatmap?>(null) }
     var playlistTarget by remember { mutableStateOf<Beatmap?>(null) }
 
-    // Chiều cao khối mini player + thanh điều hướng -> chừa chỗ cuối danh sách.
+
     val density = LocalDensity.current
     var chromeHeightPx by remember { mutableIntStateOf(0) }
     val bottomPadding = with(density) { chromeHeightPx.toDp() } + 16.dp
@@ -165,12 +165,12 @@ private fun KozuShell(container: vn.kozu.di.AppContainer) {
         }
     }
 
-    // Báo lỗi phát nhạc bằng snackbar.
+
     LaunchedEffect(playback) {
         playback.messages.collect { notify(it) }
     }
 
-    // Xin quyền thông báo (Android 13+) khi bắt đầu có nhạc, để điều khiển được từ thanh thông báo.
+
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
     var askedNotifications by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(state.current != null) {
@@ -233,7 +233,7 @@ private fun KozuShell(container: vn.kozu.di.AppContainer) {
                 }
             }
 
-            // Mini player + thanh điều hướng nổi.
+
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -267,7 +267,7 @@ private fun KozuShell(container: vn.kozu.di.AppContainer) {
                     .padding(bottom = bottomPadding)
             )
 
-            // Settings.
+
             AnimatedVisibility(
                 visible = settingsOpen,
                 enter = slideInHorizontally(KozuMotion.spatial()) { it } + fadeIn(),
@@ -277,7 +277,7 @@ private fun KozuShell(container: vn.kozu.di.AppContainer) {
             }
             if (settingsOpen) BackHandler { settingsOpen = false }
 
-            // Now Playing.
+
             AnimatedVisibility(
                 visible = playerOpen && state.current != null,
                 enter = slideInVertically(KozuMotion.spatial()) { it } + fadeIn(),
@@ -307,7 +307,7 @@ private fun KozuShell(container: vn.kozu.di.AppContainer) {
             if (playerOpen) BackHandler { playerOpen = false }
         }
 
-        // Menu thao tác bài hát + chọn playlist.
+
         menuTarget?.let { beatmap ->
             TrackMenuSheet(
                 beatmap = beatmap,

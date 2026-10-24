@@ -26,13 +26,13 @@ jobs:
           distribution: 'temurin'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v3
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Build debug APK
         run: ./gradlew :app:assembleDebug
 
       - name: Upload debug APK
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: kozu-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk

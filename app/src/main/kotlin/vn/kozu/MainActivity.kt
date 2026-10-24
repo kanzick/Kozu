@@ -15,7 +15,7 @@ class MainActivity : ComponentActivity() {
         setContent { KozuApp() }
     }
 
-    /** Ưu tiên tần số quét cao nhất của màn hình để animation mượt hơn. */
+
     private fun preferHighRefreshRate() {
         val display = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             display

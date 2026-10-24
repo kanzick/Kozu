@@ -6,14 +6,14 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 
-/** Màu chính của app: hồng osu! (#FF66AA). */
+
 val OsuPink = Color(0xFFFF66AA)
 
-/**
- * Sinh toàn bộ ColorScheme Material 3 từ một màu gốc.
- * - Màu gốc = [OsuPink] khi không phát nhạc.
- * - Màu gốc = màu ảnh bìa khi đang phát.
- */
+
+
+
+
+
 fun kozuColorScheme(seed: Color, dark: Boolean, amoled: Boolean = false): ColorScheme {
     val lch = Oklch.fromColor(seed)
     val isGray = lch.c < 0.035
@@ -109,7 +109,7 @@ fun kozuColorScheme(seed: Color, dark: Boolean, amoled: Boolean = false): ColorS
     }
 }
 
-/** Nội suy giữa hai ColorScheme – dùng để chuyển màu mượt khi đổi bài / dừng nhạc. */
+
 internal fun lerpColorScheme(a: ColorScheme, b: ColorScheme, fraction: Float): ColorScheme = a.copy(
     primary = lerp(a.primary, b.primary, fraction),
     onPrimary = lerp(a.onPrimary, b.onPrimary, fraction),

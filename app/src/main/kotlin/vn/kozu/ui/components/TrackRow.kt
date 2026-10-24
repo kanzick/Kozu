@@ -30,10 +30,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import vn.kozu.domain.model.Beatmap
 
-/**
- * Hàng bài hát chuẩn: ảnh bìa (có equalizer khi đang phát), tên, nghệ sĩ, tim, menu.
- * Trạng thái "đang phát" và "đã thích" lấy từ CompositionLocal nên luôn đồng bộ.
- */
+
+
+
+
 @Composable
 fun TrackRow(
     beatmap: Beatmap,
@@ -69,7 +69,11 @@ fun TrackRow(
                             .background(Color.Black.copy(alpha = 0.38f), RoundedCornerShape(18.dp)),
                         contentAlignment = Alignment.Center
                     ) {
-                        EqualizerBars(isPlaying = nowPlaying.isPlaying, color = Color.White)
+                        EqualizerBars(
+                            isPlaying = nowPlaying.isPlaying,
+                            color = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 }
             }

@@ -1,7 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
-    <!-- Nền cửa sổ hiển thị trước khi Compose vẽ xong (tránh nháy trắng) -->
     <color name="kozu_window_background">#FFFFF7F9</color>
 </resources>

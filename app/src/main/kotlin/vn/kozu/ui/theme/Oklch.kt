@@ -7,10 +7,10 @@ import kotlin.math.hypot
 import kotlin.math.pow
 import kotlin.math.sin
 
-/**
- * Không gian màu OKLCH (Björn Ottosson) – đủ đều về cảm nhận để sinh bảng màu "tonal"
- * kiểu Material 3 mà không cần thêm thư viện.
- */
+
+
+
+
 internal object Oklch {
 
     data class Lch(val l: Double, val c: Double, val h: Double)
@@ -33,7 +33,7 @@ internal object Oklch {
         return Lch(lightness, hypot(a, bb), hue)
     }
 
-    /** Chuyển OKLCH -> sRGB; nếu vượt gam màu thì giảm chroma cho vừa. */
+
     fun toColor(lightness: Double, chroma: Double, hue: Double): Color {
         var c = chroma
         if (!inGamut(lightness, c, hue)) {
@@ -85,7 +85,7 @@ internal object Oklch {
     private const val EPSILON = 1e-4
 }
 
-/** Bảng "tone" 0..100 (theo độ sáng L* của Material) cho một cặp hue/chroma. */
+
 internal class TonalPalette(private val hue: Double, private val chroma: Double) {
 
     private val cache = HashMap<Int, Color>()

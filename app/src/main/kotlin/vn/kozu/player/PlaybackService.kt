@@ -9,10 +9,6 @@ import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import vn.kozu.MainActivity
 
-/**
- * Phát nhạc nền + thông báo điều khiển (khoá màn hình, tai nghe, Bluetooth...).
- * UI kết nối tới service này qua [PlaybackController] (MediaController).
- */
 class PlaybackService : MediaSessionService() {
 
     private var session: MediaSession? = null
@@ -26,7 +22,7 @@ class PlaybackService : MediaSessionService() {
                     .setUsage(C.USAGE_MEDIA)
                     .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
                     .build(),
-                /* handleAudioFocus = */ true
+                true
             )
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_NETWORK)

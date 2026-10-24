@@ -17,12 +17,12 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
-/** 4 thanh equalizer nhảy theo nhịp khi đang phát, đứng yên khi tạm dừng. */
+
 @Composable
 fun EqualizerBars(
     isPlaying: Boolean,
     color: Color,
-    modifier: Modifier = Modifier.size(20.dp)
+    modifier: Modifier = Modifier
 ) {
     val transition = rememberInfiniteTransition(label = "equalizer")
     val a by transition.animateFloat(0.25f, 1f, infiniteRepeatable(tween(480, easing = LinearEasing), RepeatMode.Reverse), label = "a")

@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import vn.kozu.domain.model.Beatmap
 
-/** Danh sách bài đã thích (mới thích nằm trên cùng). Lưu cả metadata để hiển thị được khi offline. */
+
 class FavoritesStore(context: Context) {
 
     private val store = context.applicationContext.kozuDataStore

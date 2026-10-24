@@ -10,7 +10,7 @@ import vn.kozu.di.AppContainer
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.ui.containerFactory
 
-/** Một bộ sưu tập hiển thị ở "Your Library": bài đã thích, nghe nhiều, hoặc playlist. */
+
 data class LibraryCollection(
     val id: String,
     val title: String,

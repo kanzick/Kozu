@@ -234,7 +234,7 @@ private fun RecentSearches(
     }
 }
 
-/** Lưới thể loại: mỗi ô một màu và một hình khác nhau. */
+
 @Composable
 private fun BrowseAll(onPick: (SearchCategory) -> Unit) {
     val colors = MaterialTheme.colorScheme

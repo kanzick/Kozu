@@ -21,10 +21,10 @@ val KozuShapes = Shapes(
     extraLarge = RoundedCornerShape(40.dp)
 )
 
-/**
- * Hình "bánh quy" (cookie) có [sides] múi – dấu ấn nhận diện của Kozu, gợi nhớ hit-circle / slider của osu!.
- * @param depth độ lõm giữa các múi (0 = tròn).
- */
+
+
+
+
 class CookieShape(
     private val sides: Int,
     private val depth: Float = 0.06f,
@@ -39,7 +39,7 @@ class CookieShape(
         val rotation = Math.toRadians(rotationDegrees.toDouble()).toFloat()
         for (i in 0..steps) {
             val t = (i.toFloat() / steps) * 2f * PI.toFloat()
-            // r nằm trong [1 - 2*depth, 1]; đỉnh múi chạm mép khung.
+
             val r = 1f - depth + depth * cos(sides * t)
             val x = cx + cx * r * cos(t + rotation)
             val y = cy + cy * r * sin(t + rotation)
@@ -50,7 +50,7 @@ class CookieShape(
     }
 }
 
-/** Bộ hình dùng xoay vòng để các thẻ ảnh bìa trông đa dạng. */
+
 object KozuCookies {
     val Soft9 = CookieShape(sides = 9, depth = 0.045f)
     val Bold6 = CookieShape(sides = 6, depth = 0.06f, rotationDegrees = 30f)

@@ -57,7 +57,7 @@ import vn.kozu.ui.theme.KozuMotion
 import vn.kozu.util.formatTime
 import kotlin.math.abs
 
-/** Màn hình Now Playing toàn màn hình. */
+
 @Composable
 fun PlayerScreen(
     beatmap: Beatmap,
@@ -103,7 +103,7 @@ fun PlayerScreen(
                     )
                 )
             )
-            // Chặn chạm xuyên xuống màn hình bên dưới.
+
             .pointerInput(Unit) { detectTapGestures { } }
     ) {
         Column(
@@ -118,7 +118,7 @@ fun PlayerScreen(
 
             Spacer(Modifier.height(20.dp))
 
-            // Ảnh bìa: vuốt xuống để đóng, vuốt ngang để đổi bài.
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()

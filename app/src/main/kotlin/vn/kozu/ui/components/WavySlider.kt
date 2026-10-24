@@ -29,14 +29,14 @@ import kotlin.math.PI
 import kotlin.math.sin
 import vn.kozu.ui.theme.KozuMotion
 
-/**
- * Thanh tiến trình dạng sóng (Material 3 Expressive) – gợi nhớ đường slider của osu!.
- * Sóng chạy khi đang phát và phẳng lại khi tạm dừng / đang kéo.
- *
- * @param progress 0..1
- * @param onScrub gọi liên tục khi người dùng kéo (để cập nhật nhãn thời gian)
- * @param onScrubFinished gọi khi thả tay hoặc chạm một vị trí, kèm phần trăm cuối cùng
- */
+
+
+
+
+
+
+
+
 @Composable
 fun WavySlider(
     progress: Float,
@@ -114,7 +114,7 @@ fun WavySlider(
         val waveLength = 30.dp.toPx()
         val waveAmp = 4.dp.toPx() * amplitude
 
-        // Phần chưa phát: đường thẳng.
+
         val inactiveStart = (thumbX + gap).coerceAtMost(size.width)
         if (inactiveStart < size.width) {
             drawLine(
@@ -126,7 +126,7 @@ fun WavySlider(
             )
         }
 
-        // Phần đã phát: đường sóng.
+
         val activeEnd = (thumbX - gap).coerceAtLeast(0f)
         if (activeEnd > 0f) {
             val path = Path()
@@ -144,7 +144,7 @@ fun WavySlider(
             )
         }
 
-        // Núm kéo: thanh dọc bo tròn.
+
         val thumbW = thumbWidth.dp.toPx()
         val thumbH = 24.dp.toPx()
         drawRoundRect(

@@ -5,7 +5,7 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.staticCompositionLocalOf
 import vn.kozu.domain.model.Beatmap
 
-/** Các hành động có thể làm trên bài hát, dùng chung cho mọi màn hình. */
+
 interface TrackActions {
     fun play(queue: List<Beatmap>, index: Int)
     fun playShuffled(queue: List<Beatmap>)

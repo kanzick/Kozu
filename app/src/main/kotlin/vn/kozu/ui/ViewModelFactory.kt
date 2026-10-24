@@ -11,7 +11,7 @@ import vn.kozu.di.AppContainer
 internal fun CreationExtras.container(): AppContainer =
     (this[APPLICATION_KEY] as KozuApplication).container
 
-/** Tạo ViewModelProvider.Factory cho ViewModel nhận [AppContainer]. */
+
 internal inline fun <reified VM : ViewModel> containerFactory(
     crossinline create: (AppContainer) -> VM
 ) = viewModelFactory {
