@@ -30,10 +30,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import vn.kozu.domain.model.Beatmap
 
-
-
-
-
 @Composable
 fun TrackRow(
     beatmap: Beatmap,

@@ -8,7 +8,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import vn.kozu.domain.model.Beatmap
 
-
 class FavoritesStore(context: Context) {
 
     private val store = context.applicationContext.kozuDataStore

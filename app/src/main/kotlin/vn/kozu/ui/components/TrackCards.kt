@@ -27,11 +27,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import vn.kozu.domain.model.Beatmap
 
-
-
-
-
-
 @Composable
 fun CoverCard(
     beatmap: Beatmap,
@@ -128,7 +123,6 @@ fun CoverCard(
         )
     }
 }
-
 
 @Composable
 fun TrackPill(

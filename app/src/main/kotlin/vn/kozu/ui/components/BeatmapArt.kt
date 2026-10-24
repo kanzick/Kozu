@@ -24,10 +24,6 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import vn.kozu.domain.model.Beatmap
 
-
-
-
-
 @Composable
 fun BeatmapArt(
     beatmap: Beatmap,

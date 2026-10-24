@@ -34,17 +34,12 @@ import vn.kozu.domain.model.Beatmap
 import vn.kozu.util.dayKey
 import java.util.Locale
 
-
-
-
-
 class PlaybackController(
     context: Context,
     private val history: HistoryStore
 ) {
     private val appContext = context.applicationContext
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-
     private var controller: MediaController? = null
     private val pendingCommands = ArrayList<(MediaController) -> Unit>()
     private var cachedQueue: List<Beatmap> = emptyList()
@@ -95,8 +90,6 @@ class PlaybackController(
         connect()
         startTicker()
     }
-
-
 
 
     fun playQueue(queue: List<Beatmap>, startIndex: Int = 0) {
@@ -184,9 +177,6 @@ class PlaybackController(
             c.addMediaItem(beatmap.toMediaItem())
         }
     }
-
-
-
 
 
     private fun withController(block: (MediaController) -> Unit) {
@@ -331,8 +321,6 @@ class PlaybackController(
             hasPreview = extras.getBoolean(KEY_PREVIEW, true)
         )
     }
-
-
 
     private companion object {
         const val TAG = "PlaybackController"

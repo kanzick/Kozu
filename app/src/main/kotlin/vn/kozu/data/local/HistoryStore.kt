@@ -14,7 +14,6 @@ import vn.kozu.util.dayKey
 
 data class PlayEvent(val beatmapId: Long, val at: Long)
 
-
 data class History(
     val tracks: Map<Long, Beatmap> = emptyMap(),
     val events: List<PlayEvent> = emptyList(),
@@ -32,12 +31,10 @@ data class History(
 }
 
 class HistoryStore(context: Context) {
-
     private val store = context.applicationContext.kozuDataStore
     private val tracksKey = stringPreferencesKey("history_tracks_v1")
     private val eventsKey = stringPreferencesKey("history_events_v1")
     private val dailyKey = stringPreferencesKey("history_daily_v1")
-
     val history: Flow<History> = store.data.map { read(it) }
 
     suspend fun recordPlay(beatmap: Beatmap, at: Long = System.currentTimeMillis()) {

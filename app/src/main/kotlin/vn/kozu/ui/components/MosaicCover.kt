@@ -14,7 +14,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import vn.kozu.domain.model.Beatmap
 
-
 @Composable
 fun MosaicCover(
     tracks: List<Beatmap>,

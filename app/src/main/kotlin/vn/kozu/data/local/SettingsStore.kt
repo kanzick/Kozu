@@ -42,7 +42,6 @@ class SettingsStore(context: Context) {
     suspend fun setAmoled(enabled: Boolean) = store.edit { it[Keys.amoled] = enabled }
     suspend fun setArtworkColors(enabled: Boolean) = store.edit { it[Keys.artworkColors] = enabled }
     suspend fun setDisplayName(name: String) = store.edit { it[Keys.displayName] = name.trim().take(24) }
-
     suspend fun setOsuCredentials(clientId: String, clientSecret: String) = store.edit {
         it[Keys.clientId] = clientId.trim()
         it[Keys.clientSecret] = clientSecret.trim()

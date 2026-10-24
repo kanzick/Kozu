@@ -70,7 +70,12 @@ private fun SheetTrackHeader(beatmap: Beatmap) {
         BeatmapArt(beatmap, Modifier.size(56.dp), shape = RoundedCornerShape(18.dp))
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
-            Text(beatmap.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                beatmap.title,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
             Text(
                 beatmap.artist,
                 style = MaterialTheme.typography.bodyMedium,
@@ -81,7 +86,6 @@ private fun SheetTrackHeader(beatmap: Beatmap) {
         }
     }
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -120,7 +124,6 @@ fun TrackMenuSheet(
         }
     }
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -173,7 +176,6 @@ fun PlaylistPickerSheet(
         )
     }
 }
-
 
 @Composable
 fun NamePlaylistDialog(

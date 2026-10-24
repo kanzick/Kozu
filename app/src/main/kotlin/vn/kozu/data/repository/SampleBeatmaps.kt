@@ -2,7 +2,6 @@ package vn.kozu.data.repository
 
 import vn.kozu.domain.model.Beatmap
 
-
 object SampleBeatmaps {
 
     val all: List<Beatmap> = listOf(
@@ -20,8 +19,8 @@ object SampleBeatmaps {
         if (normalized.isBlank()) return all
         return all.filter {
             it.title.contains(normalized, ignoreCase = true) ||
-                it.artist.contains(normalized, ignoreCase = true) ||
-                it.mapper.contains(normalized, ignoreCase = true)
+                    it.artist.contains(normalized, ignoreCase = true) ||
+                    it.mapper.contains(normalized, ignoreCase = true)
         }
     }
 }

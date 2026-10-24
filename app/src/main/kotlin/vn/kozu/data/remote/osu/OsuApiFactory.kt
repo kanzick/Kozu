@@ -7,7 +7,6 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object OsuApiFactory {
-
     private const val BASE_URL = "https://osu.ppy.sh/api/v2/"
 
     fun create(): OsuApi {

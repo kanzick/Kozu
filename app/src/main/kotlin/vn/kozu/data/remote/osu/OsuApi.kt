@@ -8,8 +8,6 @@ import retrofit2.http.POST
 import retrofit2.http.Query
 
 interface OsuApi {
-
-
     @FormUrlEncoded
     @POST("/oauth/token")
     suspend fun requestToken(

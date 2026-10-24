@@ -5,7 +5,6 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.staticCompositionLocalOf
 import vn.kozu.domain.model.Beatmap
 
-
 interface TrackActions {
     fun play(queue: List<Beatmap>, index: Int)
     fun playShuffled(queue: List<Beatmap>)

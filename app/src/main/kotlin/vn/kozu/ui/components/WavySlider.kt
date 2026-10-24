@@ -29,14 +29,6 @@ import kotlin.math.PI
 import kotlin.math.sin
 import vn.kozu.ui.theme.KozuMotion
 
-
-
-
-
-
-
-
-
 @Composable
 fun WavySlider(
     progress: Float,
@@ -113,8 +105,6 @@ fun WavySlider(
         val thumbX = (size.width * progress.coerceIn(0f, 1f)).coerceIn(0f, size.width)
         val waveLength = 30.dp.toPx()
         val waveAmp = 4.dp.toPx() * amplitude
-
-
         val inactiveStart = (thumbX + gap).coerceAtMost(size.width)
         if (inactiveStart < size.width) {
             drawLine(
@@ -125,7 +115,6 @@ fun WavySlider(
                 cap = StrokeCap.Round
             )
         }
-
 
         val activeEnd = (thumbX - gap).coerceAtLeast(0f)
         if (activeEnd > 0f) {
@@ -143,7 +132,6 @@ fun WavySlider(
                 style = Stroke(width = stroke, cap = StrokeCap.Round, join = StrokeJoin.Round)
             )
         }
-
 
         val thumbW = thumbWidth.dp.toPx()
         val thumbH = 24.dp.toPx()

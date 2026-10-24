@@ -15,7 +15,6 @@ class MainActivity : ComponentActivity() {
         setContent { KozuApp() }
     }
 
-
     private fun preferHighRefreshRate() {
         val display = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             display

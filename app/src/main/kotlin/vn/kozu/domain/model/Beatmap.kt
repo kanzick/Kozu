@@ -1,10 +1,5 @@
 package vn.kozu.domain.model
 
-
-
-
-
-
 data class Beatmap(
     val id: Long,
     val title: String,

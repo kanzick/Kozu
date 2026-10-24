@@ -9,8 +9,7 @@ import vn.kozu.data.local.SettingsStore
 
 class OsuAuth(
     private val api: OsuApi,
-    private val settings: SettingsStore
-) {
+    private val settings: SettingsStore) {
     private val mutex = Mutex()
     private var token: String? = null
     private var tokenOwner: String? = null

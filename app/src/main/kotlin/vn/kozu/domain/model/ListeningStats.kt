@@ -4,7 +4,6 @@ import vn.kozu.data.local.History
 import vn.kozu.util.dayKey
 import java.util.Calendar
 
-
 data class ListeningStats(
     val totalMs: Long = 0L,
     val plays: Int = 0,
@@ -26,7 +25,6 @@ data class ListeningStats(
             cal.set(Calendar.MILLISECOND, 0)
             cal.add(Calendar.DAY_OF_YEAR, -todayIndex)
             val weekStart = cal.timeInMillis
-
             val dayMs = List(7) { index ->
                 val day = (cal.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, index) }
                 history.dailyMs[dayKey(day.timeInMillis)] ?: 0L

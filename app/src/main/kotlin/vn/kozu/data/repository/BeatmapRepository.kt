@@ -10,10 +10,6 @@ import vn.kozu.domain.model.SearchCategory
 import vn.kozu.domain.model.SearchSort
 import java.io.IOException
 
-
-
-
-
 data class CatalogResult(
     val items: List<Beatmap>,
     val isSample: Boolean,
@@ -105,7 +101,8 @@ class BeatmapRepository(
             429 -> "osu! rate limit reached, try again shortly"
             else -> "osu! API error (HTTP ${e.code()})"
         }
-        is IOException -> "No connection to osu!"
+
+                is IOException -> "No connection to osu!"
         else -> e.message ?: "Unknown error"
     }
 }
