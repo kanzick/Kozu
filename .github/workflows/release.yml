@@ -195,7 +195,7 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ inputs.version_name }}
-          name: Kozu v${{ inputs.version_name }}
+          name: v${{ inputs.version_name }}
           target_commitish: ${{ github.sha }}
           generate_release_notes: true
           prerelease: ${{ inputs.prerelease }}
