@@ -12,12 +12,12 @@ on:
         required: false
         type: string
       minify:
-        description: Shrink and optimize with R8 (smaller and faster, but test it first)
+        description: Shrink/optimize with R8 (smaller and faster, but test it first)
         required: false
         type: boolean
         default: false
       smoke_test:
-        description: Install and launch the APK on an emulator before publishing
+        description: Test the APK on an emulator before publishing
         required: false
         type: boolean
         default: true
