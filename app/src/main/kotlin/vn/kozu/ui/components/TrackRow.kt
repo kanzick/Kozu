@@ -13,9 +13,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.DownloadDone
+import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -28,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import vn.kozu.data.download.DownloadStatus
 import vn.kozu.domain.model.Beatmap
 
 @Composable
@@ -42,6 +46,7 @@ fun TrackRow(
     val nowPlaying = LocalNowPlaying.current
     val favorites = LocalFavoriteIds.current
     val actions = LocalTrackActions.current
+    val downloads = LocalDownloads.current
     val isCurrent = nowPlaying.beatmapId == beatmap.id
     val isFavorite = beatmap.id in favorites
 
@@ -89,15 +94,12 @@ fun TrackRow(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                if (beatmap.mapper.isNotBlank()) {
-                    Text(
-                        text = "Mapped by ${beatmap.mapper}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
+                DownloadBadge(
+                    isDownloaded = beatmap.id in downloads.downloaded,
+                    isOutdated = beatmap.id in downloads.outdated,
+                    status = downloads.active[beatmap.id],
+                    mapper = beatmap.mapper
+                )
             }
             if (trailing != null) {
                 trailing()
@@ -119,6 +121,70 @@ fun TrackRow(
                     }
                 }
             }
+        }
+    }
+}
+
+
+@Composable
+private fun DownloadBadge(
+    isDownloaded: Boolean,
+    isOutdated: Boolean,
+    status: DownloadStatus?,
+    mapper: String
+) {
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        when {
+            status is DownloadStatus.Running -> {
+                if (status.progress < 0f) {
+                    CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 2.dp)
+                } else {
+                    CircularProgressIndicator(
+                        progress = { status.progress },
+                        modifier = Modifier.size(12.dp),
+                        strokeWidth = 2.dp
+                    )
+                }
+                Spacer(Modifier.width(6.dp))
+                Text("Downloading", style = MaterialTheme.typography.labelSmall, color = muted)
+            }
+            status is DownloadStatus.Queued -> {
+                CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 2.dp)
+                Spacer(Modifier.width(6.dp))
+                Text("Queued", style = MaterialTheme.typography.labelSmall, color = muted)
+            }
+            status is DownloadStatus.Failed -> {
+                Icon(
+                    Icons.Rounded.ErrorOutline,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.error
+                )
+                Spacer(Modifier.width(6.dp))
+                Text("Download failed", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+            }
+            isDownloaded -> {
+                Icon(
+                    Icons.Rounded.DownloadDone,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    if (isOutdated) "Offline · update available" else "Offline",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            mapper.isNotBlank() -> Text(
+                text = "Mapped by $mapper",
+                style = MaterialTheme.typography.labelSmall,
+                color = muted,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }

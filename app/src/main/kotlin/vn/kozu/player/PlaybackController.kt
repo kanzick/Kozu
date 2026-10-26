@@ -28,7 +28,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import vn.kozu.R
+import vn.kozu.data.mirror.StreamResolver
 import vn.kozu.data.local.HistoryStore
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.util.dayKey
@@ -36,7 +36,8 @@ import java.util.Locale
 
 class PlaybackController(
     context: Context,
-    private val history: HistoryStore
+    private val history: HistoryStore,
+    private val streams: StreamResolver
 ) {
     private val appContext = context.applicationContext
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -271,7 +272,9 @@ class PlaybackController(
                 break
             }
         }
-        val parts = ArrayList<String>(3)
+        val parts = ArrayList<String>(4)
+        val currentId = c.currentMediaItem?.mediaId?.toLongOrNull()
+        currentId?.let { streams.labelFor(it) }?.let { parts.add(it) }
         if (format.sampleRate > 0) parts.add(String.format(Locale.US, "%.1f kHz", format.sampleRate / 1000f))
         if (format.bitrate > 0) parts.add("${format.bitrate / 1000} kbps")
         codecName(format.sampleMimeType)?.let { parts.add(it) }
@@ -293,16 +296,16 @@ class PlaybackController(
             putLong(KEY_ID, id)
             putString(KEY_MAPPER, mapper)
             putString(KEY_STATUS, status)
-            putBoolean(KEY_PREVIEW, hasPreview)
+            putLong(KEY_UPDATED, updatedAt)
         }
         val metadata = MediaMetadata.Builder()
             .setTitle(title)
             .setArtist(artist)
-            .setArtworkUri(thumbUrl?.toUri())
+            .setArtworkUri(thumbUrl.toUri())
             .setExtras(extras)
             .build()
 
-        val uri = previewUrl ?: "android.resource://${appContext.packageName}/${R.raw.test}"
+        val uri = "$SET_SCHEME://$id"
         return MediaItem.Builder()
             .setMediaId(id.toString())
             .setUri(uri)
@@ -318,16 +321,17 @@ class PlaybackController(
             artist = mediaMetadata.artist?.toString().orEmpty(),
             mapper = extras.getString(KEY_MAPPER).orEmpty(),
             status = extras.getString(KEY_STATUS).orEmpty(),
-            hasPreview = extras.getBoolean(KEY_PREVIEW, true)
+            updatedAt = extras.getLong(KEY_UPDATED)
         )
     }
 
-    private companion object {
+    companion object {
         const val TAG = "PlaybackController"
         const val FLUSH_INTERVAL_MS = 10_000L
         const val KEY_ID = "kozu.id"
         const val KEY_MAPPER = "kozu.mapper"
         const val KEY_STATUS = "kozu.status"
-        const val KEY_PREVIEW = "kozu.preview"
+        const val KEY_UPDATED = "kozu.updated"
+        const val SET_SCHEME = "kozu-set"
     }
 }

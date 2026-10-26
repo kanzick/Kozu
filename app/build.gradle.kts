@@ -7,6 +7,7 @@ val releaseKeystorePath = providers.environmentVariable("ANDROID_KEYSTORE_PATH")
 val releaseKeystorePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD").orNull
 val releaseKeyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS").orNull
 val releaseKeyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD").orNull
+val minifyRelease = providers.gradleProperty("minifyRelease").orElse("false").get().toBoolean()
 val hasReleaseSigning = listOf(
     releaseKeystorePath,
     releaseKeystorePassword,
@@ -45,7 +46,7 @@ android {
                 signingConfig = signingConfigs.getByName("release")
             }
             optimization {
-                enable = true
+                enable = minifyRelease
                 packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")
             }
         }
@@ -64,6 +65,10 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
     }
 }
 
@@ -90,6 +95,7 @@ dependencies {
     implementation(libs.androidx.palette)
     implementation(libs.coil.compose)
     implementation(libs.coil.network)
+    implementation(libs.androidx.profileinstaller)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

@@ -47,16 +47,14 @@ fun BeatmapArt(
             tint = colors.onPrimaryContainer.copy(alpha = 0.55f),
             modifier = Modifier.size(28.dp)
         )
-        if (url != null) {
-            val request = remember(url) {
-                ImageRequest.Builder(context).data(url).crossfade(300).build()
-            }
-            AsyncImage(
-                model = request,
-                contentDescription = "${beatmap.title} cover",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
+        val request = remember(url) {
+            ImageRequest.Builder(context).data(url).crossfade(200).build()
         }
+        AsyncImage(
+            model = request,
+            contentDescription = "${beatmap.title} cover",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
     }
 }

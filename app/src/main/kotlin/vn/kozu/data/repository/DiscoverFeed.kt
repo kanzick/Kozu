@@ -10,11 +10,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import vn.kozu.data.local.AccountStore
 import vn.kozu.data.local.SettingsStore
 import vn.kozu.domain.model.Beatmap
 
@@ -27,10 +29,10 @@ data class DiscoverState(
     val error: String? = null
 )
 
-
 class DiscoverFeed(
     private val catalog: BeatmapRepository,
-    settings: SettingsStore
+    settings: SettingsStore,
+    account: AccountStore
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val refreshTrigger = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
@@ -38,12 +40,13 @@ class DiscoverFeed(
     val state: StateFlow<DiscoverState> = _state.asStateFlow()
 
     init {
-        val credentialsChanged = settings.settings
-            .map { it.osuClientId to it.osuClientSecret }
+        val inputsChanged = combine(settings.settings, account.session) { s, session ->
+            listOf(s.osuClientId, s.osuClientSecret, s.modeFilter, s.showExplicit, session != null)
+        }
             .distinctUntilChanged()
             .map { }
         scope.launch {
-            merge(credentialsChanged, refreshTrigger).collectLatest { load() }
+            merge(inputsChanged, refreshTrigger).collectLatest { load() }
         }
     }
 

@@ -8,9 +8,24 @@ on:
         required: true
         type: string
       version_code:
-        description: Positive Android versionCode, greater than the previous release
-        required: true
+        description: Optional versionCode (leave empty to generate one that always increases)
+        required: false
         type: string
+      minify:
+        description: Shrink and optimize with R8 (smaller and faster, but test it first)
+        required: false
+        type: boolean
+        default: false
+      smoke_test:
+        description: Install and launch the APK on an emulator before publishing
+        required: false
+        type: boolean
+        default: true
+      prerelease:
+        description: Mark the release as a pre-release
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -19,10 +34,16 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
+env:
+  APK_NAME: Kozu-v${{ inputs.version_name }}.apk
+
 jobs:
-  release:
-    name: Build and publish APK
+  build:
+    name: Build signed APK
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      version_code: ${{ steps.version.outputs.code }}
 
     steps:
       - name: Checkout
@@ -37,7 +58,8 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Validate signing secrets
+      - name: Validate inputs and secrets
+        id: version
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -52,9 +74,12 @@ jobs:
           test -n "$ANDROID_KEY_ALIAS" || { echo "::error::Missing ANDROID_KEY_ALIAS secret"; exit 1; }
           test -n "$ANDROID_KEY_PASSWORD" || { echo "::error::Missing ANDROID_KEY_PASSWORD secret"; exit 1; }
           [[ "$RELEASE_VERSION_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::Version name must use MAJOR.MINOR.PATCH format"; exit 1; }
-          [[ "$RELEASE_VERSION_CODE" =~ ^[1-9][0-9]*$ ]] && [ "$RELEASE_VERSION_CODE" -le 2100000000 ] || { echo "::error::Version code must be an integer from 1 to 2100000000"; exit 1; }
+          code="$RELEASE_VERSION_CODE"
+          if [ -z "$code" ]; then code="$(( $(date +%s) / 60 ))"; fi
+          [[ "$code" =~ ^[1-9][0-9]*$ ]] && [ "$code" -le 2100000000 ] || { echo "::error::Version code must be an integer from 1 to 2100000000"; exit 1; }
           tag_status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --header "Authorization: Bearer $GH_TOKEN" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/git/ref/tags/v$RELEASE_VERSION_NAME")"
           [ "$tag_status" = "404" ] || { echo "::error::Release tag v$RELEASE_VERSION_NAME already exists or could not be checked"; exit 1; }
+          echo "code=$code" >> "$GITHUB_OUTPUT"
 
       - name: Prepare release keystore
         env:
@@ -69,15 +94,102 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           APP_VERSION_NAME: ${{ inputs.version_name }}
-          APP_VERSION_CODE: ${{ inputs.version_code }}
+          APP_VERSION_CODE: ${{ steps.version.outputs.code }}
+          MINIFY: ${{ inputs.minify }}
         run: |
-          ./gradlew :app:assembleRelease "-PappVersion=$APP_VERSION_NAME" "-PappVersionCode=$APP_VERSION_CODE"
+          ./gradlew :app:assembleRelease --stacktrace \
+            "-PappVersion=$APP_VERSION_NAME" \
+            "-PappVersionCode=$APP_VERSION_CODE" \
+            "-PminifyRelease=$MINIFY"
 
-      - name: Verify APK signature
+      - name: Verify APK
         run: |
-          apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
-          test -n "$apksigner"
-          "$apksigner" verify --verbose app/build/outputs/apk/release/app-release.apk
+          apk=app/build/outputs/apk/release/app-release.apk
+          test -f "$apk" || { echo "::error::Release APK was not produced (is signing configured?)"; ls -R app/build/outputs || true; exit 1; }
+          tools="$(find "$ANDROID_HOME/build-tools" -maxdepth 1 -mindepth 1 -type d | sort -V | tail -n 1)"
+          "$tools/apksigner" verify --verbose --print-certs "$apk"
+          "$tools/aapt2" dump badging "$apk" | tee badging.txt | grep -E "^(package|sdkVersion|targetSdkVersion|application-label:)"
+          grep -q "package: name='vn.kozu'" badging.txt || { echo "::error::Unexpected package name"; exit 1; }
+          grep -q "versionName='${{ inputs.version_name }}'" badging.txt || { echo "::error::versionName mismatch"; exit 1; }
+          if "$tools/apksigner" verify --verbose "$apk" | grep -q "Verified using v2 scheme (APK Signature Scheme v2): true"; then echo "v2 signature ok"; else echo "::error::APK is not v2-signed"; exit 1; fi
+          cp "$apk" "$APK_NAME"
+          sha256sum "$APK_NAME" > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-apk
+          path: |
+            ${{ env.APK_NAME }}
+            SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Upload R8 mapping
+        if: ${{ inputs.minify }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: r8-mapping
+          path: app/build/outputs/mapping/release/
+          if-no-files-found: warn
+          retention-days: 30
+
+  smoke-test:
+    name: Install and launch on emulator
+    needs: build
+    if: ${{ inputs.smoke_test }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Download APK
+        uses: actions/download-artifact@v8
+        with:
+          name: release-apk
+          path: apk
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run smoke test
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          disable-animations: true
+          emulator-boot-timeout: 600
+          script: bash .github/scripts/smoke_test.sh apk/${{ env.APK_NAME }} logcat.txt
+
+      - name: Upload logcat
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-test-logcat
+          path: logcat.txt
+          if-no-files-found: ignore
+          retention-days: 7
+
+  publish:
+    name: Publish GitHub Release
+    needs: [build, smoke-test]
+    if: ${{ !cancelled() && needs.build.result == 'success' && (needs.smoke-test.result == 'success' || needs.smoke-test.result == 'skipped') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download APK
+        uses: actions/download-artifact@v8
+        with:
+          name: release-apk
+          path: dist
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v3
@@ -86,5 +198,8 @@ jobs:
           name: Kozu v${{ inputs.version_name }}
           target_commitish: ${{ github.sha }}
           generate_release_notes: true
+          prerelease: ${{ inputs.prerelease }}
           fail_on_unmatched_files: true
-          files: app/build/outputs/apk/release/app-release.apk
+          files: |
+            dist/${{ env.APK_NAME }}
+            dist/SHA256SUMS.txt

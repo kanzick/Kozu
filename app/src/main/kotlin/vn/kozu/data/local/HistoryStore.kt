@@ -5,6 +5,8 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import org.json.JSONArray
 import org.json.JSONException
@@ -31,11 +33,11 @@ data class History(
 }
 
 class HistoryStore(context: Context) {
-    private val store = context.applicationContext.kozuDataStore
+    private val store = context.applicationContext.historyDataStore
     private val tracksKey = stringPreferencesKey("history_tracks_v1")
     private val eventsKey = stringPreferencesKey("history_events_v1")
     private val dailyKey = stringPreferencesKey("history_daily_v1")
-    val history: Flow<History> = store.data.map { read(it) }
+    val history: Flow<History> = store.data.map { read(it) }.distinctUntilChanged()
 
     suspend fun recordPlay(beatmap: Beatmap, at: Long = System.currentTimeMillis()) {
         store.edit { prefs ->
@@ -55,6 +57,19 @@ class HistoryStore(context: Context) {
                 .toSortedMap()
                 .let { sorted -> sorted.entries.toList().takeLast(MAX_DAYS).associate { it.key to it.value } }
             write(prefs, current.copy(dailyMs = daily))
+        }
+    }
+
+    suspend fun knownIds(limit: Int = 100): List<Long> {
+        val current = history.first()
+        return current.recent.take(limit).map { it.id }
+    }
+
+    suspend fun updateMetadata(fresh: Map<Long, Beatmap>) {
+        store.edit { prefs ->
+            val current = read(prefs)
+            val merged = current.tracks.mapValues { (id, old) -> fresh[id]?.let { BeatmapJson.merge(old, it) } ?: old }
+            if (merged != current.tracks) write(prefs, current.copy(tracks = merged))
         }
     }
 

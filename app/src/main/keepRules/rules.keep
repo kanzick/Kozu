@@ -1,1 +1,11 @@
 -keep class vn.kozu.data.remote.osu.** { *; }
+-keepclassmembers class vn.kozu.data.remote.osu.** { <fields>; }
+-keep class vn.kozu.KozuApplication { *; }
+-keep class vn.kozu.player.PlaybackService { *; }
+-keep class vn.kozu.data.download.DownloadService { *; }
+-keepattributes Signature, InnerClasses, EnclosingMethod, RuntimeVisibleAnnotations, AnnotationDefault
+-keep,allowobfuscation,allowshrinking class kotlin.coroutines.Continuation
+-keep,allowobfuscation,allowshrinking interface retrofit2.Call
+-dontwarn org.conscrypt.**
+-dontwarn org.bouncycastle.**
+-dontwarn org.openjsse.**

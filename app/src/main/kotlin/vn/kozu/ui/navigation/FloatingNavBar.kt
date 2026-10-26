@@ -8,14 +8,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -29,10 +26,6 @@ import androidx.compose.ui.unit.dp
 import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.theme.KozuMotion
 
-
-
-
-
 @Composable
 fun FloatingNavBar(
     selected: KozuTab,
@@ -43,7 +36,7 @@ fun FloatingNavBar(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = 8.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -53,28 +46,13 @@ fun FloatingNavBar(
             shadowElevation = 6.dp
         ) {
             Row(
-                modifier = Modifier.padding(6.dp),
-                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                modifier = Modifier.padding(5.dp),
+                horizontalArrangement = Arrangement.spacedBy(1.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                listOf(KozuTab.HOME, KozuTab.EXPLORE, KozuTab.LIBRARY).forEach { tab ->
-                    NavItem(tab = tab, isSelected = selected == tab, showLabel = true, onClick = { onSelect(tab) })
+                KozuTab.entries.forEach { tab ->
+                    NavItem(tab = tab, isSelected = selected == tab, onClick = { onSelect(tab) })
                 }
-            }
-        }
-        Spacer(Modifier.width(12.dp))
-        Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            shadowElevation = 6.dp
-        ) {
-            Box(Modifier.padding(6.dp)) {
-                NavItem(
-                    tab = KozuTab.SEARCH,
-                    isSelected = selected == KozuTab.SEARCH,
-                    showLabel = false,
-                    onClick = { onSelect(KozuTab.SEARCH) }
-                )
             }
         }
     }
@@ -84,7 +62,6 @@ fun FloatingNavBar(
 private fun NavItem(
     tab: KozuTab,
     isSelected: Boolean,
-    showLabel: Boolean,
     onClick: () -> Unit
 ) {
     val container by animateColorAsState(
@@ -101,13 +78,13 @@ private fun NavItem(
     Surface(
         modifier = Modifier
             .animateContentSize(animationSpec = KozuMotion.spatial())
-            .bounceClick(onClick = onClick),
+            .bounceClick(pressedScale = 0.92f, onClick = onClick),
         shape = CircleShape,
         color = container,
         contentColor = content
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier = Modifier.padding(horizontal = 13.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
@@ -115,19 +92,17 @@ private fun NavItem(
                 contentDescription = tab.title,
                 modifier = Modifier.size(24.dp)
             )
-            if (showLabel) {
-                AnimatedVisibility(
-                    visible = isSelected,
-                    enter = fadeIn() + expandHorizontally(KozuMotion.spatial()),
-                    exit = fadeOut() + shrinkHorizontally(KozuMotion.spatial())
-                ) {
-                    Text(
-                        text = tab.title,
-                        modifier = Modifier.padding(start = 8.dp),
-                        style = MaterialTheme.typography.labelLarge,
-                        maxLines = 1
-                    )
-                }
+            AnimatedVisibility(
+                visible = isSelected,
+                enter = fadeIn() + expandHorizontally(KozuMotion.spatial()),
+                exit = fadeOut() + shrinkHorizontally(KozuMotion.spatial())
+            ) {
+                Text(
+                    text = tab.title,
+                    modifier = Modifier.padding(start = 6.dp),
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1
+                )
             }
         }
     }

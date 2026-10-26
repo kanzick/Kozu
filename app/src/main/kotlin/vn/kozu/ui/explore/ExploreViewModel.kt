@@ -2,9 +2,11 @@ package vn.kozu.ui.explore
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import vn.kozu.di.AppContainer
 import vn.kozu.domain.model.Beatmap
@@ -51,7 +53,7 @@ class ExploreViewModel(private val container: AppContainer) : ViewModel() {
             loved = discover.loved,
             isLoading = discover.isLoading
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ExploreUiState())
+    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ExploreUiState())
 
     companion object {
         val Factory = containerFactory { ExploreViewModel(it) }

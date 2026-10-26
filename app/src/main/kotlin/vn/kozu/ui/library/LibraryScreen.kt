@@ -30,6 +30,9 @@ import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.DownloadDone
+import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.GridView
@@ -42,6 +45,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -59,6 +63,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import vn.kozu.data.download.DownloadStatus
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.Playlist
 import vn.kozu.ui.components.CoverCard
@@ -116,7 +121,8 @@ fun LibraryScreen(
                 },
                 onToggleGrid = viewModel::toggleGrid,
                 onSort = viewModel::selectSort,
-                onCreatePlaylist = { showCreate = true }
+                onCreatePlaylist = { showCreate = true },
+                onDownloadLiked = { actions.downloadAll(ui.liked) }
             )
             Spacer(Modifier.height(10.dp))
 
@@ -144,6 +150,13 @@ fun LibraryScreen(
                     bottomPadding = bottomPadding,
                     onOpen = viewModel::openPlaylist,
                     onCreate = { showCreate = true }
+                )
+                LibraryTab.DOWNLOADS -> DownloadsPane(
+                    ui = ui,
+                    bottomPadding = bottomPadding,
+                    onDelete = viewModel::deleteDownload,
+                    onDismiss = viewModel::dismissDownload,
+                    onCancel = viewModel::cancelDownload
                 )
             }
         }
@@ -194,7 +207,8 @@ private fun Toolbar(
     onShuffle: () -> Unit,
     onToggleGrid: () -> Unit,
     onSort: (LibrarySort) -> Unit,
-    onCreatePlaylist: () -> Unit
+    onCreatePlaylist: () -> Unit,
+    onDownloadLiked: () -> Unit
 ) {
     var menuOpen by remember { mutableStateOf(false) }
 
@@ -206,6 +220,10 @@ private fun Toolbar(
     ) {
         if (ui.tab == LibraryTab.PLAYLISTS) {
             PillButton(Icons.Rounded.Add, "New playlist", onCreatePlaylist)
+            return@Row
+        }
+        if (ui.tab == LibraryTab.DOWNLOADS) {
+            PillButton(Icons.Rounded.Download, "Download liked", onDownloadLiked)
             return@Row
         }
 
@@ -448,6 +466,7 @@ private fun PlaylistDetail(
     ) {
         PillButton(Icons.Rounded.PlayArrow, "Play") { actions.play(playlist.tracks, 0) }
         PillButton(Icons.Rounded.Shuffle, "Shuffle") { actions.playShuffled(playlist.tracks) }
+        PillButton(Icons.Rounded.Download, "Offline") { actions.downloadAll(playlist.tracks) }
     }
 
     if (playlist.tracks.isEmpty()) {
@@ -509,4 +528,130 @@ private fun PlaylistDetail(
             dismissButton = { TextButton(onClick = { showDelete = false }) { Text("Cancel") } }
         )
     }
+}
+
+
+@Composable
+private fun DownloadsPane(
+    ui: LibraryUiState,
+    bottomPadding: Dp,
+    onDelete: (Long) -> Unit,
+    onDismiss: (Long) -> Unit,
+    onCancel: (Long) -> Unit
+) {
+    val actions = LocalTrackActions.current
+    val queue = ui.queue.entries.filter { entry -> ui.downloads.none { it.beatmap.id == entry.key } || entry.value !is DownloadStatus.Queued }
+    val tracks = ui.downloads.map { it.beatmap }
+
+    if (queue.isEmpty() && ui.downloads.isEmpty()) {
+        EmptyState(
+            icon = Icons.Rounded.Download,
+            title = "Nothing offline yet",
+            message = "Download songs from the ⋮ menu to play them without internet and use them in game mode.",
+            shape = KozuCookies.Clover4,
+            modifier = Modifier.padding(top = 32.dp)
+        )
+        return
+    }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = bottomPadding),
+        verticalArrangement = Arrangement.spacedBy(3.dp)
+    ) {
+        item(key = "summary") {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 10.dp),
+                shape = RoundedCornerShape(28.dp),
+                color = MaterialTheme.colorScheme.tertiaryContainer,
+                contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+            ) {
+                Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.DownloadDone, contentDescription = null)
+                    Spacer(Modifier.width(14.dp))
+                    Column {
+                        Text(
+                            "${ui.downloads.size} ${if (ui.downloads.size == 1) "song" else "songs"} offline",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(formatBytes(ui.downloadedBytes), style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
+        }
+        itemsIndexed(queue, key = { _, entry -> "q-${entry.key}" }) { index, entry ->
+            val status = entry.value
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = segmentedShape(index, queue.size),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh
+            ) {
+                Row(
+                    modifier = Modifier.padding(start = 18.dp, end = 6.dp, top = 8.dp, bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            ui.queueTitles[entry.key].orEmpty().ifBlank { "Song #${entry.key}" },
+                            style = MaterialTheme.typography.titleSmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        when (status) {
+                            is DownloadStatus.Running -> {
+                                Text(
+                                    status.source,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(Modifier.height(6.dp))
+                                if (status.progress < 0f) LinearProgressIndicator(Modifier.fillMaxWidth())
+                                else LinearProgressIndicator(progress = { status.progress }, modifier = Modifier.fillMaxWidth())
+                            }
+                            is DownloadStatus.Queued -> Text(
+                                "Queued",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            is DownloadStatus.Failed -> Text(
+                                status.message,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.error,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                    IconButton(onClick = { if (status is DownloadStatus.Failed) onDismiss(entry.key) else onCancel(entry.key) }) {
+                        Icon(Icons.Rounded.Close, contentDescription = "Cancel")
+                    }
+                }
+            }
+        }
+        if (queue.isNotEmpty()) item(key = "gap") { Spacer(Modifier.height(10.dp)) }
+        itemsIndexed(ui.downloads, key = { _, set -> "d-${set.beatmap.id}" }) { index, set ->
+            TrackRow(
+                beatmap = set.beatmap,
+                shape = segmentedShape(index, ui.downloads.size),
+                onClick = { actions.play(tracks, index) },
+                trailing = {
+                    IconButton(onClick = { onDelete(set.beatmap.id) }) {
+                        Icon(
+                            Icons.Rounded.Delete,
+                            contentDescription = "Remove download",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            )
+        }
+    }
+}
+
+private fun formatBytes(bytes: Long): String = when {
+    bytes >= 1_073_741_824L -> "%.2f GB".format(bytes / 1_073_741_824.0)
+    bytes >= 1_048_576L -> "%.1f MB".format(bytes / 1_048_576.0)
+    else -> "${bytes / 1024} KB"
 }
