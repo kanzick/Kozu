@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version_name:
-        description: Android versionName, for example 1.2.0
+        description: Android versionName
         required: true
         type: string
       version_code:
@@ -35,7 +35,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  APK_NAME: Kozu-v${{ inputs.version_name }}.apk
+  APK_NAME: v${{ inputs.version_name }}.apk
 
 jobs:
   build:
