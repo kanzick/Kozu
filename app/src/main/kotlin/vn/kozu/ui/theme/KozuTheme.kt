@@ -48,7 +48,7 @@ private fun rememberAnimatedColorScheme(target: ColorScheme): ColorScheme {
         from = lerpColorScheme(from, to, progress.value)
         to = target
         progress.snapTo(0f)
-        progress.animateTo(1f, tween(durationMillis = 650, easing = FastOutSlowInEasing))
+        progress.animateTo(1f, tween(durationMillis = 420, easing = FastOutSlowInEasing))
     }
 
     return if (progress.value >= 1f) to else lerpColorScheme(from, to, progress.value)

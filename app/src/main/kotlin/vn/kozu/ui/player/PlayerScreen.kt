@@ -39,7 +39,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -154,7 +153,6 @@ fun PlayerScreen(
                             scaleX = coverScale
                             scaleY = coverScale
                         }
-                        .shadow(16.dp, RoundedCornerShape(coverRadius))
                 )
             }
 
@@ -207,7 +205,7 @@ fun PlayerScreen(
 
             PlayerProgress(
                 isPlaying = state.isPlaying,
-                audioInfo = state.audioInfo ?: if (beatmap.previewUrl != null) "osu! preview" else "Local demo",
+                audioInfo = state.audioInfo ?: if (state.isBuffering) "Loading audio…" else "Ready",
                 position = position,
                 duration = duration,
                 onSeek = onSeek
@@ -326,6 +324,9 @@ private fun PlayerProgress(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Surface(
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .padding(horizontal = 8.dp),
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surfaceContainerHigh
             ) {
@@ -334,7 +335,8 @@ private fun PlayerProgress(
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
             Text(

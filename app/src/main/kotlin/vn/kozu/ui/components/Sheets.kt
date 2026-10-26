@@ -17,6 +17,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.Update
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.Language
@@ -93,11 +96,15 @@ private fun SheetTrackHeader(beatmap: Beatmap) {
 fun TrackMenuSheet(
     beatmap: Beatmap,
     isFavorite: Boolean,
+    isDownloaded: Boolean,
+    isOutdated: Boolean,
     onDismiss: () -> Unit,
     onPlayNext: () -> Unit,
     onAddToQueue: () -> Unit,
     onToggleFavorite: () -> Unit,
     onAddToPlaylist: () -> Unit,
+    onDownload: () -> Unit,
+    onRemoveDownload: () -> Unit,
     onOpenInOsu: () -> Unit,
     onShare: () -> Unit
 ) {
@@ -117,10 +124,14 @@ fun TrackMenuSheet(
                 onToggleFavorite
             )
             SheetAction(Icons.AutoMirrored.Rounded.PlaylistAdd, "Add to playlist", onAddToPlaylist)
-            if (beatmap.webUrl != null) {
-                SheetAction(Icons.Rounded.Language, "Open on osu!", onOpenInOsu)
-                SheetAction(Icons.Rounded.Share, "Share", onShare)
+            if (isDownloaded) {
+                if (isOutdated) SheetAction(Icons.Rounded.Update, "Update offline copy", onDownload)
+                SheetAction(Icons.Rounded.Delete, "Remove download", onRemoveDownload)
+            } else {
+                SheetAction(Icons.Rounded.Download, "Download for offline", onDownload)
             }
+            SheetAction(Icons.Rounded.Language, "Open on osu!", onOpenInOsu)
+            SheetAction(Icons.Rounded.Share, "Share", onShare)
             Spacer(Modifier.height(16.dp))
         }
     }

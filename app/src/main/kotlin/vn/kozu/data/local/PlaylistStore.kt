@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import org.json.JSONArray
 import org.json.JSONException
@@ -18,7 +19,7 @@ class PlaylistStore(context: Context) {
     private val store = context.applicationContext.kozuDataStore
     private val key = stringPreferencesKey("playlists_v1")
 
-    val playlists: Flow<List<Playlist>> = store.data.map { read(it) }
+    val playlists: Flow<List<Playlist>> = store.data.map { read(it) }.distinctUntilChanged()
 
 
     suspend fun create(name: String, firstTrack: Beatmap? = null): String {
@@ -51,6 +52,12 @@ class PlaylistStore(context: Context) {
         list.map { playlist ->
             if (playlist.id == id) playlist.copy(tracks = playlist.tracks.filterNot { it.id == beatmapId })
             else playlist
+        }
+    }
+
+    suspend fun updateMetadata(fresh: Map<Long, Beatmap>) = update { list ->
+        list.map { playlist ->
+            playlist.copy(tracks = playlist.tracks.map { old -> fresh[old.id]?.let { BeatmapJson.merge(old, it) } ?: old })
         }
     }
 

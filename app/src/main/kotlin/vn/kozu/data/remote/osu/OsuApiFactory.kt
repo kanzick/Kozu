@@ -7,31 +7,31 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object OsuApiFactory {
+
     private const val BASE_URL = "https://osu.ppy.sh/api/v2/"
+    const val USER_AGENT = "Kozu/2.0 (Android)"
 
-    fun create(): OsuApi {
-        val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BASIC
-        }
-
-        val client = OkHttpClient.Builder()
-            .connectTimeout(10, TimeUnit.SECONDS)
-            .readTimeout(15, TimeUnit.SECONDS)
+    fun client(): OkHttpClient {
+        val logging = HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }
+        return OkHttpClient.Builder()
+            .connectTimeout(12, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .followRedirects(true)
+            .followSslRedirects(true)
             .addInterceptor { chain ->
-                chain.proceed(
-                    chain.request().newBuilder()
-                        .header("Accept", "application/json")
-                        .build()
-                )
+                val request = chain.request()
+                val builder = request.newBuilder()
+                if (request.header("User-Agent") == null) builder.header("User-Agent", USER_AGENT)
+                chain.proceed(builder.build())
             }
             .addInterceptor(logging)
             .build()
-
-        return Retrofit.Builder()
-            .baseUrl(BASE_URL)
-            .client(client)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(OsuApi::class.java)
     }
+
+    fun create(client: OkHttpClient): OsuApi = Retrofit.Builder()
+        .baseUrl(BASE_URL)
+        .client(client)
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+        .create(OsuApi::class.java)
 }

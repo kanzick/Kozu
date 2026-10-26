@@ -1,0 +1,90 @@
+name: Cleanup
+
+on:
+  schedule:
+    - cron: "0 3 * * 0"
+  workflow_dispatch:
+    inputs:
+      keep_runs:
+        description: Workflow runs to keep per workflow
+        required: false
+        default: "10"
+        type: string
+      artifact_days:
+        description: Delete artifacts older than this many days
+        required: false
+        default: "5"
+        type: string
+      keep_releases:
+        description: Releases to keep (0 = never delete releases)
+        required: false
+        default: "20"
+        type: string
+
+permissions:
+  actions: write
+  contents: write
+
+concurrency:
+  group: cleanup
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    name: Remove old runs, artifacts, caches and releases
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      KEEP_RUNS: ${{ inputs.keep_runs || '10' }}
+      ARTIFACT_DAYS: ${{ inputs.artifact_days || '5' }}
+      KEEP_RELEASES: ${{ inputs.keep_releases || '20' }}
+
+    steps:
+      - name: Delete old workflow runs
+        run: |
+          gh api --paginate "repos/$REPO/actions/workflows" --jq '.workflows[].id' | while read -r workflow; do
+            gh api --paginate "repos/$REPO/actions/workflows/$workflow/runs?status=completed&per_page=100" \
+              --jq '.workflow_runs[] | [.id, .created_at] | @tsv' \
+              | sort -k2 -r \
+              | tail -n +"$((KEEP_RUNS + 1))" \
+              | cut -f1 \
+              | while read -r run; do
+                  echo "Deleting run $run"
+                  gh api -X DELETE "repos/$REPO/actions/runs/$run" || true
+                done
+          done
+
+      - name: Delete old artifacts
+        run: |
+          cutoff="$(date -u -d "-$ARTIFACT_DAYS days" +%Y-%m-%dT%H:%M:%SZ)"
+          gh api --paginate "repos/$REPO/actions/artifacts?per_page=100" \
+            --jq ".artifacts[] | select(.created_at < \"$cutoff\") | .id" \
+            | while read -r artifact; do
+                echo "Deleting artifact $artifact"
+                gh api -X DELETE "repos/$REPO/actions/artifacts/$artifact" || true
+              done
+
+      - name: Delete stale caches
+        run: |
+          cutoff="$(date -u -d '-7 days' +%Y-%m-%dT%H:%M:%SZ)"
+          gh api --paginate "repos/$REPO/actions/caches?per_page=100" \
+            --jq ".actions_caches[] | select(.last_accessed_at < \"$cutoff\") | .id" \
+            | while read -r cache; do
+                echo "Deleting cache $cache"
+                gh api -X DELETE "repos/$REPO/actions/caches/$cache" || true
+              done
+
+      - name: Prune old releases
+        if: ${{ (inputs.keep_releases || '20') != '0' }}
+        run: |
+          gh api --paginate "repos/$REPO/releases?per_page=100" \
+            --jq '.[] | select(.draft == false) | [.id, .tag_name, .created_at] | @tsv' \
+            | sort -k3 -r \
+            | tail -n +"$((KEEP_RELEASES + 1))" \
+            | while IFS=$'\t' read -r id tag _; do
+                echo "Deleting release $tag"
+                gh api -X DELETE "repos/$REPO/releases/$id" || true
+                gh api -X DELETE "repos/$REPO/git/refs/tags/$tag" || true
+              done
