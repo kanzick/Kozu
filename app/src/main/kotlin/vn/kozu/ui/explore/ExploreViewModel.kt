@@ -12,7 +12,7 @@ import vn.kozu.di.AppContainer
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.ui.containerFactory
 
-
+/** Library collection item in Explore tab */
 data class LibraryCollection(
     val id: String,
     val title: String,
@@ -20,6 +20,7 @@ data class LibraryCollection(
     val tracks: List<Beatmap>
 )
 
+/** UI state metadata for Explore screen */
 data class ExploreUiState(
     val collections: List<LibraryCollection> = emptyList(),
     val newReleases: List<Beatmap> = emptyList(),
@@ -31,6 +32,7 @@ data class ExploreUiState(
     val surprisePool: List<Beatmap> get() = (trending + loved + newReleases).distinctBy { it.id }
 }
 
+/** ViewModel providing collections, trending songs, and recommendations for Explore screen */
 class ExploreViewModel(private val container: AppContainer) : ViewModel() {
 
     val ui: StateFlow<ExploreUiState> = combine(

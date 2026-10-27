@@ -13,6 +13,9 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
+/**
+ * Custom Material 3 shapes configuration for Kozu.
+ */
 val KozuShapes = Shapes(
     extraSmall = RoundedCornerShape(10.dp),
     small = RoundedCornerShape(16.dp),
@@ -21,10 +24,9 @@ val KozuShapes = Shapes(
     extraLarge = RoundedCornerShape(40.dp)
 )
 
-
-
-
-
+/**
+ * Custom scalloped cookie-like shape algorithmically drawn using trigonometry.
+ */
 class CookieShape(
     private val sides: Int,
     private val depth: Float = 0.06f,
@@ -50,7 +52,9 @@ class CookieShape(
     }
 }
 
-
+/**
+ * Preset cookie shapes for cover artwork and decorative components.
+ */
 object KozuCookies {
     val Soft9 = CookieShape(sides = 9, depth = 0.045f)
     val Bold6 = CookieShape(sides = 6, depth = 0.06f, rotationDegrees = 30f)
@@ -58,5 +62,7 @@ object KozuCookies {
     val Clover4 = CookieShape(sides = 4, depth = 0.10f, rotationDegrees = 45f)
 
     private val all = listOf(Soft9, Bold6, Flower8, Clover4)
+
+    /** Returns a cookie shape based on index */
     fun forIndex(index: Int): Shape = all[index.mod(all.size)]
 }

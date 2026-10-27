@@ -12,12 +12,17 @@ import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
 
-
+/**
+ * Utility object that extracts prominent seed colors from track artwork images for dynamic theme generation.
+ */
 object ArtworkPalette {
 
     private const val TAG = "ArtworkPalette"
     private val cache = LruCache<String, Int>(64)
 
+    /**
+     * Fetches artwork, extracts a vibrant/dominant color, and returns a Compose [Color].
+     */
     suspend fun seedColor(imageUrl: String?): Color? {
         if (imageUrl.isNullOrBlank()) return null
         cache.get(imageUrl)?.let { return Color(it) }

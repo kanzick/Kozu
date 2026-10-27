@@ -46,6 +46,7 @@ import vn.kozu.ui.components.KozuLoading
 import vn.kozu.ui.components.LocalTrackActions
 import vn.kozu.ui.components.MosaicCover
 import vn.kozu.ui.components.ScreenHeader
+import vn.kozu.ui.components.SearchAction
 import vn.kozu.ui.components.SectionHeader
 import vn.kozu.ui.components.SettingsAction
 import vn.kozu.ui.components.TrackRow
@@ -75,6 +76,7 @@ fun ExploreScreen(
                     contentDescription = "Surprise me",
                     onClick = { actions.playShuffled(ui.surprisePool) }
                 )
+                SearchAction(onOpenSearch)
                 SettingsAction(onOpenSettings)
             }
         )

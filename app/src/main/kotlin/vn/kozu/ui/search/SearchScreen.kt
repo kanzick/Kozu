@@ -1,6 +1,6 @@
 package vn.kozu.ui.search
 
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,29 +10,29 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.SearchOff
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -42,15 +42,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import vn.kozu.domain.model.SearchCategory
 import vn.kozu.domain.model.SearchSort
 import vn.kozu.ui.components.EmptyState
+import vn.kozu.ui.components.HeaderAction
 import vn.kozu.ui.components.HeaderTitle
 import vn.kozu.ui.components.KozuLoading
 import vn.kozu.ui.components.LocalTrackActions
@@ -59,12 +59,13 @@ import vn.kozu.ui.components.SettingsAction
 import vn.kozu.ui.components.TrackRow
 import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.segmentedShape
-import vn.kozu.ui.theme.KozuCookies
 
+/**
+ * Full screen Search overlay allowing users to search songs, artists, and mappers.
+ */
 @Composable
 fun SearchScreen(
-    listState: LazyListState,
-    bottomPadding: Dp,
+    onBack: () -> Unit,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SearchViewModel = viewModel(factory = SearchViewModel.Factory)
@@ -73,11 +74,29 @@ fun SearchScreen(
     val recents by viewModel.recentSearches.collectAsStateWithLifecycle()
     val actions = LocalTrackActions.current
     val keyboard = LocalSoftwareKeyboardController.current
+    val listState = rememberLazyListState()
 
-    Column(modifier.fillMaxSize()) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+            .imePadding()
+    ) {
         ScreenHeader(
-            leading = { HeaderTitle("Search") },
-            actions = { SettingsAction(onOpenSettings) }
+            leading = {
+                HeaderAction(
+                    icon = Icons.AutoMirrored.Rounded.ArrowBack,
+                    contentDescription = "Back",
+                    onClick = onBack,
+                    container = MaterialTheme.colorScheme.primary,
+                    content = MaterialTheme.colorScheme.onPrimary
+                )
+                Spacer(Modifier.width(12.dp))
+                HeaderTitle("Search")
+            },
+            actions = {
+                SettingsAction(onOpenSettings)
+            }
         )
 
         Spacer(Modifier.height(16.dp))
@@ -95,7 +114,7 @@ fun SearchScreen(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(top = 20.dp, bottom = bottomPadding)
+                contentPadding = PaddingValues(top = 20.dp, bottom = 24.dp)
             ) {
                 if (recents.isNotEmpty()) {
                     item(key = "recents") {
@@ -118,35 +137,37 @@ fun SearchScreen(
                 onSort = viewModel::onSortChange,
                 onClearCategory = { viewModel.onCategoryChange(null) }
             )
-            when {
-                ui.phase == SearchPhase.LOADING -> KozuLoading(Modifier.padding(top = 40.dp))
-                ui.results.isEmpty() && ui.phase == SearchPhase.DONE -> EmptyState(
-                    icon = Icons.Rounded.SearchOff,
-                    title = "No matching beatmaps",
-                    message = ui.error ?: "Try another song, artist or mapper.",
-                    shape = KozuCookies.Clover4,
-                    modifier = Modifier.padding(top = 32.dp)
-                )
-                else -> LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomPadding),
-                    verticalArrangement = Arrangement.spacedBy(3.dp)
-                ) {
-                    if (ui.isSample) {
-                        item(key = "sample") {
+            when (ui.phase) {
+                SearchPhase.IDLE -> Unit
+                SearchPhase.LOADING -> KozuLoading()
+                SearchPhase.DONE -> {
+                    if (ui.results.isEmpty()) {
+                        EmptyState(
+                            icon = Icons.Rounded.Search,
+                            title = "No results found",
+                            message = "Try searching for a different song, artist or mapper."
+                        )
+                    } else {
+                        if (ui.isSample && ui.error != null) {
                             SampleNote(ui.error)
                         }
-                    }
-                    itemsIndexed(ui.results, key = { _, b -> b.id }) { index, beatmap ->
-                        TrackRow(
-                            beatmap = beatmap,
-                            shape = segmentedShape(index, ui.results.size),
-                            onClick = {
-                                viewModel.remember()
-                                actions.play(ui.results, index)
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(ui.results, key = { it.id }) { beatmap ->
+                                TrackRow(
+                                    beatmap = beatmap,
+                                    onClick = {
+                                        viewModel.remember()
+                                        keyboard?.hide()
+                                        actions.play(ui.results, ui.results.indexOf(beatmap))
+                                    }
+                                )
                             }
-                        )
+                        }
                     }
                 }
             }
@@ -198,106 +219,103 @@ private fun RecentSearches(
     onClear: () -> Unit
 ) {
     Column(Modifier.padding(horizontal = 20.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Recent", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
-            Text(
-                text = "Clear",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.bounceClick(onClick = onClear)
-            )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Recent searches", style = MaterialTheme.typography.titleMedium)
+            TextButton(onClick = onClear) { Text("Clear all") }
         }
-        Spacer(Modifier.height(10.dp))
-        recents.forEach { recent ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .bounceClick(pressedScale = 0.98f) { onPick(recent) }
-                    .padding(vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.Rounded.History, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.width(14.dp))
-                Text(
-                    recent,
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.weight(1f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                IconButton(onClick = { onRemove(recent) }) {
-                    Icon(Icons.Rounded.Close, contentDescription = "Remove", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(8.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            recents.forEachIndexed { index, query ->
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .bounceClick(pressedScale = 0.98f) { onPick(query) },
+                    shape = segmentedShape(index, recents.size),
+                    color = MaterialTheme.colorScheme.surfaceContainer
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Rounded.History,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(Modifier.width(14.dp))
+                        Text(
+                            text = query,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.weight(1f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        IconButton(onClick = { onRemove(query) }) {
+                            Icon(
+                                Icons.Rounded.Close,
+                                contentDescription = "Remove recent search",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(24.dp))
     }
 }
-
 
 @Composable
 private fun BrowseAll(onPick: (SearchCategory) -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    val palette = listOf(
-        colors.primaryContainer to colors.onPrimaryContainer,
-        colors.tertiaryContainer to colors.onTertiaryContainer,
-        colors.secondaryContainer to colors.onSecondaryContainer
-    )
     Column(Modifier.padding(horizontal = 20.dp)) {
-        Text("Browse all", style = MaterialTheme.typography.titleLarge)
-        Spacer(Modifier.height(14.dp))
-        SearchCategory.entries.chunked(2).forEachIndexed { rowIndex, pair ->
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                pair.forEachIndexed { colIndex, category ->
-                    val (container, content) = palette[(rowIndex + colIndex) % palette.size]
-                    CategoryTile(
-                        category = category,
-                        container = container,
-                        content = content,
-                        shapeIndex = rowIndex * 2 + colIndex,
-                        modifier = Modifier.weight(1f),
-                        onClick = { onPick(category) }
-                    )
-                }
-                if (pair.size == 1) Spacer(Modifier.weight(1f))
-            }
-            Spacer(Modifier.height(12.dp))
-        }
-    }
-}
-
-@Composable
-private fun CategoryTile(
-    category: SearchCategory,
-    container: Color,
-    content: Color,
-    shapeIndex: Int,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier
-            .height(108.dp)
-            .bounceClick(pressedScale = 0.95f, onClick = onClick),
-        shape = RoundedCornerShape(32.dp),
-        color = container,
-        contentColor = content
-    ) {
-        Box(Modifier.padding(18.dp)) {
-            Text(
-                text = category.title,
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.align(Alignment.TopStart)
-            )
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .size(52.dp),
-                shape = KozuCookies.forIndex(shapeIndex),
-                color = content.copy(alpha = 0.12f)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(category.emoji, fontSize = 26.sp)
+        Text("Browse all", style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(12.dp))
+        val categories = SearchCategory.entries.chunked(2)
+        val colors = listOf(
+            MaterialTheme.colorScheme.primaryContainer,
+            MaterialTheme.colorScheme.secondaryContainer,
+            MaterialTheme.colorScheme.tertiaryContainer,
+            MaterialTheme.colorScheme.surfaceContainerHighest
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            categories.forEachIndexed { rowIndex, row ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    row.forEachIndexed { colIndex, cat ->
+                        val cardColor = colors[(rowIndex * 2 + colIndex) % colors.size]
+                        Surface(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(92.dp)
+                                .bounceClick(pressedScale = 0.96f) { onPick(cat) },
+                            shape = RoundedCornerShape(24.dp),
+                            color = cardColor
+                        ) {
+                            Box(Modifier.padding(16.dp)) {
+                                Text(
+                                    text = cat.title,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = cat.emoji,
+                                    style = MaterialTheme.typography.headlineLarge,
+                                    modifier = Modifier.align(Alignment.BottomEnd)
+                                )
+                            }
+                        }
+                    }
+                    if (row.size == 1) {
+                        Spacer(Modifier.weight(1f))
+                    }
                 }
             }
         }
@@ -313,9 +331,8 @@ private fun FilterRow(
 ) {
     Row(
         modifier = Modifier
-            .padding(top = 14.dp)
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp),
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -323,15 +340,15 @@ private fun FilterRow(
             FilterChip(
                 selected = true,
                 onClick = onClearCategory,
-                label = { Text("${category.emoji} ${category.title}") },
-                trailingIcon = { Icon(Icons.Rounded.Close, contentDescription = "Clear genre", modifier = Modifier.size(18.dp)) }
+                label = { Text(category.title) },
+                trailingIcon = { Icon(Icons.Rounded.Close, contentDescription = null, Modifier.size(16.dp)) }
             )
         }
-        SearchSort.entries.forEach { option ->
+        SearchSort.entries.forEach { s ->
             FilterChip(
-                selected = option == sort,
-                onClick = { onSort(option) },
-                label = { Text(option.label) }
+                selected = sort == s,
+                onClick = { onSort(s) },
+                label = { Text(s.label) }
             )
         }
     }
@@ -341,19 +358,17 @@ private fun FilterRow(
 private fun SampleNote(error: String?) {
     Surface(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 8.dp),
-        shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.secondaryContainer
+            .padding(horizontal = 20.dp, vertical = 8.dp)
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.errorContainer
     ) {
-        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Rounded.CloudOff, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
-            Spacer(Modifier.width(12.dp))
-            Text(
-                text = error ?: "Searching sample songs only. Add osu! API keys in Settings for the full catalog.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer
-            )
-        }
+        Text(
+            text = error ?: "Using offline sample results",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onErrorContainer,
+            modifier = Modifier.padding(16.dp),
+            textAlign = TextAlign.Center
+        )
     }
 }

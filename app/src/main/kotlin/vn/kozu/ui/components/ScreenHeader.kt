@@ -1,6 +1,5 @@
 package vn.kozu.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,6 +13,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -26,6 +26,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
+/**
+ * Modern flat screen header extending behind status bar with leading content and action buttons.
+ */
 @Composable
 fun ScreenHeader(
     modifier: Modifier = Modifier,
@@ -34,64 +37,79 @@ fun ScreenHeader(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        shape = RoundedCornerShape(bottomStart = 36.dp, bottomEnd = 36.dp)
+        color = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        tonalElevation = 0.dp
     ) {
-        Row(
-            modifier = Modifier
-                .statusBarsPadding()
-                .padding(start = 22.dp, end = 14.dp, top = 12.dp, bottom = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) { leading() }
-            actions()
+        Column(modifier = Modifier.statusBarsPadding()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 22.dp, end = 14.dp, top = 10.dp, bottom = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) { leading() }
+                actions()
+            }
         }
     }
 }
 
-
+/** Standard screen title header text */
 @Composable
 fun HeaderTitle(text: String) {
     Text(
         text = text,
         style = MaterialTheme.typography.displaySmall,
-        color = MaterialTheme.colorScheme.onPrimaryContainer
+        color = MaterialTheme.colorScheme.onSurface
     )
 }
 
-
+/** Header action icon button component */
 @Composable
 fun HeaderAction(
     icon: ImageVector,
     contentDescription: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    container: Color = MaterialTheme.colorScheme.primary,
-    content: Color = MaterialTheme.colorScheme.onPrimary
+    container: Color = MaterialTheme.colorScheme.primaryContainer,
+    content: Color = MaterialTheme.colorScheme.onPrimaryContainer
 ) {
     Surface(
         modifier = modifier
             .padding(start = 8.dp)
-            .size(48.dp)
+            .size(46.dp)
             .bounceClick(onClick = onClick),
         shape = CircleShape,
         color = container,
         contentColor = content
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Icon(imageVector = icon, contentDescription = contentDescription)
+            Icon(imageVector = icon, contentDescription = contentDescription, modifier = Modifier.size(22.dp))
         }
     }
 }
 
+/** Quick search action button for screen headers */
+@Composable
+fun SearchAction(onClick: () -> Unit) {
+    HeaderAction(
+        icon = Icons.Rounded.Search,
+        contentDescription = "Search",
+        onClick = onClick,
+        container = MaterialTheme.colorScheme.surfaceContainerHigh,
+        content = MaterialTheme.colorScheme.onSurface
+    )
+}
+
+/** Quick settings action button for screen headers */
 @Composable
 fun SettingsAction(onClick: () -> Unit) {
     HeaderAction(
         icon = Icons.Rounded.Settings,
         contentDescription = "Settings",
         onClick = onClick,
-        container = MaterialTheme.colorScheme.tertiaryContainer,
-        content = MaterialTheme.colorScheme.onTertiaryContainer
+        container = MaterialTheme.colorScheme.surfaceContainerHigh,
+        content = MaterialTheme.colorScheme.onSurface
     )
 }

@@ -5,8 +5,6 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,7 +21,6 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -38,7 +35,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -46,13 +42,12 @@ import kotlinx.coroutines.flow.StateFlow
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.ui.components.BeatmapArt
 import vn.kozu.ui.components.bounceClick
-import kotlin.math.abs
 
-
-
-
-
-
+/**
+ * Compact persistent mini player bar floating above bottom navigation bar.
+ * Displays artwork with progress ring, song title, artist, and playback controls (previous, play/pause, next).
+ * Tapping anywhere on the bar opens the full player screen.
+ */
 @Composable
 fun MiniPlayer(
     beatmap: Beatmap,
@@ -83,30 +78,11 @@ fun MiniPlayer(
     val ringColor = MaterialTheme.colorScheme.primary
 
     Surface(
+        onClick = onOpen,
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-            .pointerInput(Unit) {
-                var dx = 0f
-                var dy = 0f
-                detectDragGestures(
-                    onDragStart = { dx = 0f; dy = 0f },
-                    onDragEnd = {
-                        when {
-                            dy < -60f && abs(dy) > abs(dx) -> onOpen()
-                            dx > 90f && abs(dx) > abs(dy) -> onPrevious()
-                            dx < -90f && abs(dx) > abs(dy) -> onNext()
-                        }
-                    },
-                    onDrag = { change, amount ->
-                        change.consume()
-                        dx += amount.x
-                        dy += amount.y
-                    }
-                )
-            }
-            .clickable(onClick = onOpen),
-        shape = RoundedCornerShape(36.dp),
+            .padding(horizontal = 14.dp, vertical = 4.dp),
+        shape = RoundedCornerShape(32.dp),
         color = MaterialTheme.colorScheme.primaryContainer,
         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
         shadowElevation = 8.dp
@@ -115,8 +91,8 @@ fun MiniPlayer(
             modifier = Modifier.padding(start = 8.dp, end = 10.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(Modifier.size(58.dp), contentAlignment = Alignment.Center) {
-                Canvas(Modifier.size(58.dp)) {
+            Box(Modifier.size(50.dp), contentAlignment = Alignment.Center) {
+                Canvas(Modifier.size(50.dp)) {
                     val strokeWidth = 3.dp.toPx()
                     val inset = strokeWidth / 2f
                     val arcSize = Size(size.width - strokeWidth, size.height - strokeWidth)
@@ -142,12 +118,12 @@ fun MiniPlayer(
                 BeatmapArt(
                     beatmap = beatmap,
                     modifier = Modifier
-                        .size(46.dp)
+                        .size(40.dp)
                         .graphicsLayer { rotationZ = spin.value },
                     shape = CircleShape
                 )
             }
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 Text(
                     text = beatmap.title,
@@ -163,12 +139,27 @@ fun MiniPlayer(
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            IconButton(onClick = onPrevious) {
-                Icon(Icons.Rounded.SkipPrevious, contentDescription = "Previous")
-            }
+            Spacer(Modifier.width(6.dp))
             Surface(
                 modifier = Modifier
-                    .size(46.dp)
+                    .size(36.dp)
+                    .bounceClick(onClick = onPrevious),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Rounded.SkipPrevious,
+                        contentDescription = "Previous track",
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+            Spacer(Modifier.width(5.dp))
+            Surface(
+                modifier = Modifier
+                    .size(44.dp)
                     .bounceClick(onClick = onPlayPause),
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.primary,
@@ -178,12 +169,26 @@ fun MiniPlayer(
                     Icon(
                         imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                         contentDescription = if (isPlaying) "Pause" else "Play",
-                        modifier = Modifier.size(28.dp)
+                        modifier = Modifier.size(26.dp)
                     )
                 }
             }
-            IconButton(onClick = onNext) {
-                Icon(Icons.Rounded.SkipNext, contentDescription = "Next")
+            Spacer(Modifier.width(5.dp))
+            Surface(
+                modifier = Modifier
+                    .size(36.dp)
+                    .bounceClick(onClick = onNext),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Rounded.SkipNext,
+                        contentDescription = "Next track",
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
     }

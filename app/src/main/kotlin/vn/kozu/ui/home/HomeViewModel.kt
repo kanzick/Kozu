@@ -15,6 +15,7 @@ import vn.kozu.ui.containerFactory
 import java.util.Calendar
 import java.util.Random
 
+/** UI state metadata for the Home feed screen */
 data class HomeUiState(
     val displayName: String = "",
     val quickPicks: List<Beatmap> = emptyList(),
@@ -27,6 +28,7 @@ data class HomeUiState(
     val error: String? = null
 )
 
+/** ViewModel backing the Home screen feeds, quick picks, and daily mix */
 class HomeViewModel(private val container: AppContainer) : ViewModel() {
 
     val ui: StateFlow<HomeUiState> = combine(

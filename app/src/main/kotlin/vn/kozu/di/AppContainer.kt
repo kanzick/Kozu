@@ -18,9 +18,15 @@ import vn.kozu.data.repository.DiscoverFeed
 import vn.kozu.data.repository.LibrarySync
 import vn.kozu.player.PlaybackController
 
+/**
+ * Dependency injection container for Kozu.
+ * Instantiates and provides singletons for local storage, remote APIs, repositories,
+ * download management, and media playback control.
+ */
 class AppContainer(context: Context) {
     private val appContext = context.applicationContext
 
+    /** Local preference and data stores */
     val settings = SettingsStore(appContext)
     val favorites = FavoritesStore(appContext)
     val playlists = PlaylistStore(appContext)
@@ -28,6 +34,7 @@ class AppContainer(context: Context) {
     val downloadsStore = DownloadsStore(appContext)
     private val accountStore = AccountStore(appContext)
 
+    /** Network and remote API dependencies */
     val httpClient = OsuApiFactory.client()
     private val api = OsuApiFactory.create(httpClient)
     val auth = OsuAuth(api, settings, accountStore)
@@ -35,10 +42,12 @@ class AppContainer(context: Context) {
     val catalog = BeatmapRepository(api, auth, settings, httpClient)
     val discover = DiscoverFeed(catalog, settings, accountStore)
 
+    /** Audio streaming, downloading, and sync services */
     val streams = StreamResolver(appContext, httpClient, downloadsStore, settings)
     val downloads = DownloadManager(appContext, httpClient, settings, downloadsStore, auth)
     val mirrorTester = MirrorTester(httpClient)
     val sync = LibrarySync(catalog, favorites, playlists, history, downloadsStore, downloads, settings)
 
+    /** Lazily instantiated media playback controller */
     val playback: PlaybackController by lazy { PlaybackController(appContext, history, streams) }
 }

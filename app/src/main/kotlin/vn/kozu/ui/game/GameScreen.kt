@@ -54,6 +54,7 @@ import vn.kozu.ui.components.BeatmapArt
 import vn.kozu.ui.components.EmptyState
 import vn.kozu.ui.components.HeaderTitle
 import vn.kozu.ui.components.ScreenHeader
+import vn.kozu.ui.components.SearchAction
 import vn.kozu.ui.components.SectionHeader
 import vn.kozu.ui.components.SettingsAction
 import vn.kozu.ui.components.bounceClick
@@ -64,6 +65,7 @@ fun GameScreen(
     bottomPadding: Dp,
     onOpenSettings: () -> Unit,
     onOpenLibrary: () -> Unit,
+    onOpenSearch: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: GameViewModel = viewModel(factory = GameViewModel.Factory)
 ) {
@@ -72,8 +74,11 @@ fun GameScreen(
 
     Column(modifier.fillMaxSize()) {
         ScreenHeader(
-            leading = { HeaderTitle("Play as game") },
-            actions = { SettingsAction(onOpenSettings) }
+            leading = { HeaderTitle("Game") },
+            actions = {
+                SearchAction(onOpenSearch)
+                SettingsAction(onOpenSettings)
+            }
         )
 
         LazyColumn(

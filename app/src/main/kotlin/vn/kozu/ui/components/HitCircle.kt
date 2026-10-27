@@ -13,6 +13,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Box
 
+/**
+ * Decorative osu!-style hit circle badge with a number index.
+ */
 @Composable
 fun HitCircle(
     number: Int,

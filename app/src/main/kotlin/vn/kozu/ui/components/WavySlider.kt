@@ -29,6 +29,9 @@ import kotlin.math.PI
 import kotlin.math.sin
 import vn.kozu.ui.theme.KozuMotion
 
+/**
+ * Animated sine-wave progress slider for audio playback control.
+ */
 @Composable
 fun WavySlider(
     progress: Float,

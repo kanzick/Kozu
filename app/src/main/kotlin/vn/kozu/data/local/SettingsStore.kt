@@ -22,7 +22,12 @@ import vn.kozu.domain.model.ThemeMode
 
 class SettingsStore(context: Context) {
 
-    private val store = context.applicationContext.kozuDataStore
+    private val appContext = context.applicationContext
+    private val store = appContext.kozuDataStore
+    private val prefsCache = appContext.getSharedPreferences("kozu_theme_sync", Context.MODE_PRIVATE)
+
+    val cachedThemeMode: ThemeMode get() = ThemeMode.fromKey(prefsCache.getString("theme_mode", "system"))
+    val cachedAmoled: Boolean get() = prefsCache.getBoolean("amoled", false)
 
     private object Keys {
         val theme = stringPreferencesKey("theme_mode")
@@ -79,8 +84,14 @@ class SettingsStore(context: Context) {
         prefs[Keys.recentSearches].orEmpty().split('\n').filter { it.isNotBlank() }
     }.distinctUntilChanged()
 
-    suspend fun setThemeMode(mode: ThemeMode) = store.edit { it[Keys.theme] = mode.key }
-    suspend fun setAmoled(enabled: Boolean) = store.edit { it[Keys.amoled] = enabled }
+    suspend fun setThemeMode(mode: ThemeMode) {
+        prefsCache.edit().putString("theme_mode", mode.key).apply()
+        store.edit { it[Keys.theme] = mode.key }
+    }
+    suspend fun setAmoled(enabled: Boolean) {
+        prefsCache.edit().putBoolean("amoled", enabled).apply()
+        store.edit { it[Keys.amoled] = enabled }
+    }
     suspend fun setArtworkColors(enabled: Boolean) = store.edit { it[Keys.artworkColors] = enabled }
     suspend fun setAccent(accent: AccentColor) = store.edit { it[Keys.accent] = accent.key }
     suspend fun setDisplayName(name: String) = store.edit { it[Keys.displayName] = name.trim().take(24) }

@@ -18,6 +18,7 @@ import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.Playlist
 import vn.kozu.ui.containerFactory
 
+/** Library tabs */
 enum class LibraryTab(val label: String) {
     LIKED("LIKED"),
     PLAYLISTS("PLAYLISTS"),
@@ -25,12 +26,14 @@ enum class LibraryTab(val label: String) {
     DOWNLOADS("DOWNLOADS")
 }
 
+/** Sorting options for library items */
 enum class LibrarySort(val label: String) {
     RECENT("Recently added"),
     TITLE("Title"),
     ARTIST("Artist")
 }
 
+/** UI state metadata for Library screen */
 data class LibraryUiState(
     val tab: LibraryTab = LibraryTab.LIKED,
     val sort: LibrarySort = LibrarySort.RECENT,
@@ -45,6 +48,7 @@ data class LibraryUiState(
     val downloadedBytes: Long = 0L
 )
 
+/** ViewModel managing user library, liked tracks, custom playlists, and offline downloads */
 class LibraryViewModel(private val container: AppContainer) : ViewModel() {
 
     private val tab = MutableStateFlow(LibraryTab.LIKED)

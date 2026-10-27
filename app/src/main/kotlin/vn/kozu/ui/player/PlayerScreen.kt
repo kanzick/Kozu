@@ -93,16 +93,16 @@ fun PlayerScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
             .background(
                 Brush.verticalGradient(
                     listOf(
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.75f),
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
                         MaterialTheme.colorScheme.surface,
                         MaterialTheme.colorScheme.surface
                     )
                 )
             )
-
             .pointerInput(Unit) { detectTapGestures { } }
     ) {
         Column(

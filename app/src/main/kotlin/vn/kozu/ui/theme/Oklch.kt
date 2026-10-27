@@ -7,14 +7,14 @@ import kotlin.math.hypot
 import kotlin.math.pow
 import kotlin.math.sin
 
-
-
-
-
+/**
+ * OKLCH color space transformations for perceptually uniform color generation.
+ */
 internal object Oklch {
 
     data class Lch(val l: Double, val c: Double, val h: Double)
 
+    /** Converts a Compose [Color] into OKLCH representation */
     fun fromColor(color: Color): Lch {
         val r = srgbToLinear(color.red.toDouble())
         val g = srgbToLinear(color.green.toDouble())
@@ -33,7 +33,7 @@ internal object Oklch {
         return Lch(lightness, hypot(a, bb), hue)
     }
 
-
+    /** Converts OKLCH parameters to a gamut-clipped sRGB Compose [Color] */
     fun toColor(lightness: Double, chroma: Double, hue: Double): Color {
         var c = chroma
         if (!inGamut(lightness, c, hue)) {
@@ -85,7 +85,9 @@ internal object Oklch {
     private const val EPSILON = 1e-4
 }
 
-
+/**
+ * Tonal palette generator producing colors for given lightness tones (0..100).
+ */
 internal class TonalPalette(private val hue: Double, private val chroma: Double) {
 
     private val cache = HashMap<Int, Color>()

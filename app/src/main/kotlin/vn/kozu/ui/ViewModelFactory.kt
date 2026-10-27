@@ -8,10 +8,15 @@ import androidx.lifecycle.ViewModel
 import vn.kozu.KozuApplication
 import vn.kozu.di.AppContainer
 
+/**
+ * Extracts the application [AppContainer] instance from ViewModel creation extras.
+ */
 internal fun CreationExtras.container(): AppContainer =
     (this[APPLICATION_KEY] as KozuApplication).container
 
-
+/**
+ * Convenience factory builder for ViewModels requiring [AppContainer].
+ */
 internal inline fun <reified VM : ViewModel> containerFactory(
     crossinline create: (AppContainer) -> VM
 ) = viewModelFactory {

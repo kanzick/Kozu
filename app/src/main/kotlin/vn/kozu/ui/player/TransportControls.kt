@@ -42,10 +42,9 @@ import vn.kozu.player.RepeatState
 import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.theme.KozuMotion
 
-
-
-
-
+/**
+ * Animated media transport control buttons (previous, play/pause, next).
+ */
 @Composable
 fun TransportControls(
     isPlaying: Boolean,
@@ -137,7 +136,9 @@ private fun RowScope.TransportButton(
     }
 }
 
-
+/**
+ * Toggle segment row for shuffle, repeat mode, and favorite status.
+ */
 @Composable
 fun PlayerToggleRow(
     shuffle: Boolean,

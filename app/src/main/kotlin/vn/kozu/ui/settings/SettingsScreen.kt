@@ -56,7 +56,13 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory)
 ) {
     var page by rememberSaveable { mutableStateOf(SettingsPage.ROOT) }
-    BackHandler(enabled = page != SettingsPage.ROOT) { page = SettingsPage.ROOT }
+    BackHandler(enabled = true) {
+        if (page != SettingsPage.ROOT) {
+            page = SettingsPage.ROOT
+        } else {
+            onBack()
+        }
+    }
     val close = { page = SettingsPage.ROOT }
 
     Surface(modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
