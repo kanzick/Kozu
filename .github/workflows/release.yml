@@ -1,23 +1,30 @@
 name: Release Android APK
 
 on:
+  push:
+    tags:
+      - "v*"
   workflow_dispatch:
     inputs:
       version_name:
-        description: Android versionName
+        description: Android versionName (MAJOR.MINOR.PATCH)
         required: true
         type: string
       version_code:
-        description: Optional versionCode (leave empty to generate one that always increases)
+        description: Optional versionCode (defaults to the current Unix timestamp)
+        required: false
+        type: string
+      release_notes:
+        description: Optional Markdown description (blank uses .github/RELEASE_TEMPLATE.md)
         required: false
         type: string
       minify:
-        description: Shrink/optimize with R8 (smaller and faster, but test it first)
+        description: Shrink/optimize with R8
         required: false
         type: boolean
         default: false
       smoke_test:
-        description: Test the APK on an emulator before publishing
+        description: Test the universal APK on an emulator before publishing
         required: false
         type: boolean
         default: true
@@ -31,23 +38,22 @@ permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ inputs.version_name || github.ref_name }}
   cancel-in-progress: false
-
-env:
-  APK_NAME: v${{ inputs.version_name }}.apk
 
 jobs:
   build:
-    name: Build APK
+    name: Build APK variants
     runs-on: ubuntu-latest
     timeout-minutes: 45
     outputs:
-      version_code: ${{ steps.version.outputs.code }}
+      version_name: ${{ steps.version.outputs.name }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Set up Java
         uses: actions/setup-java@v6
@@ -58,28 +64,88 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Validate inputs and secrets
+      - name: Validate release settings
         id: version
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          RELEASE_VERSION_NAME: ${{ inputs.version_name }}
+          RELEASE_VERSION_INPUT: ${{ inputs.version_name || github.ref_name }}
           RELEASE_VERSION_CODE: ${{ inputs.version_code }}
+          RELEASE_EVENT_NAME: ${{ github.event_name }}
           GH_TOKEN: ${{ github.token }}
         run: |
           test -n "$ANDROID_KEYSTORE_BASE64" || { echo "::error::Missing ANDROID_KEYSTORE_BASE64 secret"; exit 1; }
           test -n "$ANDROID_KEYSTORE_PASSWORD" || { echo "::error::Missing ANDROID_KEYSTORE_PASSWORD secret"; exit 1; }
           test -n "$ANDROID_KEY_ALIAS" || { echo "::error::Missing ANDROID_KEY_ALIAS secret"; exit 1; }
           test -n "$ANDROID_KEY_PASSWORD" || { echo "::error::Missing ANDROID_KEY_PASSWORD secret"; exit 1; }
-          [[ "$RELEASE_VERSION_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::Version name must use MAJOR.MINOR.PATCH format"; exit 1; }
+
+          version="$RELEASE_VERSION_INPUT"
+          if [ "$RELEASE_EVENT_NAME" = "push" ]; then
+            version="${version#v}"
+          fi
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]] || {
+            echo "::error::Version must use MAJOR.MINOR.PATCH format, optionally followed by a pre-release suffix"
+            exit 1
+          }
+
           code="$RELEASE_VERSION_CODE"
-          if [ -z "$code" ]; then code="$(( $(date +%s) / 60 ))"; fi
-          [[ "$code" =~ ^[1-9][0-9]*$ ]] && [ "$code" -le 2100000000 ] || { echo "::error::Version code must be an integer from 1 to 2100000000"; exit 1; }
-          tag_status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --header "Authorization: Bearer $GH_TOKEN" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/git/ref/tags/v$RELEASE_VERSION_NAME")"
-          [ "$tag_status" = "404" ] || { echo "::error::Release tag v$RELEASE_VERSION_NAME already exists or could not be checked"; exit 1; }
+          if [ -z "$code" ]; then code="$(date +%s)"; fi
+          [[ "$code" =~ ^[1-9][0-9]*$ ]] && [ "$code" -le 2100000000 ] || {
+            echo "::error::Version code must be an integer from 1 to 2100000000"
+            exit 1
+          }
+
+          tag="v$version"
+          if [ "$RELEASE_EVENT_NAME" = "workflow_dispatch" ]; then
+            tag_status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+              --header "Authorization: Bearer $GH_TOKEN" \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/git/ref/tags/$tag")"
+            [ "$tag_status" = "404" ] || {
+              echo "::error::Release tag $tag already exists or could not be checked"
+              exit 1
+            }
+          fi
+
+          echo "name=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "code=$code" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare release description
+        env:
+          RELEASE_VERSION_NAME: ${{ steps.version.outputs.name }}
+          RELEASE_NOTES_INPUT: ${{ inputs.release_notes }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          version = os.environ["RELEASE_VERSION_NAME"]
+          notes = os.environ.get("RELEASE_NOTES_INPUT", "").strip()
+          if notes:
+              body = notes
+          else:
+              template = Path(".github/RELEASE_TEMPLATE.md").read_text(encoding="utf-8")
+              repository = os.environ["GITHUB_REPOSITORY"]
+              download_base = f"https://github.com/{repository}/releases/download/v{version}"
+              assets = "\n".join(
+                  f"| {label} | [Download](https://github.com/{repository}/releases/download/v{version}/kozu-v{version}-{asset}.apk) |"
+                  for label, asset in (
+                      ("Universal (recommended)", "universal"),
+                      ("ARM 64-bit", "arm64-v8a"),
+                      ("ARM 32-bit", "armeabi-v7a"),
+                      ("x86 64-bit", "x86_64"),
+                      ("x86 32-bit", "x86"),
+                  )
+              )
+              body = template.replace("{{VERSION}}", version)
+              body = body.replace("{{ASSETS}}", assets)
+              body = body.replace("{{REPOSITORY}}", repository)
+              body = body.replace("{{DOWNLOAD_BASE}}", download_base)
+          Path("release-body.md").write_text(body.rstrip() + "\n", encoding="utf-8")
+          PY
 
       - name: Prepare release keystore
         env:
@@ -87,13 +153,13 @@ jobs:
         run: |
           python3 -c 'import base64, os, pathlib; pathlib.Path(os.environ["RUNNER_TEMP"], "kozu-release.jks").write_bytes(base64.b64decode(os.environ["ANDROID_KEYSTORE_BASE64"], validate=True))'
 
-      - name: Build signed release APK
+      - name: Build signed release APK variants
         env:
           ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/kozu-release.jks
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          APP_VERSION_NAME: ${{ inputs.version_name }}
+          APP_VERSION_NAME: ${{ steps.version.outputs.name }}
           APP_VERSION_CODE: ${{ steps.version.outputs.code }}
           MINIFY: ${{ inputs.minify }}
         run: |
@@ -102,32 +168,73 @@ jobs:
             "-PappVersionCode=$APP_VERSION_CODE" \
             "-PminifyRelease=$MINIFY"
 
-      - name: Verify APK
+      - name: Verify and package APK variants
+        env:
+          RELEASE_VERSION_NAME: ${{ steps.version.outputs.name }}
         run: |
-          apk=app/build/outputs/apk/release/app-release.apk
-          test -f "$apk" || { echo "::error::Release APK was not produced (is signing configured?)"; ls -R app/build/outputs || true; exit 1; }
           tools="$(find "$ANDROID_HOME/build-tools" -maxdepth 1 -mindepth 1 -type d | sort -V | tail -n 1)"
-          "$tools/apksigner" verify --verbose --print-certs "$apk"
-          "$tools/aapt2" dump badging "$apk" | tee badging.txt | grep -E "^(package|sdkVersion|targetSdkVersion|application-label:)"
-          grep -q "package: name='vn.kozu'" badging.txt || { echo "::error::Unexpected package name"; exit 1; }
-          grep -q "versionName='${{ inputs.version_name }}'" badging.txt || { echo "::error::versionName mismatch"; exit 1; }
-          if "$tools/apksigner" verify --verbose "$apk" | grep -q "Verified using v2 scheme (APK Signature Scheme v2): true"; then echo "v2 signature ok"; else echo "::error::APK is not v2-signed"; exit 1; fi
-          cp "$apk" "$APK_NAME"
-          sha256sum "$APK_NAME" > SHA256SUMS.txt
-          cat SHA256SUMS.txt
+          output="app/build/outputs/apk/release"
+          mkdir -p dist
+          variants=(
+            "universal:app-universal-release.apk"
+            "arm64-v8a:app-arm64-v8a-release.apk"
+            "armeabi-v7a:app-armeabi-v7a-release.apk"
+            "x86:app-x86-release.apk"
+            "x86_64:app-x86_64-release.apk"
+          )
+          for variant in "${variants[@]}"; do
+            label="${variant%%:*}"
+            source="$output/${variant#*:}"
+            destination="dist/kozu-v${RELEASE_VERSION_NAME}-${label}.apk"
+            test -f "$source" || {
+              echo "::error::Missing APK variant: $source"
+              ls -R "$output" || true
+              exit 1
+            }
+            "$tools/apksigner" verify --verbose --print-certs "$source"
+            "$tools/aapt2" dump badging "$source" > badging.txt
+            grep -q "package: name='vn.kozu'" badging.txt || {
+              echo "::error::Unexpected package in $source"
+              exit 1
+            }
+            grep -q "versionName='${RELEASE_VERSION_NAME}'" badging.txt || {
+              echo "::error::versionName mismatch in $source"
+              exit 1
+            }
+            native_code="$(sed -n 's/^native-code: //p' badging.txt)"
+            if [ "$label" = "universal" ]; then
+              for abi in arm64-v8a armeabi-v7a x86 x86_64; do
+                [[ "$native_code" == *"'$abi'"* ]] || {
+                  echo "::error::Universal APK is missing native libraries for $abi"
+                  exit 1
+                }
+              done
+            else
+              [[ "$native_code" == *"'$label'"* ]] || {
+                echo "::error::APK does not contain native libraries for $label"
+                exit 1
+              }
+            fi
+            "$tools/apksigner" verify --verbose "$source" | grep -q "Verified using v2 scheme (APK Signature Scheme v2): true" || {
+              echo "::error::APK is not v2-signed: $source"
+              exit 1
+            }
+            cp "$source" "$destination"
+          done
+          cp release-body.md dist/RELEASE_NOTES.md
+          (cd dist && sha256sum kozu-v*.apk > SHA256SUMS.txt)
+          cat dist/SHA256SUMS.txt
 
-      - name: Upload APK
+      - name: Upload release files
         uses: actions/upload-artifact@v7
         with:
-          name: release-apk
-          path: |
-            ${{ env.APK_NAME }}
-            SHA256SUMS.txt
+          name: release-files
+          path: dist/*
           if-no-files-found: error
           retention-days: 3
 
       - name: Upload R8 mapping
-        if: ${{ inputs.minify }}
+        if: ${{ inputs.minify == true }}
         uses: actions/upload-artifact@v7
         with:
           name: r8-mapping
@@ -136,9 +243,9 @@ jobs:
           retention-days: 30
 
   smoke-test:
-    name: Test On Emulator
+    name: Test universal APK on emulator
     needs: build
-    if: ${{ inputs.smoke_test }}
+    if: ${{ github.event_name == 'push' || inputs.smoke_test }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -146,10 +253,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Download APK
+      - name: Download release files
         uses: actions/download-artifact@v8
         with:
-          name: release-apk
+          name: release-files
           path: apk
 
       - name: Enable KVM
@@ -167,7 +274,7 @@ jobs:
           profile: pixel_6
           disable-animations: true
           emulator-boot-timeout: 600
-          script: bash .github/scripts/smoke_test.sh apk/${{ env.APK_NAME }} logcat.txt
+          script: bash .github/scripts/smoke_test.sh apk/kozu-v${{ needs.build.outputs.version_name }}-universal.apk logcat.txt
 
       - name: Upload logcat
         if: always()
@@ -185,21 +292,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download APK
+      - name: Download release files
         uses: actions/download-artifact@v8
         with:
-          name: release-apk
+          name: release-files
           path: dist
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: v${{ inputs.version_name }}
-          name: v${{ inputs.version_name }}
+          tag_name: v${{ needs.build.outputs.version_name }}
+          name: v${{ needs.build.outputs.version_name }}
           target_commitish: ${{ github.sha }}
-          generate_release_notes: true
-          prerelease: ${{ inputs.prerelease }}
+          body_path: dist/RELEASE_NOTES.md
+          generate_release_notes: false
+          prerelease: ${{ inputs.prerelease || contains(github.ref_name, '-') }}
           fail_on_unmatched_files: true
           files: |
-            dist/${{ env.APK_NAME }}
+            dist/kozu-v${{ needs.build.outputs.version_name }}-universal.apk
+            dist/kozu-v${{ needs.build.outputs.version_name }}-arm64-v8a.apk
+            dist/kozu-v${{ needs.build.outputs.version_name }}-armeabi-v7a.apk
+            dist/kozu-v${{ needs.build.outputs.version_name }}-x86_64.apk
+            dist/kozu-v${{ needs.build.outputs.version_name }}-x86.apk
             dist/SHA256SUMS.txt
