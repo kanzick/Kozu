@@ -255,11 +255,11 @@ jobs:
           echo "" >> body.md
           echo "| Device / architecture | Download |" >> body.md
           echo "| --- | --- |" >> body.md
-          echo "| Universal (recommended) | [Download](https://github.com{REPO}/releases/download/${TAG_NAME}/app-universal.apk) |" >> body.md
-          echo "| ARM 64-bit | [Download](https://github.com{REPO}/releases/download/${TAG_NAME}/app-arm64-v8a.apk) |" >> body.md
-          echo "| ARM 32-bit | [Download](https://github.com{REPO}/releases/download/${TAG_NAME}/app-armeabi-v7a.apk) |" >> body.md
-          echo "| x86 64-bit | [Download](https://github.com{REPO}/releases/download/${TAG_NAME}/app-x86_64.apk) |" >> body.md
-          echo "| x86 32-bit | [Download](https://github.com{REPO}/releases/download/${TAG_NAME}/app-x86.apk) |" >> body.md
+          echo "| Universal (recommended) | [Download](https://github.com/${REPO}/releases/download/${TAG_NAME}/app-universal.apk) |" >> body.md
+          echo "| ARM 64-bit | [Download](https://github.com/${REPO}/releases/download/${TAG_NAME}/app-arm64-v8a.apk) |" >> body.md
+          echo "| ARM 32-bit | [Download](https://github.com/${REPO}/releases/download/${TAG_NAME}/app-armeabi-v7a.apk) |" >> body.md
+          echo "| x86 64-bit | [Download](https://github.com/${REPO}/releases/download/${TAG_NAME}/app-x86_64.apk) |" >> body.md
+          echo "| x86 32-bit | [Download](https://github.com/${REPO}/releases/download/${TAG_NAME}/app-x86.apk) |" >> body.md
           echo "" >> body.md
 
       - name: Publish GitHub Release
@@ -268,3 +268,4 @@ jobs:
           tag_name: v${{ needs.build.outputs.version_name }}
           name: v${{ needs.build.outputs.version_name }}
           body_path: body.md
+          files: dist/*
