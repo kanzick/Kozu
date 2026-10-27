@@ -1,6 +1,9 @@
 name: Release Android APK
 
 on:
+  push:
+    tags:
+      - "v*"
   workflow_dispatch:
     inputs:
       version_name:
@@ -8,11 +11,11 @@ on:
         required: true
         type: string
       version_code:
-        description: Optional versionCode (defaults to the current Unix timestamp)
+        description: Optional versionCode (optional)
         required: false
         type: string
       minify:
-        description: Shrink/optimize with R8
+        description: R8 optimization
         required: false
         type: boolean
         default: false
@@ -21,12 +24,17 @@ on:
         required: false
         type: boolean
         default: true
+      prerelease:
+        description: Mark the release as a pre-release
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ inputs.version_name }}
+  group: release-${{ inputs.version_name || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -60,8 +68,10 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          RELEASE_VERSION_INPUT: ${{ inputs.version_name }}
+          RELEASE_VERSION_INPUT: ${{ inputs.version_name || github.ref_name }}
           RELEASE_VERSION_CODE: ${{ inputs.version_code }}
+          RELEASE_EVENT_NAME: ${{ github.event_name }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           test -n "$ANDROID_KEYSTORE_BASE64" || { echo "::error::Missing ANDROID_KEYSTORE_BASE64 secret"; exit 1; }
           test -n "$ANDROID_KEYSTORE_PASSWORD" || { echo "::error::Missing ANDROID_KEYSTORE_PASSWORD secret"; exit 1; }
@@ -69,7 +79,9 @@ jobs:
           test -n "$ANDROID_KEY_PASSWORD" || { echo "::error::Missing ANDROID_KEY_PASSWORD secret"; exit 1; }
 
           version="$RELEASE_VERSION_INPUT"
-          version="${version#v}"
+          if [ "$RELEASE_EVENT_NAME" = "push" ]; then
+            version="${version#v}"
+          fi
           [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]] || {
             echo "::error::Version must use MAJOR.MINOR.PATCH format, optionally followed by a pre-release suffix"
             exit 1
@@ -83,6 +95,7 @@ jobs:
           }
 
           echo "name=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "code=$code" >> "$GITHUB_OUTPUT"
 
       - name: Prepare release keystore
@@ -99,7 +112,7 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           APP_VERSION_NAME: ${{ steps.version.outputs.name }}
           APP_VERSION_CODE: ${{ steps.version.outputs.code }}
-          MINIFY: ${{ inputs.minify }}
+          MINIFY: ${{ inputs.minify || 'false' }}
         run: |
           ./gradlew :app:assembleRelease --stacktrace \
             "-PappVersion=$APP_VERSION_NAME" \
@@ -180,7 +193,7 @@ jobs:
   smoke-test:
     name: Test APK
     needs: build
-    if: ${{ inputs.smoke_test }}
+    if: ${{ github.event_name == 'push' || inputs.smoke_test }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -221,7 +234,7 @@ jobs:
           retention-days: 7
 
   publish:
-    name: Create Draft Release
+    name: Publish GitHub Release
     needs: [build, smoke-test]
     if: ${{ !cancelled() && needs.build.result == 'success' && (needs.smoke-test.result == 'success' || needs.smoke-test.result == 'skipped') }}
     runs-on: ubuntu-latest
@@ -233,9 +246,8 @@ jobs:
           name: release-files
           path: dist
 
-      - name: Generate Draft Release with Assets
+      - name: Create Dynamic Markdown Body
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_NAME: v${{ needs.build.outputs.version_name }}
           REPO: ${{ github.repository }}
         run: |
@@ -250,13 +262,9 @@ jobs:
           echo "| x86 32-bit | [Download](https://github.com{REPO}/releases/download/${TAG_NAME}/app-x86.apk) |" >> body.md
           echo "" >> body.md
 
-          gh release create "$TAG_NAME" \
-            --title "$TAG_NAME" \
-            --notes-file body.md \
-            --draft \
-            --generate-notes \
-            dist/app-universal.apk \
-            dist/app-arm64-v8a.apk \
-            dist/app-armeabi-v7a.apk \
-            dist/app-x86_64.apk \
-            dist/app-x86.apk
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.build.outputs.version_name }}
+          name: v${{ needs.build.outputs.version_name }}
+          body_path: body.md
