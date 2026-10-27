@@ -24,7 +24,7 @@ on:
         type: boolean
         default: false
       smoke_test:
-        description: Test the universal APK on an emulator before publishing
+        description: Test APK
         required: false
         type: boolean
         default: true
@@ -274,7 +274,7 @@ jobs:
           profile: pixel_6
           disable-animations: true
           emulator-boot-timeout: 600
-          script: bash .github/scripts/smoke_test.sh apk/kozu-v${{ needs.build.outputs.version_name }}-universal.apk logcat.txt
+          script: bash .github/scripts/smoke_test.sh apk/v${{ needs.build.outputs.version_name }}-universal.apk logcat.txt
 
       - name: Upload logcat
         if: always()
@@ -309,9 +309,9 @@ jobs:
           prerelease: ${{ inputs.prerelease || contains(github.ref_name, '-') }}
           fail_on_unmatched_files: true
           files: |
-            dist/kozu-v${{ needs.build.outputs.version_name }}-universal.apk
-            dist/kozu-v${{ needs.build.outputs.version_name }}-arm64-v8a.apk
-            dist/kozu-v${{ needs.build.outputs.version_name }}-armeabi-v7a.apk
-            dist/kozu-v${{ needs.build.outputs.version_name }}-x86_64.apk
-            dist/kozu-v${{ needs.build.outputs.version_name }}-x86.apk
+            dist/v${{ needs.build.outputs.version_name }}-universal.apk
+            dist/v${{ needs.build.outputs.version_name }}-arm64-v8a.apk
+            dist/v${{ needs.build.outputs.version_name }}-armeabi-v7a.apk
+            dist/v${{ needs.build.outputs.version_name }}-x86_64.apk
+            dist/v${{ needs.build.outputs.version_name }}-x86.apk
             dist/SHA256SUMS.txt
