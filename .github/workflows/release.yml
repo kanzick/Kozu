@@ -1,11 +1,6 @@
 name: Release Android APK
 
 on:
-  push:
-    tags:
-      - "v*"
-  release:
-    types: [published]
   workflow_dispatch:
     inputs:
       version_name:
@@ -13,11 +8,11 @@ on:
         required: true
         type: string
       version_code:
-        description: Optional versionCode (optional)
+        description: Optional versionCode (defaults to the current Unix timestamp)
         required: false
         type: string
       minify:
-        description: R8 optimization
+        description: Shrink/optimize with R8
         required: false
         type: boolean
         default: false
@@ -26,17 +21,12 @@ on:
         required: false
         type: boolean
         default: true
-      prerelease:
-        description: Mark the release as a pre-release
-        required: false
-        type: boolean
-        default: false
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ inputs.version_name || github.ref_name }}
+  group: release-${{ inputs.version_name }}
   cancel-in-progress: false
 
 jobs:
@@ -53,7 +43,6 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
-          ref: ${{ github.event.release.target_commitish || github.ref }}
 
       - name: Set up Java
         uses: actions/setup-java@v6
@@ -71,10 +60,8 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          RELEASE_VERSION_INPUT: ${{ inputs.version_name || github.ref_name }}
+          RELEASE_VERSION_INPUT: ${{ inputs.version_name }}
           RELEASE_VERSION_CODE: ${{ inputs.version_code }}
-          RELEASE_EVENT_NAME: ${{ github.event_name }}
-          GH_TOKEN: ${{ github.token }}
         run: |
           test -n "$ANDROID_KEYSTORE_BASE64" || { echo "::error::Missing ANDROID_KEYSTORE_BASE64 secret"; exit 1; }
           test -n "$ANDROID_KEYSTORE_PASSWORD" || { echo "::error::Missing ANDROID_KEYSTORE_PASSWORD secret"; exit 1; }
@@ -82,9 +69,7 @@ jobs:
           test -n "$ANDROID_KEY_PASSWORD" || { echo "::error::Missing ANDROID_KEY_PASSWORD secret"; exit 1; }
 
           version="$RELEASE_VERSION_INPUT"
-          if [ "$RELEASE_EVENT_NAME" = "push" ] || [ "$RELEASE_EVENT_NAME" = "release" ]; then
-            version="${version#v}"
-          fi
+          version="${version#v}"
           [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]] || {
             echo "::error::Version must use MAJOR.MINOR.PATCH format, optionally followed by a pre-release suffix"
             exit 1
@@ -97,19 +82,7 @@ jobs:
             exit 1
           }
 
-          tag="v$version"
-          if [ "$RELEASE_EVENT_NAME" = "workflow_dispatch" ]; then
-            tag_status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
-              --header "Authorization: Bearer $GH_TOKEN" \
-              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/git/ref/tags/$tag")"
-            [ "$tag_status" = "404" ] || {
-              echo "::error::Release tag $tag already exists or could not be checked"
-              exit 1
-            }
-          fi
-
           echo "name=$version" >> "$GITHUB_OUTPUT"
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "code=$code" >> "$GITHUB_OUTPUT"
 
       - name: Prepare release keystore
@@ -207,7 +180,7 @@ jobs:
   smoke-test:
     name: Test APK
     needs: build
-    if: ${{ github.event_name == 'push' || github.event_name == 'release' || inputs.smoke_test }}
+    if: ${{ inputs.smoke_test }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -248,7 +221,7 @@ jobs:
           retention-days: 7
 
   publish:
-    name: Publish GitHub Release
+    name: Create Draft Release
     needs: [build, smoke-test]
     if: ${{ !cancelled() && needs.build.result == 'success' && (needs.smoke-test.result == 'success' || needs.smoke-test.result == 'skipped') }}
     runs-on: ubuntu-latest
@@ -260,18 +233,30 @@ jobs:
           name: release-files
           path: dist
 
-      - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ github.event.release.tag_name || format('v{0}', needs.build.outputs.version_name) }}
-          name: ${{ github.event.release.name || format('v{0}', needs.build.outputs.version_name) }}
-          target_commitish: ${{ github.sha }}
-          generate_release_notes: true
-          prerelease: ${{ inputs.prerelease || contains(github.ref_name, '-') || github.event.release.prerelease }}
-          fail_on_unmatched_files: true
-          files: |
-            dist/app-universal.apk
-            dist/app-arm64-v8a.apk
-            dist/app-armeabi-v7a.apk
-            dist/app-x86_64.apk
+      - name: Generate Draft Release with Assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: v${{ needs.build.outputs.version_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "### 📦 Download APK" > body.md
+          echo "" >> body.md
+          echo "| Device / architecture | Download |" >> body.md
+          echo "| --- | --- |" >> body.md
+          echo "| Universal (recommended) | [Download](https://github.com{REPO}/releases/download/${TAG_NAME}/app-universal.apk) |" >> body.md
+          echo "| ARM 64-bit | [Download](https://github.com{REPO}/releases/download/${TAG_NAME}/app-arm64-v8a.apk) |" >> body.md
+          echo "| ARM 32-bit | [Download](https://github.com{REPO}/releases/download/${TAG_NAME}/app-armeabi-v7a.apk) |" >> body.md
+          echo "| x86 64-bit | [Download](https://github.com{REPO}/releases/download/${TAG_NAME}/app-x86_64.apk) |" >> body.md
+          echo "| x86 32-bit | [Download](https://github.com{REPO}/releases/download/${TAG_NAME}/app-x86.apk) |" >> body.md
+          echo "" >> body.md
+
+          gh release create "$TAG_NAME" \
+            --title "$TAG_NAME" \
+            --notes-file body.md \
+            --draft \
+            --generate-notes \
+            dist/app-universal.apk \
+            dist/app-arm64-v8a.apk \
+            dist/app-armeabi-v7a.apk \
+            dist/app-x86_64.apk \
             dist/app-x86.apk
