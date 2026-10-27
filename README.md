@@ -1,3 +1,3 @@
 # Kozu
-Kozu is an Android music player for osu! beatmaps.
+Simple music player for osu! beatmaps.
 
