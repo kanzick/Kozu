@@ -7,18 +7,18 @@ on:
   workflow_dispatch:
     inputs:
       version_name:
-        description: Android versionName (MAJOR.MINOR.PATCH)
+        description: versionName (major.minor.patch)
         required: true
         type: string
       version_code:
-        description: Optional versionCode (optional)
+        description: versionCode (optional)
         required: false
         type: string
       minify:
         description: R8 optimization
         required: false
         type: boolean
-        default: false
+        default: true
       smoke_test:
         description: Test APK
         required: false
@@ -264,6 +264,8 @@ jobs:
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         with:
           tag_name: v${{ needs.build.outputs.version_name }}
           name: v${{ needs.build.outputs.version_name }}
