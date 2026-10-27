@@ -48,8 +48,9 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
         with:
+          token: ${{ secrets.GH_PAT }}
           fetch-depth: 0
 
       - name: Set up Java
@@ -71,7 +72,7 @@ jobs:
           RELEASE_VERSION_INPUT: ${{ inputs.version_name || github.ref_name }}
           RELEASE_VERSION_CODE: ${{ inputs.version_code }}
           RELEASE_EVENT_NAME: ${{ github.event_name }}
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           test -n "$ANDROID_KEYSTORE_BASE64" || { echo "::error::Missing ANDROID_KEYSTORE_BASE64 secret"; exit 1; }
           test -n "$ANDROID_KEYSTORE_PASSWORD" || { echo "::error::Missing ANDROID_KEYSTORE_PASSWORD secret"; exit 1; }
@@ -199,7 +200,9 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }}
 
       - name: Download release files
         uses: actions/download-artifact@v8
@@ -240,6 +243,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Configure Git Author
+        run: |
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
+
       - name: Download release files
         uses: actions/download-artifact@v8
         with:
@@ -272,3 +285,4 @@ jobs:
           body_path: body.md
           generate_release_notes: true
           files: dist/*
+          prerelease: ${{ inputs.prerelease || false }}
