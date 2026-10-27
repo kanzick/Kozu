@@ -7,22 +7,18 @@ on:
   workflow_dispatch:
     inputs:
       version_name:
-        description: Android versionName (MAJOR.MINOR.PATCH)
+        description: versionName (major.minor.patch)
         required: true
         type: string
       version_code:
-        description: Optional versionCode (defaults to the current Unix timestamp)
-        required: false
-        type: string
-      release_notes:
-        description: Optional Markdown description (blank uses .github/RELEASE_TEMPLATE.md)
+        description: versionCode (optional)
         required: false
         type: string
       minify:
-        description: Shrink/optimize with R8
+        description: R8 optimization
         required: false
         type: boolean
-        default: false
+        default: true
       smoke_test:
         description: Test APK
         required: false
@@ -43,11 +39,12 @@ concurrency:
 
 jobs:
   build:
-    name: Build APK variants
+    name: Build APK
     runs-on: ubuntu-latest
     timeout-minutes: 45
     outputs:
       version_name: ${{ steps.version.outputs.name }}
+      code: ${{ steps.version.outputs.code }}
 
     steps:
       - name: Checkout
@@ -97,55 +94,9 @@ jobs:
             exit 1
           }
 
-          tag="v$version"
-          if [ "$RELEASE_EVENT_NAME" = "workflow_dispatch" ]; then
-            tag_status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
-              --header "Authorization: Bearer $GH_TOKEN" \
-              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/git/ref/tags/$tag")"
-            [ "$tag_status" = "404" ] || {
-              echo "::error::Release tag $tag already exists or could not be checked"
-              exit 1
-            }
-          fi
-
           echo "name=$version" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "code=$code" >> "$GITHUB_OUTPUT"
-
-      - name: Prepare release description
-        env:
-          RELEASE_VERSION_NAME: ${{ steps.version.outputs.name }}
-          RELEASE_NOTES_INPUT: ${{ inputs.release_notes }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-        run: |
-          python3 - <<'PY'
-          import os
-          from pathlib import Path
-
-          version = os.environ["RELEASE_VERSION_NAME"]
-          notes = os.environ.get("RELEASE_NOTES_INPUT", "").strip()
-          if notes:
-              body = notes
-          else:
-              template = Path(".github/RELEASE_TEMPLATE.md").read_text(encoding="utf-8")
-              repository = os.environ["GITHUB_REPOSITORY"]
-              download_base = f"https://github.com/{repository}/releases/download/v{version}"
-              assets = "\n".join(
-                  f"| {label} | [Download](https://github.com/{repository}/releases/download/v{version}/kozu-v{version}-{asset}.apk) |"
-                  for label, asset in (
-                      ("Universal (recommended)", "universal"),
-                      ("ARM 64-bit", "arm64-v8a"),
-                      ("ARM 32-bit", "armeabi-v7a"),
-                      ("x86 64-bit", "x86_64"),
-                      ("x86 32-bit", "x86"),
-                  )
-              )
-              body = template.replace("{{VERSION}}", version)
-              body = body.replace("{{ASSETS}}", assets)
-              body = body.replace("{{REPOSITORY}}", repository)
-              body = body.replace("{{DOWNLOAD_BASE}}", download_base)
-          Path("release-body.md").write_text(body.rstrip() + "\n", encoding="utf-8")
-          PY
 
       - name: Prepare release keystore
         env:
@@ -161,7 +112,7 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           APP_VERSION_NAME: ${{ steps.version.outputs.name }}
           APP_VERSION_CODE: ${{ steps.version.outputs.code }}
-          MINIFY: ${{ inputs.minify }}
+          MINIFY: ${{ inputs.minify || 'false' }}
         run: |
           ./gradlew :app:assembleRelease --stacktrace \
             "-PappVersion=$APP_VERSION_NAME" \
@@ -185,7 +136,7 @@ jobs:
           for variant in "${variants[@]}"; do
             label="${variant%%:*}"
             source="$output/${variant#*:}"
-            destination="dist/kozu-v${RELEASE_VERSION_NAME}-${label}.apk"
+            destination="dist/app-${label}.apk"
             test -f "$source" || {
               echo "::error::Missing APK variant: $source"
               ls -R "$output" || true
@@ -221,9 +172,6 @@ jobs:
             }
             cp "$source" "$destination"
           done
-          cp release-body.md dist/RELEASE_NOTES.md
-          (cd dist && sha256sum kozu-v*.apk > SHA256SUMS.txt)
-          cat dist/SHA256SUMS.txt
 
       - name: Upload release files
         uses: actions/upload-artifact@v7
@@ -243,7 +191,7 @@ jobs:
           retention-days: 30
 
   smoke-test:
-    name: Test universal APK on emulator
+    name: Test APK
     needs: build
     if: ${{ github.event_name == 'push' || inputs.smoke_test }}
     runs-on: ubuntu-latest
@@ -274,7 +222,7 @@ jobs:
           profile: pixel_6
           disable-animations: true
           emulator-boot-timeout: 600
-          script: bash .github/scripts/smoke_test.sh apk/v${{ needs.build.outputs.version_name }}-universal.apk logcat.txt
+          script: bash .github/scripts/smoke_test.sh apk/app-universal.apk logcat.txt
 
       - name: Upload logcat
         if: always()
@@ -298,20 +246,29 @@ jobs:
           name: release-files
           path: dist
 
+      - name: Create Dynamic Markdown Body
+        env:
+          TAG_NAME: v${{ needs.build.outputs.version_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "### 📦 Download APK" > body.md
+          echo "" >> body.md
+          echo "| Device / architecture | Download |" >> body.md
+          echo "| --- | --- |" >> body.md
+          echo "| Universal (recommended) | [Download](https://github.com/${REPO}/releases/download/${TAG_NAME}/app-universal.apk) |" >> body.md
+          echo "| ARM 64-bit | [Download](https://github.com/${REPO}/releases/download/${TAG_NAME}/app-arm64-v8a.apk) |" >> body.md
+          echo "| ARM 32-bit | [Download](https://github.com/${REPO}/releases/download/${TAG_NAME}/app-armeabi-v7a.apk) |" >> body.md
+          echo "| x86 64-bit | [Download](https://github.com/${REPO}/releases/download/${TAG_NAME}/app-x86_64.apk) |" >> body.md
+          echo "| x86 32-bit | [Download](https://github.com/${REPO}/releases/download/${TAG_NAME}/app-x86.apk) |" >> body.md
+          echo "" >> body.md
+
       - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         with:
           tag_name: v${{ needs.build.outputs.version_name }}
           name: v${{ needs.build.outputs.version_name }}
-          target_commitish: ${{ github.sha }}
-          body_path: dist/RELEASE_NOTES.md
-          generate_release_notes: false
-          prerelease: ${{ inputs.prerelease || contains(github.ref_name, '-') }}
-          fail_on_unmatched_files: true
-          files: |
-            dist/v${{ needs.build.outputs.version_name }}-universal.apk
-            dist/v${{ needs.build.outputs.version_name }}-arm64-v8a.apk
-            dist/v${{ needs.build.outputs.version_name }}-armeabi-v7a.apk
-            dist/v${{ needs.build.outputs.version_name }}-x86_64.apk
-            dist/v${{ needs.build.outputs.version_name }}-x86.apk
-            dist/SHA256SUMS.txt
+          body_path: body.md
+          generate_release_notes: true
+          files: dist/*
