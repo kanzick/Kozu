@@ -162,6 +162,13 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
         }
     }
 
+    fun clearCredentials() {
+        viewModelScope.launch {
+            container.settings.setOsuCredentials("", "")
+            _verify.value = VerifyState.Idle
+        }
+    }
+
     fun login(open: (String) -> Unit) {
         viewModelScope.launch {
             val url = container.accounts.beginLogin()

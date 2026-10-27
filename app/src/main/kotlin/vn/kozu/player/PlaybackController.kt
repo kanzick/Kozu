@@ -159,6 +159,13 @@ class PlaybackController(
         if (index in 0 until c.mediaItemCount) c.removeMediaItem(index)
     }
 
+    fun clearQueue() = withController { c ->
+        c.pause()
+        c.clearMediaItems()
+        _position.value = 0L
+        _duration.value = 0L
+    }
+
     fun playNext(beatmap: Beatmap) = withController { c ->
         if (c.mediaItemCount == 0) {
             c.setMediaItems(listOf(beatmap.toMediaItem()), 0, 0L)

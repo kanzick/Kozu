@@ -20,7 +20,6 @@ import java.time.OffsetDateTime
 
 data class CatalogResult(
     val items: List<Beatmap>,
-    val isSample: Boolean,
     val error: String? = null
 )
 
@@ -42,24 +41,20 @@ class BeatmapRepository(
             query = query,
             status = current.statusFilter.apiValue,
             sort = sort.apiValue,
-            genre = category?.genreId,
-            fallback = { SampleBeatmaps.search(query) }
+            genre = category?.genreId
         )
     }
 
     suspend fun trending(): CatalogResult = fetch(
-        query = "", status = "ranked", sort = "plays_desc", genre = null,
-        fallback = { SampleBeatmaps.all }
+        query = "", status = "ranked", sort = "plays_desc", genre = null
     )
 
     suspend fun newReleases(): CatalogResult = fetch(
-        query = "", status = "ranked", sort = "ranked_desc", genre = null,
-        fallback = { SampleBeatmaps.all.reversed() }
+        query = "", status = "ranked", sort = "ranked_desc", genre = null
     )
 
     suspend fun lovedPicks(): CatalogResult = fetch(
-        query = "", status = "loved", sort = "plays_desc", genre = null,
-        fallback = { SampleBeatmaps.all.shuffled(java.util.Random(7)) }
+        query = "", status = "loved", sort = "plays_desc", genre = null
     )
 
     suspend fun details(id: Long): Beatmap? {
@@ -104,14 +99,16 @@ class BeatmapRepository(
         query: String,
         status: String?,
         sort: String?,
-        genre: Int?,
-        fallback: () -> List<Beatmap>
+        genre: Int?
     ): CatalogResult {
         return try {
             val current = settings.settings.first()
             val mode = current.modeFilter.apiValue
             val nsfw = current.showExplicit
-            val bearer = auth.bearer() ?: return CatalogResult(fallback(), isSample = true)
+            val bearer = auth.bearer() ?: return CatalogResult(
+                items = emptyList(),
+                error = "Add osu! API credentials in Settings to load live beatmaps. Profile sign-in is not required."
+            )
             val response = try {
                 api.searchBeatmapsets("Bearer $bearer", query, status, sort, genre, mode, nsfw)
             } catch (e: HttpException) {
@@ -120,11 +117,11 @@ class BeatmapRepository(
                 api.searchBeatmapsets("Bearer $fresh", query, status, sort, genre, mode, nsfw)
             }
             val items = response.beatmapsets.orEmpty().mapNotNull { it.toBeatmap() }.take(30)
-            CatalogResult(items, isSample = false)
+            CatalogResult(items)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            CatalogResult(fallback(), isSample = true, error = describe(e))
+            CatalogResult(emptyList(), error = describe(e))
         }
     }
 

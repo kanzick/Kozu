@@ -9,6 +9,8 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -26,7 +28,7 @@ class SettingsStore(context: Context) {
     private val store = appContext.kozuDataStore
     private val prefsCache = appContext.getSharedPreferences("kozu_theme_sync", Context.MODE_PRIVATE)
 
-    val cachedThemeMode: ThemeMode get() = ThemeMode.fromKey(prefsCache.getString("theme_mode", "system"))
+    val cachedThemeMode: ThemeMode get() = initialThemeMode(appContext)
     val cachedAmoled: Boolean get() = prefsCache.getBoolean("amoled", false)
 
     private object Keys {
@@ -85,11 +87,19 @@ class SettingsStore(context: Context) {
     }.distinctUntilChanged()
 
     suspend fun setThemeMode(mode: ThemeMode) {
-        prefsCache.edit().putString("theme_mode", mode.key).apply()
+        withContext(Dispatchers.IO) {
+            check(prefsCache.edit().putString("theme_mode", mode.key).commit()) {
+                "Could not persist the startup theme preference"
+            }
+        }
         store.edit { it[Keys.theme] = mode.key }
     }
     suspend fun setAmoled(enabled: Boolean) {
-        prefsCache.edit().putBoolean("amoled", enabled).apply()
+        withContext(Dispatchers.IO) {
+            check(prefsCache.edit().putBoolean("amoled", enabled).commit()) {
+                "Could not persist the startup AMOLED preference"
+            }
+        }
         store.edit { it[Keys.amoled] = enabled }
     }
     suspend fun setArtworkColors(enabled: Boolean) = store.edit { it[Keys.artworkColors] = enabled }
@@ -178,5 +188,14 @@ class SettingsStore(context: Context) {
         } catch (e: JSONException) {
             emptyList()
         }
+    }
+
+    companion object {
+        fun initialThemeMode(context: Context): ThemeMode =
+            ThemeMode.fromKey(
+                context.applicationContext
+                    .getSharedPreferences("kozu_theme_sync", Context.MODE_PRIVATE)
+                    .getString("theme_mode", "system")
+            )
     }
 }
