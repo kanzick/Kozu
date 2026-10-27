@@ -27,6 +27,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import vn.kozu.domain.model.Beatmap
 
+/**
+ * Cover card component displaying artwork, rank badge, optional equalizer overlay, and track details.
+ */
 @Composable
 fun CoverCard(
     beatmap: Beatmap,
@@ -124,6 +127,7 @@ fun CoverCard(
     }
 }
 
+/** Horizontal track pill component for compact lists */
 @Composable
 fun TrackPill(
     beatmap: Beatmap,

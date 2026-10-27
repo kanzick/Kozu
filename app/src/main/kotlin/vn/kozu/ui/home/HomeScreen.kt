@@ -54,6 +54,7 @@ import vn.kozu.ui.components.HeaderAction
 import vn.kozu.ui.components.KozuLoading
 import vn.kozu.ui.components.LocalTrackActions
 import vn.kozu.ui.components.ScreenHeader
+import vn.kozu.ui.components.SearchAction
 import vn.kozu.ui.components.SectionHeader
 import vn.kozu.ui.components.SettingsAction
 import vn.kozu.ui.components.TrackPill
@@ -72,6 +73,7 @@ fun HomeScreen(
     onOpenSettings: () -> Unit,
     onOpenExplore: () -> Unit,
     onOpenLibrary: () -> Unit,
+    onOpenSearch: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory)
 ) {
@@ -92,7 +94,7 @@ fun HomeScreen(
                     }
                 }
                 Spacer(Modifier.width(12.dp))
-                Text("kozu", style = MaterialTheme.typography.headlineLarge)
+                Text("Kozu", style = MaterialTheme.typography.headlineLarge)
             },
             actions = {
                 HeaderAction(
@@ -102,6 +104,7 @@ fun HomeScreen(
                     container = MaterialTheme.colorScheme.secondaryContainer,
                     content = MaterialTheme.colorScheme.onSecondaryContainer
                 )
+                SearchAction(onOpenSearch)
                 SettingsAction(onOpenSettings)
             }
         )

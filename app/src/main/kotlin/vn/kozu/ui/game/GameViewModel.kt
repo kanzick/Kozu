@@ -13,6 +13,7 @@ import vn.kozu.game.OsuBeatmapParser
 import vn.kozu.game.OsuDifficulty
 import vn.kozu.ui.containerFactory
 
+/** ViewModel managing rhythm game screen beatmaps and difficulty parsing */
 class GameViewModel(private val container: AppContainer) : ViewModel() {
 
     val sets: StateFlow<List<DownloadedSet>> = container.downloadsStore.sets

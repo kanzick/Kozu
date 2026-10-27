@@ -14,6 +14,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import vn.kozu.domain.model.Beatmap
 
+/**
+ * 2x2 grid mosaic cover image generated from a playlist or list of beatmaps.
+ */
 @Composable
 fun MosaicCover(
     tracks: List<Beatmap>,

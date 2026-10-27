@@ -73,6 +73,7 @@ import vn.kozu.ui.components.LocalTrackActions
 import vn.kozu.ui.components.MosaicCover
 import vn.kozu.ui.components.NamePlaylistDialog
 import vn.kozu.ui.components.ScreenHeader
+import vn.kozu.ui.components.SearchAction
 import vn.kozu.ui.components.SettingsAction
 import vn.kozu.ui.components.TrackRow
 import vn.kozu.ui.components.bounceClick
@@ -84,6 +85,7 @@ fun LibraryScreen(
     listState: LazyListState,
     bottomPadding: Dp,
     onOpenSettings: () -> Unit,
+    onOpenSearch: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: LibraryViewModel = viewModel(factory = LibraryViewModel.Factory)
 ) {
@@ -96,7 +98,10 @@ fun LibraryScreen(
     Column(modifier.fillMaxSize()) {
         ScreenHeader(
             leading = { HeaderTitle("Library") },
-            actions = { SettingsAction(onOpenSettings) }
+            actions = {
+                SearchAction(onOpenSearch)
+                SettingsAction(onOpenSettings)
+            }
         )
 
         val opened = ui.openedPlaylist

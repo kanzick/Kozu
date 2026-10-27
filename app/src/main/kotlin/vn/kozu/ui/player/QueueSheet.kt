@@ -37,7 +37,9 @@ import vn.kozu.ui.components.BeatmapArt
 import vn.kozu.ui.components.EqualizerBars
 import vn.kozu.ui.components.bounceClick
 
-
+/**
+ * Bottom sheet displaying active playback queue, currently playing track indicator, and track removal options.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QueueSheet(

@@ -24,6 +24,9 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import vn.kozu.domain.model.Beatmap
 
+/**
+ * Renders cover artwork for a beatmap with fallback placeholder and crossfade transition.
+ */
 @Composable
 fun BeatmapArt(
     beatmap: Beatmap,
