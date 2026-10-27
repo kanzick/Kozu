@@ -3,4 +3,10 @@
     <style name="Theme.Kozu" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@color/kozu_window_background</item>
     </style>
+    <style name="Theme.Kozu.Light" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">#FFFFF7F9</item>
+    </style>
+    <style name="Theme.Kozu.Dark" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#FF1D1215</item>
+    </style>
 </resources>

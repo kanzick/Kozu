@@ -1,11 +1,14 @@
 package vn.kozu
 
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import vn.kozu.data.local.SettingsStore
+import vn.kozu.domain.model.ThemeMode
 import vn.kozu.ui.KozuApp
 
 /**
@@ -15,11 +18,23 @@ import vn.kozu.ui.KozuApp
  */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        applyLaunchTheme()
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         preferHighRefreshRate()
         if (savedInstanceState == null) handleOAuthIntent(intent)
         setContent { KozuApp() }
+    }
+
+    private fun applyLaunchTheme() {
+        val systemDark =
+            resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
+        val dark = when (SettingsStore.initialThemeMode(this)) {
+            ThemeMode.SYSTEM -> systemDark
+            ThemeMode.LIGHT -> false
+            ThemeMode.DARK -> true
+        }
+        setTheme(if (dark) R.style.Theme_Kozu_Dark else R.style.Theme_Kozu_Light)
     }
 
     override fun onNewIntent(intent: Intent) {

@@ -40,7 +40,7 @@ class AppContainer(context: Context) {
     val auth = OsuAuth(api, settings, accountStore)
     val accounts = AccountRepository(auth, api, accountStore)
     val catalog = BeatmapRepository(api, auth, settings, httpClient)
-    val discover = DiscoverFeed(catalog, settings, accountStore)
+    val discover = DiscoverFeed(catalog, settings)
 
     /** Audio streaming, downloading, and sync services */
     val streams = StreamResolver(appContext, httpClient, downloadsStore, settings)

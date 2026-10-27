@@ -8,9 +8,9 @@ import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -18,6 +18,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
@@ -25,6 +26,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -42,8 +44,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -53,7 +53,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import vn.kozu.KozuApplication
 import vn.kozu.data.local.DownloadedSet
@@ -117,17 +116,7 @@ fun KozuApp() {
         artworkSeed = if (settings.artworkColors) ArtworkPalette.seedColor(currentArt) else null
     }
 
-    // Applies artwork dynamic theme while playing
-    var themedByArt by remember { mutableStateOf(false) }
-    LaunchedEffect(state.isPlaying) {
-        if (state.isPlaying) {
-            themedByArt = true
-        } else {
-            delay(1200)
-            themedByArt = false
-        }
-    }
-    val seed = if (themedByArt) artworkSeed ?: settings.accent.color else settings.accent.color
+    val seed = if (state.current != null) artworkSeed ?: settings.accent.color else settings.accent.color
 
     KozuTheme(seed = seed, darkTheme = dark, amoled = settings.amoled) {
         val view = LocalView.current
@@ -233,6 +222,7 @@ private fun KozuShell(container: AppContainer) {
     }
 
     CompositionLocalProvider(
+        LocalContentColor provides MaterialTheme.colorScheme.onSurface,
         LocalTrackActions provides actions,
         LocalNowPlaying provides NowPlayingInfo(state.current?.id, state.isPlaying),
         LocalFavoriteIds provides favoriteIds,
@@ -295,7 +285,8 @@ private fun KozuShell(container: AppContainer) {
                             onOpen = { playerOpen = true },
                             onPlayPause = playback::togglePlayPause,
                             onPrevious = playback::previous,
-                            onNext = playback::next
+                            onNext = playback::next,
+                            onDismiss = playback::clearQueue
                         )
                     }
                 }
@@ -312,12 +303,11 @@ private fun KozuShell(container: AppContainer) {
             // Settings overlay screen
             AnimatedVisibility(
                 visible = settingsOpen,
-                enter = slideInHorizontally(KozuMotion.spatial()) { it } + fadeIn(),
-                exit = slideOutHorizontally(tween(240)) { it } + fadeOut()
+                enter = slideInHorizontally(tween(220, easing = FastOutSlowInEasing)) { it / 6 } + fadeIn(tween(180)),
+                exit = slideOutHorizontally(tween(180, easing = FastOutSlowInEasing)) { it / 6 } + fadeOut(tween(150))
             ) {
                 SettingsScreen(onBack = { settingsOpen = false })
             }
-            if (settingsOpen) BackHandler { settingsOpen = false }
 
             // Search overlay screen
             AnimatedVisibility(
@@ -327,7 +317,7 @@ private fun KozuShell(container: AppContainer) {
             ) {
                 SearchScreen(onBack = { searchOpen = false }, onOpenSettings = { settingsOpen = true })
             }
-            if (searchOpen) BackHandler { searchOpen = false }
+            if (searchOpen && !settingsOpen) BackHandler { searchOpen = false }
 
             // Full-screen player screen overlay
             AnimatedVisibility(
@@ -356,7 +346,7 @@ private fun KozuShell(container: AppContainer) {
                     )
                 }
             }
-            if (playerOpen) BackHandler { playerOpen = false }
+            if (playerOpen && !settingsOpen) BackHandler { playerOpen = false }
         }
 
         menuTarget?.let { beatmap ->
@@ -431,38 +421,16 @@ private fun KozuShell(container: AppContainer) {
 
 @Composable
 private fun TabHost(selected: KozuTab, content: @Composable (KozuTab) -> Unit) {
-    var visited by remember { mutableStateOf(setOf(selected)) }
-    LaunchedEffect(selected) { visited = visited + selected }
-    val layers = visited + selected
-
-    Box(Modifier.fillMaxSize()) {
-        layers.forEach { tab ->
-            androidx.compose.runtime.key(tab) {
-                TabLayer(visible = tab == selected) { content(tab) }
-            }
-        }
+    AnimatedContent(
+        targetState = selected,
+        modifier = Modifier.fillMaxSize(),
+        transitionSpec = {
+            (fadeIn(tween(170, easing = FastOutSlowInEasing)) +
+                slideInVertically(tween(170, easing = FastOutSlowInEasing)) { it / 32 }) togetherWith
+                fadeOut(tween(110))
+        },
+        label = "appTabs"
+    ) { tab ->
+        content(tab)
     }
-}
-
-@Composable
-private fun TabLayer(visible: Boolean, content: @Composable () -> Unit) {
-    val progress by animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(220, easing = FastOutSlowInEasing),
-        label = "tabLayer"
-    )
-    Box(
-        Modifier
-            .fillMaxSize()
-            .layout { measurable, constraints ->
-                val placeable = measurable.measure(constraints)
-                layout(placeable.width, placeable.height) {
-                    if (visible || progress > 0.001f) placeable.placeRelative(0, 0)
-                }
-            }
-            .graphicsLayer {
-                alpha = progress
-                translationY = (1f - progress) * 20.dp.toPx()
-            }
-    ) { content() }
 }

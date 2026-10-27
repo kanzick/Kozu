@@ -24,7 +24,6 @@ data class HomeUiState(
     val madeForYou: List<Beatmap> = emptyList(),
     val stats: ListeningStats = ListeningStats(),
     val isLoading: Boolean = true,
-    val isSample: Boolean = true,
     val error: String? = null
 )
 
@@ -50,7 +49,6 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
             madeForYou = discover.newReleases.take(10),
             stats = ListeningStats.from(history),
             isLoading = discover.isLoading,
-            isSample = discover.isSample,
             error = discover.error
         )
     }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())

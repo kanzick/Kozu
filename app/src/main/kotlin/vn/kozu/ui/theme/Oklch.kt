@@ -100,13 +100,5 @@ internal class TonalPalette(private val hue: Double, private val chroma: Double)
         }
     }
 
-    private fun toneToLightness(tone: Double): Double {
-        val y = if (tone > 8.0) {
-            val f = (tone + 16.0) / 116.0
-            f * f * f
-        } else {
-            tone / 903.2962962962963
-        }
-        return Math.cbrt(y)
-    }
+    private fun toneToLightness(tone: Double): Double = tone / 100.0
 }

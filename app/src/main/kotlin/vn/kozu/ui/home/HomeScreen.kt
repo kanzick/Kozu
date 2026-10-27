@@ -78,6 +78,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory)
 ) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
+    val catalogError = ui.error
     val actions = LocalTrackActions.current
 
     Column(modifier.fillMaxSize()) {
@@ -98,8 +99,8 @@ fun HomeScreen(
             },
             actions = {
                 HeaderAction(
-                    icon = if (ui.isSample) Icons.Rounded.CloudOff else Icons.Rounded.Cloud,
-                    contentDescription = if (ui.isSample) "osu! API not connected" else "osu! API connected",
+                    icon = if (catalogError != null) Icons.Rounded.CloudOff else Icons.Rounded.Cloud,
+                    contentDescription = if (catalogError != null) "osu! catalog unavailable" else "osu! catalog connected",
                     onClick = onOpenSettings,
                     container = MaterialTheme.colorScheme.secondaryContainer,
                     content = MaterialTheme.colorScheme.onSecondaryContainer
@@ -116,9 +117,13 @@ fun HomeScreen(
         ) {
             item(key = "greeting") { Greeting(name = ui.displayName) }
 
-            if (ui.isSample) {
-                item(key = "sample") {
-                    SampleBanner(error = ui.error, onConnect = onOpenSettings)
+            if (catalogError != null) {
+                item(key = "catalog-error") {
+                    CatalogErrorBanner(
+                        error = catalogError,
+                        onRetry = viewModel::refresh,
+                        onSettings = onOpenSettings
+                    )
                 }
             }
 
@@ -131,7 +136,15 @@ fun HomeScreen(
             }
             item(key = "quick-row") {
                 if (ui.quickPicks.isEmpty()) {
-                    KozuLoading()
+                    if (ui.isLoading) {
+                        KozuLoading()
+                    } else {
+                        Text(
+                            "No live beatmaps are available right now.",
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 } else {
                     LazyRow(
                         contentPadding = PaddingValues(horizontal = 20.dp),
@@ -230,7 +243,7 @@ private fun Greeting(name: String) {
 }
 
 @Composable
-private fun SampleBanner(error: String?, onConnect: () -> Unit) {
+private fun CatalogErrorBanner(error: String, onRetry: () -> Unit, onSettings: () -> Unit) {
     Surface(
         modifier = Modifier
             .padding(horizontal = 20.dp)
@@ -239,23 +252,28 @@ private fun SampleBanner(error: String?, onConnect: () -> Unit) {
         shape = RoundedCornerShape(28.dp),
         color = MaterialTheme.colorScheme.secondaryContainer
     ) {
-        Row(
-            modifier = Modifier.padding(start = 18.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                Icons.Rounded.CloudOff,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer
-            )
-            Spacer(Modifier.width(12.dp))
-            Text(
-                text = error ?: "Showing sample songs. Add your osu! API keys to browse the real catalog.",
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer
-            )
-            TextButton(onClick = onConnect) { Text("Connect") }
+        Column(Modifier.padding(start = 18.dp, end = 8.dp, top = 12.dp, bottom = 8.dp)) {
+            Row(verticalAlignment = Alignment.Top) {
+                Icon(
+                    Icons.Rounded.CloudOff,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    text = error,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+            Row(
+                modifier = Modifier.align(Alignment.End),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(onClick = onRetry) { Text("Retry") }
+                TextButton(onClick = onSettings) { Text("Settings") }
+            }
         }
     }
 }

@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.CircleShape
@@ -24,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -36,6 +39,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,11 +66,7 @@ fun AccountPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
     val loading by viewModel.profileLoading.collectAsStateWithLifecycle()
     val verify by viewModel.verify.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
-    val context = LocalContext.current
-
-    var clientId by remember(settings.osuClientId) { mutableStateOf(settings.osuClientId) }
-    var clientSecret by remember(settings.osuClientSecret) { mutableStateOf(settings.osuClientSecret) }
-    val canSave = clientId.isNotBlank() && clientSecret.isNotBlank()
+    var showCredentialsDialog by rememberSaveable { mutableStateOf(false) }
 
     SettingsScaffold(title = "Account", onBack = onBack) {
         val current = profile
@@ -107,7 +107,7 @@ fun AccountPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("Sign in with osu!", style = MaterialTheme.typography.titleLarge)
                         Text(
-                            "Connect your osu! account to see your profile and rank here, browse the full catalog, and try official downloads first (with automatic mirror fallback).",
+                            "Signing in only adds your osu! profile and rank here. You can browse and play the live catalog without signing in.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -129,82 +129,138 @@ fun AccountPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
         }
 
         SettingsGroup(
-            title = "osu! OAuth application",
-            items = listOf(
-                {
-                    Column {
-                        Text("Create your own app", style = MaterialTheme.typography.titleMedium)
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            "Open your osu! account settings, scroll to OAuth, choose New OAuth Application and set the callback URL to the value below.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        TextButton(onClick = { uriHandler.openUri("https://osu.ppy.sh/home/account/edit#oauth") }) {
-                            Text("Open osu! settings")
+            title = "Live catalog access",
+            items = listOf({
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        if (settings.hasCredentials) "osu! API credentials are saved" else "Set up live osu! catalog",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        "API credentials let Kozu load new releases while signed out. They are separate from your optional osu! profile sign-in.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    when (val state = verify) {
+                        VerifyState.Idle -> Unit
+                        VerifyState.Checking -> LinearProgressIndicator(Modifier.fillMaxWidth())
+                        VerifyState.Success -> Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Rounded.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Connected — live catalog is ready", color = MaterialTheme.colorScheme.primary)
                         }
+                        is VerifyState.Failure -> Text(state.message, color = MaterialTheme.colorScheme.error)
                     }
-                },
-                {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text("Callback URL", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(OsuAuth.REDIRECT_URI, style = MaterialTheme.typography.titleMedium)
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        PrimaryPill(if (settings.hasCredentials) "Edit credentials" else "Set up credentials") {
+                            showCredentialsDialog = true
                         }
-                        IconButton(onClick = {
-                            val manager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            manager.setPrimaryClip(ClipData.newPlainText("callback", OsuAuth.REDIRECT_URI))
-                        }) { Icon(Icons.Rounded.ContentCopy, contentDescription = "Copy callback URL") }
-                    }
-                },
-                {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        OutlinedTextField(
-                            value = clientId,
-                            onValueChange = { clientId = it.filter { c -> c.isDigit() }.take(10) },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            shape = RoundedCornerShape(20.dp),
-                            label = { Text("Client ID") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next)
-                        )
-                        OutlinedTextField(
-                            value = clientSecret,
-                            onValueChange = { clientSecret = it.trim() },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            shape = RoundedCornerShape(20.dp),
-                            label = { Text("Client secret") },
-                            visualTransformation = PasswordVisualTransformation(),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-                            keyboardActions = KeyboardActions(onDone = { if (canSave) viewModel.saveAndVerify(clientId, clientSecret) })
-                        )
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            PrimaryPill("Save & test", enabled = canSave) { viewModel.saveAndVerify(clientId, clientSecret) }
-                            Spacer(Modifier.width(12.dp))
-                            if (settings.hasCredentials) {
-                                TextButton(onClick = {
-                                    clientId = ""
-                                    clientSecret = ""
-                                    viewModel.saveAndVerify("", "")
-                                }) { Text("Clear") }
-                            }
-                        }
-                        when (val state = verify) {
-                            VerifyState.Idle -> Unit
-                            VerifyState.Checking -> Text("Checking…", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            VerifyState.Success -> Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Rounded.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                Spacer(Modifier.width(8.dp))
-                                Text("Connected — live catalog enabled", color = MaterialTheme.colorScheme.primary)
-                            }
-                            is VerifyState.Failure -> Text(state.message, color = MaterialTheme.colorScheme.error)
+                        if (settings.hasCredentials) {
+                            TextButton(onClick = viewModel::clearCredentials) { Text("Remove") }
                         }
                     }
                 }
-            )
+            })
         )
     }
+
+    if (showCredentialsDialog) {
+        OAuthCredentialsDialog(
+            initialClientId = settings.osuClientId,
+            initialClientSecret = settings.osuClientSecret,
+            hasCredentials = settings.hasCredentials,
+            onDismiss = { showCredentialsDialog = false },
+            onSave = viewModel::saveAndVerify,
+            onClear = viewModel::clearCredentials,
+            onOpenOsuSettings = { uriHandler.openUri("https://osu.ppy.sh/home/account/edit#oauth") }
+        )
+    }
+}
+
+@Composable
+private fun OAuthCredentialsDialog(
+    initialClientId: String,
+    initialClientSecret: String,
+    hasCredentials: Boolean,
+    onDismiss: () -> Unit,
+    onSave: (String, String) -> Unit,
+    onClear: () -> Unit,
+    onOpenOsuSettings: () -> Unit
+) {
+    val context = LocalContext.current
+    var clientId by remember(initialClientId) { mutableStateOf(initialClientId) }
+    var clientSecret by remember(initialClientSecret) { mutableStateOf(initialClientSecret) }
+    val canSave = clientId.isNotBlank() && clientSecret.isNotBlank()
+    val save = {
+        onSave(clientId, clientSecret)
+        onDismiss()
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Live catalog credentials") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    "Create an OAuth application in your osu! account. Signing in to an osu! profile is not required to browse or play.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                TextButton(onClick = onOpenOsuSettings) { Text("Open osu! OAuth settings") }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Callback URL", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(OsuAuth.REDIRECT_URI, style = MaterialTheme.typography.bodyLarge)
+                    }
+                    IconButton(onClick = {
+                        val manager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        manager.setPrimaryClip(ClipData.newPlainText("callback", OsuAuth.REDIRECT_URI))
+                    }) {
+                        Icon(Icons.Rounded.ContentCopy, contentDescription = "Copy callback URL")
+                    }
+                }
+                OutlinedTextField(
+                    value = clientId,
+                    onValueChange = { clientId = it.filter { char -> char.isDigit() }.take(10) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(20.dp),
+                    label = { Text("Client ID") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next)
+                )
+                OutlinedTextField(
+                    value = clientSecret,
+                    onValueChange = { clientSecret = it.trim() },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(20.dp),
+                    label = { Text("Client secret") },
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { if (canSave) save() })
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = save, enabled = canSave) { Text("Save & test") }
+        },
+        dismissButton = {
+            Row {
+                if (hasCredentials) {
+                    TextButton(onClick = {
+                        onClear()
+                        onDismiss()
+                    }) { Text("Remove") }
+                }
+                TextButton(onClick = onDismiss) { Text("Cancel") }
+            }
+        }
+    )
 }
 
 @Composable

@@ -42,7 +42,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -144,13 +143,13 @@ fun SearchScreen(
                     if (ui.results.isEmpty()) {
                         EmptyState(
                             icon = Icons.Rounded.Search,
-                            title = "No results found",
-                            message = "Try searching for a different song, artist or mapper."
+                            title = if (ui.error == null) "No results found" else "Catalog unavailable",
+                            message = ui.error ?: "Try searching for a different song, artist or mapper.",
+                            action = if (ui.error == null) null else ({
+                                TextButton(onClick = viewModel::retry) { Text("Retry") }
+                            })
                         )
                     } else {
-                        if (ui.isSample && ui.error != null) {
-                            SampleNote(ui.error)
-                        }
                         LazyColumn(
                             state = listState,
                             modifier = Modifier.fillMaxSize(),
@@ -351,24 +350,5 @@ private fun FilterRow(
                 label = { Text(s.label) }
             )
         }
-    }
-}
-
-@Composable
-private fun SampleNote(error: String?) {
-    Surface(
-        modifier = Modifier
-            .padding(horizontal = 20.dp, vertical = 8.dp)
-            .fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.errorContainer
-    ) {
-        Text(
-            text = error ?: "Using offline sample results",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onErrorContainer,
-            modifier = Modifier.padding(16.dp),
-            textAlign = TextAlign.Center
-        )
     }
 }

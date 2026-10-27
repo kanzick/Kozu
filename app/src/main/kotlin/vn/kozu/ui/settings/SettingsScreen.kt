@@ -2,6 +2,8 @@ package vn.kozu.ui.settings
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -45,7 +47,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import vn.kozu.ui.components.bounceClick
-import vn.kozu.ui.theme.KozuMotion
 
 enum class SettingsPage { ROOT, ACCOUNT, STATS, APPEARANCE, PLAYBACK, OFFLINE, SOURCES, CONTENT, ABOUT }
 
@@ -71,11 +72,15 @@ fun SettingsScreen(
             modifier = Modifier.fillMaxSize(),
             transitionSpec = {
                 if (targetState != SettingsPage.ROOT) {
-                    (slideInHorizontally(KozuMotion.spatial()) { it / 4 } + fadeIn()) togetherWith
-                        (slideOutHorizontally(KozuMotion.spatial()) { -it / 6 } + fadeOut())
+                    (slideInHorizontally(tween(200, easing = FastOutSlowInEasing)) { it / 12 } +
+                        fadeIn(tween(170))) togetherWith
+                        (slideOutHorizontally(tween(160, easing = FastOutSlowInEasing)) { -it / 20 } +
+                            fadeOut(tween(130)))
                 } else {
-                    (slideInHorizontally(KozuMotion.spatial()) { -it / 6 } + fadeIn()) togetherWith
-                        (slideOutHorizontally(KozuMotion.spatial()) { it / 4 } + fadeOut())
+                    (slideInHorizontally(tween(200, easing = FastOutSlowInEasing)) { -it / 20 } +
+                        fadeIn(tween(170))) togetherWith
+                        (slideOutHorizontally(tween(160, easing = FastOutSlowInEasing)) { it / 12 } +
+                            fadeOut(tween(130)))
                 }
             },
             label = "settingsPages"
@@ -108,17 +113,19 @@ private enum class Tone { PRIMARY, SECONDARY, TERTIARY }
 @Composable
 private fun SettingsRoot(onBack: () -> Unit, onOpen: (SettingsPage) -> Unit) {
     val top = listOf(
-        Entry(SettingsPage.ACCOUNT, Icons.Rounded.AccountCircle, "Account", "Sign in with osu! and see your profile", Tone.PRIMARY),
+        Entry(SettingsPage.ACCOUNT, Icons.Rounded.AccountCircle, "Account", "Optional profile; browse the catalog as a guest", Tone.PRIMARY),
         Entry(SettingsPage.STATS, Icons.Rounded.BarChart, "Listening Stats", "Your top songs, artists and mappers", Tone.PRIMARY)
     )
-    val rest = listOf(
+    val experience = listOf(
         Entry(SettingsPage.APPEARANCE, Icons.Rounded.Palette, "Appearance", "Themes, colors and display name", Tone.SECONDARY),
-        Entry(SettingsPage.PLAYBACK, Icons.Rounded.MusicNote, "Playback", "Streaming quality, cache and audio", Tone.TERTIARY),
+        Entry(SettingsPage.PLAYBACK, Icons.Rounded.MusicNote, "Playback", "Streaming quality, cache and audio", Tone.TERTIARY)
+    )
+    val library = listOf(
         Entry(SettingsPage.OFFLINE, Icons.Rounded.Storage, "Offline", "Downloads, storage and sync", Tone.TERTIARY),
         Entry(SettingsPage.SOURCES, Icons.Rounded.Dns, "Sources", "osu! mirrors for streaming and downloads", Tone.SECONDARY),
-        Entry(SettingsPage.CONTENT, Icons.Rounded.Public, "Content", "Game mode, status and explicit filters", Tone.PRIMARY),
-        Entry(SettingsPage.ABOUT, Icons.Rounded.Info, "About", "Version, credits and legal", Tone.SECONDARY)
+        Entry(SettingsPage.CONTENT, Icons.Rounded.Public, "Content", "Game mode, status and explicit filters", Tone.PRIMARY)
     )
+    val about = listOf(Entry(SettingsPage.ABOUT, Icons.Rounded.Info, "About", "Version, credits and legal", Tone.SECONDARY))
 
     Column(
         modifier = Modifier
@@ -143,11 +150,29 @@ private fun SettingsRoot(onBack: () -> Unit, onOpen: (SettingsPage) -> Unit) {
         Text("Settings", style = MaterialTheme.typography.displaySmall)
         Spacer(Modifier.height(22.dp))
 
+        SettingsSectionLabel("Your account")
         EntryGroup(top, onOpen)
         Spacer(Modifier.height(18.dp))
-        EntryGroup(rest, onOpen)
+        SettingsSectionLabel("Experience")
+        EntryGroup(experience, onOpen)
+        Spacer(Modifier.height(18.dp))
+        SettingsSectionLabel("Library & discovery")
+        EntryGroup(library, onOpen)
+        Spacer(Modifier.height(18.dp))
+        SettingsSectionLabel("More")
+        EntryGroup(about, onOpen)
         Spacer(Modifier.height(28.dp))
     }
+}
+
+@Composable
+private fun SettingsSectionLabel(title: String) {
+    Text(
+        title,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(start = 8.dp, bottom = 10.dp)
+    )
 }
 
 @Composable

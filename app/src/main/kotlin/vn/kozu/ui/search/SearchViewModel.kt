@@ -29,8 +29,8 @@ data class SearchUiState(
     val category: SearchCategory? = null,
     val phase: SearchPhase = SearchPhase.IDLE,
     val results: List<Beatmap> = emptyList(),
-    val isSample: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val retryToken: Long = 0L
 )
 
 /** ViewModel executing debounced search queries and managing search history */
@@ -50,7 +50,10 @@ class SearchViewModel(private val container: AppContainer) : ViewModel() {
             request
                 .debounce(350)
                 .distinctUntilChanged { old, new ->
-                    old.query.trim() == new.query.trim() && old.sort == new.sort && old.category == new.category
+                    old.query.trim() == new.query.trim() &&
+                        old.sort == new.sort &&
+                        old.category == new.category &&
+                        old.retryToken == new.retryToken
                 }
                 .collectLatest { req ->
                     val query = req.query.trim()
@@ -63,7 +66,6 @@ class SearchViewModel(private val container: AppContainer) : ViewModel() {
                             it.copy(
                                 phase = SearchPhase.DONE,
                                 results = result.items,
-                                isSample = result.isSample,
                                 error = result.error
                             )
                         }
@@ -75,6 +77,9 @@ class SearchViewModel(private val container: AppContainer) : ViewModel() {
     fun onQueryChange(value: String) = push { it.copy(query = value) }
     fun onSortChange(value: SearchSort) = push { it.copy(sort = value) }
     fun onCategoryChange(value: SearchCategory?) = push { it.copy(category = value) }
+    fun retry() {
+        request.update { it.copy(retryToken = it.retryToken + 1) }
+    }
 
     fun useRecent(query: String) = push { it.copy(query = query) }
 

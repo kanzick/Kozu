@@ -9,21 +9,17 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
@@ -105,133 +101,125 @@ fun PlayerScreen(
             )
             .pointerInput(Unit) { detectTapGestures { } }
     ) {
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 12.dp)
         ) {
-            PlayerTopBar(onClose = onClose, onQueue = { showQueue = true })
-
-            Spacer(Modifier.height(20.dp))
-
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1f)
-                    .pointerInput(Unit) {
-                        var dx = 0f
-                        var dy = 0f
-                        detectDragGestures(
-                            onDragStart = { dx = 0f; dy = 0f },
-                            onDragEnd = {
-                                when {
-                                    dy > 160f && abs(dy) > abs(dx) -> onClose()
-                                    dx > 140f && abs(dx) > abs(dy) -> onPrevious()
-                                    dx < -140f && abs(dx) > abs(dy) -> onNext()
-                                }
-                            },
-                            onDrag = { change, amount ->
-                                change.consume()
-                                dx += amount.x
-                                dy += amount.y
-                            }
-                        )
-                    },
-                contentAlignment = Alignment.Center
+            val artworkSize = minOf(maxWidth, maxHeight * if (maxHeight < 700.dp) 0.3f else 0.4f)
+            val compact = maxHeight < 580.dp
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
-                BeatmapArt(
-                    beatmap = beatmap,
-                    large = true,
-                    shape = RoundedCornerShape(coverRadius),
+                PlayerTopBar(onClose = onClose, onQueue = { showQueue = true })
+
+                Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer {
-                            scaleX = coverScale
-                            scaleY = coverScale
-                        }
-                )
-            }
-
-            Spacer(Modifier.height(24.dp))
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = beatmap.title,
-                        style = MaterialTheme.typography.headlineMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        .size(artworkSize)
+                        .pointerInput(Unit) {
+                            var dx = 0f
+                            var dy = 0f
+                            detectDragGestures(
+                                onDragStart = { dx = 0f; dy = 0f },
+                                onDragEnd = {
+                                    when {
+                                        dy > 160f && abs(dy) > abs(dx) -> onClose()
+                                        dx > 140f && abs(dx) > abs(dy) -> onPrevious()
+                                        dx < -140f && abs(dx) > abs(dy) -> onNext()
+                                    }
+                                },
+                                onDrag = { change, amount ->
+                                    change.consume()
+                                    dx += amount.x
+                                    dy += amount.y
+                                }
+                            )
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    BeatmapArt(
+                        beatmap = beatmap,
+                        large = true,
+                        shape = RoundedCornerShape(coverRadius),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                scaleX = coverScale
+                                scaleY = coverScale
+                            }
                     )
-                    Text(
-                        text = beatmap.artist,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    if (beatmap.mapper.isNotBlank()) {
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
                         Text(
-                            text = "Mapped by ${beatmap.mapper}",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
+                            text = beatmap.title,
+                            style = MaterialTheme.typography.headlineMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                    }
-                }
-                Surface(
-                    modifier = Modifier
-                        .padding(start = 12.dp)
-                        .size(width = 56.dp, height = 56.dp)
-                        .bounceClick(onClick = onMore),
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.secondaryContainer
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Rounded.MoreVert,
-                            contentDescription = "More options",
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer
+                        Text(
+                            text = beatmap.artist,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
+                        if (beatmap.mapper.isNotBlank() && !compact) {
+                            Text(
+                                text = "Mapped by ${beatmap.mapper}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                    Surface(
+                        modifier = Modifier
+                            .padding(start = 12.dp)
+                            .size(width = 56.dp, height = 56.dp)
+                            .bounceClick(onClick = onMore),
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Rounded.MoreVert,
+                                contentDescription = "More options",
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
                     }
                 }
+
+                PlayerProgress(
+                    isPlaying = state.isPlaying,
+                    audioInfo = state.audioInfo ?: if (state.isBuffering) "Loading audio…" else "Ready",
+                    position = position,
+                    duration = duration,
+                    onSeek = onSeek
+                )
+
+                TransportControls(
+                    isPlaying = state.isPlaying,
+                    onPrevious = onPrevious,
+                    onPlayPause = onPlayPause,
+                    onNext = onNext
+                )
+
+                PlayerToggleRow(
+                    shuffle = state.shuffle,
+                    repeat = state.repeat,
+                    isFavorite = isFavorite,
+                    onShuffle = onShuffle,
+                    onRepeat = onRepeat,
+                    onFavorite = onFavorite
+                )
             }
-
-            Spacer(Modifier.height(12.dp))
-
-            PlayerProgress(
-                isPlaying = state.isPlaying,
-                audioInfo = state.audioInfo ?: if (state.isBuffering) "Loading audio…" else "Ready",
-                position = position,
-                duration = duration,
-                onSeek = onSeek
-            )
-
-            Spacer(Modifier.height(20.dp))
-
-            TransportControls(
-                isPlaying = state.isPlaying,
-                onPrevious = onPrevious,
-                onPlayPause = onPlayPause,
-                onNext = onNext
-            )
-
-            Spacer(Modifier.height(20.dp))
-
-            PlayerToggleRow(
-                shuffle = state.shuffle,
-                repeat = state.repeat,
-                isFavorite = isFavorite,
-                onShuffle = onShuffle,
-                onRepeat = onRepeat,
-                onFavorite = onFavorite
-            )
-
-            Spacer(Modifier.height(12.dp))
         }
     }
 
