@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import vn.kozu.data.local.AccountStore
 import vn.kozu.data.remote.osu.OsuApi
@@ -26,6 +28,13 @@ class AccountRepository(
 
     val profile: Flow<OsuProfile?> = store.profile
     val loggedIn: Flow<Boolean> = auth.loggedIn
+
+    /** True only while signed in and the cached profile says the osu! supporter tag is active. */
+    val isSupporter: Flow<Boolean> = combine(auth.loggedIn, store.profile) { signedIn, profile ->
+        signedIn && profile?.isSupporter == true
+    }.distinctUntilChanged()
+
+    @Volatile private var lastAutoRefresh = 0L
 
     private val _events = MutableSharedFlow<String>(extraBufferCapacity = 4)
     val events: SharedFlow<String> = _events.asSharedFlow()
@@ -68,8 +77,20 @@ class AccountRepository(
         }
     }
 
+    /**
+     * Re-fetches the profile so an expired (or newly bought) supporter tag is picked up without
+     * the user pressing Refresh. Skipped when signed out or when it already succeeded recently.
+     * On failure the cached profile is kept untouched.
+     */
+    suspend fun refreshIfSignedIn() {
+        if (System.currentTimeMillis() - lastAutoRefresh < AUTO_REFRESH_INTERVAL_MS) return
+        if (!auth.loggedIn.first()) return
+        if (refreshProfile().isSuccess) lastAutoRefresh = System.currentTimeMillis()
+    }
+
     suspend fun logout() {
         auth.logout()
+        lastAutoRefresh = 0L
     }
 
     suspend fun cachedProfile(): OsuProfile? = store.profile.first()
@@ -101,5 +122,9 @@ class AccountRepository(
             gradeS = (grades?.s ?: 0) + (grades?.sh ?: 0),
             gradeA = grades?.a ?: 0
         )
+    }
+
+    private companion object {
+        const val AUTO_REFRESH_INTERVAL_MS = 30L * 60L * 1000L
     }
 }
