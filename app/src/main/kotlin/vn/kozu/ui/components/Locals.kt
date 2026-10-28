@@ -41,3 +41,6 @@ val LocalTrackActions = staticCompositionLocalOf<TrackActions> {
 val LocalNowPlaying = compositionLocalOf { NowPlayingInfo(null, false) }
 
 val LocalFavoriteIds = compositionLocalOf<Set<Long>> { emptySet() }
+
+/** True while the signed-in osu! account has an active supporter tag. */
+val LocalIsSupporter = compositionLocalOf { false }

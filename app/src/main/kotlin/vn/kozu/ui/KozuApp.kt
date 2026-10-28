@@ -64,6 +64,7 @@ import vn.kozu.domain.model.ThemeMode
 import vn.kozu.ui.components.DownloadInfo
 import vn.kozu.ui.components.LocalDownloads
 import vn.kozu.ui.components.LocalFavoriteIds
+import vn.kozu.ui.components.LocalIsSupporter
 import vn.kozu.ui.components.LocalNowPlaying
 import vn.kozu.ui.components.LocalTrackActions
 import vn.kozu.ui.components.NowPlayingInfo
@@ -145,6 +146,7 @@ private fun KozuShell(container: AppContainer) {
 
     val state by playback.state.collectAsStateWithLifecycle()
     val favoriteIds by container.favorites.favoriteIds.collectAsStateWithLifecycle(initialValue = emptySet())
+    val isSupporter by container.accounts.isSupporter.collectAsStateWithLifecycle(initialValue = false)
     val playlists by container.playlists.playlists.collectAsStateWithLifecycle(initialValue = emptyList<Playlist>())
     val downloadedSets by container.downloadsStore.sets.collectAsStateWithLifecycle(initialValue = emptyList<DownloadedSet>())
     val activeDownloads by container.downloads.status.collectAsStateWithLifecycle()
@@ -208,6 +210,7 @@ private fun KozuShell(container: AppContainer) {
     LaunchedEffect(container) { container.downloads.events.collect { notify(it) } }
     LaunchedEffect(container) { container.accounts.events.collect { notify(it) } }
     LaunchedEffect(container) { container.sync.runIfStale() }
+    LaunchedEffect(container) { container.accounts.refreshIfSignedIn() }
 
     // Requests notification permission for media playback controls on Android 13+
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
@@ -226,6 +229,7 @@ private fun KozuShell(container: AppContainer) {
         LocalTrackActions provides actions,
         LocalNowPlaying provides NowPlayingInfo(state.current?.id, state.isPlaying),
         LocalFavoriteIds provides favoriteIds,
+        LocalIsSupporter provides isSupporter,
         LocalDownloads provides downloadInfo
     ) {
         Box(
