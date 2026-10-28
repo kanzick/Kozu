@@ -23,12 +23,17 @@ on:
         required: false
         type: boolean
         default: true
+      prerelease:
+        description: Mark the release as a pre-release
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.event.release.tag_name || inputs.version_name || github.ref_name }}
+  group: release-${{ inputs.version_name || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -43,7 +48,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -65,6 +70,8 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           RELEASE_VERSION_INPUT: ${{ github.event.release.tag_name || inputs.version_name || github.ref_name }}
           RELEASE_VERSION_CODE: ${{ inputs.version_code }}
+          RELEASE_EVENT_NAME: ${{ github.event_name }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           test -n "$ANDROID_KEYSTORE_BASE64" || { echo "::error::Missing ANDROID_KEYSTORE_BASE64 secret"; exit 1; }
           test -n "$ANDROID_KEYSTORE_PASSWORD" || { echo "::error::Missing ANDROID_KEYSTORE_PASSWORD secret"; exit 1; }
@@ -72,10 +79,21 @@ jobs:
           test -n "$ANDROID_KEY_PASSWORD" || { echo "::error::Missing ANDROID_KEY_PASSWORD secret"; exit 1; }
 
           exact_tag="$RELEASE_VERSION_INPUT"
-          version="${exact_tag#v}"
-          
+          version="$exact_tag"
+          if [ "$RELEASE_EVENT_NAME" = "push" ] || [ "$RELEASE_EVENT_NAME" = "release" ]; then
+            version="${version#v}"
+          fi
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]] || {
+            echo "::error::Version must use MAJOR.MINOR.PATCH format, optionally followed by a pre-release suffix"
+            exit 1
+          }
+
           code="$RELEASE_VERSION_CODE"
           if [ -z "$code" ]; then code="$(date +%s)"; fi
+          [[ "$code" =~ ^[1-9][0-9]*$ ]] && [ "$code" -le 2100000000 ] || {
+            echo "::error::Version code must be an integer from 1 to 2100000000"
+            exit 1
+          }
 
           echo "name=$version" >> "$GITHUB_OUTPUT"
           echo "exact_tag=$exact_tag" >> "$GITHUB_OUTPUT"
@@ -95,7 +113,7 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           APP_VERSION_NAME: ${{ steps.version.outputs.name }}
           APP_VERSION_CODE: ${{ steps.version.outputs.code }}
-          MINIFY: ${{ inputs.minify || 'true' }}
+          MINIFY: ${{ inputs.minify || 'false' }}
         run: |
           ./gradlew :app:assembleRelease --stacktrace \
             "-PappVersion=$APP_VERSION_NAME" \
@@ -120,7 +138,39 @@ jobs:
             label="${variant%%:*}"
             source="$output/${variant#*:}"
             destination="dist/app-${label}.apk"
-            test -f "$source" || { exit 1; }
+            test -f "$source" || {
+              echo "::error::Missing APK variant: $source"
+              ls -R "$output" || true
+              exit 1
+            }
+            "$tools/apksigner" verify --verbose --print-certs "$source"
+            "$tools/aapt2" dump badging "$source" > badging.txt
+            grep -q "package: name='vn.kozu'" badging.txt || {
+              echo "::error::Unexpected package in $source"
+              exit 1
+            }
+            grep -q "versionName='${RELEASE_VERSION_NAME}'" badging.txt || {
+              echo "::error::versionName mismatch in $source"
+              exit 1
+            }
+            native_code="$(sed -n 's/^native-code: //p' badging.txt)"
+            if [ "$label" = "universal" ]; then
+              for abi in arm64-v8a armeabi-v7a x86 x86_64; do
+                [[ "$native_code" == *"'$abi'"* ]] || {
+                  echo "::error::Universal APK is missing native libraries for $abi"
+                  exit 1
+                }
+              done
+            else
+              [[ "$native_code" == *"'$label'"* ]] || {
+                echo "::error::APK does not contain native libraries for $label"
+                exit 1
+              }
+            fi
+            "$tools/apksigner" verify --verbose "$source" | grep -q "Verified using v2 scheme (APK Signature Scheme v2): true" || {
+              echo "::error::APK is not v2-signed: $source"
+              exit 1
+            }
             cp "$source" "$destination"
           done
 
@@ -129,14 +179,29 @@ jobs:
         with:
           name: release-files
           path: dist/*
+          if-no-files-found: error
           retention-days: 3
+
+      - name: Upload R8 mapping
+        if: ${{ inputs.minify == true }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: r8-mapping
+          path: app/build/outputs/mapping/release/
+          if-no-files-found: warn
+          retention-days: 30
 
   smoke-test:
     name: Test APK
     needs: build
-    if: ${{ github.event_name == 'release' || inputs.smoke_test }}
+    if: ${{ github.event_name == 'push' || github.event_name == 'release' || inputs.smoke_test }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
     steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
       - name: Download release files
         uses: actions/download-artifact@v8
         with:
@@ -160,10 +225,19 @@ jobs:
           emulator-boot-timeout: 600
           script: bash .github/scripts/smoke_test.sh apk/app-universal.apk logcat.txt
 
+      - name: Upload logcat
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-test-logcat
+          path: logcat.txt
+          if-no-files-found: ignore
+          retention-days: 7
+
   publish:
     name: Upload Assets to Release
     needs: [build, smoke-test]
-    if: ${{ !cancelled() && needs.build.result == 'success' }}
+    if: ${{ !cancelled() && needs.build.result == 'success' && (needs.smoke-test.result == 'success' || needs.smoke-test.result == 'skipped') }}
     runs-on: ubuntu-latest
 
     steps:
@@ -173,8 +247,26 @@ jobs:
           name: release-files
           path: dist
 
-      - name: Upload Assets to Existing Release
+      - name: Create Dynamic Markdown Body
+        env:
+          TAG_NAME: ${{ needs.build.outputs.exact_tag }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "### 📦 Download APK" > body.md
+          echo "" >> body.md
+          echo "| Device / architecture | Download |" >> body.md
+          echo "| --- | --- |" >> body.md
+          echo "| Universal (recommended) | [Download](https://github.com/${REPO}/releases/download/${TAG_NAME}/app-universal.apk) |" >> body.md
+          echo "| ARM 64-bit | [Download](https://github.com/${REPO}/releases/download/${TAG_NAME}/app-arm64-v8a.apk) |" >> body.md
+          echo "| ARM 32-bit | [Download](https://github.com/${REPO}/releases/download/${TAG_NAME}/app-armeabi-v7a.apk) |" >> body.md
+          echo "| x86 64-bit | [Download](https://github.com/${REPO}/releases/download/${TAG_NAME}/app-x86_64.apk) |" >> body.md
+          echo "| x86 32-bit | [Download](https://github.com/${REPO}/releases/download/${TAG_NAME}/app-x86.apk) |" >> body.md
+          echo "" >> body.md
+
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.build.outputs.exact_tag }}
+          body_path: body.md
+          append_body: true
           files: dist/*
