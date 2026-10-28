@@ -2,7 +2,7 @@ name: Release Android APK
 
 on:
   release:
-    types: [published, created, edited]
+    types: [published]
   workflow_dispatch:
     inputs:
       version_name:
@@ -23,11 +23,6 @@ on:
         required: false
         type: boolean
         default: true
-      prerelease:
-        description: Mark the release as a pre-release
-        required: false
-        type: boolean
-        default: false
 
 permissions:
   contents: write
@@ -43,6 +38,7 @@ jobs:
     timeout-minutes: 45
     outputs:
       version_name: ${{ steps.version.outputs.name }}
+      exact_tag: ${{ steps.version.outputs.exact_tag }}
       code: ${{ steps.version.outputs.code }}
 
     steps:
@@ -69,25 +65,20 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           RELEASE_VERSION_INPUT: ${{ github.event.release.tag_name || inputs.version_name || github.ref_name }}
           RELEASE_VERSION_CODE: ${{ inputs.version_code }}
-          RELEASE_EVENT_NAME: ${{ github.event_name }}
         run: |
           test -n "$ANDROID_KEYSTORE_BASE64" || { echo "::error::Missing ANDROID_KEYSTORE_BASE64 secret"; exit 1; }
           test -n "$ANDROID_KEYSTORE_PASSWORD" || { echo "::error::Missing ANDROID_KEYSTORE_PASSWORD secret"; exit 1; }
           test -n "$ANDROID_KEY_ALIAS" || { echo "::error::Missing ANDROID_KEY_ALIAS secret"; exit 1; }
           test -n "$ANDROID_KEY_PASSWORD" || { echo "::error::Missing ANDROID_KEY_PASSWORD secret"; exit 1; }
 
-          version="$RELEASE_VERSION_INPUT"
-          version="${version#v}"
+          exact_tag="$RELEASE_VERSION_INPUT"
+          version="${exact_tag#v}"
           
-          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]] || {
-            echo "::error::Version must use MAJOR.MINOR.PATCH format"
-            exit 1
-          }
-
           code="$RELEASE_VERSION_CODE"
           if [ -z "$code" ]; then code="$(date +%s)"; fi
 
           echo "name=$version" >> "$GITHUB_OUTPUT"
+          echo "exact_tag=$exact_tag" >> "$GITHUB_OUTPUT"
           echo "code=$code" >> "$GITHUB_OUTPUT"
 
       - name: Prepare release keystore
@@ -185,5 +176,5 @@ jobs:
       - name: Upload Assets to Existing Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.release.tag_name || format('v{0}', needs.build.outputs.version_name) }}
+          tag_name: ${{ needs.build.outputs.exact_tag }}
           files: dist/*
