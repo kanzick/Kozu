@@ -1,44 +1,32 @@
-﻿name: Release APK
+﻿
+name: Release APK
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - app/build.gradle.kts
-      - .github/workflows/release.yml
-    tags:
-      - '[0-9]*'
-      - 'v*'
   release:
     types: [published]
+
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Release tag (optional)'
-        required: false
+        description: 'Release tag (e.g 7.2.7)'
+        required: true
         type: string
-      prerelease:
-        description: 'Mark as a pre-release'
-        required: false
-        type: boolean
-        default: false
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.event.release.tag_name || inputs.release_tag || github.ref_name }}
+  group: release-${{ github.event.release.tag_name || inputs.release_tag || github.ref }}
   cancel-in-progress: false
 
 jobs:
   release:
-    name: Build and publish APKs
+    name: Build and upload APKs
     runs-on: ubuntu-24.04
     timeout-minutes: 45
 
     steps:
-      - name: Checkout full Git history
+      - name: Checkout
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
@@ -55,102 +43,62 @@ jobs:
         shell: bash
         env:
           EVENT_NAME: ${{ github.event_name }}
-          GITHUB_REF_VALUE: ${{ github.ref }}
-          REF_NAME: ${{ github.ref_name }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
-          RELEASE_IS_PRERELEASE: ${{ github.event.release.prerelease }}
           INPUT_RELEASE_TAG: ${{ inputs.release_tag }}
-          INPUT_PRERELEASE: ${{ inputs.prerelease }}
+          REF_NAME: ${{ github.ref_name }}
+          GITHUB_REF_VALUE: ${{ github.ref }}
         run: |
           set -euo pipefail
 
-          extract_version() {
-            python3 -c '
-          import re, sys
-          content = sys.stdin.read()
+          gradle_version="$(python3 -c '
+          import re
+          from pathlib import Path
+
+          content = Path("app/build.gradle.kts").read_text(
+              encoding="utf-8-sig"
+          )
           match = re.search(
               r"versionName\s*=\s*\"([^\"]+)\"",
               content
           )
           if not match:
               raise SystemExit(
-                  "Could not find literal versionName in app/build.gradle.kts"
+                  "Cannot find versionName in app/build.gradle.kts"
               )
           print(match.group(1))
-          '
-          }
-
-          gradle_version="$(extract_version < app/build.gradle.kts)"
+          ')"
 
           if [[ "$EVENT_NAME" == "release" ]]; then
             tag="$RELEASE_TAG"
+          elif [[ -n "$INPUT_RELEASE_TAG" ]]; then
+            tag="$INPUT_RELEASE_TAG"
           elif [[ "$GITHUB_REF_VALUE" == refs/tags/* ]]; then
             tag="$REF_NAME"
-          elif [[ "$EVENT_NAME" == "workflow_dispatch" && -n "$INPUT_RELEASE_TAG" ]]; then
-            tag="$INPUT_RELEASE_TAG"
           else
-            # Default tag has no v prefix.
             tag="$gradle_version"
           fi
 
           version="${tag#v}"
 
-          if [[ "$tag" != "$version" && "$tag" != "v$version" ]]; then
-            echo "::error::Invalid release tag: $tag"
-            exit 1
-          fi
-
           [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]] || {
-            echo "::error::Version must use MAJOR.MINOR.PATCH format."
+            echo "::error::Invalid release tag: $tag"
             exit 1
           }
 
           if [[ "$version" != "$gradle_version" ]]; then
-            echo "::error::Tag version '$version' does not match Gradle versionName '$gradle_version'."
+            echo "::error::Release tag version '$version' does not match Gradle versionName '$gradle_version'."
             exit 1
           fi
 
-          skip="false"
-
-          if [[ "$EVENT_NAME" == "push" && "$GITHUB_REF_VALUE" == "refs/heads/main" ]]; then
-            old_version=""
-            if git cat-file -e HEAD^:app/build.gradle.kts 2>/dev/null; then
-              old_version="$(
-                git show HEAD^:app/build.gradle.kts |
-                extract_version || true
-              )"
-            fi
-
-            if [[ -n "$old_version" && "$old_version" == "$gradle_version" ]]; then
-              echo "versionName did not change; skipping release."
-              skip="false"
-            fi
-          fi
-
-          prerelease="false"
-
-          if [[ "$EVENT_NAME" == "release" && "$RELEASE_IS_PRERELEASE" == "true" ]]; then
-            prerelease="true"
-          elif [[ "$EVENT_NAME" == "workflow_dispatch" && "$INPUT_PRERELEASE" == "true" ]]; then
-            prerelease="true"
-          elif [[ "$version" == *-* ]]; then
-            prerelease="true"
-          fi
-
+          echo "Release tag: $tag"
           echo "Version: $version"
-          echo "Tag: $tag"
 
           {
-            echo "name=$version"
             echo "tag=$tag"
-            echo "skip=$skip"
-            echo "prerelease=$prerelease"
-            echo "target_sha=$(git rev-parse HEAD)"
+            echo "version=$version"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Check existing release APKs
-        id: existing
-        if: ${{ steps.version.outputs.skip != 'true' }}
+      - name: Check release exists
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
@@ -158,15 +106,25 @@ jobs:
         run: |
           set -euo pipefail
 
-          echo "has_all_apks=false" >> "$GITHUB_OUTPUT"
-
-          if ! gh release view "$TAG" --json assets > release-assets.json 2>/dev/null; then
-            echo "No release exists yet."
-            exit 0
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::error::Release '$TAG' does not exist. Create and publish the release first."
+            exit 1
           fi
+
+      - name: Check existing APKs
+        id: existing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          gh release view "$TAG" --json assets > release-assets.json
 
           if python3 - <<'PY'
           import json
+
           required = {
               "app-universal.apk",
               "app-arm64-v8a.apk",
@@ -174,31 +132,40 @@ jobs:
               "app-x86.apk",
               "app-x86_64.apk",
           }
+
           with open("release-assets.json", encoding="utf-8") as f:
               data = json.load(f)
-          names = {asset["name"] for asset in data.get("assets", [])}
-          raise SystemExit(0 if required.issubset(names) else 1)
+
+          existing = {asset["name"] for asset in data.get("assets", [])}
+          missing = required - existing
+
+          if missing:
+              print("Missing APKs:", ", ".join(sorted(missing)))
+              raise SystemExit(1)
+
+          print("All APK variants already exist.")
           PY
           then
-            echo "has_all_apks=true" >> "$GITHUB_OUTPUT"
-            echo "All release APKs already exist; skipping build."
+            echo "has_all=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_all=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Set up Java 27
-        if: ${{ steps.version.outputs.skip != 'true' && steps.existing.outputs.has_all_apks != 'true' }}
+        if: ${{ steps.existing.outputs.has_all != 'true' }}
         uses: actions/setup-java@v6
         with:
           java-version: '27'
           distribution: temurin
 
       - name: Set up Gradle
-        if: ${{ steps.version.outputs.skip != 'true' && steps.existing.outputs.has_all_apks != 'true' }}
+        if: ${{ steps.existing.outputs.has_all != 'true' }}
         uses: gradle/actions/setup-gradle@v6
         with:
           cache-cleanup: on-success
 
       - name: Validate signing secrets
-        if: ${{ steps.version.outputs.skip != 'true' && steps.existing.outputs.has_all_apks != 'true' }}
+        if: ${{ steps.existing.outputs.has_all != 'true' }}
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -214,13 +181,13 @@ jobs:
             ANDROID_KEY_ALIAS \
             ANDROID_KEY_PASSWORD; do
             if [[ -z "${!secret_name:-}" ]]; then
-              echo "::error::Missing GitHub Actions secret: $secret_name"
+              echo "::error::Missing secret: $secret_name"
               exit 1
             fi
           done
 
       - name: Prepare release keystore
-        if: ${{ steps.version.outputs.skip != 'true' && steps.existing.outputs.has_all_apks != 'true' }}
+        if: ${{ steps.existing.outputs.has_all != 'true' }}
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         shell: bash
@@ -230,25 +197,28 @@ jobs:
             base64 --decode > "$RUNNER_TEMP/kozu-release.jks"
 
       - name: Build Release APKs
-        if: ${{ steps.version.outputs.skip != 'true' && steps.existing.outputs.has_all_apks != 'true' }}
+        if: ${{ steps.existing.outputs.has_all != 'true' }}
         env:
           ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/kozu-release.jks
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        shell: bash
         run: |
           set -euo pipefail
           ./gradlew :app:assembleRelease --stacktrace
 
-      - name: Verify and package APK variants
-        if: ${{ steps.version.outputs.skip != 'true' && steps.existing.outputs.has_all_apks != 'true' }}
+      - name: Verify and package APKs
+        if: ${{ steps.existing.outputs.has_all != 'true' }}
         env:
-          RELEASE_VERSION_NAME: ${{ steps.version.outputs.name }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
         shell: bash
         run: |
           set -euo pipefail
 
-          tools="$(find "$ANDROID_HOME/build-tools" -maxdepth 1 -mindepth 1 -type d | sort -V | tail -n 1)"
+          tools="$(find "$ANDROID_HOME/build-tools" \
+            -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+
           test -x "$tools/apksigner"
           test -x "$tools/aapt2"
 
@@ -275,16 +245,15 @@ jobs:
             fi
 
             "$tools/apksigner" verify --verbose --print-certs "$source"
-
             "$tools/aapt2" dump badging "$source" > badging.txt
 
             grep -Fq "package: name='vn.kozu'" badging.txt || {
-              echo "::error::Unexpected applicationId in $source"
+              echo "::error::Incorrect applicationId in $source"
               exit 1
             }
 
-            grep -Fq "versionName='${RELEASE_VERSION_NAME}'" badging.txt || {
-              echo "::error::versionName mismatch in $source"
+            grep -Fq "versionName='${RELEASE_VERSION}'" badging.txt || {
+              echo "::error::Incorrect versionName in $source"
               exit 1
             }
 
@@ -299,127 +268,32 @@ jobs:
               done
             else
               [[ "$native_code" == *"'$label'"* ]] || {
-                echo "::error::APK does not contain native libraries for $label"
+                echo "::error::APK is missing native libraries for $label"
                 exit 1
               }
             fi
 
             signing_output="$("$tools/apksigner" verify --verbose "$source")"
-            grep -Fq "Verified using v2 scheme (APK Signature Scheme v2): true" <<< "$signing_output" || {
-              echo "::error::APK is not verified with APK Signature Scheme v2: $source"
-              exit 1
-            }
+            grep -Fq \
+              "Verified using v2 scheme (APK Signature Scheme v2): true" \
+              <<< "$signing_output" || {
+                echo "::error::APK v2 signature verification failed: $source"
+                exit 1
+              }
 
             cp "$source" "$destination"
           done
 
-      - name: Create release or upload APKs
-        if: ${{ steps.version.outputs.skip != 'true' && steps.existing.outputs.has_all_apks != 'true' }}
+      - name: Upload APKs to existing release
+        if: ${{ steps.existing.outputs.has_all != 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
-          REPOSITORY: ${{ github.repository }}
           TAG: ${{ steps.version.outputs.tag }}
-          VERSION: ${{ steps.version.outputs.name }}
-          TARGET_SHA: ${{ steps.version.outputs.target_sha }}
-          PRERELEASE: ${{ steps.version.outputs.prerelease }}
         shell: bash
         run: |
           set -euo pipefail
 
-          cat > download-table.md <<EOF
-          <!-- kozu-download-table -->
-          ## 📦 Downloads
+          gh release upload "$TAG" dist/*.apk --clobber
 
-          | Package | Download |
-          | --- | --- |
-          | Universal | [Download](https://github.com/${REPOSITORY}/releases/download/${TAG}/app-universal.apk) |
-          | ARM64 | [Download](https://github.com/${REPOSITORY}/releases/download/${TAG}/app-arm64-v8a.apk) |
-          | ARM32 | [Download](https://github.com/${REPOSITORY}/releases/download/${TAG}/app-armeabi-v7a.apk) |
-          | x86 | [Download](https://github.com/${REPOSITORY}/releases/download/${TAG}/app-x86.apk) |
-          | x86_64 | [Download](https://github.com/${REPOSITORY}/releases/download/${TAG}/app-x86_64.apk) |
-          <!-- /kozu-download-table -->
-          EOF
-
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            # A Web/CLI-created release already exists. Keep its description.
-            gh release upload "$TAG" dist/*.apk --clobber
-          else
-            # New automatic releases use GitHub-generated release notes.
-            args=(
-              "$TAG"
-              --target "$TARGET_SHA"
-              --title "$VERSION"
-              --notes "$(cat download-table.md)"
-              --generate-notes
-            )
-
-            if [[ "$PRERELEASE" == "true" ]]; then
-              args+=(--prerelease)
-            fi
-
-            gh release create "${args[@]}" dist/*.apk
-          fi
-
-      - name: Normalize release title and ensure download table
-        if: ${{ steps.version.outputs.skip != 'true' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPOSITORY: ${{ github.repository }}
-          TAG: ${{ steps.version.outputs.tag }}
-          VERSION: ${{ steps.version.outputs.name }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          # Always display the version as the release title, without "v".
-          gh release edit "$TAG" --title "$VERSION"
-
-          cat > download-table.md <<EOF
-          <!-- kozu-download-table -->
-          ## 📦 Downloads
-
-          | Package | Download |
-          | --- | --- |
-          | Universal | [Download](https://github.com/${REPOSITORY}/releases/download/${TAG}/app-universal.apk) |
-          | ARM64 | [Download](https://github.com/${REPOSITORY}/releases/download/${TAG}/app-arm64-v8a.apk) |
-          | ARM32 | [Download](https://github.com/${REPOSITORY}/releases/download/${TAG}/app-armeabi-v7a.apk) |
-          | x86 | [Download](https://github.com/${REPOSITORY}/releases/download/${TAG}/app-x86.apk) |
-          | x86_64 | [Download](https://github.com/${REPOSITORY}/releases/download/${TAG}/app-x86_64.apk) |
-          <!-- /kozu-download-table -->
-          EOF
-
-          gh release view "$TAG" --json body --jq '.body // ""' > current-body.md
-
-          if grep -Fq '<!-- kozu-download-table -->' current-body.md; then
-            echo "Download table already exists."
-            exit 0
-          fi
-
-          # If the user already wrote all five links, don't duplicate their table.
-          all_links_present="true"
-          for asset in \
-            app-universal.apk \
-            app-arm64-v8a.apk \
-            app-armeabi-v7a.apk \
-            app-x86.apk \
-            app-x86_64.apk; do
-            if ! grep -Fq "$asset" current-body.md; then
-              all_links_present="false"
-            fi
-          done
-
-          if [[ "$all_links_present" == "true" ]]; then
-            echo "The description already contains all APK links."
-            exit 0
-          fi
-
-          {
-            cat current-body.md
-            printf '\n\n'
-            cat download-table.md
-            printf '\n'
-          } > updated-body.md
-
-          # Preserve the description already authored on GitHub;
-          # only append the missing download table.
-          gh release edit "$TAG" --notes-file updated-body.md
+          echo "APK upload completed for release $TAG."
+          echo "Release title and description were not modified."
