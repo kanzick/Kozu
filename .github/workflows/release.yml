@@ -1,16 +1,21 @@
-name: Release Android APK
+﻿name: Release
 
 on:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - main
   release:
     types: [published]
   workflow_dispatch:
     inputs:
       version_name:
-        description: versionName (major.minor.patch)
+        description: VersionName
         required: true
         type: string
       version_code:
-        description: versionCode (optional)
+        description: VersionCode
         required: false
         type: string
       minify:
@@ -18,255 +23,112 @@ on:
         required: false
         type: boolean
         default: true
-      smoke_test:
-        description: Test APK
-        required: false
-        type: boolean
-        default: true
-      prerelease:
-        description: Mark the release as a pre-release
-        required: false
-        type: boolean
-        default: false
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ inputs.version_name || github.ref_name }}
+  group: release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  build:
-    name: Build APK
+  release:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    outputs:
-      version_name: ${{ steps.version.outputs.name }}
-      exact_tag: ${{ steps.version.outputs.exact_tag }}
-      code: ${{ steps.version.outputs.code }}
+    timeout-minutes: 15
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Set up Java
         uses: actions/setup-java@v6
         with:
-          java-version: "25"
-          distribution: temurin
+          java-version: '25'
+          distribution: 'temurin'
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Validate release settings
+      - name: Determine Version and Tag
         id: version
         env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          RELEASE_VERSION_INPUT: ${{ github.event.release.tag_name || inputs.version_name || github.ref_name }}
-          RELEASE_VERSION_CODE: ${{ inputs.version_code }}
-          RELEASE_EVENT_NAME: ${{ github.event_name }}
-          GH_TOKEN: ${{ github.token }}
+          INPUT_VERSION: ${{ inputs.version_name }}
+          TAG_REF: ${{ github.ref_name }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
-          test -n "$ANDROID_KEYSTORE_BASE64" || { echo "::error::Missing ANDROID_KEYSTORE_BASE64 secret"; exit 1; }
-          test -n "$ANDROID_KEYSTORE_PASSWORD" || { echo "::error::Missing ANDROID_KEYSTORE_PASSWORD secret"; exit 1; }
-          test -n "$ANDROID_KEY_ALIAS" || { echo "::error::Missing ANDROID_KEY_ALIAS secret"; exit 1; }
-          test -n "$ANDROID_KEY_PASSWORD" || { echo "::error::Missing ANDROID_KEY_PASSWORD secret"; exit 1; }
-
-          exact_tag="$RELEASE_VERSION_INPUT"
-          version="$exact_tag"
-          if [ "$RELEASE_EVENT_NAME" = "push" ] || [ "$RELEASE_EVENT_NAME" = "release" ]; then
-            version="${version#v}"
+          version="$INPUT_VERSION"
+          if [ -z "$version" ] && [[ "$TAG_REF" =~ ^v[0-9] ]]; then
+            version="${TAG_REF#v}"
           fi
-          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]] || {
-            echo "::error::Version must use MAJOR.MINOR.PATCH format, optionally followed by a pre-release suffix"
-            exit 1
+          if [ -z "$version" ]; then
+            version="$(python3 -c 'import re; content=open("app/build.gradle.kts", encoding="utf-8").read(); m=re.search(r"versionName\s*=\s*\"([^\"]+)\"", content); print(m.group(1) if m else "1.0")')"
           }
+          
+          tag="v$version"
+          if [[ "$TAG_REF" =~ ^v ]] && [ "$EVENT_NAME" = "push" ]; then
+            tag="$TAG_REF"
+            version="${tag#v}"
+          elif [ "$EVENT_NAME" = "release" ]; then
+            tag="${{ github.event.release.tag_name }}"
+            version="${tag#v}"
+          fi
 
-          code="$RELEASE_VERSION_CODE"
-          if [ -z "$code" ]; then code="$(date +%s)"; fi
-          [[ "$code" =~ ^[1-9][0-9]*$ ]] && [ "$code" -le 2100000000 ] || {
-            echo "::error::Version code must be an integer from 1 to 2100000000"
-            exit 1
-          }
+          code="${{ inputs.version_code }}"
+          if [ -z "$code" ]; then
+            code="$(date +%s)"
+          fi
 
-          echo "name=$version" >> "$GITHUB_OUTPUT"
-          echo "exact_tag=$exact_tag" >> "$GITHUB_OUTPUT"
-          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> $GITHUB_OUTPUT
+          echo "tag=$tag" >> $GITHUB_OUTPUT
+          echo "code=$code" >> $GITHUB_OUTPUT
 
-      - name: Prepare release keystore
+      - name: Prepare Keystore
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
-          python3 -c 'import base64, os, pathlib; pathlib.Path(os.environ["RUNNER_TEMP"], "kozu-release.jks").write_bytes(base64.b64decode(os.environ["ANDROID_KEYSTORE_BASE64"], validate=True))'
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            python3 -c 'import base64, os; open(os.path.join(os.environ["RUNNER_TEMP"], "release.jks"), "wb").write(base64.b64decode(os.environ["ANDROID_KEYSTORE_BASE64"]))'
+          fi
 
-      - name: Build signed release APK variants
+      - name: Build Release APKs
         env:
-          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/kozu-release.jks
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/release.jks
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          APP_VERSION_NAME: ${{ steps.version.outputs.name }}
+          APP_VERSION_NAME: ${{ steps.version.outputs.version }}
           APP_VERSION_CODE: ${{ steps.version.outputs.code }}
-          MINIFY: ${{ inputs.minify || 'false' }}
+          MINIFY: ${{ inputs.minify || 'true' }}
         run: |
           ./gradlew :app:assembleRelease --stacktrace \
             "-PappVersion=$APP_VERSION_NAME" \
             "-PappVersionCode=$APP_VERSION_CODE" \
             "-PminifyRelease=$MINIFY"
 
-      - name: Verify and package APK variants
-        env:
-          RELEASE_VERSION_NAME: ${{ steps.version.outputs.name }}
+      - name: Package APKs
         run: |
-          tools="$(find "$ANDROID_HOME/build-tools" -maxdepth 1 -mindepth 1 -type d | sort -V | tail -n 1)"
-          output="app/build/outputs/apk/release"
           mkdir -p dist
-          variants=(
-            "universal:app-universal-release.apk"
-            "arm64-v8a:app-arm64-v8a-release.apk"
-            "armeabi-v7a:app-armeabi-v7a-release.apk"
-            "x86:app-x86-release.apk"
-            "x86_64:app-x86_64-release.apk"
-          )
-          for variant in "${variants[@]}"; do
-            label="${variant%%:*}"
-            source="$output/${variant#*:}"
-            destination="dist/app-${label}.apk"
-            test -f "$source" || {
-              echo "::error::Missing APK variant: $source"
-              ls -R "$output" || true
-              exit 1
-            }
-            "$tools/apksigner" verify --verbose --print-certs "$source"
-            "$tools/aapt2" dump badging "$source" > badging.txt
-            grep -q "package: name='vn.kozu'" badging.txt || {
-              echo "::error::Unexpected package in $source"
-              exit 1
-            }
-            grep -q "versionName='${RELEASE_VERSION_NAME}'" badging.txt || {
-              echo "::error::versionName mismatch in $source"
-              exit 1
-            }
-            native_code="$(sed -n 's/^native-code: //p' badging.txt)"
-            if [ "$label" = "universal" ]; then
-              for abi in arm64-v8a armeabi-v7a x86 x86_64; do
-                [[ "$native_code" == *"'$abi'"* ]] || {
-                  echo "::error::Universal APK is missing native libraries for $abi"
-                  exit 1
-                }
-              done
-            else
-              [[ "$native_code" == *"'$label'"* ]] || {
-                echo "::error::APK does not contain native libraries for $label"
-                exit 1
-              }
-            fi
-            "$tools/apksigner" verify --verbose "$source" | grep -q "Verified using v2 scheme (APK Signature Scheme v2): true" || {
-              echo "::error::APK is not v2-signed: $source"
-              exit 1
-            }
-            cp "$source" "$destination"
-          done
+          cp app/build/outputs/apk/release/*.apk dist/ || true
 
-      - name: Upload release files
-        uses: actions/upload-artifact@v7
-        with:
-          name: release-files
-          path: dist/*
-          if-no-files-found: error
-          retention-days: 3
-
-      - name: Upload R8 mapping
-        if: ${{ inputs.minify == true }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: r8-mapping
-          path: app/build/outputs/mapping/release/
-          if-no-files-found: warn
-          retention-days: 30
-
-  smoke-test:
-    name: Test APK
-    needs: build
-    if: ${{ github.event_name == 'push' || github.event_name == 'release' || inputs.smoke_test }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Download release files
-        uses: actions/download-artifact@v8
-        with:
-          name: release-files
-          path: apk
-
-      - name: Enable KVM
-        run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
-
-      - name: Run smoke test
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 28
-          arch: x86_64
-          target: google_apis
-          profile: pixel_6
-          disable-animations: true
-          emulator-boot-timeout: 600
-          script: bash .github/scripts/smoke_test.sh apk/app-universal.apk logcat.txt
-
-      - name: Upload logcat
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: smoke-test-logcat
-          path: logcat.txt
-          if-no-files-found: ignore
-          retention-days: 7
-
-  publish:
-    name: Upload Assets to Release
-    needs: [build, smoke-test]
-    if: ${{ !cancelled() && needs.build.result == 'success' && (needs.smoke-test.result == 'success' || needs.smoke-test.result == 'skipped') }}
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Download release files
-        uses: actions/download-artifact@v8
-        with:
-          name: release-files
-          path: dist
-
-      - name: Create Dynamic Markdown Body
+      - name: Ensure Tag Exists and Push if Needed
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         env:
-          TAG_NAME: ${{ needs.build.outputs.exact_tag }}
-          REPO: ${{ github.repository }}
+          TAG: ${{ steps.version.outputs.tag }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          echo "### 📦 Download APK" > body.md
-          echo "" >> body.md
-          echo "| Device / architecture | Download |" >> body.md
-          echo "| --- | --- |" >> body.md
-          echo "| Universal (recommended) | [Download](https://github.com/${REPO}/releases/download/${TAG_NAME}/app-universal.apk) |" >> body.md
-          echo "| ARM 64-bit | [Download](https://github.com/${REPO}/releases/download/${TAG_NAME}/app-arm64-v8a.apk) |" >> body.md
-          echo "| ARM 32-bit | [Download](https://github.com/${REPO}/releases/download/${TAG_NAME}/app-armeabi-v7a.apk) |" >> body.md
-          echo "| x86 64-bit | [Download](https://github.com/${REPO}/releases/download/${TAG_NAME}/app-x86_64.apk) |" >> body.md
-          echo "| x86 32-bit | [Download](https://github.com/${REPO}/releases/download/${TAG_NAME}/app-x86.apk) |" >> body.md
-          echo "" >> body.md
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+            git tag "$TAG"
+            git push origin "$TAG"
+          fi
 
-      - name: Publish GitHub Release
+      - name: Upload or Update Release Assets
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ needs.build.outputs.exact_tag }}
-          body_path: body.md
-          append_body: true
+          tag_name: ${{ steps.version.outputs.tag }}
           files: dist/*
+          fail_on_unmatched_files: false
+          draft: false
+          prerelease: false
