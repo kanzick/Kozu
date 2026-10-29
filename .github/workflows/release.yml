@@ -1,4 +1,4 @@
-﻿name: Release Android APK
+﻿name: Release APK
 
 on:
   push:
@@ -330,13 +330,13 @@ jobs:
           <!-- kozu-download-table -->
           ## 📦 Downloads
 
-          | Package | Recommended device | Download |
-          | --- | --- | --- |
-          | Universal | Most Android devices | [Kozu Universal APK](https://github.com/${REPOSITORY}/releases/download/${TAG}/app-universal.apk) |
-          | ARM64 | Most modern Android devices | [Kozu ARM64 APK](https://github.com/${REPOSITORY}/releases/download/${TAG}/app-arm64-v8a.apk) |
-          | ARM32 | Older 32-bit ARM devices | [Kozu ARM32 APK](https://github.com/${REPOSITORY}/releases/download/${TAG}/app-armeabi-v7a.apk) |
-          | x86 | 32-bit x86 environments | [Kozu x86 APK](https://github.com/${REPOSITORY}/releases/download/${TAG}/app-x86.apk) |
-          | x86_64 | 64-bit x86 environments | [Kozu x86_64 APK](https://github.com/${REPOSITORY}/releases/download/${TAG}/app-x86_64.apk) |
+          | Package | Download |
+          | --- | --- |
+          | Universal | [Download](https://github.com/${REPOSITORY}/releases/download/${TAG}/app-universal.apk) |
+          | ARM64 | [Download](https://github.com/${REPOSITORY}/releases/download/${TAG}/app-arm64-v8a.apk) |
+          | ARM32 | [Download](https://github.com/${REPOSITORY}/releases/download/${TAG}/app-armeabi-v7a.apk) |
+          | x86 | [Download](https://github.com/${REPOSITORY}/releases/download/${TAG}/app-x86.apk) |
+          | x86_64 | [Download](https://github.com/${REPOSITORY}/releases/download/${TAG}/app-x86_64.apk) |
           <!-- /kozu-download-table -->
           EOF
 
