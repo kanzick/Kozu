@@ -8,7 +8,27 @@ val releaseKeystorePath = providers.environmentVariable("ANDROID_KEYSTORE_PATH")
 val releaseKeystorePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD").orNull
 val releaseKeyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS").orNull
 val releaseKeyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD").orNull
-val minifyRelease = providers.gradleProperty("minifyRelease").orElse("false").get().toBoolean()
+val minifyRelease = providers.gradleProperty("minifyRelease").orElse("true").get().toBoolean()
+val defaultAppVersionName = "1.0.0"
+val generatedCommitVersionCode = runCatching {
+    val process = ProcessBuilder("git", "rev-list", "--count", "HEAD")
+        .directory(rootProject.projectDir)
+        .redirectErrorStream(true)
+        .start()
+    val output = process.inputStream.bufferedReader().use { it.readText().trim() }
+    check(process.waitFor() == 0) { "Could not get the Git commit count" }
+    output.toInt()
+}.getOrDefault(1)
+
+val appVersionCode = providers.gradleProperty("appVersionCode")
+    .orNull
+    ?.toIntOrNull()
+    ?: generatedCommitVersionCode
+
+require(appVersionCode in 1..2_100_000_000) {
+    "versionCode must be between 1 and 2100000000; got $appVersionCode"
+}
+
 val hasReleaseSigning = listOf(
     releaseKeystorePath,
     releaseKeystorePassword,
@@ -16,21 +36,11 @@ val hasReleaseSigning = listOf(
     releaseKeyPassword
 ).all { !it.isNullOrBlank() }
 
-val gitCommitCount = try {
-    ProcessBuilder("git", "rev-list", "--count", "HEAD")
-        .start()
-        .inputStream
-        .bufferedReader()
-        .readText()
-        .trim()
-        .toInt()
-} catch (e: Exception) {
-    1
-}
-
 android {
     namespace = "vn.kozu"
-    compileSdk = 37
+    compileSdk {
+        version = release(37)
+    }
 
     signingConfigs {
         if (hasReleaseSigning) {
@@ -47,8 +57,8 @@ android {
         applicationId = "vn.kozu"
         minSdk = 28
         targetSdk = 37
-        versionCode = gitCommitCount
-        versionName = providers.gradleProperty("appVersion").orElse("1.0").get()
+        versionCode = appVersionCode
+        versionName = providers.gradleProperty("appVersion").orElse(defaultAppVersionName).get()
     }
 
     buildTypes {
@@ -56,14 +66,15 @@ android {
             if (hasReleaseSigning) {
                 signingConfig = signingConfigs.getByName("release")
             }
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = minifyRelease
+            isShrinkResources = minifyRelease
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
     }
+
     splits {
         abi {
             isEnable = true
@@ -72,6 +83,7 @@ android {
             isUniversalApk = true
         }
     }
+
     packaging {
         jniLibs {
             keepDebugSymbols += setOf(
@@ -80,13 +92,16 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
     buildFeatures {
         compose = true
     }
+
     lint {
         checkReleaseBuilds = false
         abortOnError = false
