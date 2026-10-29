@@ -8,15 +8,18 @@ val releaseKeystorePath = providers.environmentVariable("ANDROID_KEYSTORE_PATH")
 val releaseKeystorePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD").orNull
 val releaseKeyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS").orNull
 val releaseKeyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD").orNull
-val minifyRelease = providers.gradleProperty("minifyRelease").orElse("true").get().toBoolean()
-val defaultAppVersionName = "1.0.0"
 val generatedCommitVersionCode = runCatching {
     val process = ProcessBuilder("git", "rev-list", "--count", "HEAD")
         .directory(rootProject.projectDir)
         .redirectErrorStream(true)
         .start()
-    val output = process.inputStream.bufferedReader().use { it.readText().trim() }
-    check(process.waitFor() == 0) { "Could not get the Git commit count" }
+
+    val output = process.inputStream.bufferedReader().use {
+        it.readText().trim()
+    }
+    check(process.waitFor() == 0) {
+        "Could not get the Git commit count"
+    }
     output.toInt()
 }.getOrDefault(1)
 
@@ -58,7 +61,7 @@ android {
         minSdk = 28
         targetSdk = 37
         versionCode = appVersionCode
-        versionName = providers.gradleProperty("appVersion").orElse(defaultAppVersionName).get()
+        versionName = "1.0.0"
     }
 
     buildTypes {
@@ -66,8 +69,10 @@ android {
             if (hasReleaseSigning) {
                 signingConfig = signingConfigs.getByName("release")
             }
-            isMinifyEnabled = minifyRelease
-            isShrinkResources = minifyRelease
+
+            isMinifyEnabled = true
+            isShrinkResources = true
+
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

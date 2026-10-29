@@ -1,4 +1,5 @@
-﻿name: Release Android APK
+﻿
+name: Release Android APK
 
 on:
   push:
@@ -12,17 +13,8 @@ on:
     types: [published]
   workflow_dispatch:
     inputs:
-      version_name:
-        description: 'Version (MAJOR.MINOR.PATCH); defaults to the Gradle version'
-        required: false
-        type: string
-      minify:
-        description: 'Enable R8 optimization'
-        required: false
-        type: boolean
-        default: true
       prerelease:
-        description: 'Create as a pre-release (manual dispatch only)'
+        description: 'Create as a pre-release'
         required: false
         type: boolean
         default: false
@@ -31,7 +23,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.event.release.tag_name || inputs.version_name || github.ref }}
+  group: release-${{ github.event.release.tag_name || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -61,8 +53,7 @@ jobs:
           GITHUB_REF_VALUE: ${{ github.ref }}
           REF_NAME: ${{ github.ref_name }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
-          INPUT_VERSION: ${{ inputs.version_name }}
-          INPUT_MINIFY: ${{ inputs.minify }}
+          RELEASE_IS_PRERELEASE: ${{ github.event.release.prerelease }}
           INPUT_PRERELEASE: ${{ inputs.prerelease }}
         run: |
           set -euo pipefail
@@ -71,20 +62,14 @@ jobs:
             python3 -c '
           import re, sys
           text = sys.stdin.read()
-          patterns = (
-              r"defaultAppVersionName\s*=\s*\"([^\"]+)\"",
-              r"appVersionName\s*=\s*\"([^\"]+)\"",
-              r"versionName\s*=\s*\"([^\"]+)\"",
-          )
-          for pattern in patterns:
-              match = re.search(pattern, text)
-              if match:
-                  print(match.group(1))
-                  raise SystemExit(0)
-          raise SystemExit("Could not find a literal app version in app/build.gradle.kts")
+          match = re.search(r"versionName\s*=\s*\"([^\"]+)\"", text)
+          if not match:
+              raise SystemExit("Could not find literal versionName = \"...\" in app/build.gradle.kts")
+          print(match.group(1))
           '
           }
 
+          gradle_version="$(extract_gradle_version < app/build.gradle.kts)"
           skip="false"
           tag=""
           version=""
@@ -95,10 +80,27 @@ jobs:
           elif [[ "$EVENT_NAME" == "push" && "$GITHUB_REF_VALUE" == refs/tags/* ]]; then
             tag="$REF_NAME"
             version="${tag#v}"
-          elif [[ "$EVENT_NAME" == "push" && "$GITHUB_REF_VALUE" == "refs/heads/main" ]]; then
-            version="$(extract_gradle_version < app/build.gradle.kts)"
+          else
+            version="$gradle_version"
             tag="v$version"
+          fi
 
+          if [[ "$tag" != "v$version" ]]; then
+            echo "::error::Release tag must use the v<version> format; got '$tag'."
+            exit 1
+          fi
+
+          if [[ "$version" != "$gradle_version" ]]; then
+            echo "::error::Release tag/version '$version' does not match app/build.gradle.kts versionName '$gradle_version'. Update versionName first, then publish the matching tag."
+            exit 1
+          fi
+
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]] || {
+            echo "::error::Version '$version' must use MAJOR.MINOR.PATCH format, optionally followed by a pre-release suffix."
+            exit 1
+          }
+
+          if [[ "$EVENT_NAME" == "push" && "$GITHUB_REF_VALUE" == "refs/heads/main" ]]; then
             old_version=""
             if git cat-file -e HEAD^:app/build.gradle.kts 2>/dev/null; then
               old_version="$(git show HEAD^:app/build.gradle.kts | extract_gradle_version || true)"
@@ -111,49 +113,41 @@ jobs:
               echo "Tag $tag already exists; skipping automatic release."
               skip="true"
             fi
-          else
-            version="${INPUT_VERSION:-}"
-            if [[ -z "$version" ]]; then
-              version="$(extract_gradle_version < app/build.gradle.kts)"
-            fi
-            version="${version#v}"
-            tag="v$version"
           fi
 
-          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
-            echo "::error::Version '$version' must use MAJOR.MINOR.PATCH format, optionally followed by a pre-release suffix."
-            exit 1
+          from_ref="$(git describe --tags --abbrev=0 --match 'v*' HEAD^ 2>/dev/null || true)"
+          if [[ -z "$from_ref" ]]; then
+            from_ref="$(git rev-list --max-parents=0 HEAD | tail -n 1)"
           fi
+          to_ref="$(git rev-parse HEAD)"
 
-          # Deterministic, commit-derived versionCode. Releases should be made
-          # from the main history so the code increases as commits are added.
           code="$(git rev-list --count HEAD)"
           if [[ ! "$code" =~ ^[1-9][0-9]*$ ]] || (( code > 2100000000 )); then
             echo "::error::Generated versionCode is outside Android's valid range: $code"
             exit 1
           fi
 
-          minify="true"
-          if [[ "$EVENT_NAME" == "workflow_dispatch" && "$INPUT_MINIFY" == "false" ]]; then
-            minify="false"
-          fi
-
           prerelease="false"
-          if [[ "$EVENT_NAME" == "workflow_dispatch" && "$INPUT_PRERELEASE" == "true" ]]; then
+          if [[ "$EVENT_NAME" == "release" && "$RELEASE_IS_PRERELEASE" == "true" ]]; then
+            prerelease="true"
+          elif [[ "$EVENT_NAME" == "workflow_dispatch" && "$INPUT_PRERELEASE" == "true" ]]; then
+            prerelease="true"
+          elif [[ "$version" == *-* ]]; then
             prerelease="true"
           fi
 
           echo "Release version: $version"
           echo "Release tag: $tag"
           echo "Commit-derived versionCode: $code"
-          echo "R8 enabled: $minify"
+
           {
             echo "name=$version"
             echo "exact_tag=$tag"
             echo "code=$code"
-            echo "minify=$minify"
             echo "prerelease=$prerelease"
             echo "skip=$skip"
+            echo "from_ref=$from_ref"
+            echo "to_ref=$to_ref"
           } >> "$GITHUB_OUTPUT"
 
       - name: Set up Java 27
@@ -206,16 +200,12 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          APP_VERSION_NAME: ${{ steps.version.outputs.name }}
           APP_VERSION_CODE: ${{ steps.version.outputs.code }}
-          MINIFY: ${{ steps.version.outputs.minify }}
         shell: bash
         run: |
           set -euo pipefail
           ./gradlew :app:assembleRelease --stacktrace \
-            "-PappVersion=$APP_VERSION_NAME" \
-            "-PappVersionCode=$APP_VERSION_CODE" \
-            "-PminifyRelease=$MINIFY"
+            "-PappVersionCode=$APP_VERSION_CODE"
 
       - name: Verify and package APK variants
         if: ${{ steps.version.outputs.skip != 'true' }}
@@ -280,6 +270,7 @@ jobs:
               echo "::error::APK is not v2-signed: $source"
               exit 1
             }
+
             cp "$source" "$destination"
           done
 
@@ -297,6 +288,99 @@ jobs:
             git push origin "$TAG"
           fi
 
+      - name: Generate categorized changelog
+        id: changelog
+        if: ${{ steps.version.outputs.skip != 'true' && github.event_name != 'release' }}
+        uses: mikepenz/release-changelog-builder-action@v6
+        with:
+          mode: "COMMIT"
+          fromTag: ${{ steps.version.outputs.from_ref }}
+          toTag: ${{ steps.version.outputs.to_ref }}
+          configurationJson: |
+            {
+              "template": "#{{CHANGELOG}}\n\n<details>\n<summary>Other changes</summary>\n\n#{{UNCATEGORIZED}}\n</details>\n",
+              "pr_template": "- #{{TITLE}} — by @#{{AUTHOR}}",
+              "categories": [
+                { "title": "## ✨ Features", "labels": ["feat", "feature"] },
+                { "title": "## 🐛 Fixes", "labels": ["fix", "bug"] },
+                { "title": "## ⚡ Performance", "labels": ["perf", "performance"] },
+                { "title": "## 🎨 UI / UX", "labels": ["ui", "ux", "design", "style"] },
+                { "title": "## 🎵 Playback & Audio", "labels": ["playback", "audio", "music", "player"] },
+                { "title": "## 🔎 Search & Discovery", "labels": ["search", "browse", "discover"] },
+                { "title": "## ♻️ Refactors", "labels": ["refactor"] },
+                { "title": "## 📚 Documentation", "labels": ["docs", "documentation"] },
+                { "title": "## 🛠️ Build / CI", "labels": ["build", "ci", "chore"] },
+                { "title": "## ✅ Tests", "labels": ["test", "tests"] }
+              ],
+              "label_extractor": [
+                {
+                  "pattern": "^(build|chore|ci|docs|documentation|feat|feature|fix|bug|perf|performance|refactor|revert|style|test|tests|ui|ux|design|playback|audio|music|player|search|browse|discover){1}(\\([\\w\\-\\.]+\\))?(!)?:\\s+.*$",
+                  "on_property": "title",
+                  "target": "$1"
+                }
+              ]
+            }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compose rich release description
+        id: release-description
+        if: ${{ steps.version.outputs.skip != 'true' && github.event_name != 'release' }}
+        env:
+          VERSION: ${{ steps.version.outputs.name }}
+          TAG: ${{ steps.version.outputs.exact_tag }}
+          VERSION_CODE: ${{ steps.version.outputs.code }}
+          CHANGELOG: ${{ steps.changelog.outputs.changelog }}
+          REPOSITORY: ${{ github.repository }}
+          COMMIT_SHA: ${{ steps.version.outputs.to_ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PYNOTES'
+          import os
+          from pathlib import Path
+          import textwrap
+
+          version = os.environ["VERSION"]
+          tag = os.environ["TAG"]
+          repo = os.environ["REPOSITORY"]
+          sha = os.environ["COMMIT_SHA"]
+          changelog = os.environ.get("CHANGELOG", "").strip()
+          base = f"https://github.com/{repo}/releases/download/{tag}"
+
+          body = textwrap.dedent(f"""
+          # Kozu {version}
+
+          Kozu release **{version}**. Review the categorized changes below and choose the APK that matches your device.
+
+          ## 📦 Downloads
+
+          | Package | Download |
+          | --- | --- |
+          | Universal | [Download APK]({base}/app-universal.apk) |
+          | ARM 64-bit | [Download APK]({base}/app-arm64-v8a.apk) |
+          | ARM 32-bit | [Download APK]({base}/app-armeabi-v7a.apk) |
+          | x86 64-bit | [Download APK]({base}/app-x86_64.apk) |
+          | x86 32-bit | [Download APK]({base}/app-x86.apk) |
+
+          ## 📝 What's changed
+
+          {changelog if changelog else "- No categorized commit messages were found for this release. See the commit history for details."}
+
+          ## 🔧 Build information
+
+          - **Version:** `{version}`
+          - **Version code:** `{os.environ['VERSION_CODE']}`
+          - **R8 optimization:** Enabled (R8 and resource shrinking)
+          - **Source commit:** [`{sha[:7]}`](https://github.com/{repo}/commit/{sha})
+
+          ---
+          *Built automatically by GitHub Actions. If you encounter an issue, please report it in the Kozu repository.*
+          """).strip()
+
+          Path("release_notes.md").write_text(body + "\n", encoding="utf-8")
+          PYNOTES
+
       - name: Create published release if missing
         if: ${{ steps.version.outputs.skip != 'true' && github.event_name != 'release' }}
         env:
@@ -304,15 +388,18 @@ jobs:
           TAG: ${{ steps.version.outputs.exact_tag }}
           VERSION: ${{ steps.version.outputs.name }}
           PRERELEASE: ${{ steps.version.outputs.prerelease }}
+          TARGET_SHA: ${{ steps.version.outputs.to_ref }}
         shell: bash
         run: |
           set -euo pipefail
           if ! gh release view "$TAG" >/dev/null 2>&1; then
-            args=("$TAG" --title "Kozu $VERSION" --notes "Kozu $VERSION release. See attached APK files for downloads.")
+            args=("$TAG" --target "$TARGET_SHA" --title "$VERSION" --notes-file release_notes.md)
             if [[ "$PRERELEASE" == "true" ]]; then
               args+=(--prerelease)
             fi
-            gh release create "${args[@]}"
+            gh release create "${args[@]}" dist/*.apk
+          else
+            echo "Release $TAG already exists; preserving its description."
           fi
 
       - name: Upload APK assets without changing release notes
