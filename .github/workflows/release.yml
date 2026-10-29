@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - app/build.gradle.kts
+      - .github/workflows/release.yml
     tags:
       - '[0-9]*'
       - 'v*'
@@ -122,7 +123,7 @@ jobs:
 
             if [[ -n "$old_version" && "$old_version" == "$gradle_version" ]]; then
               echo "versionName did not change; skipping release."
-              skip="true"
+              skip="false"
             fi
           fi
 
