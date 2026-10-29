@@ -37,21 +37,41 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 2
+
+      - name: Check Version Change
+        id: check-version
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        run: |
+          if git log -1 --name-only | grep -q "app/build.gradle.kts"; then
+            old_v=$(git show HEAD~1:app/build.gradle.kts 2>/dev/null | grep -E 'versionName\s*=' || echo "")
+            new_v=$(grep -E 'versionName\s*=' app/build.gradle.kts || echo "")
+            if [ "$old_v" = "$new_v" ]; then
+              echo "skip=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          else
+            echo "skip=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          echo "skip=false" >> $GITHUB_OUTPUT
 
       - name: Set up Java
-        uses: actions/setup-java@v6
+        if: ${{ steps.check-version.outputs.skip != 'true' }}
+        uses: actions/setup-java@v4
         with:
-          java-version: '25'
+          java-version: '17'
           distribution: 'temurin'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
+        if: ${{ steps.check-version.outputs.skip != 'true' }}
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Determine Version and Tag
         id: version
+        if: ${{ steps.check-version.outputs.skip != 'true' }}
         env:
           INPUT_VERSION: ${{ inputs.version_name }}
           TAG_REF: ${{ github.ref_name }}
@@ -84,6 +104,7 @@ jobs:
           echo "code=$code" >> $GITHUB_OUTPUT
 
       - name: Prepare Keystore
+        if: ${{ steps.check-version.outputs.skip != 'true' }}
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
@@ -92,6 +113,7 @@ jobs:
           fi
 
       - name: Build Release APKs
+        if: ${{ steps.check-version.outputs.skip != 'true' }}
         env:
           ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/release.jks
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -107,12 +129,13 @@ jobs:
             "-PminifyRelease=$MINIFY"
 
       - name: Package APKs
+        if: ${{ steps.check-version.outputs.skip != 'true' }}
         run: |
           mkdir -p dist
           cp app/build/outputs/apk/release/*.apk dist/ || true
 
       - name: Ensure Tag Exists and Push if Needed
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        if: ${{ steps.check-version.outputs.skip != 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         env:
           TAG: ${{ steps.version.outputs.tag }}
           GH_TOKEN: ${{ github.token }}
@@ -125,6 +148,7 @@ jobs:
           fi
 
       - name: Upload or Update Release Assets
+        if: ${{ steps.check-version.outputs.skip != 'true' }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
