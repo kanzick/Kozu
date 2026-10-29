@@ -1,158 +1,326 @@
-﻿name: Release
+﻿name: Release Android APK
 
 on:
   push:
-    tags:
-      - 'v*'
     branches:
       - main
+    paths:
+      - app/build.gradle.kts
+    tags:
+      - 'v*'
   release:
     types: [published]
   workflow_dispatch:
     inputs:
       version_name:
-        description: VersionName
-        required: true
-        type: string
-      version_code:
-        description: VersionCode
+        description: 'Version (MAJOR.MINOR.PATCH); defaults to the Gradle version'
         required: false
         type: string
       minify:
-        description: R8 optimization
+        description: 'Enable R8 optimization'
         required: false
         type: boolean
         default: true
+      prerelease:
+        description: 'Create as a pre-release (manual dispatch only)'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ github.event.release.tag_name || inputs.version_name || github.ref }}
   cancel-in-progress: false
 
 jobs:
   release:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    name: Build and publish APKs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout full Git history
+        uses: actions/checkout@v7
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
-      - name: Check Version Change
-        id: check-version
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+      - name: Prepare Gradle wrapper
+        shell: bash
         run: |
-          if git log -1 --name-only | grep -q "app/build.gradle.kts"; then
-            old_v=$(git show HEAD~1:app/build.gradle.kts 2>/dev/null | grep -E 'versionName\s*=' || echo "")
-            new_v=$(grep -E 'versionName\s*=' app/build.gradle.kts || echo "")
-            if [ "$old_v" = "$new_v" ]; then
-              echo "skip=true" >> $GITHUB_OUTPUT
-              exit 0
+          set -euo pipefail
+          sed -i 's/\r$//' gradlew
+          chmod +x gradlew
+
+      - name: Determine release version and versionCode
+        id: version
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          GITHUB_REF_VALUE: ${{ github.ref }}
+          REF_NAME: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          INPUT_VERSION: ${{ inputs.version_name }}
+          INPUT_MINIFY: ${{ inputs.minify }}
+          INPUT_PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          set -euo pipefail
+
+          extract_gradle_version() {
+            python3 -c '
+          import re, sys
+          text = sys.stdin.read()
+          patterns = (
+              r"defaultAppVersionName\s*=\s*\"([^\"]+)\"",
+              r"appVersionName\s*=\s*\"([^\"]+)\"",
+              r"versionName\s*=\s*\"([^\"]+)\"",
+          )
+          for pattern in patterns:
+              match = re.search(pattern, text)
+              if match:
+                  print(match.group(1))
+                  raise SystemExit(0)
+          raise SystemExit("Could not find a literal app version in app/build.gradle.kts")
+          '
+          }
+
+          skip="false"
+          tag=""
+          version=""
+
+          if [[ "$EVENT_NAME" == "release" ]]; then
+            tag="$RELEASE_TAG"
+            version="${tag#v}"
+          elif [[ "$EVENT_NAME" == "push" && "$GITHUB_REF_VALUE" == refs/tags/* ]]; then
+            tag="$REF_NAME"
+            version="${tag#v}"
+          elif [[ "$EVENT_NAME" == "push" && "$GITHUB_REF_VALUE" == "refs/heads/main" ]]; then
+            version="$(extract_gradle_version < app/build.gradle.kts)"
+            tag="v$version"
+
+            old_version=""
+            if git cat-file -e HEAD^:app/build.gradle.kts 2>/dev/null; then
+              old_version="$(git show HEAD^:app/build.gradle.kts | extract_gradle_version || true)"
+            fi
+
+            if [[ -n "$old_version" && "$old_version" == "$version" ]]; then
+              echo "Gradle version did not change; skipping release."
+              skip="true"
+            elif git rev-parse "$tag" >/dev/null 2>&1; then
+              echo "Tag $tag already exists; skipping automatic release."
+              skip="true"
             fi
           else
-            echo "skip=true" >> $GITHUB_OUTPUT
-            exit 0
+            version="${INPUT_VERSION:-}"
+            if [[ -z "$version" ]]; then
+              version="$(extract_gradle_version < app/build.gradle.kts)"
+            fi
+            version="${version#v}"
+            tag="v$version"
           fi
-          echo "skip=false" >> $GITHUB_OUTPUT
 
-      - name: Set up Java
-        if: ${{ steps.check-version.outputs.skip != 'true' }}
-        uses: actions/setup-java@v4
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Version '$version' must use MAJOR.MINOR.PATCH format, optionally followed by a pre-release suffix."
+            exit 1
+          fi
+
+          # Deterministic, commit-derived versionCode. Releases should be made
+          # from the main history so the code increases as commits are added.
+          code="$(git rev-list --count HEAD)"
+          if [[ ! "$code" =~ ^[1-9][0-9]*$ ]] || (( code > 2100000000 )); then
+            echo "::error::Generated versionCode is outside Android's valid range: $code"
+            exit 1
+          fi
+
+          minify="true"
+          if [[ "$EVENT_NAME" == "workflow_dispatch" && "$INPUT_MINIFY" == "false" ]]; then
+            minify="false"
+          fi
+
+          prerelease="false"
+          if [[ "$EVENT_NAME" == "workflow_dispatch" && "$INPUT_PRERELEASE" == "true" ]]; then
+            prerelease="true"
+          fi
+
+          echo "Release version: $version"
+          echo "Release tag: $tag"
+          echo "Commit-derived versionCode: $code"
+          echo "R8 enabled: $minify"
+          {
+            echo "name=$version"
+            echo "exact_tag=$tag"
+            echo "code=$code"
+            echo "minify=$minify"
+            echo "prerelease=$prerelease"
+            echo "skip=$skip"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Set up Java 27
+        if: ${{ steps.version.outputs.skip != 'true' }}
+        uses: actions/setup-java@v6
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          distribution: temurin
+          java-version: '27'
 
       - name: Set up Gradle
-        if: ${{ steps.check-version.outputs.skip != 'true' }}
-        uses: gradle/actions/setup-gradle@v4
+        if: ${{ steps.version.outputs.skip != 'true' }}
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-cleanup: on-success
 
-      - name: Determine Version and Tag
-        id: version
-        if: ${{ steps.check-version.outputs.skip != 'true' }}
-        env:
-          INPUT_VERSION: ${{ inputs.version_name }}
-          TAG_REF: ${{ github.ref_name }}
-          EVENT_NAME: ${{ github.event_name }}
-        run: |
-          version="$INPUT_VERSION"
-          if [ -z "$version" ] && [[ "$TAG_REF" =~ ^v[0-9] ]]; then
-            version="${TAG_REF#v}"
-          fi
-          if [ -z "$version" ]; then
-            version="$(python3 -c 'import re; content=open("app/build.gradle.kts", encoding="utf-8").read(); m=re.search(r"versionName\s*=\s*\"([^\"]+)\"", content); print(m.group(1) if m else "1.0")')"
-          }
-          
-          tag="v$version"
-          if [[ "$TAG_REF" =~ ^v ]] && [ "$EVENT_NAME" = "push" ]; then
-            tag="$TAG_REF"
-            version="${tag#v}"
-          elif [ "$EVENT_NAME" = "release" ]; then
-            tag="${{ github.event.release.tag_name }}"
-            version="${tag#v}"
-          fi
-
-          code="${{ inputs.version_code }}"
-          if [ -z "$code" ]; then
-            code="$(date +%s)"
-          fi
-
-          echo "version=$version" >> $GITHUB_OUTPUT
-          echo "tag=$tag" >> $GITHUB_OUTPUT
-          echo "code=$code" >> $GITHUB_OUTPUT
-
-      - name: Prepare Keystore
-        if: ${{ steps.check-version.outputs.skip != 'true' }}
+      - name: Validate signing secrets
+        if: ${{ steps.version.outputs.skip != 'true' }}
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-        run: |
-          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
-            python3 -c 'import base64, os; open(os.path.join(os.environ["RUNNER_TEMP"], "release.jks"), "wb").write(base64.b64decode(os.environ["ANDROID_KEYSTORE_BASE64"]))'
-          fi
-
-      - name: Build Release APKs
-        if: ${{ steps.check-version.outputs.skip != 'true' }}
-        env:
-          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/release.jks
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          APP_VERSION_NAME: ${{ steps.version.outputs.version }}
-          APP_VERSION_CODE: ${{ steps.version.outputs.code }}
-          MINIFY: ${{ inputs.minify || 'true' }}
+        shell: bash
         run: |
+          set -euo pipefail
+          for secret_name in \
+            ANDROID_KEYSTORE_BASE64 \
+            ANDROID_KEYSTORE_PASSWORD \
+            ANDROID_KEY_ALIAS \
+            ANDROID_KEY_PASSWORD; do
+            if [[ -z "${!secret_name:-}" ]]; then
+              echo "::error::Missing required GitHub Actions secret: $secret_name"
+              exit 1
+            fi
+          done
+
+      - name: Prepare release keystore
+        if: ${{ steps.version.outputs.skip != 'true' }}
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -c 'import base64, os, pathlib; pathlib.Path(os.environ["RUNNER_TEMP"], "kozu-release.jks").write_bytes(base64.b64decode(os.environ["ANDROID_KEYSTORE_BASE64"], validate=True))'
+
+      - name: Build signed Release APKs
+        if: ${{ steps.version.outputs.skip != 'true' }}
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/kozu-release.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          APP_VERSION_NAME: ${{ steps.version.outputs.name }}
+          APP_VERSION_CODE: ${{ steps.version.outputs.code }}
+          MINIFY: ${{ steps.version.outputs.minify }}
+        shell: bash
+        run: |
+          set -euo pipefail
           ./gradlew :app:assembleRelease --stacktrace \
             "-PappVersion=$APP_VERSION_NAME" \
             "-PappVersionCode=$APP_VERSION_CODE" \
             "-PminifyRelease=$MINIFY"
 
-      - name: Package APKs
-        if: ${{ steps.check-version.outputs.skip != 'true' }}
-        run: |
-          mkdir -p dist
-          cp app/build/outputs/apk/release/*.apk dist/ || true
-
-      - name: Ensure Tag Exists and Push if Needed
-        if: ${{ steps.check-version.outputs.skip != 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+      - name: Verify and package APK variants
+        if: ${{ steps.version.outputs.skip != 'true' }}
         env:
-          TAG: ${{ steps.version.outputs.tag }}
-          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION_NAME: ${{ steps.version.outputs.name }}
+        shell: bash
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          set -euo pipefail
+          tools="$(find "$ANDROID_HOME/build-tools" -maxdepth 1 -mindepth 1 -type d | sort -V | tail -n 1)"
+          test -x "$tools/apksigner" || { echo "::error::Could not find apksigner under $tools"; exit 1; }
+          test -x "$tools/aapt2" || { echo "::error::Could not find aapt2 under $tools"; exit 1; }
+
+          output="app/build/outputs/apk/release"
+          mkdir -p dist
+          variants=(
+            "universal:app-universal-release.apk"
+            "arm64-v8a:app-arm64-v8a-release.apk"
+            "armeabi-v7a:app-armeabi-v7a-release.apk"
+            "x86:app-x86-release.apk"
+            "x86_64:app-x86_64-release.apk"
+          )
+
+          for variant in "${variants[@]}"; do
+            label="${variant%%:*}"
+            source="$output/${variant#*:}"
+            destination="dist/app-${label}.apk"
+
+            if [[ ! -f "$source" ]]; then
+              echo "::error::Missing APK variant: $source"
+              find app/build/outputs/apk -maxdepth 5 -type f -print || true
+              exit 1
+            fi
+
+            "$tools/apksigner" verify --verbose --print-certs "$source"
+            "$tools/aapt2" dump badging "$source" > badging.txt
+
+            grep -q "package: name='vn.kozu'" badging.txt || {
+              echo "::error::Unexpected package name in $source"
+              exit 1
+            }
+            grep -Fq "versionName='${RELEASE_VERSION_NAME}'" badging.txt || {
+              echo "::error::versionName mismatch in $source"
+              exit 1
+            }
+
+            native_code="$(sed -n 's/^native-code: //p' badging.txt)"
+            if [[ "$label" == "universal" ]]; then
+              for abi in arm64-v8a armeabi-v7a x86 x86_64; do
+                [[ "$native_code" == *"'$abi'"* ]] || {
+                  echo "::error::Universal APK is missing native libraries for $abi"
+                  exit 1
+                }
+              done
+            else
+              [[ "$native_code" == *"'$label'"* ]] || {
+                echo "::error::APK does not contain native libraries for $label"
+                exit 1
+              }
+            fi
+
+            "$tools/apksigner" verify --verbose "$source" | grep -q "Verified using v2 scheme (APK Signature Scheme v2): true" || {
+              echo "::error::APK is not v2-signed: $source"
+              exit 1
+            }
+            cp "$source" "$destination"
+          done
+
+      - name: Create version tag after version change
+        if: ${{ steps.version.outputs.skip != 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        env:
+          TAG: ${{ steps.version.outputs.exact_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
           if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git tag "$TAG"
             git push origin "$TAG"
           fi
 
-      - name: Upload or Update Release Assets
-        if: ${{ steps.check-version.outputs.skip != 'true' }}
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.version.outputs.tag }}
-          files: dist/*
-          fail_on_unmatched_files: false
-          draft: false
-          prerelease: false
+      - name: Create published release if missing
+        if: ${{ steps.version.outputs.skip != 'true' && github.event_name != 'release' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.exact_tag }}
+          VERSION: ${{ steps.version.outputs.name }}
+          PRERELEASE: ${{ steps.version.outputs.prerelease }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            args=("$TAG" --title "Kozu $VERSION" --notes "Kozu $VERSION release. See attached APK files for downloads.")
+            if [[ "$PRERELEASE" == "true" ]]; then
+              args+=(--prerelease)
+            fi
+            gh release create "${args[@]}"
+          fi
+
+      - name: Upload APK assets without changing release notes
+        if: ${{ steps.version.outputs.skip != 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.exact_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release upload "$TAG" dist/*.apk --clobber
