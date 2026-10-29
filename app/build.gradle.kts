@@ -16,11 +16,21 @@ val hasReleaseSigning = listOf(
     releaseKeyPassword
 ).all { !it.isNullOrBlank() }
 
+val gitCommitCount = try {
+    ProcessBuilder("git", "rev-list", "--count", "HEAD")
+        .start()
+        .inputStream
+        .bufferedReader()
+        .readText()
+        .trim()
+        .toInt()
+} catch (e: Exception) {
+    1
+}
+
 android {
     namespace = "vn.kozu"
-    compileSdk {
-        version = release(37)
-    }
+    compileSdk = 37
 
     signingConfigs {
         if (hasReleaseSigning) {
@@ -37,7 +47,7 @@ android {
         applicationId = "vn.kozu"
         minSdk = 28
         targetSdk = 37
-        versionCode = providers.gradleProperty("appVersionCode").orElse("1").get().toInt()
+        versionCode = gitCommitCount
         versionName = providers.gradleProperty("appVersion").orElse("1.0").get()
     }
 
@@ -114,6 +124,5 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network)
     implementation(libs.androidx.profileinstaller)
-
     debugImplementation(libs.androidx.compose.ui.tooling)
 }
