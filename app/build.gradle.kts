@@ -8,29 +8,6 @@ val releaseKeystorePath = providers.environmentVariable("ANDROID_KEYSTORE_PATH")
 val releaseKeystorePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD").orNull
 val releaseKeyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS").orNull
 val releaseKeyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD").orNull
-val generatedCommitVersionCode = runCatching {
-    val process = ProcessBuilder("git", "rev-list", "--count", "HEAD")
-        .directory(rootProject.projectDir)
-        .redirectErrorStream(true)
-        .start()
-
-    val output = process.inputStream.bufferedReader().use {
-        it.readText().trim()
-    }
-    check(process.waitFor() == 0) {
-        "Could not get the Git commit count"
-    }
-    output.toInt()
-}.getOrDefault(1)
-
-val appVersionCode = providers.gradleProperty("appVersionCode")
-    .orNull
-    ?.toIntOrNull()
-    ?: generatedCommitVersionCode
-
-require(appVersionCode in 1..2_100_000_000) {
-    "versionCode must be between 1 and 2100000000; got $appVersionCode"
-}
 
 val hasReleaseSigning = listOf(
     releaseKeystorePath,
@@ -41,6 +18,7 @@ val hasReleaseSigning = listOf(
 
 android {
     namespace = "vn.kozu"
+
     compileSdk {
         version = release(37)
     }
@@ -60,7 +38,7 @@ android {
         applicationId = "vn.kozu"
         minSdk = 28
         targetSdk = 37
-        versionCode = appVersionCode
+        versionCode = (System.currentTimeMillis() / 1000L).toInt()
         versionName = "1.0.0"
     }
 
@@ -69,7 +47,6 @@ android {
             if (hasReleaseSigning) {
                 signingConfig = signingConfigs.getByName("release")
             }
-
             isMinifyEnabled = true
             isShrinkResources = true
 
@@ -84,7 +61,12 @@ android {
         abi {
             isEnable = true
             reset()
-            include("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
+            include(
+                "arm64-v8a",
+                "armeabi-v7a",
+                "x86",
+                "x86_64"
+            )
             isUniversalApk = true
         }
     }
@@ -118,6 +100,7 @@ ksp {
 }
 
 dependencies {
+    ksp(libs.androidx.room.compiler)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
@@ -139,7 +122,6 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
-    ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.palette)
     implementation(libs.coil.compose)
     implementation(libs.coil.network)
