@@ -65,7 +65,8 @@ body:
     attributes:
       label: Logs
       description: |
-        Please use `adb logcat` or other ways to provide logs. This field is strongly recommended to be filled. Without this information, it's likely that the developer is unable to take any meaningful action or provide further assistance.
+        Please use `adb logcat` or other ways to provide logs. This field is strongly recommended to be filled. Without this information, it's likely that the developer is unable to take any meaningful action or provide further assistance. Check https://developer.android.com/tools/logcat on how to get logs.
+    validations:
     validations:
       required: true
 
