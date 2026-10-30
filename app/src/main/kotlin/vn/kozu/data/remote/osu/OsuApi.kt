@@ -55,6 +55,7 @@ interface OsuApi {
         @Query("sort") sort: String? = null,
         @Query("g") genre: Int? = null,
         @Query("m") mode: Int? = null,
-        @Query("nsfw") nsfw: Boolean? = null
+        @Query("nsfw") nsfw: Boolean? = null,
+        @Query("cursor_string") cursorString: String? = null
     ): BeatmapsetSearchResponse
 }

@@ -16,16 +16,34 @@ data class Mirror(
 object Mirrors {
     val builtIn: List<Mirror> = listOf(
         Mirror(
+            id = "osudirect",
+            name = "osu.direct",
+            downloadUrl = "https://osu.direct/api/d/{id}?noVideo=1"
+        ),
+        Mirror(
+            id = "nekoha",
+            name = "Nekoha",
+            downloadUrl = "https://mirror.hinamizawa.ai/api/v1/nekoha-collab/d/{id}?redirect=true&no_video=true",
+            referer = "https://mirror.hinamizawa.ai/"
+        ),
+        Mirror(
+            id = "mirria",
+            name = "Mirria",
+            downloadUrl = "https://mirror.lisek.cc/api/v1/download/{id}?video=false",
+            referer = "https://mirror.lisek.cc/"
+        ),
+        Mirror(
+            id = "osudl",
+            name = "osu!dl",
+            downloadUrl = "https://osudl.org/s/{id}?video=false",
+            referer = "https://osudl.org/"
+        ),
+        Mirror(
             id = "catboy",
-            name = "Mino (catboy.best)",
+            name = "Mino",
             downloadUrl = "https://catboy.best/d/{id}n",
             previewUrl = "https://catboy.best/preview/audio/{id}?set=1",
             referer = "https://catboy.best/"
-        ),
-        Mirror(
-            id = "nerinyan",
-            name = "Nerinyan",
-            downloadUrl = "https://api.nerinyan.moe/d/{id}?noVideo=true"
         ),
         Mirror(
             id = "sayobot",
@@ -34,14 +52,17 @@ object Mirrors {
             previewUrl = "https://cdn.sayobot.cn:25225/preview/{id}.mp3"
         ),
         Mirror(
-            id = "osudirect",
-            name = "osu.direct",
-            downloadUrl = "https://osu.direct/api/d/{id}"
-        ),
-        Mirror(
             id = "beatconnect",
             name = "Beatconnect",
-            downloadUrl = "https://beatconnect.io/b/{id}/"
+            downloadUrl = "https://beatconnect.io/b/{id}/",
+            referer = "https://beatconnect.io/"
+        ),
+        Mirror(
+            id = "hinai",
+            name = "Hinanmizawa",
+            downloadUrl = "https://mirror.hinamizawa.ai/api/v1/hinai/d/{id}n",
+            previewUrl = "https://mirror.hinamizawa.ai/v3/osu/music/preview/{id}",
+            referer = "https://mirror.hinamizawa.ai/"
         )
     )
 

@@ -123,7 +123,7 @@ private fun SettingsRoot(onBack: () -> Unit, onOpen: (SettingsPage) -> Unit) {
     val library = listOf(
         Entry(SettingsPage.OFFLINE, Icons.Rounded.Storage, "Offline", "Downloads, storage and sync", Tone.TERTIARY),
         Entry(SettingsPage.SOURCES, Icons.Rounded.Dns, "Sources", "osu! mirrors for streaming and downloads", Tone.SECONDARY),
-        Entry(SettingsPage.CONTENT, Icons.Rounded.Public, "Content", "Game mode, status and explicit filters", Tone.PRIMARY)
+        Entry(SettingsPage.CONTENT, Icons.Rounded.Public, "Content", "Listening history and search data", Tone.PRIMARY)
     )
     val about = listOf(Entry(SettingsPage.ABOUT, Icons.Rounded.Info, "About", "Version, credits and legal", Tone.SECONDARY))
 

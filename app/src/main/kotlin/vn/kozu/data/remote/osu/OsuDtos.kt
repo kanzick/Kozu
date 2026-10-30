@@ -10,7 +10,8 @@ data class TokenDto(
 
 data class BeatmapsetSearchResponse(
     @SerializedName("beatmapsets") val beatmapsets: List<BeatmapsetDto>? = null,
-    @SerializedName("total") val total: Int = 0
+    @SerializedName("total") val total: Int = 0,
+    @SerializedName("cursor_string") val cursorString: String? = null
 )
 
 data class BeatmapsetDto(

@@ -1,5 +1,10 @@
 package vn.kozu.ui.home
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -32,11 +37,16 @@ import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material3.Icon
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,6 +54,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import vn.kozu.domain.model.Beatmap
@@ -52,6 +64,7 @@ import vn.kozu.ui.components.BeatmapArt
 import vn.kozu.ui.components.CoverCard
 import vn.kozu.ui.components.HeaderAction
 import vn.kozu.ui.components.KozuLoading
+import vn.kozu.ui.components.RefreshIndicator
 import vn.kozu.ui.components.LocalTrackActions
 import vn.kozu.ui.components.ScreenHeader
 import vn.kozu.ui.components.SearchAction
@@ -66,6 +79,7 @@ import vn.kozu.ui.theme.KozuMotion
 import vn.kozu.util.formatDuration
 import java.util.Calendar
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     listState: LazyListState,
@@ -74,18 +88,29 @@ fun HomeScreen(
     onOpenExplore: () -> Unit,
     onOpenLibrary: () -> Unit,
     onOpenSearch: () -> Unit,
+    onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory)
 ) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val catalogError = ui.error
     val actions = LocalTrackActions.current
+    val pullState = rememberPullToRefreshState()
+    val haptics = LocalHapticFeedback.current
+    val refreshNow = {
+        if (!ui.isRefreshing) {
+            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+            onRefresh()
+        }
+    }
 
     Column(modifier.fillMaxSize()) {
         ScreenHeader(
             leading = {
                 Surface(
-                    modifier = Modifier.size(46.dp),
+                    modifier = Modifier
+                        .size(46.dp)
+                        .bounceClick(pressedScale = 0.96f, onClick = refreshNow),
                     shape = KozuCookies.Soft9,
                     color = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
@@ -95,7 +120,14 @@ fun HomeScreen(
                     }
                 }
                 Spacer(Modifier.width(12.dp))
-                Text("Kozu", style = MaterialTheme.typography.headlineLarge)
+                Text(
+                    text = "Kozu",
+                    modifier = Modifier.bounceClick(
+                        pressedScale = 0.98f,
+                        onClick = refreshNow
+                    ),
+                    style = MaterialTheme.typography.headlineLarge
+                )
             },
             actions = {
                 HeaderAction(
@@ -110,108 +142,161 @@ fun HomeScreen(
             }
         )
 
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(top = 24.dp, bottom = bottomPadding)
+        AnimatedVisibility(
+            visible = ui.isRefreshing,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
         ) {
-            item(key = "greeting") { Greeting(name = ui.displayName) }
-
-            if (catalogError != null) {
-                item(key = "catalog-error") {
-                    CatalogErrorBanner(
-                        error = catalogError,
-                        onRetry = viewModel::refresh,
-                        onSettings = onOpenSettings
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.secondaryContainer
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        text = "Refreshing osu! catalog…",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                 }
             }
+        }
 
-            item(key = "quick-header") {
-                Column {
-                Spacer(Modifier.height(28.dp))
-                SectionHeader(title = "Quick Picks", onAction = onOpenExplore)
-                Spacer(Modifier.height(14.dp))
+        PullToRefreshBox(
+            isRefreshing = ui.isRefreshing,
+            onRefresh = refreshNow,
+            state = pullState,
+            modifier = Modifier.fillMaxSize(),
+            indicator = {
+                RefreshIndicator(
+                    state = pullState,
+                    isRefreshing = ui.isRefreshing,
+                    modifier = Modifier.align(Alignment.TopCenter)
+                )
             }
-            }
-            item(key = "quick-row") {
-                if (ui.quickPicks.isEmpty()) {
-                    if (ui.isLoading) {
-                        KozuLoading()
-                    } else {
-                        Text(
-                            "No live beatmaps are available right now.",
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+        ) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(top = 24.dp, bottom = bottomPadding)
+            ) {
+                item(key = "greeting") { Greeting(name = ui.displayName) }
+
+                if (catalogError != null) {
+                    item(key = "catalog-error") {
+                        CatalogErrorBanner(
+                            error = catalogError,
+                            onRetry = viewModel::refresh,
+                            onSettings = onOpenSettings
                         )
                     }
-                } else {
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 20.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        itemsIndexed(ui.quickPicks, key = { _, b -> b.id }) { index, beatmap ->
-                            CoverCard(
-                                beatmap = beatmap,
-                                size = 176.dp,
-                                shape = RoundedCornerShape(38.dp),
-                                rank = index + 1,
-                                onClick = { actions.play(ui.quickPicks, index) }
+                }
+
+                item(key = "quick-header") {
+                    Column {
+                        Spacer(Modifier.height(28.dp))
+                        SectionHeader(title = "Quick Picks", onAction = onOpenExplore)
+                        Spacer(Modifier.height(14.dp))
+                    }
+                }
+                item(key = "quick-row") {
+                    if (ui.quickPicks.isEmpty()) {
+                        if (ui.isLoading) {
+                            KozuLoading()
+                        } else {
+                            Text(
+                                "No live beatmaps are available right now.",
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                        }
+                    } else {
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 20.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            itemsIndexed(ui.quickPicks, key = { _, b -> b.id }) { index, beatmap ->
+                                CoverCard(
+                                    beatmap = beatmap,
+                                    size = 176.dp,
+                                    shape = RoundedCornerShape(38.dp),
+                                    rank = index + 1,
+                                    onClick = { actions.play(ui.quickPicks, index) }
+                                )
+                            }
                         }
                     }
                 }
-            }
 
-            item(key = "mix") {
-                Column {
-                Spacer(Modifier.height(32.dp))
-                YourMixCard(
-                    mix = ui.mix,
-                    onShuffle = { actions.playShuffled(ui.mix) }
-                )
-            }
-            }
-
-            if (ui.recent.isNotEmpty()) {
-                item(key = "recent") {
-                Column {
-                    Spacer(Modifier.height(32.dp))
-                    SectionHeader(title = "Recently Played")
-                    Spacer(Modifier.height(14.dp))
-                    RecentlyPlayedGrid(recent = ui.recent) { index -> actions.play(ui.recent, index) }
+                item(key = "mix") {
+                    Column {
+                        Spacer(Modifier.height(32.dp))
+                        YourMixCard(
+                            mix = ui.mix,
+                            onShuffle = {
+                                actions.playShuffled(ui.mix)
+                                viewModel.loadMoreMix()
+                            }
+                        )
+                    }
                 }
-            }
-            }
 
-            item(key = "stats") {
-                Column {
-                Spacer(Modifier.height(32.dp))
-                ListeningStatsCard(
-                    stats = ui.stats,
-                    onOpenHistory = onOpenLibrary,
-                    onPlayTop = { top -> actions.play(listOf(top), 0) }
-                )
-            }
-            }
-
-            if (ui.madeForYou.isNotEmpty()) {
-                item(key = "made-header") {
-                Column {
-                    Spacer(Modifier.height(32.dp))
-                    SectionHeader(title = "Made for you", subtitle = "Fresh from the osu! catalog", onAction = onOpenExplore)
-                    Spacer(Modifier.height(14.dp))
+                if (ui.recent.isNotEmpty()) {
+                    item(key = "recent") {
+                        Column {
+                            Spacer(Modifier.height(32.dp))
+                            SectionHeader(title = "Recently Played")
+                            Spacer(Modifier.height(14.dp))
+                            RecentlyPlayedGrid(recent = ui.recent) { index -> actions.play(ui.recent, index) }
+                        }
+                    }
                 }
-            }
-                itemsIndexed(ui.madeForYou, key = { _, b -> "made-${b.id}" }) { index, beatmap ->
-                    TrackRow(
-                        beatmap = beatmap,
-                        shape = segmentedShape(index, ui.madeForYou.size),
-                        modifier = Modifier
-                            .padding(horizontal = 20.dp)
-                            .padding(vertical = 1.5.dp),
-                        onClick = { actions.play(ui.madeForYou, index) }
-                    )
+
+                item(key = "stats") {
+                    Column {
+                        Spacer(Modifier.height(32.dp))
+                        ListeningStatsCard(
+                            stats = ui.stats,
+                            onOpenHistory = onOpenLibrary,
+                            onPlayTop = { top -> actions.play(listOf(top), 0) }
+                        )
+                    }
+                }
+
+                if (ui.madeForYou.isNotEmpty()) {
+                    item(key = "made-header") {
+                        Column {
+                            Spacer(Modifier.height(32.dp))
+                            SectionHeader(
+                                title = "Made for you",
+                                subtitle = "Fresh from the osu! catalog",
+                                onAction = onOpenExplore
+                            )
+                            Spacer(Modifier.height(14.dp))
+                        }
+                    }
+                    itemsIndexed(ui.madeForYou, key = { _, b -> "made-${b.id}" }) { index, beatmap ->
+                        TrackRow(
+                            beatmap = beatmap,
+                            shape = segmentedShape(index, ui.madeForYou.size),
+                            modifier = Modifier
+                                .padding(horizontal = 20.dp)
+                                .padding(vertical = 1.5.dp),
+                            onClick = { actions.play(ui.madeForYou, index) }
+                        )
+                    }
                 }
             }
         }
@@ -234,7 +319,7 @@ private fun Greeting(name: String) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
-            text = "${name.ifBlank { "osu! player" }} 🎧",
+            text = "${name.ifBlank { "osu! Player" }} 👋",
             style = MaterialTheme.typography.displaySmall,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis

@@ -20,13 +20,13 @@ import vn.kozu.player.PlaybackController
 
 /**
  * Dependency injection container for Kozu.
- * Instantiates and provides singletons for local storage, remote APIs, repositories,
- * download management, and media playback control.
+ * Instantiates and provides shared dependencies for storage, network,
+ * repositories, downloads, and playback.
  */
 class AppContainer(context: Context) {
-    private val appContext = context.applicationContext
+    val appContext = context.applicationContext
 
-    /** Local preference and data stores */
+    // Local stores
     val settings = SettingsStore(appContext)
     val favorites = FavoritesStore(appContext)
     val playlists = PlaylistStore(appContext)
@@ -34,20 +34,40 @@ class AppContainer(context: Context) {
     val downloadsStore = DownloadsStore(appContext)
     private val accountStore = AccountStore(appContext)
 
-    /** Network and remote API dependencies */
+    // Network and osu! authentication
     val httpClient = OsuApiFactory.client()
     private val api = OsuApiFactory.create(httpClient)
     val auth = OsuAuth(api, settings, accountStore)
+
+    // Repositories
     val accounts = AccountRepository(auth, api, accountStore)
     val catalog = BeatmapRepository(api, auth, settings, httpClient)
-    val discover = DiscoverFeed(catalog, settings)
+    val discover = DiscoverFeed(catalog, settings, auth)
 
-    /** Audio streaming, downloading, and sync services */
+    // Streaming and downloading
     val streams = StreamResolver(appContext, httpClient, downloadsStore, settings)
-    val downloads = DownloadManager(appContext, httpClient, settings, downloadsStore, auth)
+    val downloads = DownloadManager(
+        context = appContext,
+        client = httpClient,
+        settings = settings,
+        store = downloadsStore,
+        auth = auth
+    )
     val mirrorTester = MirrorTester(httpClient)
-    val sync = LibrarySync(catalog, favorites, playlists, history, downloadsStore, downloads, settings)
 
-    /** Lazily instantiated media playback controller */
-    val playback: PlaybackController by lazy { PlaybackController(appContext, history, streams) }
+    // Library synchronization
+    val sync = LibrarySync(
+        catalog,
+        favorites,
+        playlists,
+        history,
+        downloadsStore,
+        downloads,
+        settings
+    )
+
+    // Playback
+    val playback: PlaybackController by lazy {
+        PlaybackController(appContext, history, streams)
+    }
 }

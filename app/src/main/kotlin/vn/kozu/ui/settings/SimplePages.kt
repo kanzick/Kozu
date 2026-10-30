@@ -34,14 +34,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import vn.kozu.domain.model.AccentColor
-import vn.kozu.domain.model.ModeFilter
-import vn.kozu.domain.model.StatusFilter
 import vn.kozu.domain.model.StreamMode
 import vn.kozu.domain.model.ThemeMode
 
@@ -128,10 +127,16 @@ fun AppearancePage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it.take(24) },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .onFocusChanged { focus ->
+                                if (!focus.isFocused && name != settings.displayName) {
+                                    viewModel.setDisplayName(name)
+                                }
+                            },
                         singleLine = true,
                         shape = RoundedCornerShape(20.dp),
-                        placeholder = { Text("Shown in the Home greeting") },
+                        placeholder = { Text("Leave blank to use your osu! username") },
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = { viewModel.setDisplayName(name) })
                     )
@@ -190,7 +195,7 @@ fun PlaybackPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                 {
                     ChoiceRow(
                         title = "Cache size",
-                        subtitle = "Songs you stream are kept so they replay instantly. Currently ${formatBytes(cacheBytes)}.",
+                        subtitle = "Previously streamed audio is cached up to this size and cleared when playback fully exits. Currently ${formatBytes(cacheBytes)}.",
                         options = listOf(128, 256, 512, 1024, 2048),
                         selected = settings.streamCacheMb,
                         label = { if (it >= 1024) "${it / 1024} GB" else "$it MB" },
@@ -205,42 +210,7 @@ fun PlaybackPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
 
 @Composable
 fun ContentPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
-    val settings by viewModel.settings.collectAsStateWithLifecycle()
-
     SettingsScaffold(title = "Content", onBack = onBack) {
-        SettingsGroup(
-            title = "Catalog filters",
-            items = listOf(
-                {
-                    ChoiceRow(
-                        title = "Game mode",
-                        subtitle = "Only show beatmaps that include this mode",
-                        options = ModeFilter.entries.toList(),
-                        selected = settings.modeFilter,
-                        label = { it.label },
-                        onSelect = viewModel::setModeFilter
-                    )
-                },
-                {
-                    ChoiceRow(
-                        title = "Search status",
-                        options = StatusFilter.entries.toList(),
-                        selected = settings.statusFilter,
-                        label = { it.label },
-                        onSelect = viewModel::setStatusFilter
-                    )
-                },
-                {
-                    SwitchRow(
-                        title = "Explicit content",
-                        subtitle = "Include beatmaps marked as explicit",
-                        checked = settings.showExplicit,
-                        onChange = viewModel::setShowExplicit
-                    )
-                }
-            )
-        )
-        Spacer(Modifier.height(24.dp))
         SettingsGroup(
             title = "Data",
             items = listOf(
