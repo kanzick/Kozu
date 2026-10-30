@@ -44,16 +44,29 @@ fun SourcesPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("How Kozu finds audio", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "1. Your offline copy\n2. Cached stream\n3. Full song from mirrors (partial download of just the audio)\n4. osu! preview as the last resort\n\nDownloads try your osu! account first (if signed in), then each enabled mirror in order.",
+                        "Full song mode tries the enabled public mirrors and only plays a full audio file. It never silently switches to a short preview. Preview mode is used only when you explicitly select it.\n\nGuests and signed-in users have the same catalog, streaming, and download access.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        PrimaryPill(if (testing) "Testing…" else "Test sources", enabled = !testing) { viewModel.testMirrors() }
+                        PrimaryPill(
+                            if (testing) "Testing…" else "Test sources",
+                            enabled = !testing
+                        ) { viewModel.testMirrors() }
                         Spacer(Modifier.width(12.dp))
                         when (official) {
-                            true -> Text("osu! preview reachable", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-                            false -> Text("osu! preview unreachable", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+                            true -> Text(
+                                "osu! preview reachable",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+
+                            false -> Text(
+                                "osu! preview unreachable",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.error
+                            )
+
                             null -> Unit
                         }
                     }
@@ -73,7 +86,12 @@ fun SourcesPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                         onRemove = if (mirror.builtIn) null else ({ viewModel.removeMirror(mirror.id) })
                     )
                 }
-            } + listOf<@Composable () -> Unit>({ ActionRow("Add custom mirror", "Use {id} where the beatmapset id goes", { showAdd = true }) })
+            } + listOf<@Composable () -> Unit>({
+                ActionRow(
+                    "Add custom mirror",
+                    "Use {id} where the beatmapset id goes",
+                    { showAdd = true })
+            })
         )
     }
 

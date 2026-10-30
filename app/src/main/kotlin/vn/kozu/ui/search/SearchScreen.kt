@@ -46,6 +46,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import vn.kozu.data.repository.CatalogSource
 import vn.kozu.domain.model.SearchCategory
 import vn.kozu.domain.model.SearchSort
 import vn.kozu.ui.components.EmptyState
@@ -136,6 +137,19 @@ fun SearchScreen(
                 onSort = viewModel::onSortChange,
                 onClearCategory = { viewModel.onCategoryChange(null) }
             )
+            if (ui.phase == SearchPhase.DONE) {
+                Text(
+                    text = when (ui.source) {
+                        CatalogSource.OFFICIAL_OSU -> "osu! official · Ranked + Loved · all game modes"
+                        CatalogSource.PUBLIC_MIRROR -> "Public catalog fallback · Ranked + Loved · all game modes"
+                        CatalogSource.MIXED -> "osu! official + public fallback · Ranked + Loved"
+                        CatalogSource.NONE -> "Ranked + Loved · all game modes"
+                    },
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             when (ui.phase) {
                 SearchPhase.IDLE -> Unit
                 SearchPhase.LOADING -> KozuLoading()

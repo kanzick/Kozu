@@ -21,8 +21,9 @@ data class MirrorTestResult(
 class MirrorTester(client: OkHttpClient) {
 
     private val probe = client.newBuilder()
-        .connectTimeout(6, TimeUnit.SECONDS)
-        .readTimeout(12, TimeUnit.SECONDS)
+        .connectTimeout(4, TimeUnit.SECONDS)
+        .readTimeout(6, TimeUnit.SECONDS)
+        .callTimeout(8, TimeUnit.SECONDS)
         .build()
 
     suspend fun test(mirror: Mirror): MirrorTestResult = withContext(Dispatchers.IO) {
@@ -34,6 +35,7 @@ class MirrorTester(client: OkHttpClient) {
             val builder = Request.Builder()
                 .url(mirror.downloadFor(Mirrors.PROBE_SET_ID))
                 .header("Range", "bytes=0-0")
+                .header("User-Agent", "Kozu/2.1 (Android; https://github.com/kanzick/Kozu)")
             if (mirror.referer.isNotBlank()) builder.header("Referer", mirror.referer)
             probe.newCall(builder.build()).execute().use { response ->
                 when (response.code) {

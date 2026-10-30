@@ -44,7 +44,6 @@ class SettingsStore(context: Context) {
         val wifiOnlyStreaming = booleanPreferencesKey("wifi_only_streaming")
         val streamCacheMb = intPreferencesKey("stream_cache_mb")
         val skipSilence = booleanPreferencesKey("skip_silence")
-        val officialDownload = booleanPreferencesKey("official_download")
         val disabledMirrors = stringPreferencesKey("disabled_mirrors")
         val customMirrors = stringPreferencesKey("custom_mirrors")
         val keepFull = booleanPreferencesKey("keep_full_beatmap")
@@ -69,13 +68,12 @@ class SettingsStore(context: Context) {
             wifiOnlyStreaming = prefs[Keys.wifiOnlyStreaming] ?: false,
             streamCacheMb = prefs[Keys.streamCacheMb] ?: 512,
             skipSilence = prefs[Keys.skipSilence] ?: false,
-            officialDownload = prefs[Keys.officialDownload] ?: true,
             disabledMirrors = prefs[Keys.disabledMirrors].orEmpty().split(',').filter { it.isNotBlank() }.toSet(),
             customMirrors = decodeMirrors(prefs[Keys.customMirrors]),
             keepFullBeatmap = prefs[Keys.keepFull] ?: true,
             wifiOnlyDownloads = prefs[Keys.wifiOnlyDownloads] ?: false,
             autoUpdateDownloads = prefs[Keys.autoUpdate] ?: true,
-            showExplicit = prefs[Keys.explicit] ?: true,
+            showExplicit = false,
             modeFilter = ModeFilter.fromKey(prefs[Keys.modeFilter]),
             statusFilter = StatusFilter.fromKey(prefs[Keys.statusFilter]),
             lastSyncAt = prefs[Keys.lastSync] ?: 0L
@@ -109,11 +107,11 @@ class SettingsStore(context: Context) {
     suspend fun setWifiOnlyStreaming(enabled: Boolean) = store.edit { it[Keys.wifiOnlyStreaming] = enabled }
     suspend fun setStreamCacheMb(mb: Int) = store.edit { it[Keys.streamCacheMb] = mb }
     suspend fun setSkipSilence(enabled: Boolean) = store.edit { it[Keys.skipSilence] = enabled }
-    suspend fun setOfficialDownload(enabled: Boolean) = store.edit { it[Keys.officialDownload] = enabled }
     suspend fun setKeepFullBeatmap(enabled: Boolean) = store.edit { it[Keys.keepFull] = enabled }
     suspend fun setWifiOnlyDownloads(enabled: Boolean) = store.edit { it[Keys.wifiOnlyDownloads] = enabled }
     suspend fun setAutoUpdateDownloads(enabled: Boolean) = store.edit { it[Keys.autoUpdate] = enabled }
-    suspend fun setShowExplicit(enabled: Boolean) = store.edit { it[Keys.explicit] = enabled }
+    @Suppress("UNUSED_PARAMETER")
+    suspend fun setShowExplicit(enabled: Boolean) = store.edit { it[Keys.explicit] = false }
     suspend fun setModeFilter(filter: ModeFilter) = store.edit { it[Keys.modeFilter] = filter.key }
     suspend fun setStatusFilter(filter: StatusFilter) = store.edit { it[Keys.statusFilter] = filter.key }
     suspend fun setLastSync(timeMillis: Long) = store.edit { it[Keys.lastSync] = timeMillis }

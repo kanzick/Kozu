@@ -40,7 +40,7 @@ sealed interface DownloadStatus {
     data class Failed(val message: String) : DownloadStatus
 }
 
-private class Source(
+private data class Source(
     val name: String,
     val url: String,
     val referer: String = "",
@@ -110,35 +110,54 @@ class DownloadManager(
                 clearStatus(id)
                 return
             }
+
             val current = settings.settings.first()
             if (current.wifiOnlyDownloads && NetworkInfo.isMetered(appContext)) {
                 fail(id, "Waiting for Wi-Fi (downloads are Wi-Fi only)")
                 return
             }
 
-            val sources = buildSources(current.officialDownload, current.activeMirrors.map {
-                Source(it.name, it.downloadFor(id), it.referer)
+            val sources = buildSources(current.activeMirrors.map { mirror ->
+                Source(
+                    name = mirror.name,
+                    url = mirror.downloadFor(id),
+                    referer = mirror.referer
+                )
             }, id)
+
+            if (sources.isEmpty()) {
+                fail(id, "No download source is available")
+                return
+            }
 
             val temp = File(appContext.cacheDir, "downloads/$id.osz.part")
             temp.parentFile?.mkdirs()
             var usedSource = ""
-            var lastError = "No download source is enabled"
+            var lastError = "All download sources failed"
+
             for (source in sources) {
+                currentCoroutineContext().ensureActive()
                 setStatus(id, DownloadStatus.Running(0f, source.name))
                 try {
-                    fetch(source, temp) { progress -> setStatus(id, DownloadStatus.Running(progress, source.name)) }
-                    if (!OszExtractor.isZip(temp)) throw IOException("not a beatmap archive")
+                    fetch(source, temp) { progress ->
+                        setStatus(id, DownloadStatus.Running(progress, source.name))
+                    }
+
+                    if (!OszExtractor.isZip(temp)) {
+                        throw IOException("The server did not return a valid .osz archive")
+                    }
+
                     usedSource = source.name
                     break
                 } catch (e: CancellationException) {
                     temp.delete()
                     throw e
                 } catch (e: Exception) {
-                    lastError = "${source.name}: ${e.message ?: "failed"}"
+                    lastError = "${source.name}: ${e.message ?: "download failed"}"
                     temp.delete()
                 }
             }
+
             if (usedSource.isEmpty()) {
                 fail(id, lastError)
                 return
@@ -147,9 +166,13 @@ class DownloadManager(
             setStatus(id, DownloadStatus.Running(1f, "Extracting"))
             val destination = store.folder(id)
             val staging = File(destination.parentFile, "$id.tmp")
+            staging.deleteRecursively()
+
             val result = OszExtractor.extract(temp, staging, current.keepFullBeatmap)
             destination.deleteRecursively()
-            if (!staging.renameTo(destination)) throw IOException("Could not store the beatmap files")
+            if (!staging.renameTo(destination)) {
+                throw IOException("Could not store the beatmap files")
+            }
             temp.delete()
 
             store.upsert(
@@ -162,8 +185,9 @@ class DownloadManager(
                     source = usedSource
                 )
             )
+
             clearStatus(id)
-            _events.tryEmit("Downloaded ${beatmap.title}")
+            _events.tryEmit("Downloaded ${beatmap.title} from $usedSource")
         } catch (e: CancellationException) {
             clearStatus(id)
             throw e
@@ -174,65 +198,103 @@ class DownloadManager(
         }
     }
 
-    private suspend fun buildSources(official: Boolean, mirrors: List<Source>, id: Long): List<Source> {
-        val list = ArrayList<Source>()
-        if (official) {
-            val token = try {
-                auth.userBearer()
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                null
-            }
-            if (token != null) {
-                list.add(
-                    Source(
-                        name = "osu! (official)",
-                        url = Mirrors.OFFICIAL_DOWNLOAD.replace("{id}", id.toString()),
-                        authorization = "Bearer $token"
-                    )
-                )
-            }
+    /**
+     * Signed-in users try osu!'s official download endpoint first.
+     * Guests go straight to the public mirrors. If the official endpoint
+     * rejects the app's OAuth token or is unavailable, public mirrors are
+     * always tried afterwards.
+     */
+    private suspend fun buildSources(mirrors: List<Source>, setId: Long): List<Source> {
+        val sources = ArrayList<Source>(mirrors.size + 1)
+
+        val userToken = try {
+            auth.userBearer()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            null
         }
-        list.addAll(mirrors)
-        return list
+
+        if (!userToken.isNullOrBlank()) {
+            sources += Source(
+                name = "osu! Official",
+                url = Mirrors.OFFICIAL_DOWNLOAD.replace("{id}", setId.toString()),
+                authorization = "Bearer $userToken"
+            )
+        }
+
+        sources.addAll(mirrors)
+        return sources
     }
 
-    private suspend fun fetch(source: Source, target: File, onProgress: (Float) -> Unit) {
-        val builder = Request.Builder().url(source.url)
-        if (source.referer.isNotBlank()) builder.header("Referer", source.referer)
-        if (source.authorization.isNotBlank()) builder.header("Authorization", source.authorization)
+    private suspend fun fetch(
+        source: Source,
+        target: File,
+        onProgress: (Float) -> Unit
+    ) {
+        val builder = Request.Builder()
+            .url(source.url)
+            .header("Accept", "application/octet-stream, application/zip, */*")
+            .header("User-Agent", "Kozu-Android")
+
+        if (source.referer.isNotBlank()) {
+            builder.header("Referer", source.referer)
+        }
+        if (source.authorization.isNotBlank()) {
+            // This bearer token is sent only to osu.ppy.sh. OkHttp removes
+            // Authorization when following a redirect to a different host.
+            builder.header("Authorization", source.authorization)
+        }
+
         client.newCall(builder.build()).execute().use { response ->
-            if (!response.isSuccessful) throw IOException("HTTP ${response.code}")
+            if (!response.isSuccessful) {
+                throw IOException("HTTP ${response.code}")
+            }
+
             val type = response.header("Content-Type").orEmpty().lowercase()
-            if (type.contains("text/html") || type.contains("json")) throw IOException("unexpected response ($type)")
+            if (type.contains("text/html") || type.contains("json")) {
+                throw IOException("Unexpected response type: $type")
+            }
+
             val body = response.body
             val total = body.contentLength()
             var read = 0L
             var lastReport = 0L
+
             body.byteStream().use { input ->
                 target.outputStream().buffered().use { output ->
                     val buffer = ByteArray(64 * 1024)
                     while (true) {
                         currentCoroutineContext().ensureActive()
-                        val n = input.read(buffer)
-                        if (n < 0) break
-                        output.write(buffer, 0, n)
-                        read += n
+                        val count = input.read(buffer)
+                        if (count < 0) break
+
+                        output.write(buffer, 0, count)
+                        read += count
+
                         val now = System.currentTimeMillis()
                         if (now - lastReport > 150L) {
                             lastReport = now
-                            onProgress(if (total > 0L) (read.toFloat() / total).coerceIn(0f, 0.97f) else -1f)
+                            val progress = if (total > 0L) {
+                                (read.toFloat() / total).coerceIn(0f, 0.97f)
+                            } else {
+                                -1f
+                            }
+                            onProgress(progress)
                         }
                     }
                 }
+            }
+
+            if (read == 0L) {
+                throw IOException("The server returned an empty file")
             }
         }
     }
 
     private fun fail(id: Long, message: String) {
         setStatus(id, DownloadStatus.Failed(message))
-        _events.tryEmit("Couldn't download ${titles[id].orEmpty().ifBlank { "song" }}")
+        _events.tryEmit("Couldn't download ${titles[id].orEmpty().ifBlank { "beatmap" }}")
     }
 
     private fun setStatus(id: Long, status: DownloadStatus) {
@@ -245,8 +307,13 @@ class DownloadManager(
 
     private fun startService() {
         try {
-            ContextCompat.startForegroundService(appContext, Intent(appContext, DownloadService::class.java))
-        } catch (e: Exception) {
+            ContextCompat.startForegroundService(
+                appContext,
+                Intent(appContext, DownloadService::class.java)
+            )
+        } catch (_: Exception) {
+            // The download remains managed by this process even if foreground
+            // service startup is unavailable on the current Android state.
         }
     }
 }

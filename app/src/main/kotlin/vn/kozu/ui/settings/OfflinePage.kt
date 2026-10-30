@@ -28,7 +28,6 @@ fun OfflinePage(viewModel: SettingsViewModel, onBack: () -> Unit) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val downloads by viewModel.downloads.collectAsStateWithLifecycle()
     val syncing by viewModel.syncing.collectAsStateWithLifecycle()
-    val loggedIn by viewModel.loggedIn.collectAsStateWithLifecycle()
     var confirmDelete by remember { mutableStateOf(false) }
 
     val total = downloads.sumOf { it.sizeBytes }
@@ -72,16 +71,14 @@ fun OfflinePage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                     )
                 },
                 {
-                    SwitchRow(
-                        title = "Try osu! first",
-                        subtitle = if (loggedIn) {
-                            "Use your signed-in account for official downloads, then fall back to mirrors if it fails"
-                        } else {
-                            "Sign in on the Account page to try official downloads first. Mirrors are used otherwise"
-                        },
-                        checked = settings.officialDownload,
-                        onChange = viewModel::setOfficialDownload
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Public mirror downloads", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "Downloads use the same public mirror sources for guests and signed-in users. An osu! account is not required.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 },
                 {
                     SwitchRow(

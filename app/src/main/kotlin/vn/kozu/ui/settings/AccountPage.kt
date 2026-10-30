@@ -129,15 +129,15 @@ fun AccountPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
         }
 
         SettingsGroup(
-            title = "Live catalog access",
+            title = "Optional osu! profile sign-in",
             items = listOf({
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        if (settings.hasCredentials) "osu! API credentials are saved" else "Set up live osu! catalog",
+                        if (settings.hasCredentials) "osu! sign-in credentials are saved" else "Connect an osu! profile (optional)",
                         style = MaterialTheme.typography.titleMedium
                     )
                     Text(
-                        "API credentials let Kozu load new releases while signed out. They are separate from your optional osu! profile sign-in.",
+                        "These credentials are only for connecting your osu! profile. Searching, browsing new releases, and listening to music work for guests without an account or OAuth setup.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -147,12 +147,12 @@ fun AccountPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                         VerifyState.Success -> Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Rounded.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                             Spacer(Modifier.width(8.dp))
-                            Text("Connected — live catalog is ready", color = MaterialTheme.colorScheme.primary)
+                            Text("OAuth credentials verified — profile sign-in is ready", color = MaterialTheme.colorScheme.primary)
                         }
                         is VerifyState.Failure -> Text(state.message, color = MaterialTheme.colorScheme.error)
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                        PrimaryPill(if (settings.hasCredentials) "Edit credentials" else "Set up credentials") {
+                        PrimaryPill(if (settings.hasCredentials) "Edit sign-in credentials" else "Set up profile sign-in") {
                             showCredentialsDialog = true
                         }
                         if (settings.hasCredentials) {
@@ -198,7 +198,7 @@ private fun OAuthCredentialsDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Live catalog credentials") },
+        title = { Text("osu! profile sign-in credentials") },
         text = {
             Column(
                 modifier = Modifier

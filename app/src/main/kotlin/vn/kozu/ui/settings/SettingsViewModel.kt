@@ -25,6 +25,7 @@ import vn.kozu.domain.model.OsuProfile
 import vn.kozu.domain.model.StatusFilter
 import vn.kozu.domain.model.StreamMode
 import vn.kozu.domain.model.ThemeMode
+import vn.kozu.player.PlaybackService
 import vn.kozu.ui.containerFactory
 import vn.kozu.util.dayKey
 import java.util.UUID
@@ -126,7 +127,6 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
     fun setWifiOnlyStreaming(enabled: Boolean) = viewModelScope.launch { container.settings.setWifiOnlyStreaming(enabled) }
     fun setSkipSilence(enabled: Boolean) = viewModelScope.launch { container.settings.setSkipSilence(enabled) }
     fun setStreamCacheMb(mb: Int) = viewModelScope.launch { container.settings.setStreamCacheMb(mb) }
-    fun setOfficialDownload(enabled: Boolean) = viewModelScope.launch { container.settings.setOfficialDownload(enabled) }
     fun setKeepFull(enabled: Boolean) = viewModelScope.launch { container.settings.setKeepFullBeatmap(enabled) }
     fun setWifiOnlyDownloads(enabled: Boolean) = viewModelScope.launch { container.settings.setWifiOnlyDownloads(enabled) }
     fun setAutoUpdate(enabled: Boolean) = viewModelScope.launch { container.settings.setAutoUpdateDownloads(enabled) }
@@ -139,11 +139,13 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
 
     fun clearStreamCache() {
         container.streams.clearCache()
-        _cacheBytes.value = container.streams.cacheBytes()
+        PlaybackService.clearMediaCacheIfUnlocked(container.appContext)
+        refreshCacheSize()
     }
 
     fun refreshCacheSize() {
-        _cacheBytes.value = container.streams.cacheBytes()
+        _cacheBytes.value = container.streams.cacheBytes() +
+            PlaybackService.mediaCacheBytes(container.appContext)
     }
 
     fun deleteAllDownloads() = viewModelScope.launch { container.downloads.deleteAll() }

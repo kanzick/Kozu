@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit
 object OsuApiFactory {
 
     private const val BASE_URL = "https://osu.ppy.sh/api/v2/"
-    const val USER_AGENT = "Kozu/2.0 (Android)"
+    const val USER_AGENT = "Kozu/2.1 (Android; https://github.com/kanzick/Kozu)"
 
     fun client(): OkHttpClient {
         val logging = HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }

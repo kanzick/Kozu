@@ -58,6 +58,8 @@ class PlaybackController(
     val messages: SharedFlow<String> = _messages.asSharedFlow()
 
     private var pendingListenedMs = 0L
+    private var retryTrackId: Long? = null
+    private var currentTrackRetryCount = 0
 
     private val listener = object : Player.Listener {
         override fun onTimelineChanged(timeline: Timeline, reason: Int) {
@@ -69,6 +71,12 @@ class PlaybackController(
         }
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            val id = mediaItem?.mediaId?.toLongOrNull()
+            if (id != retryTrackId) {
+                retryTrackId = id
+                currentTrackRetryCount = 0
+            }
+
             val beatmap = mediaItem?.toBeatmap() ?: return
             if (controller?.playWhenReady == true) {
                 scope.launch { history.recordPlay(beatmap) }
@@ -76,13 +84,46 @@ class PlaybackController(
         }
 
         override fun onPlayerError(error: PlaybackException) {
-            _messages.tryEmit("Couldn't play that track")
-            controller?.let { c ->
-                if (c.hasNextMediaItem()) {
-                    c.seekToNextMediaItem()
-                    c.prepare()
-                    c.play()
+            val c = controller
+            val id = c?.currentMediaItem?.mediaId?.toLongOrNull()
+
+            // A remote source can become unavailable after metadata resolution.
+            // Mark it and ask the resolver for another full-song provider before
+            // skipping the user's selected track.
+            if (
+                c != null &&
+                id != null &&
+                currentTrackRetryCount < MAX_SOURCE_RETRIES &&
+                streams.markCurrentSourceFailed(id)
+            ) {
+                if (retryTrackId != id) {
+                    retryTrackId = id
+                    currentTrackRetryCount = 0
                 }
+                currentTrackRetryCount++
+                _messages.tryEmit("Audio source unavailable. Trying another full-song source…")
+                c.seekToDefaultPosition()
+                c.prepare()
+                c.play()
+                return
+            }
+
+            val details = generateSequence(error as Throwable?) { it.cause }
+                .mapNotNull { it.message }
+                .firstOrNull { it.contains("Full song", ignoreCase = true) }
+
+            _messages.tryEmit(
+                if (details != null || id != null) {
+                    "Full song unavailable for this track"
+                } else {
+                    "Couldn't play that track"
+                }
+            )
+
+            if (c != null && c.hasNextMediaItem()) {
+                c.seekToNextMediaItem()
+                c.prepare()
+                c.play()
             }
         }
     }
@@ -95,6 +136,8 @@ class PlaybackController(
 
     fun playQueue(queue: List<Beatmap>, startIndex: Int = 0) {
         if (queue.isEmpty()) return
+        retryTrackId = null
+        currentTrackRetryCount = 0
         withController { c ->
             c.setMediaItems(queue.map { it.toMediaItem() }, startIndex.coerceIn(0, queue.lastIndex), 0L)
             c.prepare()
@@ -104,6 +147,8 @@ class PlaybackController(
 
     fun playShuffled(queue: List<Beatmap>) {
         if (queue.isEmpty()) return
+        retryTrackId = null
+        currentTrackRetryCount = 0
         withController { c ->
             c.shuffleModeEnabled = true
             c.setMediaItems(queue.map { it.toMediaItem() }, queue.indices.random(), 0L)
@@ -333,6 +378,7 @@ class PlaybackController(
     }
 
     companion object {
+        private const val MAX_SOURCE_RETRIES = 10
         const val TAG = "PlaybackController"
         const val FLUSH_INTERVAL_MS = 10_000L
         const val KEY_ID = "kozu.id"

@@ -11,6 +11,17 @@ interface RangeSource {
     fun open(offset: Long, endInclusive: Long): InputStream
 }
 
+data class RangeTail(
+    val start: Long,
+    val totalLength: Long,
+    val bytes: ByteArray
+)
+
+/** Optional fast path for servers that support suffix byte-range requests. */
+interface TailRangeSource {
+    fun readTail(maxBytes: Long): RangeTail?
+}
+
 data class ZipEntryInfo(
     val name: String,
     val method: Int,
@@ -28,10 +39,14 @@ object RemoteZip {
     private const val TAIL_BYTES = 66_000L
 
     fun readEntries(source: RangeSource): List<ZipEntryInfo> {
-        val total = source.length()
+        // A suffix-range request gives us the archive length and the end-of-
+        // central-directory record in one round trip. Older mirrors that do
+        // not support suffix ranges use the compatible two-request path.
+        val rangedTail = (source as? TailRangeSource)?.readTail(TAIL_BYTES)
+        val total = rangedTail?.totalLength ?: source.length()
         if (total < 22) throw IOException("Not a zip file")
-        val tailStart = (total - TAIL_BYTES).coerceAtLeast(0L)
-        val tail = readFully(source, tailStart, total - 1)
+        val tailStart = rangedTail?.start ?: (total - TAIL_BYTES).coerceAtLeast(0L)
+        val tail = rangedTail?.bytes ?: readFully(source, tailStart, total - 1)
 
         var eocd = -1
         var i = tail.size - 22
@@ -80,6 +95,82 @@ object RemoteZip {
             audio.firstOrNull { it.name.equals(preferredName, ignoreCase = true) }?.let { return it }
         }
         return audio.maxByOrNull { it.uncompressedSize }
+    }
+
+    /**
+     * Opens just the audio member inside a remote ZIP. The returned stream
+     * inflates deflated members on the fly, so Media3 can play while the bytes
+     * are still arriving instead of waiting for a complete local extraction.
+     */
+    fun openEntryStream(source: RangeSource, entry: ZipEntryInfo): InputStream {
+        if (entry.compressedSize <= 0L) {
+            throw IOException("Empty audio entry")
+        }
+
+        // Read the small local header first so the following Range request
+        // starts exactly at the compressed member. Guessing the maximum ZIP
+        // extra-field size here can make Range end beyond EOF and cause HTTP 416
+        // for valid archives where the audio is the final ZIP entry.
+        val header = readFully(
+            source,
+            entry.localHeaderOffset,
+            entry.localHeaderOffset + 29L
+        )
+        if (le32(header, 0) != LOCAL_SIGNATURE) {
+            throw IOException("Invalid local header")
+        }
+
+        val flags = le16(header, 6)
+        if ((flags and 0x0001) != 0) {
+            throw IOException("Encrypted audio entries are not supported")
+        }
+
+        val method = le16(header, 8)
+        if (method != entry.method) {
+            throw IOException("ZIP audio compression method mismatch")
+        }
+
+        val nameLength = le16(header, 26)
+        val extraLength = le16(header, 28)
+        val dataStart = entry.localHeaderOffset + 30L + nameLength + extraLength
+        val dataEnd = dataStart + entry.compressedSize - 1L
+        if (dataEnd < dataStart) {
+            throw IOException("Invalid ZIP audio byte range")
+        }
+
+        val raw = source.open(dataStart, dataEnd)
+        return when (entry.method) {
+            0 -> raw
+            8 -> InflaterInputStream(raw, Inflater(true))
+            else -> {
+                raw.close()
+                throw IOException("Unsupported compression method ${entry.method}")
+            }
+        }
+    }
+
+    private fun readFully(input: InputStream, bytes: ByteArray) {
+        var offset = 0
+        while (offset < bytes.size) {
+            val read = input.read(bytes, offset, bytes.size - offset)
+            if (read < 0) throw IOException("Unexpected end of ZIP local header")
+            offset += read
+        }
+    }
+
+    private fun skipFully(input: InputStream, amount: Long) {
+        var remaining = amount
+        val scratch = ByteArray(1024)
+        while (remaining > 0L) {
+            val skipped = input.skip(remaining)
+            if (skipped > 0L) {
+                remaining -= skipped
+            } else {
+                val read = input.read(scratch, 0, minOf(scratch.size.toLong(), remaining).toInt())
+                if (read < 0) throw IOException("Unexpected end of ZIP extra fields")
+                remaining -= read
+            }
+        }
     }
 
     fun extract(source: RangeSource, entry: ZipEntryInfo, target: File, onProgress: (Float) -> Unit = {}) {

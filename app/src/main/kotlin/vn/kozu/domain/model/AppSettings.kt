@@ -49,7 +49,8 @@ enum class ModeFilter(val key: String, val label: String, val apiValue: Int?) {
 }
 
 enum class StatusFilter(val key: String, val label: String, val apiValue: String?) {
-    DEFAULT("default", "Default", null),
+    // Keep the persisted key for existing installs; only the default behavior changes.
+    DEFAULT("default", "Ranked + Loved", null),
     RANKED("ranked", "Ranked", "ranked"),
     LOVED("loved", "Loved", "loved"),
     ANY("any", "Everything", "any");
@@ -71,13 +72,12 @@ data class AppSettings(
     val wifiOnlyStreaming: Boolean = false,
     val streamCacheMb: Int = 512,
     val skipSilence: Boolean = false,
-    val officialDownload: Boolean = true,
     val disabledMirrors: Set<String> = emptySet(),
     val customMirrors: List<Mirror> = emptyList(),
     val keepFullBeatmap: Boolean = true,
     val wifiOnlyDownloads: Boolean = false,
     val autoUpdateDownloads: Boolean = true,
-    val showExplicit: Boolean = true,
+    val showExplicit: Boolean = false,
     val modeFilter: ModeFilter = ModeFilter.ANY,
     val statusFilter: StatusFilter = StatusFilter.DEFAULT,
     val lastSyncAt: Long = 0L

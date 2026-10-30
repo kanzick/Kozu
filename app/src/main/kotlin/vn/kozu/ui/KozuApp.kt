@@ -71,6 +71,7 @@ import vn.kozu.ui.components.NowPlayingInfo
 import vn.kozu.ui.components.PlaylistPickerSheet
 import vn.kozu.ui.components.TrackActions
 import vn.kozu.ui.components.TrackMenuSheet
+import vn.kozu.ui.explore.AllBeatmapsScreen
 import vn.kozu.ui.explore.ExploreScreen
 import vn.kozu.ui.game.GameScreen
 import vn.kozu.ui.home.HomeScreen
@@ -150,6 +151,7 @@ private fun KozuShell(container: AppContainer) {
     val playlists by container.playlists.playlists.collectAsStateWithLifecycle(initialValue = emptyList<Playlist>())
     val downloadedSets by container.downloadsStore.sets.collectAsStateWithLifecycle(initialValue = emptyList<DownloadedSet>())
     val activeDownloads by container.downloads.status.collectAsStateWithLifecycle()
+    val discoverState by container.discover.state.collectAsStateWithLifecycle()
 
     val downloadInfo = remember(downloadedSets, activeDownloads) {
         DownloadInfo(
@@ -163,6 +165,7 @@ private fun KozuShell(container: AppContainer) {
     var playerOpen by rememberSaveable { mutableStateOf(false) }
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
     var searchOpen by rememberSaveable { mutableStateOf(false) }
+    var allBeatmapsOpen by rememberSaveable { mutableStateOf(false) }
     var menuTarget by remember { mutableStateOf<Beatmap?>(null) }
     var playlistTarget by remember { mutableStateOf<Beatmap?>(null) }
 
@@ -178,6 +181,13 @@ private fun KozuShell(container: AppContainer) {
         scope.launch {
             snackbar.currentSnackbarData?.dismiss()
             snackbar.showSnackbar(message)
+        }
+    }
+
+    fun refreshApp() {
+        container.discover.refresh()
+        scope.launch {
+            container.accounts.refreshIfSignedIn()
         }
     }
 
@@ -245,14 +255,17 @@ private fun KozuShell(container: AppContainer) {
                         onOpenSettings = { settingsOpen = true },
                         onOpenExplore = { tab = KozuTab.EXPLORE },
                         onOpenLibrary = { tab = KozuTab.LIBRARY },
-                        onOpenSearch = { searchOpen = true }
+                        onOpenSearch = { searchOpen = true },
+                        onRefresh = ::refreshApp
                     )
                     KozuTab.EXPLORE -> ExploreScreen(
                         listState = exploreList,
                         bottomPadding = bottomPadding,
                         onOpenSettings = { settingsOpen = true },
                         onOpenLibrary = { tab = KozuTab.LIBRARY },
-                        onOpenSearch = { searchOpen = true }
+                        onOpenSearch = { searchOpen = true },
+                        onOpenAllBeatmaps = { allBeatmapsOpen = true },
+                        onRefresh = ::refreshApp
                     )
                     KozuTab.LIBRARY -> LibraryScreen(
                         listState = libraryList,
@@ -322,6 +335,23 @@ private fun KozuShell(container: AppContainer) {
                 SearchScreen(onBack = { searchOpen = false }, onOpenSettings = { settingsOpen = true })
             }
             if (searchOpen && !settingsOpen) BackHandler { searchOpen = false }
+
+            // Full catalog browser. This is a separate screen rather than an
+            // inert section header; it shares the paginated catalog state.
+            AnimatedVisibility(
+                visible = allBeatmapsOpen,
+                enter = slideInHorizontally(KozuMotion.spatial()) { it } + fadeIn(),
+                exit = slideOutHorizontally(tween(240)) { it } + fadeOut()
+            ) {
+                AllBeatmapsScreen(
+                    state = discoverState,
+                    bottomPadding = bottomPadding,
+                    onBack = { allBeatmapsOpen = false },
+                    onLoadMore = container.discover::loadMoreMix,
+                    onRetry = container.discover::refresh
+                )
+            }
+            if (allBeatmapsOpen && !settingsOpen) BackHandler { allBeatmapsOpen = false }
 
             // Full-screen player screen overlay
             AnimatedVisibility(

@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import vn.kozu.data.repository.CatalogSource
 import vn.kozu.di.AppContainer
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.SearchCategory
@@ -29,6 +30,7 @@ data class SearchUiState(
     val category: SearchCategory? = null,
     val phase: SearchPhase = SearchPhase.IDLE,
     val results: List<Beatmap> = emptyList(),
+    val source: CatalogSource = CatalogSource.NONE,
     val error: String? = null,
     val retryToken: Long = 0L
 )
@@ -60,12 +62,22 @@ class SearchViewModel(private val container: AppContainer) : ViewModel() {
                     if (query.isEmpty() && req.category == null) {
                         _ui.update { it.copy(phase = SearchPhase.IDLE, results = emptyList(), error = null) }
                     } else {
-                        _ui.update { it.copy(phase = SearchPhase.LOADING, error = null) }
+                        _ui.update {
+                            it.copy(
+                                phase = SearchPhase.LOADING,
+                                error = null,
+                                source = CatalogSource.NONE
+                            )
+                        }
                         val result = container.catalog.search(query, req.sort, req.category)
                         _ui.update {
                             it.copy(
                                 phase = SearchPhase.DONE,
-                                results = result.items,
+                                results = result.items.filter {
+                                    it.status.equals("ranked", true) ||
+                                        it.status.equals("loved", true)
+                                },
+                                source = result.source,
                                 error = result.error
                             )
                         }
