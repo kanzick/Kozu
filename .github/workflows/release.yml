@@ -1,3 +1,4 @@
+
 name: Release APK
 
 on:
@@ -25,19 +26,6 @@ jobs:
     timeout-minutes: 45
 
     steps:
-      - name: Checkout release tag
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.release.tag_name || inputs.release_tag }}
-          fetch-depth: 0
-
-      - name: Prepare Gradle wrapper
-        shell: bash
-        run: |
-          set -euo pipefail
-          sed -i 's/\r$//' gradlew
-          chmod +x gradlew
-
       - name: Determine release tag
         id: version
         shell: bash
@@ -54,19 +42,31 @@ jobs:
             tag="$INPUT_RELEASE_TAG"
           fi
 
+          if [[ -z "$tag" ]]; then
+            echo "::error::Release tag is empty."
+            exit 1
+          fi
+
           tag_version="${tag#v}"
           if [[ ! "$tag_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
             echo "::error::Invalid release tag: $tag"
             exit 1
           fi
 
-          if [[ -z "$tag" ]]; then
-            echo "::error::Release tag is empty."
-            exit 1
-          fi
-
-          echo "Release tag: $tag"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout release tag
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.version.outputs.tag }}
+          fetch-depth: 0
+
+      - name: Prepare Gradle wrapper
+        shell: bash
+        run: |
+          set -euo pipefail
+          sed -i 's/\r$//' gradlew
+          chmod +x gradlew
 
       - name: Check release exists
         env:
@@ -179,29 +179,30 @@ jobs:
               exit 1
             }
 
-            grep -Fq "Verified using v2 scheme (APK Signature Scheme v2): true" <<< "$signing_output" || {
-              echo "::error::APK is not signed with APK Signature Scheme v2: $filename"
+            grep -Fq "Verified using v3 scheme (APK Signature Scheme v3): true" <<< "$signing_output" || {
+              echo "::error::APK is not signed with APK Signature Scheme v3: $filename"
               printf '%s\n' "$signing_output"
               exit 1
             }
 
             certificate="$(awk -F': ' '/Signer #1 certificate SHA-256 digest:/ { print $2; exit }' <<< "$signing_output")"
+
             if [[ -z "$certificate" ]]; then
-              echo "::error::Could not read the signing certificate from $filename"
+              echo "::error::Could not read signing certificate: $filename"
               exit 1
             fi
 
             if [[ -z "$reference_certificate" ]]; then
               reference_certificate="$certificate"
             elif [[ "$certificate" != "$reference_certificate" ]]; then
-              echo "::error::Signing certificate mismatch in $filename"
+              echo "::error::Signing certificate mismatch: $filename"
               exit 1
             fi
 
             "$tools/aapt2" dump badging "$source" > badging.txt
 
             grep -Fq "package: name='vn.kozu'" badging.txt || {
-              echo "::error::Incorrect applicationId in $filename"
+              echo "::error::Incorrect applicationId: $filename"
               exit 1
             }
 
@@ -231,6 +232,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
           gh release upload "$TAG" \
             dist/app-arm64-v8a-release.apk \
             dist/app-armeabi-v7a-release.apk \
@@ -276,7 +278,7 @@ jobs:
               ),
               (
                   "app-universal-release.apk",
-                  "Universal — includes all supported architectures",
+                  "Includes all supported architectures",
               ),
               (
                   "app-x86-release.apk",
@@ -293,10 +295,10 @@ jobs:
               for filename, _ in variants
               if filename not in existing_assets
           ]
+
           if missing:
               raise SystemExit(
-                  "Cannot generate the download table; missing release assets: "
-                  + ", ".join(missing)
+                  "Missing release assets: " + ", ".join(missing)
               )
 
           start_marker = "<!-- KOZU_APK_DOWNLOADS_START -->"
@@ -304,13 +306,14 @@ jobs:
 
           lines = [
               start_marker,
-              "## Downloads",
+              "## Downloads⬇️",
               "",
-              "| APK | Architecture / Target |",
+              "| APK | Architecture |",
               "|---|---|",
           ]
 
           encoded_tag = quote(tag, safe="")
+
           for filename, target in variants:
               download_url = (
                   f"https://github.com/{repository}/releases/download/"
@@ -323,10 +326,9 @@ jobs:
 
           has_start = start_marker in body
           has_end = end_marker in body
+
           if has_start != has_end:
-              raise SystemExit(
-                  "Release description contains an incomplete Kozu download table."
-              )
+              raise SystemExit("Incomplete Kozu download table markers.")
 
           if has_start:
               start = body.index(start_marker)
@@ -334,6 +336,7 @@ jobs:
               body = body[:start] + body[end:]
 
           original_body = body.strip()
+
           if original_body:
               updated_body = original_body + "\n\n---\n\n" + download_block
           else:
@@ -345,8 +348,7 @@ jobs:
           )
 
           release_kind = "Pre-release" if release.get("isPrerelease") else "Release"
-          print(f"Updated the APK table for {release_kind} {tag}.")
-          print("The download table is at the end of the release description.")
+          print(f"Updated APK table for {release_kind} {tag}.")
           PY
 
           gh release edit "$TAG" --notes-file release-notes.md
