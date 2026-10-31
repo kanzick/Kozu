@@ -1,4 +1,4 @@
-package vn.kozu.ui.game
+package vn.kozu.game.ui.game
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement

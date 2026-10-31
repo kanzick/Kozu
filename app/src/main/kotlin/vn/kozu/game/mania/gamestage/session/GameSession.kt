@@ -42,7 +42,7 @@ class GameSession(
     private val defaultHitFile: File,
 ) : JudgementEngine.Listener {
 
-    enum class Phase { LOADING, READY, PLAYING, FINISHED, FAILED }
+    enum class Phase { LOADING, READY, PLAYING, PAUSED, FINISHED, FAILED }
 
     val core = GameCore(chart, settings, listener = this)
     private val audio = GameAudio()
@@ -112,6 +112,21 @@ class GameSession(
     fun start() {
         if (phase != Phase.READY) return
         core.begin(withAudio = true)
+        phase = Phase.PLAYING
+    }
+
+    fun pause() {
+        if (phase != Phase.PLAYING) return
+        core.clock.pause()
+        audio.pause()
+        phase = Phase.PAUSED
+    }
+
+    fun resume() {
+        if (phase != Phase.PAUSED) return
+        lastAnchor = audio.anchor
+        core.clock.resume()
+        audio.resume()
         phase = Phase.PLAYING
     }
 
@@ -200,7 +215,9 @@ class GameSession(
 
     /** Thoát giữa chừng, không có kết quả. */
     fun abort() {
-        if (phase == Phase.PLAYING || phase == Phase.LOADING || phase == Phase.READY) phase = Phase.FAILED
+        if (phase == Phase.PLAYING || phase == Phase.PAUSED || phase == Phase.LOADING || phase == Phase.READY) {
+            phase = Phase.FAILED
+        }
         release()
     }
 

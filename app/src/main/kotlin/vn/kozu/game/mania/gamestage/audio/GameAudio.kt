@@ -28,6 +28,8 @@ class GameAudio {
     private var startedNano = 0L
     private var gotTimestamp = false
     private var polling = false
+    @Volatile private var pauseRequested = false
+    private var resumeAfterPause = false
 
     @Volatile var anchor: AudioAnchor? = null
         private set
@@ -79,10 +81,40 @@ class GameAudio {
         }
     }
 
+    fun pause() {
+        pauseRequested = true
+        handler.post {
+            try {
+                val mp = player
+                resumeAfterPause = mp?.isPlaying == true
+                if (resumeAfterPause) mp?.pause()
+            } catch (e: Exception) {
+                failure = e.message ?: e.javaClass.simpleName
+            }
+        }
+    }
+
+    fun resume() {
+        handler.post {
+            try {
+                val mp = player ?: return@post
+                if (resumeAfterPause && !mp.isPlaying) mp.start()
+                resumeAfterPause = false
+                pauseRequested = false
+            } catch (e: Exception) {
+                failure = e.message ?: e.javaClass.simpleName
+            }
+        }
+    }
+
     private val poll = object : Runnable {
         override fun run() {
             val mp = player
             if (mp == null) { polling = false; return }
+            if (pauseRequested) {
+                handler.postDelayed(this, POLL_MS)
+                return
+            }
             try {
                 val ts = mp.timestamp
                 if (ts != null && ts.mediaClockRate > 0f) {
@@ -93,7 +125,10 @@ class GameAudio {
                         rate = ts.mediaClockRate.toDouble(),
                         precise = true,
                     )
-                } else if (!gotTimestamp && System.nanoTime() - startedNano > 600_000_000L && mp.isPlaying) {
+                } else if (!gotTimestamp &&
+                    System.nanoTime() - startedNano > COARSE_FALLBACK_DELAY_MS * 1_000_000L &&
+                    mp.isPlaying
+                ) {
                     // máy không hỗ trợ getTimestamp: dùng vị trí thô, đồng hồ sẽ tin nó ít hơn
                     anchor = AudioAnchor(mp.currentPosition.toDouble(), System.nanoTime(), 1.0, precise = false)
                 }
@@ -114,5 +149,8 @@ class GameAudio {
         }
     }
 
-    private companion object { const val POLL_MS = 10L }
+    private companion object {
+        const val POLL_MS = 10L
+        const val COARSE_FALLBACK_DELAY_MS = 100L
+    }
 }

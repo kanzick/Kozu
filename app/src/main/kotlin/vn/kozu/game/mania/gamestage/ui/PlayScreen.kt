@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -23,6 +25,14 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -71,6 +81,7 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
 fun PlayScreen(
     session: GameSession,
     onQuit: () -> Unit,
+    onRestart: () -> Unit,
     onFinished: (GameResult) -> Unit,
 ) {
     val view = LocalView.current
@@ -88,8 +99,14 @@ fun PlayScreen(
     }
 
     BackHandler {
-        session.abort()
-        onQuit()
+        if (session.phase == GameSession.Phase.PAUSED) {
+            session.resume()
+        } else if (session.phase == GameSession.Phase.PLAYING) {
+            session.pause()
+        } else {
+            session.abort()
+            onQuit()
+        }
     }
 
     LaunchedEffect(session) { session.prepare() }
@@ -284,6 +301,69 @@ fun PlayScreen(
         // ---- HUD (chỉ recompose khi có phán định)
         if (phase == GameSession.Phase.PLAYING || phase == GameSession.Phase.FINISHED) {
             Hud(session)
+        }
+
+        if (phase == GameSession.Phase.PLAYING) {
+            Surface(
+                modifier = Modifier.align(Alignment.TopStart).padding(12.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.82f),
+            ) {
+                IconButton(onClick = session::pause) {
+                    Icon(
+                        Icons.Rounded.Pause,
+                        contentDescription = "Pause game",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
+        }
+
+        if (phase == GameSession.Phase.PAUSED) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.62f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp).padding(24.dp),
+                    shape = MaterialTheme.shapes.extraLarge,
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+                    tonalElevation = 12.dp,
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text("Game paused", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(20.dp))
+                        Button(onClick = session::resume, modifier = Modifier.fillMaxWidth()) {
+                            Icon(Icons.Rounded.PlayArrow, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Resume")
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Button(onClick = onRestart, modifier = Modifier.fillMaxWidth()) {
+                            Icon(Icons.Rounded.Refresh, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Restart")
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        TextButton(
+                            onClick = {
+                                session.abort()
+                                onQuit()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(Icons.Rounded.Close, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Quit")
+                        }
+                    }
+                }
+            }
         }
 
         when (phase) {

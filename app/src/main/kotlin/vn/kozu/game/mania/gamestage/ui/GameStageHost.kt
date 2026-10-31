@@ -106,6 +106,7 @@ fun GameStageHost(
         currentSession != null && currentPlaying != null -> PlayScreen(
             session = currentSession,
             onQuit = ::backToPopup,
+            onRestart = { currentPlaying.chart?.let { startPlay(currentPlaying, it) } },
             onFinished = { r: GameResult ->
                 result = ResultData(r)
                 scope.launch {

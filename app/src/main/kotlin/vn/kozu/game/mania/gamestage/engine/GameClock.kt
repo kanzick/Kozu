@@ -1,7 +1,5 @@
 package vn.kozu.game.mania.gamestage.engine
 
-import kotlin.math.abs
-
 /**
  * Mốc đồng bộ giữa thời gian của file nhạc và đồng hồ hệ thống (System.nanoTime).
  * Với MediaPlayer.getTimestamp() đây chính là (anchorMediaTime, anchorSystemNanoTime, mediaClockRate).
@@ -23,7 +21,7 @@ class AudioAnchor(
  *  - Thời gian chạy theo System.nanoTime (mượt, độ phân giải ns) chứ KHÔNG đọc thẳng vị trí MediaPlayer,
  *    vì getCurrentPosition() chỉ cập nhật theo từng cục vài chục ms.
  *  - Âm thanh là "slave": mỗi khi có [AudioAnchor] mới, đồng hồ được kéo dần về đúng mốc đó
- *    (bước tối đa vài ms/lần nên không bao giờ giật), chỉ nhảy thẳng khi lệch quá [SNAP_MS].
+ *    với bước hiệu chỉnh giới hạn để timestamp bất thường không làm thời gian chart nhảy lùi.
  *  - Trước khi nhạc thật sự phát (thời gian âm = lead-in), đồng hồ chạy tự do từ [start].
  *    Nếu tới t = 0 mà nhạc chưa phát thì giữ ở 0 cho đến khi anchor đầu tiên tới (hoặc [giveUpOnAudio]),
  *    nhờ vậy không bao giờ bị lệch khoảng độ trễ khởi động của MediaPlayer.
@@ -34,6 +32,8 @@ class GameClock(private val nanoSource: () -> Long = System::nanoTime) {
     private var baseNano = 0L
     private var baseTimeMs = 0.0
     private var started = false
+    private var paused = false
+    private var pausedTimeMs = 0.0
     private var audioLocked = false
     private var audioMode = true
     private var audioStartRequested = false
@@ -56,6 +56,7 @@ class GameClock(private val nanoSource: () -> Long = System::nanoTime) {
     /** Thời gian bài nhạc (ms) tại thời điểm hệ thống [nano]; dùng để quy đổi timestamp của sự kiện chạm. */
     fun timeAt(nano: Long): Double {
         if (!started) return baseTimeMs
+        if (paused) return pausedTimeMs
         val raw = rawTime(nano)
         return if (audioMode && !audioLocked && raw > 0.0) 0.0 else raw
     }
@@ -80,6 +81,19 @@ class GameClock(private val nanoSource: () -> Long = System::nanoTime) {
         audioMode = false
     }
 
+    fun pause() {
+        if (!started || paused) return
+        pausedTimeMs = timeAt(nanoSource())
+        paused = true
+    }
+
+    fun resume() {
+        if (!started || !paused) return
+        baseTimeMs = pausedTimeMs
+        baseNano = nanoSource()
+        paused = false
+    }
+
     /** Nạp mốc đồng bộ mới từ trình phát nhạc. */
     fun onAudioAnchor(anchor: AudioAnchor) {
         if (!started || !audioMode) return
@@ -96,18 +110,13 @@ class GameClock(private val nanoSource: () -> Long = System::nanoTime) {
             }
         }
         val error = desired - rawTime(nano)
-        val shift = if (abs(error) > SNAP_MS) {
-            error
-        } else {
-            val gain = if (anchor.precise) GAIN_PRECISE else GAIN_COARSE
-            val limit = if (anchor.precise) MAX_STEP_PRECISE_MS else MAX_STEP_COARSE_MS
-            (error * gain).coerceIn(-limit, limit)
-        }
+        val gain = if (anchor.precise) GAIN_PRECISE else GAIN_COARSE
+        val limit = if (anchor.precise) MAX_STEP_PRECISE_MS else MAX_STEP_COARSE_MS
+        val shift = (error * gain).coerceIn(-limit, limit)
         baseTimeMs += shift
     }
 
     companion object {
-        const val SNAP_MS = 100.0
         private const val GAIN_PRECISE = 0.15
         private const val GAIN_COARSE = 0.03
         private const val MAX_STEP_PRECISE_MS = 1.5

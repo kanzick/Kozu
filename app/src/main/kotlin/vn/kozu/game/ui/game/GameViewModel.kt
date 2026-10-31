@@ -1,4 +1,4 @@
-package vn.kozu.ui.game
+package vn.kozu.game.ui.game
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
