@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.os.SystemClock
+import android.view.MotionEvent
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -48,8 +49,9 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.pointerInteropFilter
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
@@ -136,54 +138,60 @@ fun PlayScreen(
     val dimAlpha = session.settings.backgroundDim / 100f
     val colors = MaterialTheme.colorScheme
     val firstVisible = remember(session) { IntArray(chart.keys) }
+    val touchRouter = remember(session) { arrayOfNulls<TouchInputRouter>(1) }
+    val touchRadiusPx = with(LocalDensity.current) { 24.dp.toPx() }
 
     Box(Modifier.fillMaxSize().background(colors.background)) {
         Canvas(
             Modifier
                 .fillMaxSize()
-                .pointerInput(session) {
+                .onSizeChanged { size ->
+                    val timestamp = SystemClock.uptimeMillis()
+                    touchRouter[0]?.releaseAll()?.released?.forEach { column ->
+                        session.release(column, timestamp)
+                    }
                     val layout = PlayfieldLayout(size.width.toFloat(), size.height.toFloat(), chart.keys)
-                    val touchRouter = TouchInputRouter(
+                    touchRouter[0] = TouchInputRouter(
                         keys = chart.keys,
                         left = layout.left,
                         columnWidth = layout.columnWidth,
-                        touchRadius = 24.dp.toPx(),
+                        touchRadius = touchRadiusPx,
                     )
-                    awaitPointerEventScope {
-                        try {
-                            while (true) {
-                                val event = awaitPointerEvent(PointerEventPass.Initial)
-                                for (change in event.changes) {
-                                    if (change.pressed && !change.previousPressed) {
-                                        touchRouter.press(change.id.value, change.position.x)?.let { changes ->
-                                            changes.pressed.forEach { column ->
-                                                session.press(column, change.uptimeMillis)
-                                            }
-                                        }
-                                        change.consume()
-                                    } else if (change.pressed && change.previousPressed) {
-                                        val changes = touchRouter.move(change.id.value, change.position.x)
-                                        changes.released.forEach { column ->
-                                            session.release(column, change.uptimeMillis)
-                                        }
-                                        changes.pressed.forEach { column ->
-                                            session.press(column, change.uptimeMillis)
-                                        }
-                                        change.consume()
-                                    } else if (!change.pressed && change.previousPressed) {
-                                        touchRouter.release(change.id.value).released
-                                            .forEach { column -> session.release(column, change.uptimeMillis) }
-                                        change.consume()
-                                    }
-                                }
-                            }
-                        } finally {
-                            val timestamp = SystemClock.uptimeMillis()
-                            touchRouter.releaseAll().released.forEach { column ->
-                                session.release(column, timestamp)
+                }
+                .pointerInteropFilter { event ->
+                    val router = touchRouter[0] ?: return@pointerInteropFilter false
+                    val eventTime = event.eventTime
+                    when (event.actionMasked) {
+                        MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
+                            val index = event.actionIndex
+                            router.press(event.getPointerId(index).toLong(), event.getX(index))
+                                ?.pressed
+                                ?.forEach { column -> session.press(column, eventTime) }
+                        }
+
+                        MotionEvent.ACTION_MOVE -> {
+                            for (index in 0 until event.pointerCount) {
+                                val changes = router.move(
+                                    event.getPointerId(index).toLong(),
+                                    event.getX(index)
+                                )
+                                changes.released.forEach { column -> session.release(column, eventTime) }
+                                changes.pressed.forEach { column -> session.press(column, eventTime) }
                             }
                         }
+
+                        MotionEvent.ACTION_POINTER_UP, MotionEvent.ACTION_UP -> {
+                            val index = event.actionIndex
+                            router.release(event.getPointerId(index).toLong()).released
+                                .forEach { column -> session.release(column, eventTime) }
+                        }
+
+                        MotionEvent.ACTION_CANCEL -> {
+                            router.releaseAll().released
+                                .forEach { column -> session.release(column, eventTime) }
+                        }
                     }
+                    true
                 }
         ) {
             frameTick.longValue // đăng ký: mỗi khung hình vẽ lại (không recompose)

@@ -143,6 +143,7 @@ class GameSession(
         }
         val perNote = chart.notes.map { note -> note.sample.sampleNames().mapNotNull { resolve(it) } }
         val ids = hitSounds.load(perNote.flatten())
+        hitSounds.warmUp()
         noteSounds = Array(chart.notes.size) { i -> perNote[i].mapNotNull { ids[it.absolutePath] }.toIntArray() }
         val master = settings.hitsoundVolume / 100f
         noteVolumes = FloatArray(chart.notes.size) { i -> chart.notes[i].sample.volume / 100f * master }
