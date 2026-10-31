@@ -3,6 +3,7 @@ package vn.kozu.game.mania.gamestage.ui
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.os.SystemClock
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -149,24 +150,37 @@ fun PlayScreen(
                         touchRadius = 24.dp.toPx(),
                     )
                     awaitPointerEventScope {
-                        while (true) {
-                            val event = awaitPointerEvent(PointerEventPass.Initial)
-                            for (change in event.changes) {
-                                if (change.pressed && !change.previousPressed) {
-                                    touchRouter.press(change.id.value, change.position.x)?.let { changes ->
-                                        changes.pressed.forEach { column -> session.press(column, change.uptimeMillis) }
+                        try {
+                            while (true) {
+                                val event = awaitPointerEvent(PointerEventPass.Initial)
+                                for (change in event.changes) {
+                                    if (change.pressed && !change.previousPressed) {
+                                        touchRouter.press(change.id.value, change.position.x)?.let { changes ->
+                                            changes.pressed.forEach { column ->
+                                                session.press(column, change.uptimeMillis)
+                                            }
+                                        }
+                                        change.consume()
+                                    } else if (change.pressed && change.previousPressed) {
+                                        val changes = touchRouter.move(change.id.value, change.position.x)
+                                        changes.released.forEach { column ->
+                                            session.release(column, change.uptimeMillis)
+                                        }
+                                        changes.pressed.forEach { column ->
+                                            session.press(column, change.uptimeMillis)
+                                        }
+                                        change.consume()
+                                    } else if (!change.pressed && change.previousPressed) {
+                                        touchRouter.release(change.id.value).released
+                                            .forEach { column -> session.release(column, change.uptimeMillis) }
+                                        change.consume()
                                     }
-                                    change.consume()
-                                } else if (change.pressed && change.previousPressed) {
-                                    val changes = touchRouter.move(change.id.value, change.position.x)
-                                    changes.released.forEach { column -> session.release(column, change.uptimeMillis) }
-                                    changes.pressed.forEach { column -> session.press(column, change.uptimeMillis) }
-                                    change.consume()
-                                } else if (!change.pressed && change.previousPressed) {
-                                    touchRouter.release(change.id.value).released
-                                        .forEach { column -> session.release(column, change.uptimeMillis) }
-                                    change.consume()
                                 }
+                            }
+                        } finally {
+                            val timestamp = SystemClock.uptimeMillis()
+                            touchRouter.releaseAll().released.forEach { column ->
+                                session.release(column, timestamp)
                             }
                         }
                     }
