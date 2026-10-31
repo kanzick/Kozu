@@ -15,9 +15,11 @@ import org.json.JSONObject
 import retrofit2.HttpException
 import vn.kozu.data.local.SettingsStore
 import vn.kozu.data.remote.osu.BeatmapsetDto
+import vn.kozu.data.remote.osu.OsuBeatmapDto
 import vn.kozu.data.remote.osu.OsuApi
 import vn.kozu.data.remote.osu.OsuAuth
 import vn.kozu.domain.model.Beatmap
+import vn.kozu.domain.model.BeatmapDifficulty
 import vn.kozu.domain.model.SearchCategory
 import vn.kozu.domain.model.SearchSort
 import java.io.IOException
@@ -71,6 +73,7 @@ class BeatmapRepository(
         .build()
 
     private val mixPageCache = ConcurrentHashMap<String, CachedCatalogPage>()
+    private val maniaDifficultyCache = ConcurrentHashMap<Long, List<BeatmapDifficulty>>()
 
     suspend fun search(
         query: String,
@@ -86,6 +89,84 @@ class BeatmapRepository(
             genre = category?.genreId,
             mode = null
         )
+    }
+
+    suspend fun searchMania(query: String, page: Int): CatalogResult {
+        require(page >= 0) { "Page must not be negative" }
+        return fetchHinaiSearch(
+            query = query.trim(),
+            status = null,
+            sort = null,
+            genre = null,
+            mode = 3,
+            page = page,
+            pageSize = MANIA_PAGE_SIZE
+        )
+    }
+
+    suspend fun maniaDifficulties(id: Long): List<BeatmapDifficulty> {
+        require(id > 0L) { "Beatmap set ID must be positive" }
+        maniaDifficultyCache[id]?.let { return it }
+
+        val bearer = try {
+            auth.bearer()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            null
+        }
+        if (!bearer.isNullOrBlank()) {
+            try {
+                val difficulties = api.beatmapset("******", id).beatmaps.orEmpty()
+                    .mapNotNull { it.toDifficulty() }
+                    .filter { it.mode == "mania" }
+                if (difficulties.isNotEmpty()) {
+                    maniaDifficultyCache[id] = difficulties
+                    return difficulties
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                try {
+                    val fresh = auth.bearer(force = true)
+                    if (!fresh.isNullOrBlank()) {
+                        val difficulties = api.beatmapset("******", id).beatmaps.orEmpty()
+                            .mapNotNull { it.toDifficulty() }
+                            .filter { it.mode == "mania" }
+                        if (difficulties.isNotEmpty()) {
+                            maniaDifficultyCache[id] = difficulties
+                            return difficulties
+                        }
+                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    // Fall back to the public beatmapset endpoint below.
+                }
+            }
+        }
+
+        val difficulties = withContext(Dispatchers.IO) {
+            val url = HttpUrl.Builder()
+                .scheme("https")
+                .host(HINAI_HOST)
+                .addPathSegments("v3/osu/beatmaps/s/$id")
+                .build()
+            val request = Request.Builder()
+                .url(url)
+                .header("Accept", "application/json")
+                .header("User-Agent", USER_AGENT)
+                .get()
+                .build()
+            publicClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) throw IOException("Could not load map difficulties (HTTP ${response.code})")
+                val body = response.body?.string().orEmpty()
+                if (body.isBlank()) emptyList() else parseManiaDifficulties(JSONObject(body))
+            }
+        }
+        if (difficulties.isEmpty()) throw IOException("No Mania difficulty details were returned for this map")
+        maniaDifficultyCache[id] = difficulties
+        return difficulties
     }
 
     private suspend fun searchRankedAndLoved(
@@ -835,6 +916,63 @@ class BeatmapRepository(
         )
     }
 
+    private fun OsuBeatmapDto.toDifficulty(): BeatmapDifficulty? {
+        val ruleSet = mode?.lowercase(Locale.US)
+            ?: when (modeInt) {
+                0 -> "osu"
+                1 -> "taiko"
+                2 -> "fruits"
+                3 -> "mania"
+                else -> ""
+            }
+        if (ruleSet.isBlank() || version.isNullOrBlank()) return null
+        return BeatmapDifficulty(
+            id = id,
+            version = version,
+            mode = ruleSet,
+            difficultyRating = difficultyRating ?: 0.0,
+            keys = circleSize ?: 0.0,
+            bpm = bpm ?: 0.0,
+            lengthSeconds = totalLength ?: 0,
+        )
+    }
+
+    private fun parseManiaDifficulties(root: JSONObject): List<BeatmapDifficulty> {
+        val data = root.optJSONObject("data")
+            ?: root.optJSONObject("beatmapset")
+            ?: root
+        val beatmaps = data.optJSONArray("beatmaps")
+            ?: data.optJSONArray("maps")
+            ?: root.optJSONArray("beatmaps")
+            ?: root.optJSONArray("maps")
+            ?: return emptyList()
+
+        return buildList {
+            for (index in 0 until beatmaps.length()) {
+                val beatmap = beatmaps.optJSONObject(index) ?: continue
+                val modeInt = beatmap.optInt("mode_int", beatmap.optInt("mode", -1))
+                val modeName = beatmap.optString("mode", "").lowercase(Locale.US)
+                if (modeInt != 3 && modeName != "mania") continue
+                val version = beatmap.optString("version", beatmap.optString("Version"))
+                    .takeUnless { it.isBlank() || it == "null" } ?: continue
+                add(
+                    BeatmapDifficulty(
+                        id = beatmap.optLong("id", beatmap.optLong("BeatmapID")),
+                        version = version,
+                        mode = "mania",
+                        difficultyRating = beatmap.optDouble(
+                            "difficulty_rating",
+                            beatmap.optDouble("star_rating", beatmap.optDouble("Stars"))
+                        ),
+                        keys = beatmap.optDouble("cs", beatmap.optDouble("CircleSize")),
+                        bpm = beatmap.optDouble("bpm", beatmap.optDouble("BPM")),
+                        lengthSeconds = beatmap.optInt("total_length", beatmap.optInt("hit_length")),
+                    )
+                )
+            }
+        }
+    }
+
     private fun describe(e: Exception): String = when (e) {
         is HttpException -> when (e.code()) {
             400, 401 -> "osu! rejected the catalog request (HTTP ${e.code()})"
@@ -848,6 +986,7 @@ class BeatmapRepository(
     companion object {
         private const val HINAI_HOST = "mirror.hinamizawa.ai"
         private const val RESULT_LIMIT = 30
+        private const val MANIA_PAGE_SIZE = 20
         private const val MIX_CACHE_TTL_MS = 5L * 60L * 1000L
         private const val MAX_MIX_CACHE_ENTRIES = 20
         private const val HINAI_OFFSET_PREFIX = "hinai-page:"

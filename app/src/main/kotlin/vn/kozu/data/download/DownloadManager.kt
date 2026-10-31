@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import vn.kozu.data.local.DownloadedSet
@@ -80,6 +81,64 @@ class DownloadManager(
 
     fun enqueueAll(beatmaps: List<Beatmap>) {
         beatmaps.forEach { enqueue(it) }
+    }
+
+    suspend fun downloadArchive(
+        beatmap: Beatmap,
+        destination: File,
+        onProgress: (Float) -> Unit = {}
+    ): File = withContext(Dispatchers.IO) {
+        val current = settings.settings.first()
+        if (current.wifiOnlyDownloads && NetworkInfo.isMetered(appContext)) {
+            throw IOException("Downloads are limited to Wi-Fi in Offline settings")
+        }
+
+        val sources = buildSources(
+            current.activeMirrors.map { mirror ->
+                Source(name = mirror.name, url = mirror.downloadFor(beatmap.id), referer = mirror.referer)
+            },
+            beatmap.id
+        )
+        if (sources.isEmpty()) throw IOException("No download source is available")
+
+        val parent = destination.parentFile
+            ?: throw IOException("The download folder is unavailable")
+        if (!parent.isDirectory && !parent.mkdirs() && !parent.isDirectory) {
+            throw IOException("Could not create the download folder")
+        }
+        val temp = File(parent, ".${destination.name}.part")
+        var lastError: Exception? = null
+
+        try {
+            for (source in sources) {
+                currentCoroutineContext().ensureActive()
+                try {
+                    fetch(source, temp, onProgress)
+                    if (!OszExtractor.isZip(temp)) {
+                        throw IOException("The server did not return a valid .osz archive")
+                    }
+                    if (destination.exists() && !destination.delete()) {
+                        throw IOException("Could not replace the existing beatmap archive")
+                    }
+                    if (!temp.renameTo(destination)) {
+                        throw IOException("Could not save the beatmap archive")
+                    }
+                    onProgress(1f)
+                    return@withContext destination
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    lastError = e
+                    temp.delete()
+                }
+            }
+            throw IOException(
+                "Could not download ${beatmap.title}: ${lastError?.message ?: "all download sources failed"}",
+                lastError
+            )
+        } finally {
+            temp.delete()
+        }
     }
 
     fun cancel(id: Long) {
