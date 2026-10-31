@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Release tag (7.2.7)'
+        description: Release tag (7.2.2)
         required: true
         type: string
 
@@ -69,13 +69,8 @@ jobs:
           }
 
           echo "Release tag: $tag"
-          echo "Tag version: $version"
-          echo "No Gradle versionName comparison will be performed."
-
-          {
-            echo "tag=$tag"
-            echo "version=$version"
-          } >> "$GITHUB_OUTPUT"
+          echo "Gradle versionName will not be compared with the release tag."
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
       - name: Check release exists
         env:
@@ -84,11 +79,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
-          if ! gh release view "$TAG" >/dev/null 2>&1; then
-            echo "::error::Release '$TAG' does not exist. Create and publish it first."
-            exit 1
-          fi
+          gh release view "$TAG" >/dev/null
 
       - name: Check existing APKs
         id: existing
@@ -98,31 +89,30 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           gh release view "$TAG" --json assets > release-assets.json
 
           if python3 - <<'PY'
           import json
 
-          required = {
-              "app-universal-release.apk",
+          required = [
               "app-arm64-v8a-release.apk",
               "app-armeabi-v7a-release.apk",
+              "app-universal-release.apk",
               "app-x86-release.apk",
               "app-x86_64-release.apk",
-          }
+          ]
 
           with open("release-assets.json", encoding="utf-8") as file:
               data = json.load(file)
 
           existing = {asset["name"] for asset in data.get("assets", [])}
-          missing = required - existing
+          missing = [name for name in required if name not in existing]
 
           if missing:
-              print("Missing APKs:", ", ".join(sorted(missing)))
+              print("Missing APKs:", ", ".join(missing))
               raise SystemExit(1)
 
-          print("All APK variants already exist; skipping the build.")
+          print("All APK variants already exist.")
           PY
           then
             echo "has_all=true" >> "$GITHUB_OUTPUT"
@@ -204,9 +194,9 @@ jobs:
           mkdir -p dist
 
           variants=(
-            "universal:app-universal-release.apk"
             "arm64-v8a:app-arm64-v8a-release.apk"
             "armeabi-v7a:app-armeabi-v7a-release.apk"
+            "universal:app-universal-release.apk"
             "x86:app-x86-release.apk"
             "x86_64:app-x86_64-release.apk"
           )
@@ -214,7 +204,7 @@ jobs:
           for variant in "${variants[@]}"; do
             label="${variant%%:*}"
             source="$output/${variant#*:}"
-            destination="dist/app-${label}-release.apk"
+            destination="dist/${variant#*:}"
 
             if [[ ! -f "$source" ]]; then
               echo "::error::Missing APK: $source"
@@ -266,9 +256,8 @@ jobs:
         run: |
           set -euo pipefail
           gh release upload "$TAG" dist/*.apk --clobber
-          echo "APK upload completed for release $TAG."
 
-      - name: Generate download table and preserve release description
+      - name: Generate download table at end of release description
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
@@ -276,7 +265,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           gh release view "$TAG" --json assets,body,isPrerelease > release.json
 
           python3 - <<'PY'
@@ -301,24 +289,28 @@ jobs:
                   "**Recommended:** Modern ARM64 phones (Pixel, Samsung, OnePlus, Xiaomi, etc.)",
               ),
               (
-                  "app-universal-release.apk",
-                  "Universal — works on devices with supported Android ABIs",
-              ),
-              (
                   "app-armeabi-v7a-release.apk",
                   "Older / budget 32-bit ARM phones",
               ),
+              (
+                  "app-universal-release.apk",
+                    "Includes all supported architectures",
+                ),
               (
                   "app-x86-release.apk",
                   "32-bit x86 emulators and older Intel devices",
               ),
               (
                   "app-x86_64-release.apk",
-                  "Emulators and Chromebooks (64-bit x86)",
+                  "	Emulators and Chromebooks (64-bit x86)",
               ),
           ]
 
-          missing = [name for name, _ in variants if name not in existing_assets]
+          missing = [
+              filename
+              for filename, _ in variants
+              if filename not in existing_assets
+          ]
           if missing:
               raise SystemExit(
                   "Cannot generate the download table; missing release assets: "
@@ -351,20 +343,19 @@ jobs:
           has_end = end_marker in body
           if has_start != has_end:
               raise SystemExit(
-                  "Release description contains only one Kozu table marker; "
-                  "refusing to overwrite the description."
+                  "Release description contains an incomplete Kozu download table."
               )
 
           if has_start:
               start = body.index(start_marker)
               end = body.index(end_marker, start) + len(end_marker)
-              updated_body = body[:start] + download_block + body[end:]
+              body = body[:start] + body[end:]
+
+          original_body = body.strip()
+          if original_body:
+              updated_body = original_body + "\n\n---\n\n" + download_block
           else:
-              # Put the generated table first and preserve the original
-              # release description/changelog below it.
               updated_body = download_block
-              if body.strip():
-                  updated_body += "\n\n---\n\n" + body.strip()
 
           Path("release-notes.md").write_text(
               updated_body.rstrip() + "\n",
@@ -372,8 +363,8 @@ jobs:
           )
 
           release_kind = "Pre-release" if release.get("isPrerelease") else "Release"
-          print(f"Updated the APK download table for {release_kind} {tag}.")
-          print("The existing release description was preserved below the table.")
+          print(f"Updated the APK table for {release_kind} {tag}.")
+          print("The download table is at the end of the release description.")
           PY
 
           gh release edit "$TAG" --notes-file release-notes.md
