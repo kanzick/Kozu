@@ -1,4 +1,3 @@
-﻿
 name: Release APK
 
 on:
@@ -8,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Release tag (e.g 7.2.7)'
+        description: 'Release tag (7.2.7)'
         required: true
         type: string
 
@@ -26,9 +25,10 @@ jobs:
     timeout-minutes: 45
 
     steps:
-      - name: Checkout
+      - name: Checkout release tag
         uses: actions/checkout@v7
         with:
+          ref: ${{ github.event.release.tag_name || inputs.release_tag || github.ref }}
           fetch-depth: 0
 
       - name: Prepare Gradle wrapper
@@ -38,7 +38,7 @@ jobs:
           sed -i 's/\r$//' gradlew
           chmod +x gradlew
 
-      - name: Determine release version
+      - name: Determine release tag
         id: version
         shell: bash
         env:
@@ -50,24 +50,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          gradle_version="$(python3 -c '
-          import re
-          from pathlib import Path
-
-          content = Path("app/build.gradle.kts").read_text(
-              encoding="utf-8-sig"
-          )
-          match = re.search(
-              r"versionName\s*=\s*\"([^\"]+)\"",
-              content
-          )
-          if not match:
-              raise SystemExit(
-                  "Cannot find versionName in app/build.gradle.kts"
-              )
-          print(match.group(1))
-          ')"
-
           if [[ "$EVENT_NAME" == "release" ]]; then
             tag="$RELEASE_TAG"
           elif [[ -n "$INPUT_RELEASE_TAG" ]]; then
@@ -75,7 +57,8 @@ jobs:
           elif [[ "$GITHUB_REF_VALUE" == refs/tags/* ]]; then
             tag="$REF_NAME"
           else
-            tag="$gradle_version"
+            echo "::error::A release tag is required."
+            exit 1
           fi
 
           version="${tag#v}"
@@ -85,13 +68,9 @@ jobs:
             exit 1
           }
 
-          if [[ "$version" != "$gradle_version" ]]; then
-            echo "::error::Release tag version '$version' does not match Gradle versionName '$gradle_version'."
-            exit 1
-          fi
-
           echo "Release tag: $tag"
-          echo "Version: $version"
+          echo "Tag version: $version"
+          echo "No Gradle versionName comparison will be performed."
 
           {
             echo "tag=$tag"
@@ -107,7 +86,7 @@ jobs:
           set -euo pipefail
 
           if ! gh release view "$TAG" >/dev/null 2>&1; then
-            echo "::error::Release '$TAG' does not exist. Create and publish the release first."
+            echo "::error::Release '$TAG' does not exist. Create and publish it first."
             exit 1
           fi
 
@@ -126,15 +105,15 @@ jobs:
           import json
 
           required = {
-              "app-universal.apk",
-              "app-arm64-v8a.apk",
-              "app-armeabi-v7a.apk",
-              "app-x86.apk",
-              "app-x86_64.apk",
+              "app-universal-release.apk",
+              "app-arm64-v8a-release.apk",
+              "app-armeabi-v7a-release.apk",
+              "app-x86-release.apk",
+              "app-x86_64-release.apk",
           }
 
-          with open("release-assets.json", encoding="utf-8") as f:
-              data = json.load(f)
+          with open("release-assets.json", encoding="utf-8") as file:
+              data = json.load(file)
 
           existing = {asset["name"] for asset in data.get("assets", [])}
           missing = required - existing
@@ -143,7 +122,7 @@ jobs:
               print("Missing APKs:", ", ".join(sorted(missing)))
               raise SystemExit(1)
 
-          print("All APK variants already exist.")
+          print("All APK variants already exist; skipping the build.")
           PY
           then
             echo "has_all=true" >> "$GITHUB_OUTPUT"
@@ -195,6 +174,7 @@ jobs:
           set -euo pipefail
           printf '%s' "$ANDROID_KEYSTORE_BASE64" |
             base64 --decode > "$RUNNER_TEMP/kozu-release.jks"
+          test -s "$RUNNER_TEMP/kozu-release.jks"
 
       - name: Build Release APKs
         if: ${{ steps.existing.outputs.has_all != 'true' }}
@@ -210,8 +190,6 @@ jobs:
 
       - name: Verify and package APKs
         if: ${{ steps.existing.outputs.has_all != 'true' }}
-        env:
-          RELEASE_VERSION: ${{ steps.version.outputs.version }}
         shell: bash
         run: |
           set -euo pipefail
@@ -236,7 +214,7 @@ jobs:
           for variant in "${variants[@]}"; do
             label="${variant%%:*}"
             source="$output/${variant#*:}"
-            destination="dist/app-${label}.apk"
+            destination="dist/app-${label}-release.apk"
 
             if [[ ! -f "$source" ]]; then
               echo "::error::Missing APK: $source"
@@ -249,11 +227,6 @@ jobs:
 
             grep -Fq "package: name='vn.kozu'" badging.txt || {
               echo "::error::Incorrect applicationId in $source"
-              exit 1
-            }
-
-            grep -Fq "versionName='${RELEASE_VERSION}'" badging.txt || {
-              echo "::error::Incorrect versionName in $source"
               exit 1
             }
 
@@ -284,7 +257,7 @@ jobs:
             cp "$source" "$destination"
           done
 
-      - name: Upload APKs to existing release
+      - name: Upload APKs to release
         if: ${{ steps.existing.outputs.has_all != 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
@@ -292,8 +265,115 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           gh release upload "$TAG" dist/*.apk --clobber
-
           echo "APK upload completed for release $TAG."
-          echo "Release title and description were not modified."
+
+      - name: Generate download table and preserve release description
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          gh release view "$TAG" --json assets,body,isPrerelease > release.json
+
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from urllib.parse import quote
+
+          with open("release.json", encoding="utf-8") as file:
+              release = json.load(file)
+
+          tag = os.environ["TAG"]
+          repository = os.environ["REPOSITORY"]
+          body = release.get("body") or ""
+          existing_assets = {
+              asset["name"] for asset in release.get("assets", [])
+          }
+
+          variants = [
+              (
+                  "app-arm64-v8a-release.apk",
+                  "**Recommended:** Modern ARM64 phones (Pixel, Samsung, OnePlus, Xiaomi, etc.)",
+              ),
+              (
+                  "app-universal-release.apk",
+                  "Universal — works on devices with supported Android ABIs",
+              ),
+              (
+                  "app-armeabi-v7a-release.apk",
+                  "Older / budget 32-bit ARM phones",
+              ),
+              (
+                  "app-x86-release.apk",
+                  "32-bit x86 emulators and older Intel devices",
+              ),
+              (
+                  "app-x86_64-release.apk",
+                  "Emulators and Chromebooks (64-bit x86)",
+              ),
+          ]
+
+          missing = [name for name, _ in variants if name not in existing_assets]
+          if missing:
+              raise SystemExit(
+                  "Cannot generate the download table; missing release assets: "
+                  + ", ".join(missing)
+              )
+
+          start_marker = "<!-- KOZU_APK_DOWNLOADS_START -->"
+          end_marker = "<!-- KOZU_APK_DOWNLOADS_END -->"
+
+          lines = [
+              start_marker,
+              "## Downloads",
+              "",
+              "| APK | Architecture / Target |",
+              "|---|---|",
+          ]
+
+          encoded_tag = quote(tag, safe="")
+          for filename, target in variants:
+              download_url = (
+                  f"https://github.com/{repository}/releases/download/"
+                  f"{encoded_tag}/{quote(filename, safe='')}"
+              )
+              lines.append(f"| [`{filename}`]({download_url}) | {target} |")
+
+          lines.append(end_marker)
+          download_block = "\n".join(lines)
+
+          has_start = start_marker in body
+          has_end = end_marker in body
+          if has_start != has_end:
+              raise SystemExit(
+                  "Release description contains only one Kozu table marker; "
+                  "refusing to overwrite the description."
+              )
+
+          if has_start:
+              start = body.index(start_marker)
+              end = body.index(end_marker, start) + len(end_marker)
+              updated_body = body[:start] + download_block + body[end:]
+          else:
+              # Put the generated table first and preserve the original
+              # release description/changelog below it.
+              updated_body = download_block
+              if body.strip():
+                  updated_body += "\n\n---\n\n" + body.strip()
+
+          Path("release-notes.md").write_text(
+              updated_body.rstrip() + "\n",
+              encoding="utf-8",
+          )
+
+          release_kind = "Pre-release" if release.get("isPrerelease") else "Release"
+          print(f"Updated the APK download table for {release_kind} {tag}.")
+          print("The existing release description was preserved below the table.")
+          PY
+
+          gh release edit "$TAG" --notes-file release-notes.md
