@@ -8,7 +8,6 @@ val releaseKeystorePath = providers.environmentVariable("ANDROID_KEYSTORE_PATH")
 val releaseKeystorePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD").orNull
 val releaseKeyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS").orNull
 val releaseKeyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD").orNull
-
 val hasReleaseSigning = listOf(
     releaseKeystorePath,
     releaseKeystorePassword,
@@ -30,6 +29,9 @@ android {
                 storePassword = requireNotNull(releaseKeystorePassword)
                 keyAlias = requireNotNull(releaseKeyAlias)
                 keyPassword = requireNotNull(releaseKeyPassword)
+                enableV1Signing = true
+                enableV2Signing = true
+                enableV3Signing = true
             }
         }
     }
@@ -92,6 +94,24 @@ android {
     lint {
         checkReleaseBuilds = false
         abortOnError = false
+    }
+}
+
+tasks.configureEach {
+    if (
+        name.contains("Release", ignoreCase = true) &&
+        (
+            name.startsWith("assemble", ignoreCase = true) ||
+            name.startsWith("package", ignoreCase = true)
+        )
+    ) {
+        doFirst {
+            if (!hasReleaseSigning) {
+                throw GradleException(
+                    "Cannot build Release APK without a valid release signing configuration."
+                )
+            }
+        }
     }
 }
 
