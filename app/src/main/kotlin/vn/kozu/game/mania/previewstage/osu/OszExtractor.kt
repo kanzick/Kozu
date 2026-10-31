@@ -6,16 +6,16 @@ import java.io.IOException
 import java.nio.charset.Charset
 import java.util.zip.ZipInputStream
 
-/** Giải nén .osz (thực chất là zip) an toàn: chặn zip-slip và zip-bomb. Thuần JVM. */
+/** Safely extracts .osz files (which are ZIP archives), preventing zip-slip and zip-bomb attacks. JVM-only. */
 object OszExtractor {
     private val DRIVE_PATH = Regex("""^[A-Za-z]:($|/)""")
 
-    /** @return số file đã giải nén. Thư mục [dest] được tạo mới (nếu đã có sẽ bị xoá trước). */
+    /** @return number of extracted files. [dest] is recreated (and deleted first if it already exists). */
     fun extract(osz: File, dest: File, maxBytes: Long = 1L shl 30): Int {
         return try {
             extractWith(osz, dest, maxBytes, Charsets.UTF_8)
         } catch (e: IllegalArgumentException) {
-            // Tên entry không phải UTF-8 hợp lệ (zip cũ) -> thử lại bằng charset 1 byte.
+            // Entry name is not valid UTF-8 (legacy ZIP); retry with a single-byte charset.
             extractWith(osz, dest, maxBytes, Charset.forName("ISO-8859-1"))
         }
     }

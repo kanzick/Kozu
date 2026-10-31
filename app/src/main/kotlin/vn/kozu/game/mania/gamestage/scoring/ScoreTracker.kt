@@ -4,7 +4,7 @@ import kotlin.math.max
 import kotlin.math.roundToLong
 import kotlin.math.sqrt
 
-/** Kết quả cuối cùng của một lượt chơi. */
+/** Final result of a play session. */
 data class GameResult(
     val score: Long,
     /** 0.0 .. 1.0 */
@@ -23,18 +23,18 @@ data class GameResult(
 }
 
 /**
- * Tính điểm theo osu!mania ScoreV1 (điểm tối đa 1.000.000), đúng công thức trên wiki:
+ * Calculates the score using osu!mania ScoreV1 (maximum score 1,000,000), following the wiki formula:
  *
  *   Score     = BaseScore + BonusScore
  *   BaseScore = (MaxScore * 0.5 / TotalNotes) * (HitValue / 320)
  *   BonusScore= (MaxScore * 0.5 / TotalNotes) * (HitBonusValue * sqrt(Bonus) / 320)
- *   Bonus     = clamp(BonusTrước + HitBonus - HitPunishment, 0, 100), ban đầu 100; MISS đưa Bonus về 0
+ *   Bonus     = clamp(BonusBefore + HitBonus - HitPunishment, 0, 100), initially 100; MISS sets Bonus to 0
  *
- * Mỗi nốt (kể cả hold) chỉ có MỘT phán định nên TotalNotes = số hit object.
- * Không dùng mod nên ModMultiplier = 1 và ModDivider = 1.
+ * Each note (including holds) has only ONE judgement, so TotalNotes = number of hit objects.
+ * No mods are used, so ModMultiplier = 1 and ModDivider = 1.
  *
- * Accuracy = (300·(MAX+300) + 200·c200 + 100·c100 + 50·c50) / (300·số nốt đã phán định).
- * Rank (bản stable): SS = 100%, S > 95%, A > 90%, B > 80%, C > 70%, còn lại D.
+ * Accuracy = (300·(MAX+300) + 200·c200 + 100·c100 + 50·c50) / (300·number of judged notes).
+ * Rank (stable): SS = 100%, S > 95%, A > 90%, B > 80%, C > 70%, otherwise D.
  */
 class ScoreTracker(val totalNotes: Int) {
     private val counts = IntArray(Judgement.entries.size)
@@ -49,7 +49,7 @@ class ScoreTracker(val totalNotes: Int) {
         private set
 
     init {
-        require(totalNotes > 0) { "totalNotes phải > 0" }
+        require(totalNotes > 0) { "totalNotes must be > 0" }
     }
 
     fun count(j: Judgement): Int = counts[j.ordinal]
@@ -72,10 +72,10 @@ class ScoreTracker(val totalNotes: Int) {
         exactScore += unit * (j.hitValue / 320.0) + unit * (j.bonusValue * sqrt(bonus) / 320.0)
     }
 
-    /** Điểm hiện tại (làm tròn). */
+    /** Current score (rounded). */
     val score: Long get() = exactScore.roundToLong()
 
-    /** Accuracy hiện tại trên các nốt đã phán định (1.0 khi chưa có nốt nào). */
+    /** Current accuracy across judged notes (1.0 when no notes have been judged). */
     val accuracy: Double
         get() = if (judged == 0) 1.0 else weightedSixths().toDouble() / (6.0 * judged)
 
@@ -104,7 +104,7 @@ class ScoreTracker(val totalNotes: Int) {
     companion object {
         const val MAX_SCORE = 1_000_000.0
 
-        /** So sánh bằng số nguyên nên không dính sai số số thực ở các mốc 70/80/90/95/100%. */
+        /** Integer comparisons avoid floating-point errors at the 70/80/90/95/100% thresholds. */
         fun rankFor(weightedSixths: Long, judged: Int): String {
             if (judged <= 0) return "D"
             val full = 6L * judged // = 100%

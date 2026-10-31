@@ -52,10 +52,10 @@ import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
 /**
- * Popup khi bấm vào một độ khó: thông tin bài ở trên, cài đặt ở dưới, nút Play ở cuối.
- * Có nút Leaderboard của riêng bài + độ khó này; kỷ lục cá nhân hiện ngay trong phần thông tin.
+ * Popup shown when a difficulty is tapped: song info at the top, settings below, and the Play button at the bottom.
+ * Includes a leaderboard for this song and difficulty; the personal best appears in the song info.
  *
- * [refreshKey] đổi giá trị thì kỷ lục được nạp lại (vd. sau khi chơi xong quay về).
+ * When [refreshKey] changes, the personal best is reloaded (e.g. after returning from a completed game).
  */
 @Composable
 fun SongInfoDialog(
@@ -112,7 +112,7 @@ fun SongInfoDialog(
         ) {
             Column(Modifier.fillMaxWidth()) {
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                    // ---------------- thông tin bài
+                    // ---------------- song information
                     Box(Modifier.fillMaxWidth().height(170.dp).background(Color(0xFF202020))) {
                         header?.let {
                             Image(it, null, Modifier.matchParentSize(), contentScale = ContentScale.Crop)
@@ -154,7 +154,7 @@ fun SongInfoDialog(
                         OutlinedButton(onClick = { showLeaderboard = true }) { Text("Leaderboard") }
 
                         Spacer(Modifier.height(16.dp))
-                        // ---------------- cài đặt
+                        // ---------------- settings
                         SettingsPanel(settings, onSettingsChange, onSettingsCommit)
                         settingsError?.let {
                             Text(

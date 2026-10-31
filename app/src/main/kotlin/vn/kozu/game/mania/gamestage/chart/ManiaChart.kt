@@ -1,26 +1,26 @@
 package vn.kozu.game.mania.gamestage.chart
 
 /**
- * Thông tin hitsound đã được "giải" cho từng nốt (gộp TimingPoint + hit sample riêng của nốt).
- * Dữ liệu thuần, không đụng tới Android.
+ * Resolved hitsound information for each note (merged from the TimingPoint and the note's own hit sample).
+ * Plain data, with no Android dependencies.
  */
 class NoteSample(
     /** 1 = normal, 2 = soft, 3 = drum */
     val normalSet: Int,
     val additionSet: Int,
-    /** 0/1 = không hậu tố, >= 2 = hậu tố số (vd normal-hitnormal2.wav) */
+    /** 0/1 = no suffix, >= 2 = numbered suffix (e.g. normal-hitnormal2.wav). */
     val index: Int,
     /** 0..100 */
     val volume: Int,
-    /** cờ bit osu!: 1 normal, 2 whistle, 4 finish, 8 clap (0 cũng nghĩa là normal) */
+    /** osu! bit flags: 1 normal, 2 whistle, 4 finish, 8 clap (0 also means normal). */
     val hitSound: Int,
-    /** tên file riêng khai báo trong hit sample (có thể null) */
+    /** Custom filename declared in the hit sample (may be null). */
     val customFile: String?,
 ) {
     /**
-     * Danh sách tên file (không đuôi) cần phát cho nốt này theo quy ước đặt tên của osu!:
+     * Filenames (without extensions) to play for this note, following osu!'s naming convention:
      * `<set>-hitnormal[idx]`, `<set>-hitwhistle[idx]`, ...
-     * Nếu có [customFile] thì nó thay cho hitnormal và được trả nguyên tên.
+     * If [customFile] is present, it replaces hitnormal and is returned unchanged.
      */
     fun sampleNames(): List<String> {
         val out = ArrayList<String>(3)
@@ -44,7 +44,7 @@ class NoteSample(
     }
 }
 
-/** Một nốt trong chart. [endTimeMs] == [timeMs] với nốt thường, lớn hơn với nốt giữ (hold). */
+/** A chart note. [endTimeMs] == [timeMs] for a regular note, and is greater for a hold note. */
 class ChartNote(
     val id: Int,
     val column: Int,
@@ -55,22 +55,22 @@ class ChartNote(
     val isHold: Boolean get() = endTimeMs > timeMs
 }
 
-/** Chart osu!mania đã phân tích: mọi thứ engine cần để chơi. */
+/** Parsed osu!mania chart: everything the engine needs to play. */
 class ManiaChart(
     val keys: Int,
     val overallDifficulty: Double,
     val hpDrain: Double,
     val audioFilename: String,
     val audioLeadInMs: Int,
-    /** BPM của timing point gốc đầu tiên (0 nếu không có). */
+    /** BPM of the first uninherited timing point (0 if absent). */
     val bpm: Double,
-    /** Đã sắp theo thời gian rồi theo cột; [ChartNote.id] == vị trí trong danh sách. */
+    /** Sorted by time, then column; [ChartNote.id] is the position in the list. */
     val notes: List<ChartNote>,
 ) {
-    /** columns[c] = id các nốt của cột c theo thứ tự thời gian. */
+    /** columns[c] = note IDs in column c, ordered by time. */
     val columns: Array<IntArray>
 
-    /** Thời điểm kết thúc của sự kiện cuối cùng (ms). */
+    /** End time of the last event (ms). */
     val lastEventTimeMs: Int
 
     val holdCount: Int

@@ -2,7 +2,7 @@ package vn.kozu.game.mania.previewstage
 
 import vn.kozu.game.mania.previewstage.model.SongEntry
 
-/** Bản sao kozu.db nằm trên RAM, thay thế nguyên khối nên đọc từ UI thread luôn an toàn. */
+/** In-memory copy of kozu.db, replaced atomically so it can be read safely from the UI thread. */
 class KozuCatalog {
     @Volatile
     private var songs: List<SongEntry> = emptyList()

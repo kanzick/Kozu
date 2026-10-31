@@ -21,20 +21,20 @@ import java.util.UUID
 data class PreviewStageConfig(
     /** Module folder. Defaults to <externalFilesDir>/addmap. */
     val rootDir: File? = null,
-    /** Chỉ nhận độ khó Mode: 3 (mania). */
+    /** Accepts only Mode: 3 (mania) difficulties. */
     val onlyMania: Boolean = true,
-    /** true = .osz còn trong downloads sẽ được giải nén đè lên bản cũ mỗi lần khởi động. */
+    /** true = .osz files still in downloads overwrite existing versions on each startup. */
     val reimportExisting: Boolean = false,
     val maxExtractBytes: Long = 1L shl 30,
 )
 
 /**
- * Điểm vào duy nhất của module PreviewStage.
+ * The single entry point for the PreviewStage module.
  *
  *   val module = PreviewStageModule.get(context)
- *   val report = module.start()          // suspend, chạy 1 lần: tạo thư mục/db -> import .osz -> nạp RAM
- *   module.catalog.all()                 // danh sách bài trên RAM
- *   module.playPreview(song)             // phát tại PreviewTime
+ *   val report = module.start()          // suspend, runs once: create directories/db -> import .osz -> load into memory
+ *   module.catalog.all()                 // song list in memory
+ *   module.playPreview(song)             // play at PreviewTime
  */
 class PreviewStageModule private constructor(
     context: Context,
@@ -54,10 +54,10 @@ class PreviewStageModule private constructor(
     private var scoreDb: ScoreDatabase? = null
     private val player = PreviewPlayer(appContext)
 
-    /** Điểm người chơi (null cho tới khi [start] xong). */
+    /** Player scores (null until [start] completes). */
     val scores: ScoreDatabase? get() = scoreDb
 
-    /** Idempotent: gọi nhiều lần (xoay màn hình, recompose) vẫn chỉ chạy một lần. */
+    /** Idempotent: multiple calls (rotation, recomposition) still run only once. */
     suspend fun start(): StartupReport = startLock.withLock {
         report ?: withContext(Dispatchers.IO) { doStart() }.also { report = it }
     }
@@ -131,14 +131,14 @@ class PreviewStageModule private constructor(
     private fun doStart(): StartupReport {
         val t0 = System.currentTimeMillis()
 
-        // 1) thư mục + 2 db
+        // 1) Directories + 2 databases
         paths.ensureLayout()
         val kozu = KozuDatabase.open(paths.kozuDb)
         val score = ScoreDatabase.open(paths.scoreDb)
         kozuDb = kozu
         scoreDb = score
 
-        // 2) quét downloads -> giải nén -> ghi kozu.db
+        // 2) Scan downloads -> extract -> write kozu.db
         val summary = SongImporter(
             paths = paths,
             kozu = kozu,
@@ -148,7 +148,7 @@ class PreviewStageModule private constructor(
         ).scanDownloads()
         summary.failed.forEach { Log.w(TAG, "Import failed for ${it.fileName}: ${it.reason}") }
 
-        // 3) nạp kozu.db lên RAM
+        // 3) Load kozu.db into memory
         val songs = kozu.loadAll(paths.songs)
         catalog.replace(songs)
 
@@ -186,13 +186,13 @@ class PreviewStageModule private constructor(
         elapsedMs = System.currentTimeMillis() - startedAt,
     ).also { Log.i(TAG, "PreviewStage ready: $it") }
 
-    /** Phát preview của bài (độ khó đầu tiên có audio). Gọi từ main thread. */
+    /** Plays the song preview (first difficulty with audio). Call from the main thread. */
     fun playPreview(song: SongEntry, onError: (String) -> Unit = {}) {
         val diff = song.defaultPreview ?: return onError("No audio file is available for chart ${song.songId}")
         playPreview(song, diff, onError)
     }
 
-    /** Phát preview theo một độ khó cụ thể. Gọi từ main thread. */
+    /** Plays the preview for a specific difficulty. Call from the main thread. */
     fun playPreview(song: SongEntry, difficulty: DifficultyRecord, onError: (String) -> Unit = {}) {
         val audio = difficulty.audioFile(song.folder)
             ?: return onError("Audio file '${difficulty.audioFilename}' could not be found")

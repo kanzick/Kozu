@@ -9,8 +9,8 @@ import kotlin.math.exp
 import kotlin.math.sin
 
 /**
- * Hitsound mặc định, tự sinh ra file WAV (16-bit mono PCM) để beatmap không có sample riêng vẫn có tiếng.
- * Thuần JVM.
+ * Default hitsound, generated as a WAV file (16-bit mono PCM) so beatmaps without their own samples still have sound.
+ * JVM-only.
  */
 object DefaultHitsound {
     fun ensure(file: File): File {

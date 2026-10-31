@@ -35,8 +35,8 @@ import kotlinx.coroutines.CancellationException
 private class Selection(val song: SongEntry, val difficulty: DifficultyRecord, val chart: ManiaChart? = null)
 
 /**
- * Điều phối cả luồng: danh sách (PreviewStage) -> popup thông tin -> màn chơi -> kết quả -> quay lại popup.
- * Thay cho việc gọi PreviewStageScreen trực tiếp.
+ * Coordinates the full flow: list (PreviewStage) -> info popup -> gameplay -> results -> return to the popup.
+ * Replaces direct calls to PreviewStageScreen.
  */
 @Composable
 fun GameStageHost(

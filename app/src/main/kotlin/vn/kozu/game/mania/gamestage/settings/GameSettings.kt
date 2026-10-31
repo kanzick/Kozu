@@ -7,13 +7,13 @@ import java.util.Properties
 import kotlin.math.roundToInt
 
 /**
- * Cài đặt của người chơi, lưu trong MỘT file riêng (xem [SettingsStore]).
+ * Player settings, stored in a separate file (see [SettingsStore]).
  *
  *  - [musicVolume], [hitsoundVolume]: 0..100
- *  - [speed]: tốc độ rơi 0.1..15.0 (bước 0.1), xem [NoteScroll]
- *  - [backgroundDim]: 0 = ảnh nền sáng hoàn toàn, 100 = che kín bằng màu đen
- *  - [offsetMs]: dương = nốt tới muộn hơn nhạc (dùng khi bạn có xu hướng bấm trễ / tai nghe Bluetooth)
- *  - [playerName]: tên ghi vào bảng điểm
+ *  - [speed]: fall speed 0.1..15.0 (step 0.1), see [NoteScroll]
+ *  - [backgroundDim]: 0 = fully visible background, 100 = completely covered in black
+ *  - [offsetMs]: positive = notes arrive later than the music (use if you tend to press late / use Bluetooth headphones)
+ *  - [playerName]: name shown on the leaderboard
  */
 data class GameSettings(
     val musicVolume: Int = 80,
@@ -23,7 +23,7 @@ data class GameSettings(
     val offsetMs: Int = 0,
     val playerName: String = DEFAULT_PLAYER_NAME,
 ) {
-    /** Đưa mọi giá trị về khoảng hợp lệ (speed làm tròn 1 chữ số thập phân). */
+    /** Clamps all values to valid ranges (speed is rounded to one decimal place). */
     fun coerced(): GameSettings = copy(
         musicVolume = musicVolume.coerceIn(0, 100),
         hitsoundVolume = hitsoundVolume.coerceIn(0, 100),
@@ -42,8 +42,8 @@ data class GameSettings(
 }
 
 /**
- * Đọc/ghi [GameSettings] ra file `.properties` (UTF-8). Ghi theo kiểu "file tạm rồi đổi tên"
- * nên bị ngắt giữa chừng cũng không làm hỏng file cũ. Đọc khoan dung: thiếu/hỏng thì dùng mặc định.
+ * Reads/writes [GameSettings] to a UTF-8 `.properties` file. Writes to a temporary file before renaming,
+ * so an interruption does not corrupt the old file. Loading tolerates missing or corrupt files by using defaults.
  */
 class SettingsStore(val file: File) {
 
@@ -55,7 +55,7 @@ class SettingsStore(val file: File) {
         } catch (e: IOException) {
             return GameSettings()
         } catch (e: IllegalArgumentException) {
-            return GameSettings() // escape \u hỏng
+            return GameSettings() // Invalid \u escape.
         }
         val d = GameSettings()
         return GameSettings(
@@ -82,7 +82,7 @@ class SettingsStore(val file: File) {
         val tmp = File(file.parentFile, file.name + ".tmp")
         tmp.writer(Charsets.UTF_8).use { p.store(it, "GameStage settings") }
         if (!tmp.renameTo(file)) {
-            // một số hệ thống file không cho đổi tên đè lên file có sẵn
+            // Some file systems do not allow renaming over an existing file.
             file.delete()
             if (!tmp.renameTo(file)) {
                 tmp.copyTo(file, overwrite = true)

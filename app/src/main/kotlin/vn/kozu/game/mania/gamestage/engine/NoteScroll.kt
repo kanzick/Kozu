@@ -1,14 +1,14 @@
 package vn.kozu.game.mania.gamestage.engine
 
 /**
- * Cơ chế tốc độ rơi kiểu Project Sekai: tốc độ là một hằng số do người chơi chọn,
- * KHÔNG phụ thuộc BPM hay thay đổi SV trong chart. Tốc độ càng lớn nốt càng rơi nhanh.
+ * Project Sekai-style scroll speed: the player chooses a constant speed,
+ * independent of BPM or chart SV changes. Higher speeds make notes fall faster.
  *
- * Thời gian một nốt rơi từ mép trên màn hình xuống vạch phán định:
+ * Time for a note to fall from the top of the screen to the judgement line:
  *     travelMs = BASE_TRAVEL_MS / speed
  *
- * BASE_TRAVEL_MS = 6000 nghĩa là speed 10 -> 600ms, speed 15 -> 400ms, speed 1 -> 6s, speed 0.1 -> 60s.
- * Đây là hằng số tự chọn (không phải số đo từ Project Sekai), chỉnh ở đây nếu muốn đổi cảm giác tốc độ.
+ * BASE_TRAVEL_MS = 6000 means speed 10 -> 600ms, speed 15 -> 400ms, speed 1 -> 6s, speed 0.1 -> 60s.
+ * This is a chosen constant, not a measurement from Project Sekai; adjust it here to change the speed feel.
  */
 object NoteScroll {
     const val MIN_SPEED = 0.1
@@ -20,9 +20,9 @@ object NoteScroll {
     fun travelTimeMs(speed: Double): Double = BASE_TRAVEL_MS / clampSpeed(speed)
 
     /**
-     * Toạ độ y của một sự kiện ở thời điểm [eventTimeMs] khi thời gian hiện tại là [nowMs].
-     * y = 0 tại mép trên, y = [judgeY] tại vạch phán định, tăng dần khi nốt rơi xuống.
-     * Hàm tuyến tính theo thời gian nên chuyển động đều, không phụ thuộc số khung hình.
+     * The y-coordinate of an event at [eventTimeMs] when the current time is [nowMs].
+     * y = 0 at the top edge, y = [judgeY] at the judgement line, increasing as the note falls.
+     * This is linear over time, so movement is uniform and independent of the frame rate.
      */
     fun yAt(eventTimeMs: Double, nowMs: Double, travelMs: Double, judgeY: Float): Float =
         judgeY - ((eventTimeMs - nowMs) / travelMs * judgeY).toFloat()

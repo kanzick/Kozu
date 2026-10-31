@@ -9,7 +9,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 
-/** Phát hitsound độ trễ thấp bằng SoundPool. */
+/** Plays low-latency hitsounds with SoundPool. */
 class HitSoundPlayer {
     private val pool: SoundPool = SoundPool.Builder()
         .setMaxStreams(32)
@@ -25,7 +25,7 @@ class HitSoundPlayer {
     private val loaded = HashMap<String, Int>()
     private var pending = 0
 
-    /** Nạp các file; trả về map đường dẫn -> sound id (file nạp lỗi bị bỏ qua). */
+    /** Loads files and returns a path-to-sound-ID map (files that fail to load are skipped). */
     suspend fun load(files: Collection<File>): Map<String, Int> {
         val unique = synchronized(lock) { files.distinctBy { it.absolutePath }.filter { it.absolutePath !in loaded } }
         if (unique.isNotEmpty()) {

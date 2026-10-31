@@ -17,18 +17,18 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
-/** Kết quả của việc ghi điểm sau một lượt chơi. */
+/** Outcome of saving a score after a play session. */
 data class SubmitOutcome(val isNewBest: Boolean, val previousBest: ScoreRecord?)
 
 /**
- * Điểm vào duy nhất của module GameStage (popup thông tin -> màn chơi -> kết quả).
+ * The single entry point for the GameStage module (info popup -> gameplay -> results).
  *
  *   val preview = PreviewStageModule.get(context)
  *   val game = GameStageModule.get(context, preview)
- *   // trong Compose: GameStageHost(preview, game)
+ *   // In Compose: GameStageHost(preview, game)
  *
- * Dữ liệu riêng của GameStage nằm trong <root của PreviewStage>/gamestage/ (file cài đặt, hitsound mặc định).
- * Điểm người chơi dùng score.db của PreviewStage.
+ * GameStage-specific data is stored in <PreviewStage root>/gamestage/ (settings file, default hitsound).
+ * Player scores use PreviewStage's score.db.
  */
 class GameStageModule private constructor(
     @Suppress("unused") context: Context,
@@ -43,7 +43,7 @@ class GameStageModule private constructor(
 
     @Volatile private var started = false
 
-    /** Idempotent: nạp file cài đặt và chuẩn bị hitsound mặc định. */
+    /** Idempotent: loads the settings file and prepares the default hitsound. */
     suspend fun start() {
         if (started) return
         withContext(Dispatchers.IO) {
@@ -54,7 +54,7 @@ class GameStageModule private constructor(
         started = true
     }
 
-    /** Cập nhật và ghi ngay xuống file cài đặt. */
+    /** Updates settings and immediately writes them to the settings file. */
     suspend fun updateSettings(newSettings: GameSettings) {
         val s = newSettings.coerced()
         settings = s
@@ -69,22 +69,22 @@ class GameStageModule private constructor(
     fun newSession(song: SongEntry, difficulty: DifficultyRecord, chart: ManiaChart): GameSession =
         GameSession(song, difficulty, chart, settings, defaultHitFile)
 
-    // ------------------------------------------------------------ điểm số
+    // ------------------------------------------------------------ scores
 
     private suspend fun scoreDb(): ScoreDatabase {
-        preview.start() // idempotent, đảm bảo score.db đã mở
+        preview.start() // Idempotent; ensures score.db is open.
         return preview.scores ?: error("The score database is not ready")
     }
 
-    /** Điểm cao nhất của người chơi hiện tại ở bài + độ khó này. */
+    /** Current player's best score for this song and difficulty. */
     suspend fun bestScore(song: SongEntry, difficulty: DifficultyRecord): ScoreRecord? =
         withContext(Dispatchers.IO) { scoreDb().bestScore(song.songId, difficulty.version, settings.playerName) }
 
-    /** Bảng xếp hạng của riêng bài + độ khó này. */
+    /** Leaderboard for this song and difficulty. */
     suspend fun leaderboard(song: SongEntry, difficulty: DifficultyRecord, limit: Int = 50): List<ScoreRecord> =
         withContext(Dispatchers.IO) { scoreDb().topScores(song.songId, difficulty.version, limit) }
 
-    /** Ghi kết quả vào score.db và cho biết có phải kỷ lục mới không. */
+    /** Saves the result to score.db and indicates whether it is a new record. */
     suspend fun submitResult(song: SongEntry, difficulty: DifficultyRecord, result: GameResult): SubmitOutcome =
         withContext(Dispatchers.IO) {
             val db = scoreDb()

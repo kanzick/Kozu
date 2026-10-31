@@ -7,7 +7,7 @@ import androidx.compose.ui.text.font.FontWeight
 import vn.kozu.R
 
 /**
- * Họ phông chữ Quicksand (Variable Font) sử dụng cho toàn bộ ứng dụng Kozu
+ * Quicksand (Variable Font) font family used throughout the Kozu application.
  */
 val QuicksandFontFamily = FontFamily(
     Font(R.font.quicksand),
@@ -16,7 +16,7 @@ val QuicksandFontFamily = FontFamily(
 private val base = Typography()
 
 /**
- * Định nghĩa hệ thống kiểu chữ Typography Material 3 sử dụng phông chữ Quicksand
+ * Defines the Material 3 typography system using the Quicksand font.
  */
 val KozuTypography = Typography(
     displayLarge = base.displayLarge.copy(fontFamily = QuicksandFontFamily),

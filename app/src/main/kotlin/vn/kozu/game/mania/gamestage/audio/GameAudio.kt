@@ -9,22 +9,22 @@ import vn.kozu.game.mania.gamestage.engine.AudioAnchor
 import java.io.File
 
 /**
- * Phát nhạc bài và cung cấp [AudioAnchor] chính xác cho đồng hồ game.
+ * Plays the song and provides accurate [AudioAnchor] values to the game clock.
  *
- * Mọi thao tác MediaPlayer chạy trên một luồng riêng, kể cả việc hỏi MediaPlayer.getTimestamp()
- * (một lời gọi binder) mỗi ~10ms, nên luồng giao diện không bao giờ bị chặn. Kết quả được công bố
- * qua trường [anchor] (volatile) để khung hình đọc.
+ * All MediaPlayer operations run on a dedicated thread, including polling MediaPlayer.getTimestamp()
+ * (a binder call) every ~10ms, so the UI thread is never blocked. Results are published
+ * through the volatile [anchor] field for the frame loop to read.
  *
- * getTimestamp() trả về cặp (media time, System.nanoTime) lấy từ AudioTrack nên phản ánh âm thanh đã
- * thật sự ra loa, không phải vị trí đọc file. Độ trễ của tai nghe Bluetooth thì không có trong đó:
- * dùng cài đặt offset để bù.
+ * getTimestamp() returns a pair (media time, System.nanoTime) from AudioTrack, reflecting audio that
+ * has actually reached the output rather than the file read position. Bluetooth headphone latency is not included:
+ * use the offset setting to compensate.
  */
 class GameAudio {
     private val thread = HandlerThread("GameAudio").apply { start() }
     private val handler = Handler(thread.looper)
     private val main = Handler(Looper.getMainLooper())
 
-    private var player: MediaPlayer? = null // chỉ đụng trên luồng handler
+    private var player: MediaPlayer? = null // Access only on the handler thread.
     private var startedNano = 0L
     private var gotTimestamp = false
     private var polling = false
@@ -38,7 +38,7 @@ class GameAudio {
     @Volatile var completed: Boolean = false
         private set
 
-    /** Nạp nhạc (không chặn). [onDone] chạy trên main thread; tham số = thông báo lỗi hoặc null. */
+    /** Loads the song asynchronously. [onDone] runs on the main thread with an error message or null. */
     fun prepare(file: File, volume: Float, onDone: (String?) -> Unit) {
         handler.post {
             try {
@@ -66,7 +66,7 @@ class GameAudio {
         }
     }
 
-    /** Bắt đầu phát từ đầu bài. Anchor đầu tiên xuất hiện khi âm thanh thật sự bắt đầu ra loa. */
+    /** Starts playback from the beginning. The first anchor appears when audio actually reaches the output. */
     fun start() {
         handler.post {
             val mp = player ?: return@post
@@ -129,11 +129,11 @@ class GameAudio {
                     System.nanoTime() - startedNano > COARSE_FALLBACK_DELAY_MS * 1_000_000L &&
                     mp.isPlaying
                 ) {
-                    // máy không hỗ trợ getTimestamp: dùng vị trí thô, đồng hồ sẽ tin nó ít hơn
+                    // getTimestamp is unsupported: use the coarse position, which the clock trusts less.
                     anchor = AudioAnchor(mp.currentPosition.toDouble(), System.nanoTime(), 1.0, precise = false)
                 }
             } catch (e: Exception) {
-                // IllegalStateException khi đang đổi trạng thái: bỏ qua lần này
+                // Ignore this poll if the player is changing state and throws IllegalStateException.
             }
             handler.postDelayed(this, POLL_MS)
         }

@@ -17,8 +17,8 @@ class ImportSummary(
 )
 
 /**
- * Quét downloads/ một lần: mỗi .osz -> giải nén vào songs/<songId>/ và ghi kozu.db.
- * Giải nén vào thư mục tạm trước rồi mới đổi tên, nên bị ngắt giữa chừng cũng không để lại thư mục dở dang.
+ * Scans downloads/ once: each .osz is extracted to songs/<songId>/ and recorded in kozu.db.
+ * Extraction happens in a temporary directory before it is renamed, so interruptions do not leave partial directories.
  */
 class SongImporter(
     private val paths: ModulePaths,
@@ -193,7 +193,7 @@ class SongImporter(
         }
     }
 
-    /** Ưu tiên BeatmapSetID trong .osu, sau đó đến số đầu tên file ("2610887_linear..."), cuối cùng là hash tên file. */
+    /** Prefers BeatmapSetID from the .osu file, then the leading number in the filename ("2610887_linear..."), and finally the filename hash. */
     private fun resolveSongId(beatmaps: List<OsuBeatmap>, osz: File): Long {
         beatmaps.firstOrNull { it.beatmapSetId > 0 }?.let { return it.beatmapSetId }
         Regex("""^(\d{1,15})(?=\D|$)""").find(osz.name)?.let { return it.groupValues[1].toLong() }
