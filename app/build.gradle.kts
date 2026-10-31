@@ -39,7 +39,7 @@ android {
         minSdk = 28
         targetSdk = 37
         versionCode = (System.currentTimeMillis() / 1000L).toInt()
-        versionName = "0.1.0"
+        versionName = "0.1.1"
     }
 
     buildTypes {
