@@ -1,17 +1,17 @@
 package vn.kozu.game.mania.gamestage.scoring
 
 /**
- * Các mức phán định của osu!mania (ScoreV1, stable). Số liệu lấy từ osu! wiki:
+ * osu!mania judgement levels (ScoreV1, stable). Values are from the osu! wiki:
  *  - "osu!mania scoring system":  HitValue / HitBonusValue / HitBonus / HitPunishment
- *  - "osu!mania judgement system": tỉ lệ accuracy của từng mức
+ *  - "osu!mania judgement system": accuracy percentage for each level
  *
- * | Mức     | HitValue | BonusValue | HitBonus | HitPunishment | Accuracy |
+ * | Level   | HitValue | BonusValue | HitBonus | HitPunishment | Accuracy |
  * | PERFECT | 320      | 32         | 2        | -             | 100%     |
  * | GREAT   | 300      | 32         | 1        | -             | 100%     |
  * | GOOD    | 200      | 16         | -        | 8             | 66.67%   |
  * | OK      | 100      | 8          | -        | 24            | 33.33%   |
  * | MEH     | 50       | 4          | -        | 44            | 16.67%   |
- * | MISS    | 0        | 0          | -        | vô hạn        | 0%       |
+ * | MISS    | 0        | 0          | -        | infinity      | 0%       |
  */
 enum class Judgement(
     val label: String,
@@ -19,7 +19,7 @@ enum class Judgement(
     val bonusValue: Int,
     val hitBonus: Double,
     val hitPunishment: Double,
-    /** Đơn vị = 1/6 của 300 để cộng số nguyên (không sai số): 6 = 100%, 4 = 66.67%, ... */
+    /** Unit = 1/6 of 300 for integer-based accumulation (no floating-point error): 6 = 100%, 4 = 66.67%, ... */
     val accuracySixths: Int,
 ) {
     PERFECT("MAX", 320, 32, 2.0, 0.0, 6),
@@ -33,11 +33,11 @@ enum class Judgement(
 }
 
 /**
- * Cửa sổ phán định (ms, tính một phía: |sai lệch| <= giá trị) theo OD, bản stable của osu!mania:
+ * Judgement windows (ms, one-sided: |error| <= value) by OD, in stable osu!mania:
  *   PERFECT 16 · GREAT 64-3·OD · GOOD 97-3·OD · OK 127-3·OD · MEH 151-3·OD · MISS 188-3·OD
  *
- * Lưu ý (theo wiki): ở bản stable cửa sổ thật có thể dài hơn tới 0.5ms mỗi phía vì osu! làm tròn;
- * ở đây dùng đúng công thức không làm tròn.
+ * Note (per the wiki): in stable, actual windows can be up to 0.5ms longer on each side because osu! rounds;
+ * this uses the exact unrounded formula.
  */
 class HitWindows(overallDifficulty: Double) {
     private val od = overallDifficulty.coerceIn(0.0, 10.0)
@@ -50,9 +50,9 @@ class HitWindows(overallDifficulty: Double) {
     val miss: Double = 188.0 - 3.0 * od
 
     /**
-     * Phán định cho một cú nhấn nốt thường với [absError] = |thời điểm nhấn - thời điểm nốt|.
-     * [late] = true nếu nhấn muộn: muộn quá cửa sổ OK thì không còn MEH (thành miss, xử lý ở engine).
-     * Trả [Judgement.MISS] cho cú nhấn quá sớm nằm trong cửa sổ miss (nốt bị tiêu thụ, mất combo).
+     * Judges a regular note press with [absError] = |press time - note time|.
+     * [late] = true for a late press: after the OK window, it cannot receive MEH (the engine handles it as a miss).
+     * Returns [Judgement.MISS] for a too-early press within the miss window (the note is consumed and the combo breaks).
      */
     fun classify(absError: Double, late: Boolean): Judgement = when {
         absError <= perfect -> Judgement.PERFECT

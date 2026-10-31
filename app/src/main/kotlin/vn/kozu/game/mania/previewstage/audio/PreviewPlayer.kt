@@ -9,18 +9,18 @@ import android.os.HandlerThread
 import android.os.Looper
 import java.io.File
 
-/** Phát đoạn preview của bài mà không chặn luồng giao diện. */
+/** Plays a song preview without blocking the UI thread. */
 class PreviewPlayer(context: Context) {
     private val appContext = context.applicationContext
     private val audioThread = HandlerThread("PreviewPlayer").apply { start() }
     private val audioHandler = Handler(audioThread.looper)
     private val mainHandler = Handler(Looper.getMainLooper())
 
-    // Chỉ đọc/ghi trên audioHandler.
+    // Read/write only on audioHandler.
     private var player: MediaPlayer? = null
 
     /**
-     * @param previewTimeMs PreviewTime trong .osu; < 0 (không có) thì bắt đầu ở 40% độ dài bài.
+     * @param previewTimeMs PreviewTime from the .osu file; if < 0 (not set), starts at 40% of the song.
      */
     fun play(audio: File, previewTimeMs: Int, onError: (String) -> Unit = {}) {
         playSource(audio.name, previewTimeMs, onError) { player ->

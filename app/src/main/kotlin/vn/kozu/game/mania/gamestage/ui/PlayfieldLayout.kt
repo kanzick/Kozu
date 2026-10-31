@@ -4,16 +4,16 @@ import androidx.compose.ui.graphics.Color
 import vn.kozu.game.mania.gamestage.scoring.Judgement
 import kotlin.math.min
 
-/** Bố cục sân chơi, dùng chung cho vẽ và nhận cảm ứng để hai bên luôn khớp nhau. */
+/** Playfield layout shared by rendering and touch handling so both stay aligned. */
 class PlayfieldLayout(width: Float, height: Float, val keys: Int) {
-    /** Bề rộng một cột: vừa chiều ngang, nhưng không quá to khi màn nằm ngang. */
+    /** Column width: fits the screen width without becoming too large in landscape. */
     val columnWidth: Float = min(width / keys, height * 0.22f)
     val left: Float = (width - columnWidth * keys) / 2f
     val right: Float = left + columnWidth * keys
     val judgeY: Float = height * 0.82f
     val noteHeight: Float = columnWidth * 0.30f
 
-    /** Cột ứng với toạ độ x (chạm ngoài sân thì dính vào cột gần nhất). */
+    /** Column for x (touches outside the playfield snap to the nearest column). */
     fun columnAt(x: Float): Int = ((x - left) / columnWidth).toInt().coerceIn(0, keys - 1)
 
     fun columnX(c: Int): Float = left + c * columnWidth

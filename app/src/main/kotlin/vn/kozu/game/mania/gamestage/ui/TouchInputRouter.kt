@@ -40,6 +40,14 @@ internal class TouchInputRouter(
         return Changes(released = columns.filter { --activePointersByColumn[it] == 0 }.toIntArray())
     }
 
+    fun releaseAll(): Changes {
+        val released = BooleanArray(keys)
+        pointers.keys.toList().forEach { pointerId ->
+            release(pointerId).released.forEach { column -> released[column] = true }
+        }
+        return Changes(released = released.indices.filter { released[it] }.toIntArray())
+    }
+
     private fun columnsAt(x: Float): IntArray {
         return if (keys > WIDE_CHART_THRESHOLD) {
             val touchLeft = x - touchRadius

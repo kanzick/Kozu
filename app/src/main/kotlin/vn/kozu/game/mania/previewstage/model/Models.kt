@@ -3,8 +3,8 @@ package vn.kozu.game.mania.previewstage.model
 import java.io.File
 
 /**
- * Một độ khó (1 file .osu) đúng như được lưu trong bảng `kozu_difficulty`.
- * Các đường dẫn *Path luôn là đường dẫn TƯƠNG ĐỐI so với thư mục songs/<songId>/ (dùng dấu '/').
+ * A difficulty (one .osu file), as stored in the `kozu_difficulty` table.
+ * All *Path values are RELATIVE to songs/<songId>/ (using '/').
  */
 data class DifficultyRecord(
     val songId: Long,
@@ -42,29 +42,29 @@ data class DifficultyRecord(
     val sliderMultiplier: Double,
     val sliderTickRate: Double,
 
-    // [Events] + thông tin file đã được resolve trên đĩa
+    // [Events] + file information resolved on disk
     val backgroundFilename: String?,
     val audioPath: String?,
     val audioExists: Boolean,
     val backgroundPath: String?,
     val backgroundExists: Boolean,
 ) {
-    /** File âm thanh tuyệt đối (null nếu không tồn tại). */
+    /** Absolute audio file (null if it does not exist). */
     fun audioFile(songDir: File): File? =
         audioPath?.takeIf { audioExists }?.let { File(songDir, it) }
 
-    /** File ảnh nền tuyệt đối (null nếu không có / không tồn tại). */
+    /** Absolute background image file (null if absent or nonexistent). */
     fun backgroundFile(songDir: File): File? =
         backgroundPath?.takeIf { backgroundExists }?.let { File(songDir, it) }
 }
 
-/** Một bài nhạc (kozu id = BeatmapSetID) trong RAM. */
+/** A song (kozu ID = BeatmapSetID) held in memory. */
 data class SongEntry(
     val songId: Long,
     val folder: File,
     val difficulties: List<DifficultyRecord>,
 ) {
-    /** Độ khó dùng để phát preview mặc định: cái đầu tiên có audio. */
+    /** Difficulty used for the default preview: the first one with audio. */
     val defaultPreview: DifficultyRecord?
         get() = difficulties.firstOrNull { it.audioFile(folder) != null }
 
@@ -73,10 +73,10 @@ data class SongEntry(
 }
 
 /**
- * Một dòng trong score.db. Mỗi bài có nhiều độ khó nên điểm gắn với cả [songId] lẫn [difficulty]
- * (= DifficultyRecord.version, tên độ khó, duy nhất trong một bộ beatmap).
+ * A row in score.db. Each song has multiple difficulties, so scores are associated with both [songId] and [difficulty]
+ * (= DifficultyRecord.version, the difficulty name, unique within a beatmap set).
  *
- * [accuracy] tính theo phần trăm (0..100). [playedAt] là epoch millis; 0 = để database tự điền lúc ghi.
+ * [accuracy] is a percentage (0..100). [playedAt] is epoch millis; 0 lets the database fill it in when writing.
  */
 data class ScoreRecord(
     val playerName: String,

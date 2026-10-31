@@ -7,13 +7,13 @@ import vn.kozu.game.mania.gamestage.settings.GameSettings
 import kotlin.math.max
 
 /**
- * Phần lõi của một lượt chơi, hoàn toàn thuần JVM: đồng hồ + engine phán định + tính điểm + offset.
- * Lớp Android ([vn.kozu.game.mania.gamestage.session.GameSession]) chỉ việc nối
- * âm thanh, màn hình và cảm ứng vào đây.
+ * The core of a play session, entirely JVM-only: clock + judgement engine + scoring + offset.
+ * The Android layer ([vn.kozu.game.mania.gamestage.session.GameSession]) only needs to connect
+ * audio, the screen, and touch input here.
  *
- * "Thời gian chart" = thời gian nhạc - offset. Offset dương = nốt tới muộn hơn so với nhạc.
- * Cả việc vẽ lẫn việc phán định đều dùng cùng một thời gian chart nên thứ người chơi thấy
- * luôn khớp với thứ được chấm.
+ * "Chart time" = song time - offset. A positive offset means notes arrive later than the music.
+ * Rendering and judgement use the same chart time, so what players see
+ * always matches what is scored.
  */
 class GameCore(
     val chart: ManiaChart,
@@ -25,26 +25,26 @@ class GameCore(
     val tracker = ScoreTracker(chart.totalNotes)
     val engine = JudgementEngine(chart, tracker, listener)
 
-    /** Thời gian một nốt rơi hết màn hình (ms), cố định suốt bài. */
+    /** Time for a note to fall across the screen (ms), fixed for the entire song. */
     val travelMs: Double = NoteScroll.travelTimeMs(settings.speed)
 
-    /** Đoạn dạo đầu (ms, dương) trước khi nhạc bắt đầu: tôn trọng AudioLeadIn của chart. */
+    /** Positive lead-in time (ms) before the music starts, honoring the chart's AudioLeadIn. */
     val prerollMs: Double = (max(chart.audioLeadInMs, 0) + BASE_PREROLL_MS).toDouble()
 
     private val offsetMs = settings.offsetMs.toDouble()
 
     fun begin(withAudio: Boolean = true) = clock.start(-prerollMs, withAudio)
 
-    /** Thời gian chart hiện tại, dùng để vẽ. */
+    /** Current chart time, used for rendering. */
     fun chartTimeNow(): Double = clock.now() - offsetMs
 
-    /** Quy đổi thời điểm hệ thống (nano) của một sự kiện chạm thành thời gian chart. */
+    /** Converts a touch event's system time (nano) to chart time. */
     fun chartTimeAt(nano: Long): Double = clock.timeAt(nano) - offsetMs
 
     /**
-     * Gọi mỗi khung hình. Việc tự phán MISS bị trễ [EVENT_GRACE_MS] để một cú chạm hợp lệ
-     * nhưng được hệ thống giao hơi muộn (sự kiện cũ hơn một khung hình) vẫn kịp được tính.
-     * @return thời gian chart để vẽ khung hình này.
+     * Called once per frame. Automatic MISS judgement is delayed by [EVENT_GRACE_MS] so a valid
+     * touch delivered slightly late by the system (an event from the previous frame) can still count.
+     * @return chart time for rendering this frame.
      */
     fun frame(): Double {
         val t = chartTimeNow()
@@ -56,7 +56,7 @@ class GameCore(
 
     fun release(column: Int, eventNano: Long) = engine.release(column, chartTimeAt(eventNano))
 
-    /** Bài đã kết thúc khi mọi nốt có phán định (sau khi quá hạn của nốt cuối + một chút để xem kết quả). */
+    /** The song is over when every note has been judged (after the last note expires, plus time to view the result). */
     fun isFinished(chartTimeMs: Double = chartTimeNow()): Boolean {
         if (engine.isFinished) return chartTimeMs > chart.lastEventTimeMs + END_HOLD_MS
         if (chartTimeMs > chart.lastEventTimeMs + engine.windows.ok + END_HOLD_MS) {

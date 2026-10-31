@@ -1,32 +1,32 @@
 package vn.kozu.game.mania.gamestage.engine
 
 /**
- * Mốc đồng bộ giữa thời gian của file nhạc và đồng hồ hệ thống (System.nanoTime).
- * Với MediaPlayer.getTimestamp() đây chính là (anchorMediaTime, anchorSystemNanoTime, mediaClockRate).
+ * A synchronization point between the song file's time and the system clock (System.nanoTime).
+ * For MediaPlayer.getTimestamp(), this is (anchorMediaTime, anchorSystemNanoTime, mediaClockRate).
  */
 class AudioAnchor(
     val mediaTimeMs: Double,
     val systemNano: Long,
     val rate: Double = 1.0,
-    /** false = chỉ có getCurrentPosition() thô (nhảy theo từng cục), nên được tin ít hơn. */
+    /** false = only the coarse getCurrentPosition() value is available, so it is less reliable. */
     val precise: Boolean = true,
 ) {
-    /** Thời gian trong bài nhạc tại thời điểm hệ thống [nano]. */
+    /** Position in the song at system time [nano]. */
     fun mediaTimeAt(nano: Long): Double = mediaTimeMs + (nano - systemNano) / 1_000_000.0 * rate
 }
 
 /**
- * Đồng hồ trò chơi. Mục tiêu: chuyển động mượt (không khựng) và khớp với âm thanh thật.
+ * Game clock. Goal: smooth motion without stuttering, synchronized with the actual audio.
  *
- *  - Thời gian chạy theo System.nanoTime (mượt, độ phân giải ns) chứ KHÔNG đọc thẳng vị trí MediaPlayer,
- *    vì getCurrentPosition() chỉ cập nhật theo từng cục vài chục ms.
- *  - Âm thanh là "slave": mỗi khi có [AudioAnchor] mới, đồng hồ được kéo dần về đúng mốc đó
- *    với bước hiệu chỉnh giới hạn để timestamp bất thường không làm thời gian chart nhảy lùi.
- *  - Trước khi nhạc thật sự phát (thời gian âm = lead-in), đồng hồ chạy tự do từ [start].
- *    Nếu tới t = 0 mà nhạc chưa phát thì giữ ở 0 cho đến khi anchor đầu tiên tới (hoặc [giveUpOnAudio]),
- *    nhờ vậy không bao giờ bị lệch khoảng độ trễ khởi động của MediaPlayer.
+ *  - Time advances using System.nanoTime (smooth, nanosecond resolution) rather than reading the MediaPlayer position directly,
+ *    because getCurrentPosition() only updates in chunks of several dozen milliseconds.
+ *  - Audio is the "slave": whenever a new [AudioAnchor] arrives, the clock gradually corrects toward it
+ *    with a limited adjustment step so abnormal timestamps cannot move chart time backward.
+ *  - Before the music actually starts (negative time = lead-in), the clock runs freely from [start].
+ *    If it reaches t = 0 before the music starts, it stays at 0 until the first anchor arrives (or [giveUpOnAudio]),
+ *    preventing any offset caused by MediaPlayer startup latency.
  *
- * Tất cả hàm gọi trên một luồng (main thread).
+ * All functions are called on a single thread (the main thread).
  */
 class GameClock(private val nanoSource: () -> Long = System::nanoTime) {
     private var baseNano = 0L
@@ -41,7 +41,7 @@ class GameClock(private val nanoSource: () -> Long = System::nanoTime) {
     val isAudioLocked: Boolean get() = audioLocked
     val isWaitingForAudio: Boolean get() = started && audioMode && !audioLocked && rawTime(nanoSource()) > 0.0
 
-    /** Bắt đầu chạy từ thời điểm [startTimeMs] (thường âm = đoạn dạo đầu). */
+    /** Starts at [startTimeMs] (usually negative for the lead-in). */
     fun start(startTimeMs: Double, withAudio: Boolean = true) {
         baseNano = nanoSource()
         baseTimeMs = startTimeMs
@@ -53,7 +53,7 @@ class GameClock(private val nanoSource: () -> Long = System::nanoTime) {
 
     private fun rawTime(nano: Long): Double = baseTimeMs + (nano - baseNano) / 1_000_000.0
 
-    /** Thời gian bài nhạc (ms) tại thời điểm hệ thống [nano]; dùng để quy đổi timestamp của sự kiện chạm. */
+    /** Song time (ms) at system time [nano]; used to convert touch event timestamps. */
     fun timeAt(nano: Long): Double {
         if (!started) return baseTimeMs
         if (paused) return pausedTimeMs
@@ -63,7 +63,7 @@ class GameClock(private val nanoSource: () -> Long = System::nanoTime) {
 
     fun now(): Double = timeAt(nanoSource())
 
-    /** true đúng một lần, khi đã tới lúc phải gọi start() của trình phát nhạc. */
+    /** True exactly once, when it is time to call start() on the music player. */
     fun shouldStartAudio(leadMs: Double = 0.0): Boolean {
         if (!started || !audioMode || audioStartRequested) return false
         if (rawTime(nanoSource()) < -leadMs) return false
@@ -71,7 +71,7 @@ class GameClock(private val nanoSource: () -> Long = System::nanoTime) {
         return true
     }
 
-    /** Nhạc không phát được: bỏ chế độ chờ, đồng hồ tiếp tục chạy tự do từ thời điểm hiện tại. */
+    /** If the music cannot play, stop waiting and let the clock run freely from the current time. */
     fun giveUpOnAudio() {
         if (!started || audioLocked) return
         val nano = nanoSource()
@@ -94,7 +94,7 @@ class GameClock(private val nanoSource: () -> Long = System::nanoTime) {
         paused = false
     }
 
-    /** Nạp mốc đồng bộ mới từ trình phát nhạc. */
+    /** Loads a new synchronization point from the music player. */
     fun onAudioAnchor(anchor: AudioAnchor) {
         if (!started || !audioMode) return
         val nano = nanoSource()
@@ -103,7 +103,7 @@ class GameClock(private val nanoSource: () -> Long = System::nanoTime) {
             val raw = rawTime(nano)
             audioLocked = true
             if (raw > 0.0) {
-                // đang bị giữ ở 0: nhảy thẳng tới thời gian thật của nhạc (liên tục với giá trị đang hiển thị = 0)
+                // Held at 0: jump directly to the actual song time (continuous with the displayed value of 0).
                 baseNano = nano
                 baseTimeMs = desired
                 return

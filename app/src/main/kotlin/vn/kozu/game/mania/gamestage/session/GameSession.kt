@@ -31,8 +31,8 @@ import java.io.IOException
 import kotlin.coroutines.resume
 
 /**
- * Một lượt chơi: nối [GameCore] (đồng hồ + phán định + điểm) với nhạc, hitsound, ảnh nền và HUD.
- * Mọi hàm (trừ [prepare]) gọi trên main thread.
+ * A play session connecting [GameCore] (clock + judgement + score) to music, hitsounds, the background, and HUD.
+ * All functions except [prepare] are called on the main thread.
  */
 class GameSession(
     val song: SongEntry,
@@ -53,7 +53,7 @@ class GameSession(
     var background by mutableStateOf<ImageBitmap?>(null); private set
     var preparationLog by mutableStateOf<List<String>>(emptyList()); private set
 
-    // HUD: chỉ đổi khi có phán định nên không làm recompose mỗi khung hình.
+    // HUD: updated only after a judgement, so it does not recompose every frame.
     var score by mutableLongStateOf(0L); private set
     var combo by mutableIntStateOf(0); private set
     var accuracy by mutableDoubleStateOf(1.0); private set
@@ -143,6 +143,7 @@ class GameSession(
         }
         val perNote = chart.notes.map { note -> note.sample.sampleNames().mapNotNull { resolve(it) } }
         val ids = hitSounds.load(perNote.flatten())
+        hitSounds.warmUp()
         noteSounds = Array(chart.notes.size) { i -> perNote[i].mapNotNull { ids[it.absolutePath] }.toIntArray() }
         val master = settings.hitsoundVolume / 100f
         noteVolumes = FloatArray(chart.notes.size) { i -> chart.notes[i].sample.volume / 100f * master }
@@ -167,7 +168,7 @@ class GameSession(
 
     // ------------------------------------------------------------ per frame / input
 
-    /** Gọi mỗi khung hình; trả về thời gian chart để vẽ. */
+    /** Called once per frame; returns chart time for rendering. */
     fun frame(): Double {
         if (phase != Phase.PLAYING) return core.chartTimeNow()
         val a = audio.anchor
@@ -176,7 +177,7 @@ class GameSession(
             val firstLock = !core.clock.isAudioLocked
             core.clock.onAudioAnchor(a)
             if (firstLock && a.precise && audioRequestNano != 0L) {
-                // đo độ trễ khởi động của MediaPlayer để lần sau gọi start() sớm hơn đúng bằng đó
+                // Measure MediaPlayer startup latency so the next start() call can be issued that much earlier.
                 val audioZeroNano = a.systemNano - (a.mediaTimeMs * 1e6).toLong()
                 learnedLatencyMs = ((audioZeroNano - audioRequestNano) / 1e6).coerceIn(0.0, 500.0)
             }
@@ -194,7 +195,7 @@ class GameSession(
         return t
     }
 
-    /** Quy đổi uptimeMillis của sự kiện chạm thành System.nanoTime (cùng đồng hồ monotonic của Android). */
+    /** Converts a touch event's uptimeMillis to System.nanoTime (Android's shared monotonic clock). */
     fun eventNano(uptimeMillis: Long): Long =
         System.nanoTime() - (SystemClock.uptimeMillis() - uptimeMillis) * 1_000_000L
 
@@ -213,7 +214,7 @@ class GameSession(
         release()
     }
 
-    /** Thoát giữa chừng, không có kết quả. */
+    /** Aborts the session without a result. */
     fun abort() {
         if (phase == Phase.PLAYING || phase == Phase.PAUSED || phase == Phase.LOADING || phase == Phase.READY) {
             phase = Phase.FAILED

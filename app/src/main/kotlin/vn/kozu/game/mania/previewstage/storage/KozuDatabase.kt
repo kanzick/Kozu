@@ -9,7 +9,7 @@ import vn.kozu.game.mania.previewstage.osu.FileResolver
 import java.io.Closeable
 import java.io.File
 
-/** kozu.db: mỗi bài (kozu id = BeatmapSetID) có N độ khó. */
+/** kozu.db: each song (kozu ID = BeatmapSetID) has N difficulties. */
 class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeable {
 
     fun hasSong(songId: Long): Boolean =
@@ -39,11 +39,11 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
         return found
     }
 
-    /** Ghi đè toàn bộ dữ liệu của 1 bài trong 1 transaction. */
+    /** Replaces all data for one song in a single transaction. */
     fun replaceSong(songId: Long, sourceOsz: String, difficulties: List<DifficultyRecord>) {
         db.beginTransaction()
         try {
-            db.delete("kozu_song", "song_id = ?", arrayOf(songId.toString())) // cascade xoá độ khó cũ
+            db.delete("kozu_song", "song_id = ?", arrayOf(songId.toString())) // Cascades deletion of old difficulties.
             db.insertOrThrow("kozu_song", null, ContentValues().apply {
                 put("song_id", songId)
                 put("source_osz", sourceOsz)
@@ -68,7 +68,7 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
         }
     }
 
-    /** Xóa các độ khó ngoài mania và bài không còn độ khó nào khỏi database. */
+    /** Removes non-mania difficulties and songs that no longer have any difficulties from the database. */
     fun removeNonManiaDifficulties() {
         db.beginTransaction()
         try {
@@ -86,7 +86,7 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
         }
     }
 
-    /** Đọc toàn bộ db vào RAM (sắp theo song_id, độ khó theo CircleSize rồi OD). */
+    /** Loads the entire database into memory (ordered by song_id, then difficulty by CircleSize and OD). */
     fun loadAll(songsDir: File): List<SongEntry> {
         val byId = LinkedHashMap<Long, MutableList<DifficultyRecord>>()
         db.rawQuery("SELECT song_id FROM kozu_song ORDER BY song_id", null).use { c ->
@@ -233,7 +233,7 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
                 approach_rate         REAL    NOT NULL,
                 slider_multiplier     REAL    NOT NULL,
                 slider_tick_rate      REAL    NOT NULL,
-                -- [Events] + file đã resolve (đường dẫn tương đối so với songs/<song_id>/)
+                -- [Events] + resolved files (relative paths from songs/<song_id>/)
                 background_filename   TEXT,
                 audio_path            TEXT,
                 audio_exists          INTEGER NOT NULL,

@@ -10,13 +10,13 @@ import java.io.File
 /**
  * score.db: player_name, song_id, difficulty, score, accuracy (%), rank, played_at.
  *
- * Schema v2 (v1 chưa có độ khó):
- *  - v1 -> v2 thêm cột `difficulty` và `played_at`. Các dòng cũ giữ nguyên với difficulty = '' nên
- *    không còn khớp với bảng xếp hạng của độ khó nào (v1 không ghi lại được điểm đó thuộc độ khó nào).
+ * Schema v2 (v1 did not include difficulty):
+ *  - v1 -> v2 adds the `difficulty` and `played_at` columns. Existing rows retain difficulty = '',
+ *    so they do not match any difficulty leaderboard (v1 did not record which difficulty a score belonged to).
  */
 class ScoreDatabase private constructor(private val db: SQLiteDatabase) : Closeable {
 
-    /** Ghi một lượt chơi. Mọi lượt đều được giữ; bảng xếp hạng chỉ hiển thị điểm cao nhất của từng người. */
+    /** Records a play session. All sessions are retained; the leaderboard shows each player's best score. */
     fun insert(s: ScoreRecord): Long = db.insertOrThrow("score", null, ContentValues().apply {
         put("player_name", s.playerName)
         put("song_id", s.songId)
@@ -28,8 +28,8 @@ class ScoreDatabase private constructor(private val db: SQLiteDatabase) : Closea
     })
 
     /**
-     * Bảng xếp hạng của MỘT bài ở MỘT độ khó, điểm cao xuống thấp.
-     * Mỗi người chơi chỉ xuất hiện một lần với điểm cao nhất của họ (hoà điểm: ai đạt trước xếp trên).
+     * Leaderboard for ONE song at ONE difficulty, ordered from highest to lowest score.
+     * Each player appears once with their best score (ties are ordered by the earliest achievement).
      */
     fun topScores(songId: Long, difficulty: String, limit: Int = 10): List<ScoreRecord> =
         db.rawQuery(
@@ -46,7 +46,7 @@ class ScoreDatabase private constructor(private val db: SQLiteDatabase) : Closea
             arrayOf(songId.toString(), difficulty, limit.toString())
         ).use { it.toRecords() }
 
-    /** Điểm cao nhất của một người chơi ở bài + độ khó này (null nếu chưa chơi). */
+    /** A player's best score for this song and difficulty (null if they have not played). */
     fun bestScore(songId: Long, difficulty: String, playerName: String): ScoreRecord? =
         db.rawQuery(
             """SELECT player_name, song_id, difficulty, score, accuracy, "rank", played_at

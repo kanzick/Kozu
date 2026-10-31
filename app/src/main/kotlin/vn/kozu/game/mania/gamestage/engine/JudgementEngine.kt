@@ -8,26 +8,26 @@ import vn.kozu.game.mania.gamestage.scoring.ScoreTracker
 import kotlin.math.abs
 
 /**
- * Phán định osu!mania (stable, ScoreV1), thuần Kotlin, không phụ thuộc Android.
+ * osu!mania judgement (stable, ScoreV1), plain Kotlin with no Android dependencies.
  *
- * Mọi thời gian ở đây là "thời gian chart" (ms) - đã trừ offset của người chơi.
- * Thời điểm của cú chạm là thời điểm của SỰ KIỆN (không phải lúc xử lý), do lớp trên quy đổi.
+ * All times here are "chart time" (ms), with the player's offset already subtracted.
+ * A touch is timed at the EVENT time (not the processing time), converted by the caller.
  *
- * Nốt thường (theo wiki):
- *  - nhấn sớm hơn cửa sổ MISS: không có tác dụng
- *  - nhấn trong (MEH, MISS]: tính MISS và tiêu thụ nốt
- *  - không nhấn tới hết cửa sổ OK: MISS (không có MEH muộn)
+ * Regular notes (per the wiki):
+ *  - Pressing earlier than the MISS window has no effect.
+ *  - Pressing within (MEH, MISS] results in a MISS and consumes the note.
+ *  - If not pressed by the end of the OK window, the note is a MISS (there is no late MEH).
  *
- * Nốt hold: MỘT phán định duy nhất từ sai lệch đầu (head) và sai lệch nhả (tail):
- *  PERFECT: head <= 16·1.2   và head+tail <= 16·2.4
- *  GREAT:   head <= GREAT·1.1 và head+tail <= GREAT·2.2
- *  GOOD:    head <= GOOD      và head+tail <= GOOD·2
- *  OK:      head <= OK        và head+tail <= OK·2
- *  MEH:     còn lại (không miss)
- *  Nhả phím giữa thân nốt => tối đa MEH. Không giữ phím trong cửa sổ đuôi (từ MEH sớm tới OK muộn) => MISS.
+ * Hold notes: a SINGLE judgement based on the head and tail errors:
+ *  PERFECT: head <= 16·1.2   and head+tail <= 16·2.4
+ *  GREAT:   head <= GREAT·1.1 and head+tail <= GREAT·2.2
+ *  GOOD:    head <= GOOD      and head+tail <= GOOD·2
+ *  OK:      head <= OK        and head+tail <= OK·2
+ *  MEH:     otherwise (not a miss)
+ *  Releasing during the hold body gives at most MEH. Not holding through the tail window (from early MEH to late OK) gives MISS.
  *
- * Đơn giản hoá có chủ đích: nhấn "trễ" một hold sau khi hết cửa sổ OK của head vẫn cứu được
- * (kết quả tối đa MEH) cho tới khi cửa sổ đuôi bắt đầu.
+ * Intentional simplification: a "late" hold press after the head's OK window can still be saved
+ * (at most MEH) until the tail window begins.
  */
 class JudgementEngine(
     private val chart: ManiaChart,
@@ -36,25 +36,25 @@ class JudgementEngine(
     val windows: HitWindows = HitWindows(chart.overallDifficulty),
 ) {
     interface Listener {
-        /** Một nốt đã có phán định cuối cùng. [errorMs] = thời điểm thực - thời điểm lý tưởng (âm = sớm). */
+        /** A note received its final judgement. [errorMs] = actual time - ideal time (negative = early). */
         fun onJudgement(note: ChartNote, judgement: Judgement, errorMs: Double)
 
-        /** Nốt vừa được đánh trúng (không phải miss): lúc để phát hitsound. */
+        /** A note was just hit (not missed): time to play the hitsound. */
         fun onHit(note: ChartNote)
     }
 
     private val keys = chart.keys
     private val notes = chart.notes
 
-    /** Trạng thái từng nốt, đọc được từ renderer. */
+    /** State of each note, readable by the renderer. */
     val state = IntArray(notes.size) // STATE_*
     val broken = BooleanArray(notes.size)
     private val headError = DoubleArray(notes.size)
 
-    /** Chỉ số (trong chart.columns[c]) của nốt đầu tiên chưa DONE. */
+    /** Index (in chart.columns[c]) of the first note that is not DONE. */
     private val pointer = IntArray(keys)
 
-    /** Phím đang được giữ. */
+    /** Keys currently held. */
     val keyDown = BooleanArray(keys)
 
     var resolved = 0
@@ -77,19 +77,19 @@ class JudgementEngine(
             val n = notes[id]
             val err = timeMs - n.timeMs
 
-            if (err < -windows.miss) return // quá sớm: không có tác dụng
+            if (err < -windows.miss) return // Too early: no effect.
 
             if (err > windows.ok) {
-                // Chỉ có thể là hold đang chờ cứu muộn (nốt thường đã bị advance() xử lý miss).
+                // Only a hold can still be saved late (regular notes were already missed by advance()).
                 if (!n.isHold) { resolve(n, Judgement.MISS, err); k++; continue }
                 val next = nextPending(ids, k + 1)
                 if (next != null && timeMs >= notes[next].timeMs - windows.miss) {
-                    // cú nhấn này thuộc về nốt kế tiếp, hold cũ coi như bỏ lỡ
+                    // This press belongs to the next note; the old hold is considered missed.
                     resolve(n, Judgement.MISS, err)
                     k++
                     continue
                 }
-                headError[id] = windows.ok + 1.0 // head muộn => tối đa MEH
+                headError[id] = windows.ok + 1.0 // Late head => at most MEH.
                 state[id] = STATE_HOLDING
                 listener.onHit(n)
                 return
@@ -114,14 +114,14 @@ class JudgementEngine(
 
     fun release(column: Int, timeMs: Double) {
         if (column !in 0 until keys) return
-        // advance() phải chạy TRƯỚC khi hạ keyDown: hold giữ quá hạn cần biết phím còn đang giữ.
+        // advance() must run BEFORE clearing keyDown: an expired hold needs to know whether the key is still held.
         advance(timeMs)
         keyDown[column] = false
 
         val id = holdingNote(column) ?: return
         val n = notes[id]
         if (timeMs < n.endTimeMs - windows.meh) {
-            broken[id] = true // nhả giữa thân nốt
+            broken[id] = true // Released during the hold body.
             return
         }
         val tailError = abs(timeMs - n.endTimeMs)
@@ -130,7 +130,7 @@ class JudgementEngine(
 
     // ---------------------------------------------------------------- time
 
-    /** Xử lý các nốt đã quá hạn tại thời điểm [timeMs]. Gọi mỗi khung hình. */
+    /** Processes notes that have expired at [timeMs]. Called once per frame. */
     fun advance(timeMs: Double) {
         for (c in 0 until keys) advanceColumn(c, timeMs)
     }
@@ -144,7 +144,7 @@ class JudgementEngine(
                 STATE_DONE -> pointer[c]++
                 STATE_PENDING -> {
                     if (t <= n.timeMs + windows.ok) return
-                    if (n.isHold && t <= n.endTimeMs - windows.meh) return // còn cứu muộn được
+                    if (n.isHold && t <= n.endTimeMs - windows.meh) return // Can still be saved late.
                     resolve(n, Judgement.MISS, t - n.timeMs)
                 }
                 else -> { // HOLDING
@@ -156,7 +156,7 @@ class JudgementEngine(
         }
     }
 
-    /** Kết thúc bài: phán định nốt còn lại. */
+    /** Ends the song and judges the remaining notes. */
     fun finish() = advance(Double.MAX_VALUE / 4)
 
     // ---------------------------------------------------------------- helpers

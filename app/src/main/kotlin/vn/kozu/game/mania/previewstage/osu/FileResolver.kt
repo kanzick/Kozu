@@ -3,8 +3,8 @@ package vn.kozu.game.mania.previewstage.osu
 import java.io.File
 
 /**
- * Tìm file theo tên khai báo trong .osu. File osu! tạo trên Windows (không phân biệt hoa/thường)
- * còn Android phân biệt, nên có fallback so khớp không phân biệt hoa thường. Chặn ".." thoát khỏi thư mục.
+ * Finds a file by the name declared in the .osu file. osu! files created on Windows are case-insensitive,
+ * while Android is case-sensitive, so matching falls back to a case-insensitive search. Prevents ".." from escaping the directory.
  */
 object FileResolver {
     fun resolve(baseDir: File, declaredName: String): File? {

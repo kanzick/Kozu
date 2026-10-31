@@ -3,6 +3,8 @@ package vn.kozu.game.mania.gamestage.ui
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.os.SystemClock
+import android.view.MotionEvent
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -47,8 +49,9 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.pointerInteropFilter
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
@@ -72,10 +75,9 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
 }
 
 /**
- * Màn chơi. Chuyển động được vẽ HOÀN TOÀN từ thời gian (vị trí = hàm tuyến tính của thời gian chart),
- * không cộng dồn theo khung hình, và thời gian lấy từ mốc vsync của chính khung hình đó, nên không
- * có chuyện khựng khi một khung hình bị trễ. Cú chạm được chấm theo thời điểm của sự kiện, không theo
- * lúc xử lý.
+ * Gameplay screen. Motion is drawn ENTIRELY from time (position = a linear function of chart time),
+ * without accumulating across frames. Time comes from the current frame's vsync timestamp, so a delayed
+ * frame does not cause stuttering. Touches are judged by their event time, not their processing time.
  */
 @Composable
 fun PlayScreen(
@@ -122,7 +124,7 @@ fun PlayScreen(
         while (isActive) {
             withFrameNanos { frameNanos ->
                 session.frame()
-                // thời gian vẽ theo mốc vsync của khung hình này
+                // Render time from this frame's vsync timestamp.
                 drawTime[0] = session.core.chartTimeAt(frameNanos)
                 frameTick.longValue = frameNanos
             }
@@ -135,50 +137,69 @@ fun PlayScreen(
     val dimAlpha = session.settings.backgroundDim / 100f
     val colors = MaterialTheme.colorScheme
     val firstVisible = remember(session) { IntArray(chart.keys) }
+    val touchRouter = remember(session) { arrayOfNulls<TouchInputRouter>(1) }
+    val touchRadiusPx = with(LocalDensity.current) { 24.dp.toPx() }
 
     Box(Modifier.fillMaxSize().background(colors.background)) {
         Canvas(
             Modifier
                 .fillMaxSize()
-                .pointerInput(session) {
+                .onSizeChanged { size ->
+                    val timestamp = SystemClock.uptimeMillis()
+                    touchRouter[0]?.releaseAll()?.released?.forEach { column ->
+                        session.release(column, timestamp)
+                    }
                     val layout = PlayfieldLayout(size.width.toFloat(), size.height.toFloat(), chart.keys)
-                    val touchRouter = TouchInputRouter(
+                    touchRouter[0] = TouchInputRouter(
                         keys = chart.keys,
                         left = layout.left,
                         columnWidth = layout.columnWidth,
-                        touchRadius = 24.dp.toPx(),
+                        touchRadius = touchRadiusPx,
                     )
-                    awaitPointerEventScope {
-                        while (true) {
-                            val event = awaitPointerEvent(PointerEventPass.Initial)
-                            for (change in event.changes) {
-                                if (change.pressed && !change.previousPressed) {
-                                    touchRouter.press(change.id.value, change.position.x)?.let { changes ->
-                                        changes.pressed.forEach { column -> session.press(column, change.uptimeMillis) }
-                                    }
-                                    change.consume()
-                                } else if (change.pressed && change.previousPressed) {
-                                    val changes = touchRouter.move(change.id.value, change.position.x)
-                                    changes.released.forEach { column -> session.release(column, change.uptimeMillis) }
-                                    changes.pressed.forEach { column -> session.press(column, change.uptimeMillis) }
-                                    change.consume()
-                                } else if (!change.pressed && change.previousPressed) {
-                                    touchRouter.release(change.id.value).released
-                                        .forEach { column -> session.release(column, change.uptimeMillis) }
-                                    change.consume()
-                                }
+                }
+                .pointerInteropFilter { event ->
+                    val router = touchRouter[0] ?: return@pointerInteropFilter false
+                    val eventTime = event.eventTime
+                    when (event.actionMasked) {
+                        MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
+                            val index = event.actionIndex
+                            router.press(event.getPointerId(index).toLong(), event.getX(index))
+                                ?.pressed
+                                ?.forEach { column -> session.press(column, eventTime) }
+                        }
+
+                        MotionEvent.ACTION_MOVE -> {
+                            for (index in 0 until event.pointerCount) {
+                                val changes = router.move(
+                                    event.getPointerId(index).toLong(),
+                                    event.getX(index)
+                                )
+                                changes.released.forEach { column -> session.release(column, eventTime) }
+                                changes.pressed.forEach { column -> session.press(column, eventTime) }
                             }
                         }
+
+                        MotionEvent.ACTION_POINTER_UP, MotionEvent.ACTION_UP -> {
+                            val index = event.actionIndex
+                            router.release(event.getPointerId(index).toLong()).released
+                                .forEach { column -> session.release(column, eventTime) }
+                        }
+
+                        MotionEvent.ACTION_CANCEL -> {
+                            router.releaseAll().released
+                                .forEach { column -> session.release(column, eventTime) }
+                        }
                     }
+                    true
                 }
         ) {
-            frameTick.longValue // đăng ký: mỗi khung hình vẽ lại (không recompose)
+            frameTick.longValue // Observe: redraw each frame without recomposing.
             val w = size.width
             val h = size.height
             val t = drawTime[0]
             val layout = PlayfieldLayout(w, h, chart.keys)
 
-            // ---- nền + độ trong
+            // ---- background + dimming
             val bg = session.background
             if (bg != null) {
                 val scale = max(w / bg.width, h / bg.height)
@@ -193,7 +214,7 @@ fun PlayScreen(
             }
             drawRect(Color.Black.copy(alpha = if (bg == null) 0.82f else dimAlpha))
 
-            // ---- sân chơi
+            // ---- playfield
             drawRoundRect(
                 color = colors.surface.copy(alpha = 0.78f),
                 topLeft = Offset(layout.left, 0f),
@@ -205,7 +226,7 @@ fun PlayScreen(
                 drawRect(colors.onSurface.copy(alpha = 0.16f), Offset(x - 1f, 0f), Size(2f, h))
             }
 
-            // ---- phím đang giữ
+            // ---- held keys
             for (c in 0 until chart.keys) {
                 if (engine.keyDown[c]) {
                     drawRect(
@@ -216,7 +237,7 @@ fun PlayScreen(
                 }
             }
 
-            // ---- nốt
+            // ---- notes
             val pad = layout.columnWidth * 0.06f
             val noteW = layout.columnWidth - pad * 2
             for (c in 0 until chart.keys) {
@@ -234,7 +255,7 @@ fun PlayScreen(
                         i++
                         continue
                     }
-                    if (n.timeMs - t > travelMs + 50) break // chưa xuất hiện; các nốt sau còn xa hơn
+                    if (n.timeMs - t > travelMs + 50) break // Not visible yet; subsequent notes are even farther away.
                     val headY = NoteScroll.yAt(n.timeMs.toDouble(), t, travelMs, layout.judgeY)
                     if (!n.isHold) {
                         if (headY - layout.noteHeight < h && headY > 0f) {
@@ -284,7 +305,7 @@ fun PlayScreen(
                 }
             }
 
-            // ---- vạch phán định
+            // ---- judgement line
             drawRoundRect(
                 colors.primary,
                 Offset(layout.left, layout.judgeY),
@@ -292,13 +313,13 @@ fun PlayScreen(
                 CornerRadius(2.dp.toPx())
             )
 
-            // ---- tiến độ bài
+            // ---- song progress
             val progress = (t / max(1.0, chart.lastEventTimeMs.toDouble())).coerceIn(0.0, 1.0).toFloat()
             drawRect(colors.onSurface.copy(alpha = 0.28f), Offset(0f, 0f), Size(w, 4.dp.toPx()))
             drawRect(colors.primary, Offset(0f, 0f), Size(w * progress, 4.dp.toPx()))
         }
 
-        // ---- HUD (chỉ recompose khi có phán định)
+        // ---- HUD (recompose only when a judgement is made)
         if (phase == GameSession.Phase.PLAYING || phase == GameSession.Phase.FINISHED) {
             Hud(session)
         }

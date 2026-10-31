@@ -15,8 +15,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 
 /**
- * Giao diện chủ đề chính (Theme) của Kozu.
- * Tự động chuyển đổi màu sắc mượt mà khi thay đổi bài hát/ảnh bìa hoặc chuyển chế độ sáng/tối/AMOLED.
+ * Kozu's main theme.
+ * Smoothly transitions colors when the song/cover changes or when switching between light, dark, and AMOLED modes.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -38,7 +38,7 @@ fun KozuTheme(
 }
 
 /**
- * Khởi tạo hiệu ứng chuyển màu mượt mà (Smooth Animation) giữa các bảng màu ColorScheme
+ * Creates a smooth color transition between ColorScheme palettes.
  */
 @Composable
 private fun rememberAnimatedColorScheme(target: ColorScheme): ColorScheme {

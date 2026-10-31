@@ -4,12 +4,12 @@ import java.io.File
 import java.io.IOException
 
 /**
- * Bố cục thư mục của module:
+ * Module directory layout:
  *
- *   <root>/downloads/        nơi thả file .osz
- *   <root>/songs/<songId>/   nhạc đã giải nén
- *   <root>/kozu.db           thông tin bài + độ khó
- *   <root>/score.db          điểm người chơi
+ *   <root>/downloads/        .osz files to import
+ *   <root>/songs/<songId>/   extracted songs
+ *   <root>/kozu.db           song and difficulty metadata
+ *   <root>/score.db          player scores
  */
 class ModulePaths(val root: File) {
     val downloads = File(root, "downloads")
@@ -20,14 +20,14 @@ class ModulePaths(val root: File) {
 
     fun songDir(songId: Long) = File(songs, songId.toString())
 
-    /** Tạo các thư mục còn thiếu. (2 file db sẽ được SQLite tạo khi mở lần đầu.) */
+    /** Creates missing directories. SQLite creates the two database files when they are first opened. */
     fun ensureLayout() {
         for (dir in listOf(root, downloads, songs, importState)) {
             if (!dir.isDirectory && !dir.mkdirs() && !dir.isDirectory) {
                 throw IOException("Could not create directory ${dir.absolutePath}")
             }
         }
-        // Dọn thư mục tạm còn sót lại do lần chạy trước bị ngắt giữa chừng.
+        // Clean up temporary directories left behind by an interrupted previous run.
         songs.listFiles { f -> f.isDirectory && f.name.startsWith(TMP_PREFIX) }?.forEach { it.deleteRecursively() }
     }
 
