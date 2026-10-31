@@ -166,6 +166,7 @@ private fun KozuShell(container: AppContainer) {
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
     var searchOpen by rememberSaveable { mutableStateOf(false) }
     var allBeatmapsOpen by rememberSaveable { mutableStateOf(false) }
+    var gamePlayActive by remember { mutableStateOf(false) }
     var menuTarget by remember { mutableStateOf<Beatmap?>(null) }
     var playlistTarget by remember { mutableStateOf<Beatmap?>(null) }
 
@@ -276,38 +277,44 @@ private fun KozuShell(container: AppContainer) {
                     KozuTab.GAME -> GameScreen(
                         bottomPadding = bottomPadding,
                         onOpenSettings = { settingsOpen = true },
-                        onOpenLibrary = { tab = KozuTab.LIBRARY },
-                        onOpenSearch = { searchOpen = true }
+                        onGameplayChanged = { active ->
+                            if (active != gamePlayActive) {
+                                gamePlayActive = active
+                                if (active && state.isPlaying) playback.togglePlayPause()
+                            }
+                        }
                     )
                 }
             }
 
             // Bottom bar holding mini player and floating navigation bar
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .onSizeChanged { chromeHeightPx = it.height }
-            ) {
-                AnimatedVisibility(
-                    visible = state.current != null,
-                    enter = slideInVertically(KozuMotion.spatial()) { it } + fadeIn(),
-                    exit = slideOutVertically { it } + fadeOut()
+            if (!gamePlayActive) {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .onSizeChanged { chromeHeightPx = it.height }
                 ) {
-                    state.current?.let { beatmap ->
-                        MiniPlayer(
-                            beatmap = beatmap,
-                            isPlaying = state.isPlaying,
-                            position = playback.position,
-                            duration = playback.duration,
-                            onOpen = { playerOpen = true },
-                            onPlayPause = playback::togglePlayPause,
-                            onPrevious = playback::previous,
-                            onNext = playback::next,
-                            onDismiss = playback::clearQueue
-                        )
+                    AnimatedVisibility(
+                        visible = state.current != null,
+                        enter = slideInVertically(KozuMotion.spatial()) { it } + fadeIn(),
+                        exit = slideOutVertically { it } + fadeOut()
+                    ) {
+                        state.current?.let { beatmap ->
+                            MiniPlayer(
+                                beatmap = beatmap,
+                                isPlaying = state.isPlaying,
+                                position = playback.position,
+                                duration = playback.duration,
+                                onOpen = { playerOpen = true },
+                                onPlayPause = playback::togglePlayPause,
+                                onPrevious = playback::previous,
+                                onNext = playback::next,
+                                onDismiss = playback::clearQueue
+                            )
+                        }
                     }
+                    FloatingNavBar(selected = tab, onSelect = { tab = it })
                 }
-                FloatingNavBar(selected = tab, onSelect = { tab = it })
             }
 
             SnackbarHost(

@@ -31,7 +31,8 @@ import java.util.concurrent.TimeUnit
 data class ResolvedAudio(
     val uri: Uri,
     val label: String,
-    val sourceId: String = "unknown"
+    val sourceId: String = "unknown",
+    val requestHeaders: Map<String, String> = emptyMap()
 )
 
 private data class ZipCandidate(
@@ -261,6 +262,18 @@ class StreamResolver(
         throw IOException(
             "Full song is unavailable from the enabled mirrors. Preview was not started."
         )
+    }
+
+    fun resolvePreview(id: Long): ResolvedAudio {
+        val settings = current
+        if (settings.wifiOnlyStreaming && NetworkInfo.isMetered(context)) {
+            throw IOException("Streaming is set to Wi-Fi only")
+        }
+        previewCache[id]?.let { return remember(id, it) }
+        val resolved = preview(id, settings)
+            ?: throw IOException("No preview source is available for this map")
+        previewCache[id] = resolved
+        return remember(id, resolved)
     }
 
     private fun remember(id: Long, resolved: ResolvedAudio): ResolvedAudio {
@@ -595,7 +608,15 @@ class StreamResolver(
         for (mirror in settings.activeMirrors) {
             val url = mirror.previewFor(id) ?: continue
             if (probeAudio(url, mirror.referer)) {
-                return ResolvedAudio(Uri.parse(url), "Preview · ${mirror.name}", "preview:${mirror.id}")
+                val headers = mirror.referer.takeIf { it.isNotBlank() }
+                    ?.let { mapOf("Referer" to it) }
+                    .orEmpty()
+                return ResolvedAudio(
+                    Uri.parse(url),
+                    "Preview · ${mirror.name}",
+                    "preview:${mirror.id}",
+                    headers
+                )
             }
         }
         return null

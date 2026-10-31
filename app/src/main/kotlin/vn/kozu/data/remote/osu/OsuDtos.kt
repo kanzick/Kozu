@@ -20,7 +20,19 @@ data class BeatmapsetDto(
     @SerializedName("artist") val artist: String? = null,
     @SerializedName("creator") val creator: String? = null,
     @SerializedName("status") val status: String? = null,
-    @SerializedName("last_updated") val lastUpdated: String? = null
+    @SerializedName("last_updated") val lastUpdated: String? = null,
+    @SerializedName("beatmaps") val beatmaps: List<OsuBeatmapDto>? = null
+)
+
+data class OsuBeatmapDto(
+    @SerializedName("id") val id: Long = 0L,
+    @SerializedName("mode") val mode: String? = null,
+    @SerializedName("mode_int") val modeInt: Int? = null,
+    @SerializedName("version") val version: String? = null,
+    @SerializedName("difficulty_rating") val difficultyRating: Double? = null,
+    @SerializedName("cs") val circleSize: Double? = null,
+    @SerializedName("bpm") val bpm: Double? = null,
+    @SerializedName("total_length") val totalLength: Int? = null
 )
 
 data class UserDto(
