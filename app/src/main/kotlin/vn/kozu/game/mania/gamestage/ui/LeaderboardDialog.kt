@@ -73,6 +73,10 @@ fun LeaderboardDialog(
                                     Text(r.playerName, Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     Text("%,d".format(r.score), Modifier.width(96.dp), fontWeight = FontWeight.SemiBold)
                                     Text("%.2f%%".format(r.accuracy), Modifier.width(72.dp))
+                                    Text(
+                                        "${r.trueCombo?.toString() ?: "—"}/${r.maxCombo?.toString() ?: "—"}",
+                                        Modifier.width(72.dp),
+                                    )
                                     Text(r.rank, Modifier.width(32.dp), color = PlayColors.rank(r.rank), fontWeight = FontWeight.Bold)
                                 }
                             }

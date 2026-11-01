@@ -41,7 +41,10 @@ import androidx.compose.ui.window.DialogProperties
 import vn.kozu.game.mania.gamestage.GameStageModule
 import vn.kozu.game.mania.gamestage.chart.ManiaChart
 import vn.kozu.game.mania.gamestage.engine.NoteScroll
+import vn.kozu.game.mania.gamestage.playtype.LandscapePlayTypeOptions
+import vn.kozu.game.mania.gamestage.playtype.LandscapeVerticalScrolling
 import vn.kozu.game.mania.gamestage.media.BackgroundLoader
+import vn.kozu.game.mania.gamestage.playtype.Portrait
 import vn.kozu.game.mania.gamestage.settings.GameSettings
 import vn.kozu.game.mania.previewstage.model.DifficultyRecord
 import vn.kozu.game.mania.previewstage.model.ScoreRecord
@@ -145,7 +148,13 @@ fun SongInfoDialog(
                                 !bestLoaded -> "Personal best: …"
                                 bestError != null -> "Personal best unavailable: $bestError"
                                 b == null -> "Personal best: not played yet"
-                                else -> "Personal best: %,d  ·  %.2f%%  ·  %s".format(b.score, b.accuracy, b.rank)
+                                else -> "Personal best: %,d  ·  %.2f%%  ·  %s  ·  %s/%s combo".format(
+                                    b.score,
+                                    b.accuracy,
+                                    b.rank,
+                                    b.trueCombo?.toString() ?: "—",
+                                    b.maxCombo?.toString() ?: "—",
+                                )
                             },
                             fontWeight = FontWeight.SemiBold,
                             color = b?.let { PlayColors.rank(it.rank) } ?: MaterialTheme.colorScheme.onSurface,
@@ -188,6 +197,46 @@ private fun SettingsPanel(
     onCommit: (GameSettings) -> Unit,
 ) {
     Text("Game settings", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+
+    Text("Screen orientation", fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        if (s.playType == Portrait) {
+            Button(
+                onClick = {},
+                modifier = Modifier.weight(1f),
+            ) { Text("Portrait") }
+        } else {
+            OutlinedButton(
+                onClick = {
+                    val updated = s.copy(playType = Portrait)
+                    onChange(updated)
+                    onCommit(updated)
+                },
+                modifier = Modifier.weight(1f),
+            ) { Text("Portrait") }
+        }
+        if (s.playType.isLandscape) {
+            Button(
+                onClick = {},
+                modifier = Modifier.weight(1f),
+            ) { Text("Landscape") }
+        } else {
+            OutlinedButton(
+                onClick = {
+                    val updated = s.copy(playType = LandscapeVerticalScrolling)
+                    onChange(updated)
+                    onCommit(updated)
+                },
+                modifier = Modifier.weight(1f),
+            ) { Text("Landscape") }
+        }
+    }
+    if (s.playType.isLandscape) {
+        LandscapePlayTypeOptions(s, onChange, onCommit)
+    }
 
     Text("Audio", fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
     SettingSlider("Music", "${s.musicVolume}", s.musicVolume.toFloat(), 0f..100f, 99,

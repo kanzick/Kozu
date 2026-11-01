@@ -57,6 +57,14 @@ import vn.kozu.ui.components.SectionHeader
 import vn.kozu.ui.components.SettingsAction
 import java.util.Locale
 
+private data class MapPagingSnapshot(
+    val lastVisibleIndex: Int,
+    val resultCount: Int,
+    val hasMore: Boolean,
+    val loading: Boolean,
+    val loadingMore: Boolean,
+)
+
 @Composable
 fun AddMapScreen(
     viewModel: GameViewModel,
@@ -68,6 +76,7 @@ fun AddMapScreen(
     val listState = rememberLazyListState()
     val downloads by viewModel.downloads.collectAsStateWithLifecycle()
     val localMapIds by viewModel.localMapIds.collectAsStateWithLifecycle()
+    val localSongs by viewModel.previewModule.catalog.entries.collectAsStateWithLifecycle()
     var query by remember { mutableStateOf("") }
     var maps by remember { mutableStateOf(emptyList<Beatmap>()) }
     var nextPage by remember { mutableStateOf(1) }
@@ -78,6 +87,7 @@ fun AddMapScreen(
     var moduleError by remember { mutableStateOf<String?>(null) }
     var expandedMapId by remember { mutableStateOf<Long?>(null) }
     var difficulties by remember { mutableStateOf<List<BeatmapDifficulty>?>(null) }
+    var fetchedDifficulties by remember { mutableStateOf<Map<Long, List<BeatmapDifficulty>>>(emptyMap()) }
     var difficultiesLoading by remember { mutableStateOf(false) }
     var difficultiesError by remember { mutableStateOf<String?>(null) }
     val previewError by viewModel.previewError.collectAsStateWithLifecycle()
@@ -92,7 +102,9 @@ fun AddMapScreen(
         difficultiesError = null
         difficultiesLoading = true
         try {
-            difficulties = viewModel.maniaDifficulties(mapId)
+            val loaded = viewModel.maniaDifficulties(mapId)
+            difficulties = loaded
+            fetchedDifficulties = fetchedDifficulties + (mapId to loaded)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -122,6 +134,7 @@ fun AddMapScreen(
         loading = true
         loadingMore = false
         error = null
+        fetchedDifficulties = emptyMap()
         try {
             val result = viewModel.searchMania(query, 0)
             maps = result.items
@@ -138,14 +151,21 @@ fun AddMapScreen(
     }
 
     LaunchedEffect(listState, query) {
-        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1 }
-            .collect { lastVisible ->
+        snapshotFlow {
+            MapPagingSnapshot(
+                lastVisibleIndex = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1,
+                resultCount = maps.size,
+                hasMore = hasMore,
+                loading = loading,
+                loadingMore = loadingMore,
+            )
+        }.collect { paging ->
                 if (
-                    lastVisible >= maps.size - 2 &&
-                    maps.isNotEmpty() &&
-                    hasMore &&
-                    !loading &&
-                    !loadingMore
+                    paging.lastVisibleIndex >= paging.resultCount - 2 &&
+                    paging.resultCount > 0 &&
+                    paging.hasMore &&
+                    !paging.loading &&
+                    !paging.loadingMore
                 ) {
                     loadingMore = true
                     try {
@@ -163,7 +183,7 @@ fun AddMapScreen(
                         loadingMore = false
                     }
                 }
-            }
+        }
     }
 
     Column(modifier.fillMaxSize()) {
@@ -251,6 +271,15 @@ fun AddMapScreen(
                         beatmap = beatmap,
                         isAdded = beatmap.id in localMapIds,
                         download = downloads[beatmap.id],
+                        maxStarRating = localSongs.firstOrNull { it.songId == beatmap.id }
+                            ?.difficulties
+                            ?.map { it.starRating }
+                            ?.filter { it > 0.0 }
+                            ?.maxOrNull()
+                            ?: fetchedDifficulties[beatmap.id]
+                                ?.map { it.difficultyRating }
+                                ?.filter { it > 0.0 }
+                                ?.maxOrNull(),
                         isExpanded = expandedMapId == beatmap.id,
                         difficulties = if (expandedMapId == beatmap.id) difficulties else null,
                         difficultiesLoading = expandedMapId == beatmap.id && difficultiesLoading,
@@ -292,6 +321,7 @@ private fun AddMapCard(
     beatmap: Beatmap,
     isAdded: Boolean,
     download: GameMapDownloadState?,
+    maxStarRating: Double?,
     isExpanded: Boolean,
     difficulties: List<BeatmapDifficulty>?,
     difficultiesLoading: Boolean,
@@ -342,7 +372,18 @@ private fun AddMapCard(
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
+                        maxStarRating?.let {
+                            Text(
+                                "Up to ${String.format(Locale.US, "%.2f★", it)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                maxLines = 1
+                            )
+                        }
                         download?.error?.let {
+                            Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                        }
+                        download?.ratingWarning?.let {
                             Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                         }
                         if (download != null && download.error == null && !isAdded) {

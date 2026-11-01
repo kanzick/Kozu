@@ -1,6 +1,10 @@
 package vn.kozu.game.mania.gamestage.settings
 
 import vn.kozu.game.mania.gamestage.engine.NoteScroll
+import vn.kozu.game.mania.gamestage.playtype.Landscape3DPerspective
+import vn.kozu.game.mania.gamestage.playtype.LandscapeVerticalScrolling
+import vn.kozu.game.mania.gamestage.playtype.PlayType
+import vn.kozu.game.mania.gamestage.playtype.Portrait
 import java.io.File
 import java.io.IOException
 import java.util.Properties
@@ -22,6 +26,7 @@ data class GameSettings(
     val backgroundDim: Int = 60,
     val offsetMs: Int = 0,
     val playerName: String = DEFAULT_PLAYER_NAME,
+    val playType: PlayType = Portrait,
 ) {
     /** Clamps all values to valid ranges (speed is rounded to one decimal place). */
     fun coerced(): GameSettings = copy(
@@ -58,6 +63,14 @@ class SettingsStore(val file: File) {
             return GameSettings() // Invalid \u escape.
         }
         val d = GameSettings()
+        val savedPlayType = PlayType.fromStorageKey(p.getProperty(K_PLAY_TYPE))
+            ?: when (p.getProperty(K_ORIENTATION)) {
+                "LANDSCAPE" -> when (p.getProperty(K_SCROLL_STYLE)) {
+                    "PERSPECTIVE_3D" -> Landscape3DPerspective
+                    else -> LandscapeVerticalScrolling
+                }
+                else -> Portrait
+            }
         return GameSettings(
             musicVolume = p.getProperty(K_MUSIC)?.trim()?.toIntOrNull() ?: d.musicVolume,
             hitsoundVolume = p.getProperty(K_HITSOUND)?.trim()?.toIntOrNull() ?: d.hitsoundVolume,
@@ -65,6 +78,7 @@ class SettingsStore(val file: File) {
             backgroundDim = p.getProperty(K_DIM)?.trim()?.toIntOrNull() ?: d.backgroundDim,
             offsetMs = p.getProperty(K_OFFSET)?.trim()?.toIntOrNull() ?: d.offsetMs,
             playerName = p.getProperty(K_PLAYER) ?: d.playerName,
+            playType = savedPlayType,
         ).coerced()
     }
 
@@ -77,6 +91,7 @@ class SettingsStore(val file: File) {
         p.setProperty(K_DIM, s.backgroundDim.toString())
         p.setProperty(K_OFFSET, s.offsetMs.toString())
         p.setProperty(K_PLAYER, s.playerName)
+        p.setProperty(K_PLAY_TYPE, s.playType.storageKey)
 
         file.parentFile?.let { if (!it.isDirectory && !it.mkdirs() && !it.isDirectory) throw IOException("Could not create settings folder ${it.path}") }
         val tmp = File(file.parentFile, file.name + ".tmp")
@@ -98,5 +113,8 @@ class SettingsStore(val file: File) {
         const val K_DIM = "background.dim"
         const val K_OFFSET = "offset.ms"
         const val K_PLAYER = "player.name"
+        const val K_ORIENTATION = "screen.orientation"
+        const val K_SCROLL_STYLE = "scroll.style"
+        const val K_PLAY_TYPE = "play.type"
     }
 }

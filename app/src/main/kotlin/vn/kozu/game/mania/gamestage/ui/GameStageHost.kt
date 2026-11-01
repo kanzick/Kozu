@@ -1,5 +1,9 @@
 package vn.kozu.game.mania.gamestage.ui
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.pm.ActivityInfo
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,10 +24,15 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import vn.kozu.game.mania.gamestage.GameStageModule
 import vn.kozu.game.mania.gamestage.chart.ManiaChart
 import vn.kozu.game.mania.gamestage.scoring.GameResult
+import vn.kozu.game.mania.gamestage.playtype.Portrait
 import vn.kozu.game.mania.gamestage.session.GameSession
 import vn.kozu.game.mania.previewstage.PreviewStageModule
 import vn.kozu.game.mania.previewstage.model.DifficultyRecord
@@ -34,6 +43,12 @@ import kotlinx.coroutines.CancellationException
 
 private class Selection(val song: SongEntry, val difficulty: DifficultyRecord, val chart: ManiaChart? = null)
 
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+
 /**
  * Coordinates the full flow: list (PreviewStage) -> info popup -> gameplay -> results -> return to the popup.
  * Replaces direct calls to PreviewStageScreen.
@@ -42,6 +57,7 @@ private class Selection(val song: SongEntry, val difficulty: DifficultyRecord, v
 fun GameStageHost(
     preview: PreviewStageModule,
     game: GameStageModule,
+    isActive: Boolean,
     onAddMaps: () -> Unit,
     onGameplayChanged: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -86,11 +102,51 @@ fun GameStageHost(
         popup = sel?.let { Selection(it.song, it.difficulty) }
     }
 
+    fun stopGameplay() {
+        val activeSession = session ?: return
+        activeSession.abort()
+        backToPopup()
+    }
+
     val currentSession = session
     val currentResult = result
     val currentPlaying = playing
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val activity = LocalContext.current.findActivity()
+    val lockOrientation = currentSession != null || currentResult != null
+    DisposableEffect(activity, lockOrientation, settings.playType) {
+        if (activity == null || !lockOrientation) {
+            onDispose { }
+        } else {
+            val previousOrientation = activity.requestedOrientation
+            activity.requestedOrientation = if (settings.playType == Portrait) {
+                ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            } else {
+                ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            }
+            onDispose { activity.requestedOrientation = previousOrientation }
+        }
+    }
+    LaunchedEffect(isActive, currentSession) {
+        if (!isActive) {
+            preview.stopPreview()
+            stopGameplay()
+        }
+    }
+    DisposableEffect(lifecycleOwner, isActive, currentSession) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_PAUSE) {
+                preview.stopPreview()
+                if (isActive) stopGameplay()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     val currentOnGameplayChanged by rememberUpdatedState(onGameplayChanged)
-    SideEffect { currentOnGameplayChanged(currentSession != null || currentResult != null) }
+    SideEffect {
+        currentOnGameplayChanged(isActive && (currentSession != null || currentResult != null))
+    }
     DisposableEffect(Unit) {
         onDispose { currentOnGameplayChanged(false) }
     }
@@ -126,6 +182,8 @@ fun GameStageHost(
                 module = preview,
                 onAddMaps = onAddMaps,
                 onDifficultyClick = { song, diff -> popup = Selection(song, diff) },
+                loadBestScores = game::bestScores,
+                scoresRefreshKey = scoreRefresh,
             )
             initializationError?.let { message ->
                 Surface(

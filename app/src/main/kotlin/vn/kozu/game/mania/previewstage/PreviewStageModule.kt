@@ -97,6 +97,13 @@ class PreviewStageModule private constructor(
         buildReport(summary, catalog.all(), t0).also { report = it }
     }
 
+    suspend fun updateStarRatings(songId: Long, ratings: Map<Long, Double>): Int = startLock.withLock {
+        val kozu = kozuDb ?: throw IOException("The chart database is not ready")
+        val updated = withContext(Dispatchers.IO) { kozu.updateStarRatings(songId, ratings) }
+        if (updated > 0) kozu.loadSong(songId, paths.songs)?.let(catalog::upsert)
+        updated
+    }
+
     suspend fun deleteSong(songId: Long) = startLock.withLock {
         val kozu = kozuDb ?: throw IOException("The chart database is not ready")
         val songDir = paths.songDir(songId)

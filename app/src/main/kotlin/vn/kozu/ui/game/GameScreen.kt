@@ -33,6 +33,7 @@ import vn.kozu.ui.components.SettingsAction
 
 @Composable
 fun GameScreen(
+    isSelected: Boolean,
     bottomPadding: Dp,
     onOpenSettings: () -> Unit,
     onGameplayChanged: (Boolean) -> Unit,
@@ -79,6 +80,7 @@ fun GameScreen(
                 GameStageHost(
                     preview = viewModel.previewModule,
                     game = viewModel.gameModule,
+                    isActive = isSelected,
                     onAddMaps = { addMapsOpen = true },
                     onGameplayChanged = {
                         gameplayActive = it

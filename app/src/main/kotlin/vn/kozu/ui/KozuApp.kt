@@ -275,6 +275,7 @@ private fun KozuShell(container: AppContainer) {
                         onOpenSearch = { searchOpen = true }
                     )
                     KozuTab.GAME -> GameScreen(
+                        isSelected = tab == KozuTab.GAME,
                         bottomPadding = bottomPadding,
                         onOpenSettings = { settingsOpen = true },
                         onGameplayChanged = { active ->

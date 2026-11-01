@@ -41,6 +41,7 @@ data class DifficultyRecord(
     val approachRate: Double,
     val sliderMultiplier: Double,
     val sliderTickRate: Double,
+    val starRating: Double = 0.0,
 
     // [Events] + file information resolved on disk
     val backgroundFilename: String?,
@@ -85,6 +86,8 @@ data class ScoreRecord(
     val score: Long,
     val accuracy: Double,
     val rank: String,
+    val trueCombo: Int? = null,
+    val maxCombo: Int? = null,
     val playedAt: Long = 0L,
 )
 

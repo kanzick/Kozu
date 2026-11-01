@@ -782,7 +782,8 @@ class BeatmapRepository(
                             ?: -1
                         val hasNext = when {
                             totalPages >= 0 -> page + 1 < totalPages
-                            else -> array.length() >= pageSize
+                            else -> array.length() >= pageSize ||
+                                (pageSize == MANIA_PAGE_SIZE && array.length() > 0)
                         }
                         val next = if (hasNext) {
                             "$HINAI_OFFSET_PREFIX${page + 1}"

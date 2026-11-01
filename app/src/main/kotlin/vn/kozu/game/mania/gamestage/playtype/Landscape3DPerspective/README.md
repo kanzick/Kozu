@@ -1,0 +1,90 @@
+# Landscape 3D Perspective
+
+This directory documents a gameplay mode that owns its lane projection and note-rendering behavior.
+It is separate from skin selection and skin synchronization; do not couple those systems.
+
+Before changing this mode, understand its projection, note timing, judgement line, hold-note rendering, and touch-input assumptions, then run the game-stage tests.
+
+
+
+
+
+
+Thư mục này mô tả một chế độ chơi có phép chiếu làn và cách hiển thị nốt riêng.
+Chế độ này tách biệt với việc chọn và ĐỒNG BỘ SKIN; không ghép nối các hệ thống đó.
+
+Trước khi thay đổi chế độ này, hãy tìm hiểu phép chiếu, thời điểm nốt, vạch phán định, cách hiển thị nốt giữ (hold) và các giả định về thao tác chạm, sau đó chạy các bài kiểm thử game-stage.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+pass: DONTNOTTOUCH

@@ -49,6 +49,8 @@ class JudgementEngine(
     /** State of each note, readable by the renderer. */
     val state = IntArray(notes.size) // STATE_*
     val broken = BooleanArray(notes.size)
+    /** True after a note's head was successfully pressed. */
+    val hit = BooleanArray(notes.size)
     private val headError = DoubleArray(notes.size)
 
     /** Index (in chart.columns[c]) of the first note that is not DONE. */
@@ -91,6 +93,7 @@ class JudgementEngine(
                 }
                 headError[id] = windows.ok + 1.0 // Late head => at most MEH.
                 state[id] = STATE_HOLDING
+                hit[id] = true
                 listener.onHit(n)
                 return
             }
@@ -102,11 +105,15 @@ class JudgementEngine(
                 } else {
                     headError[id] = abs(err)
                     state[id] = STATE_HOLDING
+                    hit[id] = true
                     listener.onHit(n)
                 }
             } else {
                 resolve(n, judgement, err)
-                if (judgement != Judgement.MISS) listener.onHit(n)
+                if (judgement != Judgement.MISS) {
+                    hit[id] = true
+                    listener.onHit(n)
+                }
             }
             return
         }
