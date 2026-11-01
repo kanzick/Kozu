@@ -1,5 +1,4 @@
 *.iml
-/graphify-out
 .gradle
 /local.properties
 .idea

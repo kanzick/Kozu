@@ -6,7 +6,8 @@ data class Beatmap(
     val artist: String,
     val mapper: String = "",
     val status: String = "",
-    val updatedAt: Long = 0L
+    val updatedAt: Long = 0L,
+    val modes: Set<Int> = emptySet()
 ) {
     val thumbUrl: String get() = "https://assets.ppy.sh/beatmaps/$id/covers/list@2x.jpg"
     val artUrl: String get() = "https://assets.ppy.sh/beatmaps/$id/covers/cover@2x.jpg"

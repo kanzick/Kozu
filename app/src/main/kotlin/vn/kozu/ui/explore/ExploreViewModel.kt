@@ -82,7 +82,6 @@ class ExploreViewModel(private val container: AppContainer) : ViewModel() {
     }
 }
 
-
 private fun Beatmap.isRankedOrLoved(): Boolean =
     status.equals("ranked", ignoreCase = true) ||
         status.equals("loved", ignoreCase = true)

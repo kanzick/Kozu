@@ -2,10 +2,13 @@ package vn.kozu.player
 
 import android.app.PendingIntent
 import android.content.Intent
+import android.media.audiofx.Equalizer
+import android.util.Log
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Player
+import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.DataSource
@@ -30,7 +33,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import vn.kozu.KozuApplication
@@ -38,6 +40,7 @@ import vn.kozu.MainActivity
 import vn.kozu.data.mirror.StreamResolver
 import vn.kozu.data.mirror.ZipAudioDataSource
 import vn.kozu.data.remote.osu.OsuApiFactory
+import vn.kozu.domain.model.AppSettings
 import java.io.File
 import java.io.IOException
 
@@ -46,16 +49,24 @@ class PlaybackService : MediaSessionService() {
 
     private var session: MediaSession? = null
     private var mediaCache: SimpleCache? = null
-    private var cacheDatabaseProvider: StandaloneDatabaseProvider? = null
-    private var mediaCacheDirectory: File? = null
     private var streamResolver: StreamResolver? = null
+    private var player: ExoPlayer? = null
+    private var equalizer: Equalizer? = null
+    private var equalizerSessionId = 0
+    private var currentSettings = AppSettings()
+    private var equalizerErrorReported = false
     private var taskWasRemoved = false
+    private val playbackSessionStore by lazy { PlaybackSessionStore(this) }
 
     private val scope = CoroutineScope(
         SupervisorJob() + Dispatchers.Main.immediate
     )
 
     private val taskRemovalListener = object : Player.Listener {
+        override fun onTracksChanged(tracks: Tracks) {
+            player?.let { applyEqualizer(it, currentSettings) }
+        }
+
         override fun onPlayWhenReadyChanged(
             playWhenReady: Boolean,
             reason: Int
@@ -70,6 +81,10 @@ class PlaybackService : MediaSessionService() {
                 stopSelf()
             }
         }
+
+        override fun onEvents(player: Player, events: Player.Events) {
+            savePlaybackSession(player)
+        }
     }
 
     override fun onCreate() {
@@ -79,18 +94,8 @@ class PlaybackService : MediaSessionService() {
         val streams = container.streams
         streamResolver = streams
 
-        // This cache is intentionally session-only. Remove leftovers from a
-        // previous process before opening the directory again. SimpleCache.delete
-        // also clears its database index; deleting the directory alone is unsafe.
         val cacheDirectory = File(cacheDir, MEDIA_CACHE_DIRECTORY)
         val databaseProvider = StandaloneDatabaseProvider(this)
-        runBlocking(Dispatchers.IO) {
-            SimpleCache.delete(cacheDirectory, databaseProvider)
-        }
-        streams.clearCache()
-
-        mediaCacheDirectory = cacheDirectory
-        cacheDatabaseProvider = databaseProvider
 
         val configuredCacheMb = runBlocking(Dispatchers.IO) {
             container.settings.settings.first().streamCacheMb
@@ -104,10 +109,6 @@ class PlaybackService : MediaSessionService() {
         )
         mediaCache = cache
 
-        // Reuse Kozu's OkHttp client so catalog, mirror and audio requests share
-        // DNS, TLS sessions and the connection pool.
-        // Keep first-byte connection/read waits bounded, but do not impose a
-        // whole-call timeout: a song is a long-lived streaming response.
         val playbackClient = container.httpClient.newBuilder()
             .connectTimeout(2, TimeUnit.SECONDS)
             .readTimeout(4, TimeUnit.SECONDS)
@@ -118,8 +119,6 @@ class PlaybackService : MediaSessionService() {
             .setUserAgent(OsuApiFactory.USER_AGENT)
         val upstream = DefaultDataSource.Factory(this, http)
 
-        // Route custom ZIP-audio URIs to a streaming/inflating DataSource.
-        // Ordinary HTTP, file, content and asset URIs still use DefaultDataSource.
         val routedUpstream = DataSource.Factory {
             KozuRoutingDataSource(upstream, streams)
         }
@@ -129,8 +128,6 @@ class PlaybackService : MediaSessionService() {
             .setUpstreamDataSourceFactory(routedUpstream)
             .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
 
-        // Resolve internal beatmap IDs to local downloads or a genuine full-song
-        // source. Resolver errors remain explicit; FULL never falls back to preview.
         val resolving = ResolvingDataSource.Factory(
             cachedDataSource,
             object : ResolvingDataSource.Resolver {
@@ -147,8 +144,6 @@ class PlaybackService : MediaSessionService() {
             }
         )
 
-        // A larger buffer reduces interruptions on variable mobile networks.
-        // Initial playback is still allowed after the smaller startup threshold.
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
                 10_000,
@@ -171,14 +166,25 @@ class PlaybackService : MediaSessionService() {
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
+        this.player = player
 
         player.addListener(taskRemovalListener)
+        restorePlaybackSession(player)
+        scope.launch {
+            while (true) {
+                kotlinx.coroutines.delay(5_000L)
+                player.let(::savePlaybackSession)
+            }
+        }
 
         scope.launch {
             container.settings.settings
-                .map { it.skipSilence }
                 .distinctUntilChanged()
-                .collect { player.skipSilenceEnabled = it }
+                .collect { settings ->
+                    currentSettings = settings
+                    player.skipSilenceEnabled = settings.skipSilence
+                    applyEqualizer(player, settings)
+                }
         }
 
         val openApp = PendingIntent.getActivity(
@@ -198,13 +204,65 @@ class PlaybackService : MediaSessionService() {
         controllerInfo: MediaSession.ControllerInfo
     ): MediaSession? = session
 
+    private fun applyEqualizer(player: ExoPlayer, settings: AppSettings) {
+        if (!settings.equalizerEnabled) {
+            equalizer?.enabled = false
+            return
+        }
+
+        val audioSessionId = player.audioSessionId
+        if (audioSessionId <= 0) return
+
+        if (audioSessionId != equalizerSessionId) {
+            equalizer?.release()
+            equalizer = null
+            equalizerSessionId = 0
+            try {
+                equalizer = Equalizer(0, audioSessionId)
+                equalizerSessionId = audioSessionId
+            } catch (error: RuntimeException) {
+                reportEqualizerFailure(error)
+                return
+            }
+        }
+
+        val effect = equalizer ?: return
+        try {
+            val range = effect.bandLevelRange
+            val minimum = range[0].toInt()
+            val maximum = range[1].toInt()
+            for (index in 0 until effect.numberOfBands.toInt()) {
+                val frequencyHz = effect.getCenterFreq(index.toShort()) / 1_000f
+                val normalized = EqualizerProfile.gainAt(
+                    frequencyHz,
+                    settings.equalizerGains
+                )
+                val level = EqualizerProfile.gainToMilliBel(normalized)
+                    .coerceIn(minimum, maximum)
+                effect.setBandLevel(index.toShort(), level.toShort())
+            }
+            effect.enabled = true
+            equalizerErrorReported = false
+        } catch (error: RuntimeException) {
+            equalizer?.release()
+            equalizer = null
+            equalizerSessionId = 0
+            reportEqualizerFailure(error)
+        }
+    }
+
+    private fun reportEqualizerFailure(error: RuntimeException) {
+        Log.e(TAG, "Could not apply the device equalizer", error)
+        if (!equalizerErrorReported) {
+            PlaybackEvents.report("The equalizer is not supported by this device.")
+            equalizerErrorReported = true
+        }
+    }
+
     override fun onTaskRemoved(rootIntent: Intent?) {
         taskWasRemoved = true
         val player = session?.player
 
-        // Preserve normal background playback when the task is swiped away.
-        // Once the user pauses or the queue ends, destroy the service and clear
-        // transient streaming caches. Offline beatmap downloads are untouched.
         if (
             player == null ||
             !player.playWhenReady ||
@@ -216,41 +274,56 @@ class PlaybackService : MediaSessionService() {
 
     override fun onDestroy() {
         scope.cancel()
+        equalizer?.release()
+        equalizer = null
+        equalizerSessionId = 0
 
         session?.run {
+            savePlaybackSession(player)
             player.removeListener(taskRemovalListener)
             player.release()
             release()
         }
         session = null
+        player = null
 
         mediaCache?.release()
         mediaCache = null
 
-        val directory = mediaCacheDirectory
-        val database = cacheDatabaseProvider
-        val streams = streamResolver
-        if (directory != null && database != null) {
-            Thread({
-                try {
-                    SimpleCache.delete(directory, database)
-                } catch (_: Exception) {
-                    // A later service start also cleans any leftover cache.
-                }
-                streams?.clearCache()
-            }, "Kozu-cache-cleanup").start()
-        } else {
-            streams?.clearCache()
-        }
-
-        cacheDatabaseProvider = null
-        mediaCacheDirectory = null
         streamResolver = null
 
         super.onDestroy()
     }
 
+    private fun restorePlaybackSession(player: ExoPlayer) {
+        val saved = playbackSessionStore.load() ?: return
+        player.setMediaItems(
+            saved.queue.map { it.toMediaItem() },
+            saved.queueIndex,
+            saved.positionMs
+        )
+        player.shuffleModeEnabled = saved.shuffleEnabled
+        player.repeatMode = saved.repeatMode
+        player.prepare()
+    }
+
+    private fun savePlaybackSession(player: Player) {
+        val queue = List(player.mediaItemCount) { index ->
+            player.getMediaItemAt(index).toBeatmap()
+        }.filterNotNull()
+        playbackSessionStore.save(
+            PlaybackSessionSnapshot(
+                queue = queue,
+                queueIndex = player.currentMediaItemIndex.coerceAtLeast(0),
+                positionMs = player.currentPosition,
+                shuffleEnabled = player.shuffleModeEnabled,
+                repeatMode = player.repeatMode
+            )
+        )
+    }
+
     companion object {
+        private const val TAG = "PlaybackService"
         private const val MEDIA_CACHE_DIRECTORY = "kozu-media3-cache"
         private const val MIN_CACHE_MB = 128
         private const val MAX_CACHE_MB = 2048
@@ -266,10 +339,6 @@ class PlaybackService : MediaSessionService() {
                 .sumOf { it.length() }
         }
 
-        /**
-         * Clears Media3 cache only when no SimpleCache instance has the folder
-         * locked. An active player owns that lock and clears its cache in onDestroy.
-         */
         fun clearMediaCacheIfUnlocked(context: android.content.Context) {
             val appContext = context.applicationContext
             val directory = File(appContext.cacheDir, MEDIA_CACHE_DIRECTORY)
@@ -282,15 +351,13 @@ class PlaybackService : MediaSessionService() {
                         StandaloneDatabaseProvider(appContext)
                     )
                 } catch (_: Exception) {
-                    // The next PlaybackService start performs a full cleanup.
+
                 }
             }, "Kozu-media-cache-clear").start()
         }
     }
 }
 
-
-/** Routes incremental ZIP audio streams while preserving the normal Media3 sources. */
 @OptIn(UnstableApi::class)
 private class KozuRoutingDataSource(
     private val upstreamFactory: DataSource.Factory,

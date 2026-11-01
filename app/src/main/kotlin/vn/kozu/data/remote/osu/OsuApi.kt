@@ -41,6 +41,13 @@ interface OsuApi {
     @GET("me")
     suspend fun me(@Header("Authorization") authorization: String): UserDto
 
+    @GET("users/{user}/{mode}")
+    suspend fun user(
+        @Header("Authorization") authorization: String,
+        @Path("user") user: Long,
+        @Path("mode") mode: String
+    ): UserDto
+
     @GET("beatmapsets/{id}")
     suspend fun beatmapset(
         @Header("Authorization") authorization: String,

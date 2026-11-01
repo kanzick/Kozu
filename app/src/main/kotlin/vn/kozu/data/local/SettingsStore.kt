@@ -15,10 +15,13 @@ import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import vn.kozu.domain.model.AccentColor
+import vn.kozu.domain.model.AppStyle
 import vn.kozu.domain.model.AppSettings
 import vn.kozu.domain.model.Mirror
 import vn.kozu.domain.model.ModeFilter
+import vn.kozu.domain.model.NavigationStyle
 import vn.kozu.domain.model.StatusFilter
+import vn.kozu.domain.model.StartTab
 import vn.kozu.domain.model.StreamMode
 import vn.kozu.domain.model.ThemeMode
 
@@ -29,10 +32,17 @@ class SettingsStore(context: Context) {
     private val prefsCache = appContext.getSharedPreferences("kozu_theme_sync", Context.MODE_PRIVATE)
 
     val cachedThemeMode: ThemeMode get() = initialThemeMode(appContext)
+    val cachedAccent: AccentColor get() =
+        AccentColor.fromKey(prefsCache.getString("accent", AccentColor.PINK.key))
     val cachedAmoled: Boolean get() = prefsCache.getBoolean("amoled", false)
+    val cachedStartTab: StartTab get() =
+        StartTab.fromKey(prefsCache.getString("start_tab", StartTab.HOME.key))
 
     private object Keys {
         val theme = stringPreferencesKey("theme_mode")
+        val appStyle = stringPreferencesKey("app_style")
+        val navigationStyle = stringPreferencesKey("navigation_style")
+        val startTab = stringPreferencesKey("start_tab")
         val amoled = booleanPreferencesKey("amoled")
         val artworkColors = booleanPreferencesKey("artwork_colors")
         val accent = stringPreferencesKey("accent")
@@ -44,6 +54,8 @@ class SettingsStore(context: Context) {
         val wifiOnlyStreaming = booleanPreferencesKey("wifi_only_streaming")
         val streamCacheMb = intPreferencesKey("stream_cache_mb")
         val skipSilence = booleanPreferencesKey("skip_silence")
+        val equalizerEnabled = booleanPreferencesKey("equalizer_enabled")
+        val equalizerGains = stringPreferencesKey("equalizer_gains")
         val disabledMirrors = stringPreferencesKey("disabled_mirrors")
         val customMirrors = stringPreferencesKey("custom_mirrors")
         val keepFull = booleanPreferencesKey("keep_full_beatmap")
@@ -58,6 +70,9 @@ class SettingsStore(context: Context) {
     val settings: Flow<AppSettings> = store.data.map { prefs ->
         AppSettings(
             themeMode = ThemeMode.fromKey(prefs[Keys.theme]),
+            appStyle = AppStyle.fromKey(prefs[Keys.appStyle]),
+            navigationStyle = NavigationStyle.fromKey(prefs[Keys.navigationStyle]),
+            startTab = StartTab.fromKey(prefs[Keys.startTab]),
             amoled = prefs[Keys.amoled] ?: false,
             artworkColors = prefs[Keys.artworkColors] ?: true,
             accent = AccentColor.fromKey(prefs[Keys.accent]),
@@ -68,6 +83,8 @@ class SettingsStore(context: Context) {
             wifiOnlyStreaming = prefs[Keys.wifiOnlyStreaming] ?: false,
             streamCacheMb = prefs[Keys.streamCacheMb] ?: 512,
             skipSilence = prefs[Keys.skipSilence] ?: false,
+            equalizerEnabled = prefs[Keys.equalizerEnabled] ?: false,
+            equalizerGains = decodeEqualizerGains(prefs[Keys.equalizerGains]),
             disabledMirrors = prefs[Keys.disabledMirrors].orEmpty().split(',').filter { it.isNotBlank() }.toSet(),
             customMirrors = decodeMirrors(prefs[Keys.customMirrors]),
             keepFullBeatmap = prefs[Keys.keepFull] ?: true,
@@ -100,13 +117,41 @@ class SettingsStore(context: Context) {
         }
         store.edit { it[Keys.amoled] = enabled }
     }
+    suspend fun setAppStyle(style: AppStyle) = store.edit { it[Keys.appStyle] = style.key }
+    suspend fun setNavigationStyle(style: NavigationStyle) =
+        store.edit { it[Keys.navigationStyle] = style.key }
+    suspend fun setStartTab(tab: StartTab) {
+        withContext(Dispatchers.IO) {
+            check(prefsCache.edit().putString("start_tab", tab.key).commit()) {
+                "Could not persist the startup tab preference"
+            }
+        }
+        store.edit { it[Keys.startTab] = tab.key }
+    }
     suspend fun setArtworkColors(enabled: Boolean) = store.edit { it[Keys.artworkColors] = enabled }
-    suspend fun setAccent(accent: AccentColor) = store.edit { it[Keys.accent] = accent.key }
+    suspend fun setAccent(accent: AccentColor) {
+        withContext(Dispatchers.IO) {
+            check(prefsCache.edit().putString("accent", accent.key).commit()) {
+                "Could not persist the startup accent preference"
+            }
+        }
+        store.edit { it[Keys.accent] = accent.key }
+    }
     suspend fun setDisplayName(name: String) = store.edit { it[Keys.displayName] = name.trim().take(24) }
     suspend fun setStreamMode(mode: StreamMode) = store.edit { it[Keys.streamMode] = mode.key }
     suspend fun setWifiOnlyStreaming(enabled: Boolean) = store.edit { it[Keys.wifiOnlyStreaming] = enabled }
     suspend fun setStreamCacheMb(mb: Int) = store.edit { it[Keys.streamCacheMb] = mb }
     suspend fun setSkipSilence(enabled: Boolean) = store.edit { it[Keys.skipSilence] = enabled }
+    suspend fun setEqualizerEnabled(enabled: Boolean) = store.edit { it[Keys.equalizerEnabled] = enabled }
+    suspend fun setEqualizerGains(gains: List<Float>) {
+        require(gains.size == EQUALIZER_BAND_COUNT)
+        require(gains.all(Float::isFinite))
+        store.edit {
+            it[Keys.equalizerGains] = gains.joinToString(",") { gain ->
+                gain.coerceIn(-1f, 1f).toString()
+            }
+        }
+    }
     suspend fun setKeepFullBeatmap(enabled: Boolean) = store.edit { it[Keys.keepFull] = enabled }
     suspend fun setWifiOnlyDownloads(enabled: Boolean) = store.edit { it[Keys.wifiOnlyDownloads] = enabled }
     suspend fun setAutoUpdateDownloads(enabled: Boolean) = store.edit { it[Keys.autoUpdate] = enabled }
@@ -153,6 +198,15 @@ class SettingsStore(context: Context) {
 
     suspend fun clearRecentSearches() = store.edit { it.remove(Keys.recentSearches) }
 
+    private fun decodeEqualizerGains(value: String?): List<Float> {
+        val parsed = value.orEmpty().split(',').mapNotNull { it.toFloatOrNull() }
+        return if (parsed.size == EQUALIZER_BAND_COUNT && parsed.all(Float::isFinite)) {
+            parsed.map { it.coerceIn(-1f, 1f) }
+        } else {
+            List(EQUALIZER_BAND_COUNT) { 0f }
+        }
+    }
+
     private fun encodeMirrors(list: List<Mirror>): String {
         val array = JSONArray()
         list.forEach {
@@ -189,6 +243,8 @@ class SettingsStore(context: Context) {
     }
 
     companion object {
+        private const val EQUALIZER_BAND_COUNT = 5
+
         fun initialThemeMode(context: Context): ThemeMode =
             ThemeMode.fromKey(
                 context.applicationContext

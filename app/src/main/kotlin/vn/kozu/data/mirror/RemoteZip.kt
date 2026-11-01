@@ -17,7 +17,6 @@ data class RangeTail(
     val bytes: ByteArray
 )
 
-/** Optional fast path for servers that support suffix byte-range requests. */
 interface TailRangeSource {
     fun readTail(maxBytes: Long): RangeTail?
 }
@@ -39,9 +38,7 @@ object RemoteZip {
     private const val TAIL_BYTES = 66_000L
 
     fun readEntries(source: RangeSource): List<ZipEntryInfo> {
-        // A suffix-range request gives us the archive length and the end-of-
-        // central-directory record in one round trip. Older mirrors that do
-        // not support suffix ranges use the compatible two-request path.
+
         val rangedTail = (source as? TailRangeSource)?.readTail(TAIL_BYTES)
         val total = rangedTail?.totalLength ?: source.length()
         if (total < 22) throw IOException("Not a zip file")
@@ -97,20 +94,11 @@ object RemoteZip {
         return audio.maxByOrNull { it.uncompressedSize }
     }
 
-    /**
-     * Opens just the audio member inside a remote ZIP. The returned stream
-     * inflates deflated members on the fly, so Media3 can play while the bytes
-     * are still arriving instead of waiting for a complete local extraction.
-     */
     fun openEntryStream(source: RangeSource, entry: ZipEntryInfo): InputStream {
         if (entry.compressedSize <= 0L) {
             throw IOException("Empty audio entry")
         }
 
-        // Read the small local header first so the following Range request
-        // starts exactly at the compressed member. Guessing the maximum ZIP
-        // extra-field size here can make Range end beyond EOF and cause HTTP 416
-        // for valid archives where the audio is the final ZIP entry.
         val header = readFully(
             source,
             entry.localHeaderOffset,

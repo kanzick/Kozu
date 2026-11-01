@@ -51,11 +51,6 @@ import vn.kozu.domain.model.Beatmap
 import vn.kozu.ui.components.BeatmapArt
 import vn.kozu.ui.components.bounceClick
 
-/**
- * Compact persistent mini player bar floating above bottom navigation bar.
- * Displays artwork with progress ring, song title, artist, and playback controls (previous, play/pause, next).
- * Tapping opens the full player; swiping down closes the current track and queue.
- */
 @Composable
 fun MiniPlayer(
     beatmap: Beatmap,

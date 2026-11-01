@@ -3,25 +3,20 @@ package vn.kozu.game.mania.previewstage.audio
 import android.content.Context
 import android.media.AudioAttributes
 import android.media.MediaPlayer
-import android.net.Uri
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
+import androidx.core.net.toUri
 import java.io.File
 
-/** Plays a song preview without blocking the UI thread. */
 class PreviewPlayer(context: Context) {
     private val appContext = context.applicationContext
     private val audioThread = HandlerThread("PreviewPlayer").apply { start() }
     private val audioHandler = Handler(audioThread.looper)
     private val mainHandler = Handler(Looper.getMainLooper())
 
-    // Read/write only on audioHandler.
     private var player: MediaPlayer? = null
 
-    /**
-     * @param previewTimeMs PreviewTime from the .osu file; if < 0 (not set), starts at 40% of the song.
-     */
     fun play(audio: File, previewTimeMs: Int, onError: (String) -> Unit = {}) {
         playSource(audio.name, previewTimeMs, onError) { player ->
             player.setDataSource(audio.absolutePath)
@@ -30,7 +25,7 @@ class PreviewPlayer(context: Context) {
 
     fun playUrl(url: String, headers: Map<String, String> = emptyMap(), onError: (String) -> Unit = {}) {
         playSource(url, 0, onError) { player ->
-            player.setDataSource(appContext, Uri.parse(url), headers)
+            player.setDataSource(appContext, url.toUri(), headers)
         }
     }
 

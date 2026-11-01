@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -51,7 +52,6 @@ import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.theme.KozuMotion
 import vn.kozu.util.formatTime
 import kotlin.math.abs
-
 
 @Composable
 fun PlayerScreen(
@@ -114,7 +114,10 @@ fun PlayerScreen(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                PlayerTopBar(onClose = onClose, onQueue = { showQueue = true })
+                PlayerTopBar(
+                    onClose = onClose,
+                    onQueue = { showQueue = true }
+                )
 
                 Box(
                     modifier = Modifier
@@ -198,7 +201,6 @@ fun PlayerScreen(
 
                 PlayerProgress(
                     isPlaying = state.isPlaying,
-                    audioInfo = state.audioInfo ?: if (state.isBuffering) "Loading audio…" else "Ready",
                     position = position,
                     duration = duration,
                     onSeek = onSeek
@@ -233,10 +235,14 @@ fun PlayerScreen(
             onRemove = onRemoveFromQueue
         )
     }
+
 }
 
 @Composable
-private fun PlayerTopBar(onClose: () -> Unit, onQueue: () -> Unit) {
+private fun PlayerTopBar(
+    onClose: () -> Unit,
+    onQueue: () -> Unit
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -255,6 +261,7 @@ private fun PlayerTopBar(onClose: () -> Unit, onQueue: () -> Unit) {
         }
         Text(
             text = "Now Playing",
+            modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.titleLarge,
             textAlign = TextAlign.Center
         )
@@ -275,7 +282,6 @@ private fun PlayerTopBar(onClose: () -> Unit, onQueue: () -> Unit) {
 @Composable
 private fun PlayerProgress(
     isPlaying: Boolean,
-    audioInfo: String,
     position: StateFlow<Long>,
     duration: StateFlow<Long>,
     onSeek: (Long) -> Unit
@@ -311,22 +317,7 @@ private fun PlayerProgress(
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Surface(
-                modifier = Modifier
-                    .weight(1f, fill = false)
-                    .padding(horizontal = 8.dp),
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh
-            ) {
-                Text(
-                    text = audioInfo,
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
+            Spacer(Modifier.weight(1f))
             Text(
                 text = formatTime(dur),
                 style = MaterialTheme.typography.labelLarge,

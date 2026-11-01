@@ -2,29 +2,19 @@ package vn.kozu.game.mania.gamestage.audio
 
 import android.media.AudioAttributes
 import android.media.MediaPlayer
+import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
 import vn.kozu.game.mania.gamestage.engine.AudioAnchor
 import java.io.File
 
-/**
- * Plays the song and provides accurate [AudioAnchor] values to the game clock.
- *
- * All MediaPlayer operations run on a dedicated thread, including polling MediaPlayer.getTimestamp()
- * (a binder call) every ~10ms, so the UI thread is never blocked. Results are published
- * through the volatile [anchor] field for the frame loop to read.
- *
- * getTimestamp() returns a pair (media time, System.nanoTime) from AudioTrack, reflecting audio that
- * has actually reached the output rather than the file read position. Bluetooth headphone latency is not included:
- * use the offset setting to compensate.
- */
 class GameAudio {
     private val thread = HandlerThread("GameAudio").apply { start() }
     private val handler = Handler(thread.looper)
     private val main = Handler(Looper.getMainLooper())
 
-    private var player: MediaPlayer? = null // Access only on the handler thread.
+    private var player: MediaPlayer? = null
     private var startedNano = 0L
     private var gotTimestamp = false
     private var polling = false
@@ -38,7 +28,6 @@ class GameAudio {
     @Volatile var completed: Boolean = false
         private set
 
-    /** Loads the song asynchronously. [onDone] runs on the main thread with an error message or null. */
     fun prepare(file: File, volume: Float, onDone: (String?) -> Unit) {
         handler.post {
             try {
@@ -66,7 +55,6 @@ class GameAudio {
         }
     }
 
-    /** Starts playback from the beginning. The first anchor appears when audio actually reaches the output. */
     fun start() {
         handler.post {
             val mp = player ?: return@post
@@ -117,7 +105,10 @@ class GameAudio {
             }
             try {
                 val ts = mp.timestamp
-                if (ts != null && ts.mediaClockRate > 0f) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+                    ts != null &&
+                    ts.mediaClockRate > 0f
+                ) {
                     gotTimestamp = true
                     anchor = AudioAnchor(
                         mediaTimeMs = ts.anchorMediaTimeUs / 1000.0,
@@ -129,11 +120,11 @@ class GameAudio {
                     System.nanoTime() - startedNano > COARSE_FALLBACK_DELAY_MS * 1_000_000L &&
                     mp.isPlaying
                 ) {
-                    // getTimestamp is unsupported: use the coarse position, which the clock trusts less.
+
                     anchor = AudioAnchor(mp.currentPosition.toDouble(), System.nanoTime(), 1.0, precise = false)
                 }
             } catch (e: Exception) {
-                // Ignore this poll if the player is changing state and throws IllegalStateException.
+
             }
             handler.postDelayed(this, POLL_MS)
         }

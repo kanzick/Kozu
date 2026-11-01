@@ -20,23 +20,52 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import vn.kozu.ui.components.bounceClick
+import vn.kozu.domain.model.NavigationStyle
 
-/**
- * Fixed-width bottom navigation with a compact selected state.
- */
 @Composable
 fun FloatingNavBar(
     selected: KozuTab,
+    style: NavigationStyle,
     onSelect: (KozuTab) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    if (style == NavigationStyle.CLASSIC) {
+        Surface(
+            modifier = modifier.fillMaxWidth(),
+            shape = RectangleShape,
+            color = MaterialTheme.colorScheme.surfaceContainerLow
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                KozuTab.entries.forEach { tab ->
+                    NavItem(
+                        tab = tab,
+                        isSelected = selected == tab,
+                        selectedColor = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.weight(1f),
+                        onClick = { onSelect(tab) }
+                    )
+                }
+            }
+        }
+        return
+    }
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -61,7 +90,7 @@ fun FloatingNavBar(
                 )
                 Surface(
                     modifier = Modifier
-                        .offset(x = indicatorOffset)
+                        .offset { IntOffset(indicatorOffset.roundToPx(), 0) }
                         .width(itemWidth)
                         .height(54.dp),
                     shape = RoundedCornerShape(22.dp),
@@ -76,6 +105,7 @@ fun FloatingNavBar(
                         NavItem(
                             tab = tab,
                             isSelected = selected == tab,
+                            selectedColor = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.weight(1f),
                             onClick = { onSelect(tab) }
                         )
@@ -86,18 +116,16 @@ fun FloatingNavBar(
     }
 }
 
-/**
- * Each item keeps a stable width so selecting a tab never expands the navigation bar.
- */
 @Composable
 private fun NavItem(
     tab: KozuTab,
     isSelected: Boolean,
+    selectedColor: Color,
     modifier: Modifier,
     onClick: () -> Unit
 ) {
     val content by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+        targetValue = if (isSelected) selectedColor else MaterialTheme.colorScheme.onSurfaceVariant,
         animationSpec = tween(180),
         label = "navContent"
     )

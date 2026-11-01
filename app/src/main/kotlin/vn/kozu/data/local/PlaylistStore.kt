@@ -13,18 +13,13 @@ import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.Playlist
 import java.util.UUID
 
-/**
- * Playlist backend, stored in a local Room (SQLite) database:
- * playlists + songs + song_in_playlist (junction). Public API is unchanged from the
- * old DataStore/JSON version, so the UI and LibrarySync need no edits.
- */
 class PlaylistStore(context: Context) {
 
     private val db = KozuDatabase.get(context)
     private val dao = db.playlistDao()
 
     val playlists: Flow<List<Playlist>> = dao.observeRows().map { rows ->
-        // groupBy keeps first-seen order, and the query already sorts by playlist then position.
+
         rows.groupBy { it.playlist.id }.values.map { group ->
             val head = group.first().playlist
             Playlist(
@@ -82,7 +77,6 @@ class PlaylistStore(context: Context) {
         dao.deleteOrphanSongs()
     }
 
-    /** Must be called inside a transaction. Adds the song to the end of the playlist (no duplicates). */
     private suspend fun link(playlistId: String, beatmap: Beatmap) {
         dao.upsertSong(beatmap.toEntity())
         dao.insertLink(

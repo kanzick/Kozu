@@ -3,12 +3,42 @@ package vn.kozu.domain.model
 import androidx.compose.ui.graphics.Color
 
 enum class ThemeMode(val key: String, val label: String) {
-    SYSTEM("system", "System"),
-    LIGHT("light", "Light"),
-    DARK("dark", "Dark");
+    SYSTEM("system", "Follow System"),
+    LIGHT("light", "Light Theme"),
+    DARK("dark", "Dark Theme");
 
     companion object {
         fun fromKey(key: String?): ThemeMode = entries.firstOrNull { it.key == key } ?: SYSTEM
+    }
+}
+
+enum class AppStyle(val key: String, val label: String) {
+    EXPRESSIVE("expressive", "Expressive"),
+    CLASSIC("classic", "Classic");
+
+    companion object {
+        fun fromKey(key: String?): AppStyle = entries.firstOrNull { it.key == key } ?: EXPRESSIVE
+    }
+}
+
+enum class NavigationStyle(val key: String, val label: String) {
+    FLOATING("floating", "Floating"),
+    CLASSIC("classic", "Classic");
+
+    companion object {
+        fun fromKey(key: String?): NavigationStyle =
+            entries.firstOrNull { it.key == key } ?: FLOATING
+    }
+}
+
+enum class StartTab(val key: String, val label: String) {
+    HOME("home", "Home"),
+    EXPLORE("explore", "Explore"),
+    LIBRARY("library", "Library"),
+    GAME("game", "Game");
+
+    companion object {
+        fun fromKey(key: String?): StartTab = entries.firstOrNull { it.key == key } ?: HOME
     }
 }
 
@@ -49,7 +79,7 @@ enum class ModeFilter(val key: String, val label: String, val apiValue: Int?) {
 }
 
 enum class StatusFilter(val key: String, val label: String, val apiValue: String?) {
-    // Keep the persisted key for existing installs; only the default behavior changes.
+
     DEFAULT("default", "Ranked + Loved", null),
     RANKED("ranked", "Ranked", "ranked"),
     LOVED("loved", "Loved", "loved"),
@@ -62,6 +92,9 @@ enum class StatusFilter(val key: String, val label: String, val apiValue: String
 
 data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    val appStyle: AppStyle = AppStyle.EXPRESSIVE,
+    val navigationStyle: NavigationStyle = NavigationStyle.FLOATING,
+    val startTab: StartTab = StartTab.HOME,
     val amoled: Boolean = false,
     val artworkColors: Boolean = true,
     val accent: AccentColor = AccentColor.PINK,
@@ -72,6 +105,8 @@ data class AppSettings(
     val wifiOnlyStreaming: Boolean = false,
     val streamCacheMb: Int = 512,
     val skipSilence: Boolean = false,
+    val equalizerEnabled: Boolean = false,
+    val equalizerGains: List<Float> = List(5) { 0f },
     val disabledMirrors: Set<String> = emptySet(),
     val customMirrors: List<Mirror> = emptyList(),
     val keepFullBeatmap: Boolean = true,

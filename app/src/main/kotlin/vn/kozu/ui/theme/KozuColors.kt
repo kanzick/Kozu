@@ -6,12 +6,8 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 
-/** Brand signature pink color */
 val OsuPink = Color(0xFFFF66AA)
 
-/**
- * Generates a dynamic Material 3 [ColorScheme] based on a seed color using the OKLCH color space.
- */
 fun kozuColorScheme(seed: Color, dark: Boolean, amoled: Boolean = false): ColorScheme {
     val lch = Oklch.fromColor(seed)
     val isGray = lch.c < 0.035
@@ -57,13 +53,13 @@ fun kozuColorScheme(seed: Color, dark: Boolean, amoled: Boolean = false): ColorS
             outline = neutralVariant.tone(60),
             outlineVariant = neutralVariant.tone(30),
             scrim = Color.Black,
-            surfaceBright = neutral.tone(if (amoled) 20 else 24),
+            surfaceBright = neutral.tone(if (amoled) 24 else 28),
             surfaceDim = neutral.tone(base),
             surfaceContainerLowest = neutral.tone(if (amoled) 0 else 4),
-            surfaceContainerLow = neutral.tone(if (amoled) 6 else 10),
-            surfaceContainer = neutral.tone(if (amoled) 9 else 12),
-            surfaceContainerHigh = neutral.tone(if (amoled) 13 else 17),
-            surfaceContainerHighest = neutral.tone(if (amoled) 17 else 22)
+            surfaceContainerLow = neutral.tone(if (amoled) 14 else 12),
+            surfaceContainer = neutral.tone(if (amoled) 20 else 16),
+            surfaceContainerHigh = neutral.tone(if (amoled) 26 else 22),
+            surfaceContainerHighest = neutral.tone(if (amoled) 32 else 28)
         )
     } else {
         lightColorScheme(
@@ -107,9 +103,6 @@ fun kozuColorScheme(seed: Color, dark: Boolean, amoled: Boolean = false): ColorS
     }
 }
 
-/**
- * Linearly interpolates between two [ColorScheme] instances for smooth animated theme transitions.
- */
 internal fun lerpColorScheme(a: ColorScheme, b: ColorScheme, fraction: Float): ColorScheme = a.copy(
     primary = lerp(a.primary, b.primary, fraction),
     onPrimary = lerp(a.onPrimary, b.onPrimary, fraction),

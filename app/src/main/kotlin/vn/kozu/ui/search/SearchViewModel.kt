@@ -20,10 +20,8 @@ import vn.kozu.domain.model.SearchCategory
 import vn.kozu.domain.model.SearchSort
 import vn.kozu.ui.containerFactory
 
-/** Execution phase of search operations */
 enum class SearchPhase { IDLE, LOADING, DONE }
 
-/** UI state metadata for Search screen */
 data class SearchUiState(
     val query: String = "",
     val sort: SearchSort = SearchSort.RELEVANCE,
@@ -35,7 +33,6 @@ data class SearchUiState(
     val retryToken: Long = 0L
 )
 
-/** ViewModel executing debounced search queries and managing search history */
 @OptIn(FlowPreview::class)
 class SearchViewModel(private val container: AppContainer) : ViewModel() {
 

@@ -11,9 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import vn.kozu.ui.theme.KozuMotion
 
-/**
- * Modifier extension providing bouncy spring scale animation on press.
- */
 @Composable
 fun Modifier.bounceClick(
     enabled: Boolean = true,

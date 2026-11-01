@@ -25,7 +25,6 @@ data class History(
     val recent: List<Beatmap>
         get() = events.asReversed().map { it.beatmapId }.distinct().mapNotNull { tracks[it] }
 
-
     val mostPlayed: List<Beatmap>
         get() = events.groupingBy { it.beatmapId }.eachCount()
             .entries.sortedByDescending { it.value }

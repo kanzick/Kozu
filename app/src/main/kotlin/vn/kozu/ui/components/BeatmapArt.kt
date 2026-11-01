@@ -24,9 +24,6 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import vn.kozu.domain.model.Beatmap
 
-/**
- * Renders cover artwork for a beatmap with fallback placeholder and crossfade transition.
- */
 @Composable
 fun BeatmapArt(
     beatmap: Beatmap,
@@ -56,7 +53,7 @@ fun BeatmapArt(
         AsyncImage(
             model = request,
             contentDescription = "${beatmap.title} cover",
-            contentScale = ContentScale.Crop,
+            contentScale = if (large) ContentScale.Fit else ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
         )
     }

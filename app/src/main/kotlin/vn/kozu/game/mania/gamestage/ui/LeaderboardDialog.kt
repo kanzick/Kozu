@@ -31,7 +31,6 @@ import vn.kozu.game.mania.previewstage.model.DifficultyRecord
 import vn.kozu.game.mania.previewstage.model.ScoreRecord
 import vn.kozu.game.mania.previewstage.model.SongEntry
 
-/** Leaderboard for one song and difficulty (each player shows their best score). */
 @Composable
 fun LeaderboardDialog(
     game: GameStageModule,

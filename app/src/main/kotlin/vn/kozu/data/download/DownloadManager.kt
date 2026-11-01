@@ -257,12 +257,6 @@ class DownloadManager(
         }
     }
 
-    /**
-     * Signed-in users try osu!'s official download endpoint first.
-     * Guests go straight to the public mirrors. If the official endpoint
-     * rejects the app's OAuth token or is unavailable, public mirrors are
-     * always tried afterwards.
-     */
     private suspend fun buildSources(mirrors: List<Source>, setId: Long): List<Source> {
         val sources = ArrayList<Source>(mirrors.size + 1)
 
@@ -300,8 +294,7 @@ class DownloadManager(
             builder.header("Referer", source.referer)
         }
         if (source.authorization.isNotBlank()) {
-            // This bearer token is sent only to osu.ppy.sh. OkHttp removes
-            // Authorization when following a redirect to a different host.
+
             builder.header("Authorization", source.authorization)
         }
 
@@ -371,8 +364,7 @@ class DownloadManager(
                 Intent(appContext, DownloadService::class.java)
             )
         } catch (_: Exception) {
-            // The download remains managed by this process even if foreground
-            // service startup is unavailable on the current Android state.
+
         }
     }
 }

@@ -29,7 +29,6 @@ class AccountRepository(
     val profile: Flow<OsuProfile?> = store.profile
     val loggedIn: Flow<Boolean> = auth.loggedIn
 
-    /** True only while signed in and the cached profile says the osu! supporter tag is active. */
     val isSupporter: Flow<Boolean> = combine(auth.loggedIn, store.profile) { signedIn, profile ->
         signedIn && profile?.isSupporter == true
     }.distinctUntilChanged()
@@ -61,12 +60,39 @@ class AccountRepository(
         )
     }
 
-    suspend fun refreshProfile(): Result<OsuProfile> {
+    suspend fun refreshProfile(forceRankHistory: Boolean = false): Result<OsuProfile> {
         return try {
             val bearer = auth.userBearer() ?: return Result.failure(IllegalStateException("Not signed in"))
-            val user = api.me("Bearer $bearer")
-            val profile = user.toProfile()
+            val authorization = "Bearer $bearer"
+            val user = api.me(authorization)
+            val basicProfile = user.toProfile()
+            val cachedProfile = store.profile.first()
+            val previousHistory = cachedProfile?.rankHistory.orEmpty()
+            val now = System.currentTimeMillis()
+            val historyIsFresh = !forceRankHistory &&
+                now - store.rankHistoryFetchedAt.first() < RANK_HISTORY_REFRESH_INTERVAL_MS
+            var historyRefreshed = false
+            val rankHistory = if (historyIsFresh) {
+                previousHistory
+            } else {
+                try {
+                    api.user(authorization, basicProfile.id, basicProfile.mode)
+                        .rankHistory
+                        ?.data
+                        .orEmpty()
+                        .filter { it > 0 }
+                        .takeLast(90)
+                        .also { historyRefreshed = true }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    _events.tryEmit("osu! profile updated, but rank history could not be refreshed")
+                    previousHistory
+                }
+            }
+            val profile = basicProfile.copy(rankHistory = rankHistory)
             store.saveProfile(profile)
+            if (historyRefreshed) store.markRankHistoryFetched(now)
             Result.success(profile)
         } catch (e: CancellationException) {
             throw e
@@ -77,15 +103,15 @@ class AccountRepository(
         }
     }
 
-    /**
-     * Re-fetches the profile so an expired (or newly bought) supporter tag is picked up without
-     * the user pressing Refresh. Skipped when signed out or when it already succeeded recently.
-     * On failure the cached profile is kept untouched.
-     */
-    suspend fun refreshIfSignedIn() {
-        if (System.currentTimeMillis() - lastAutoRefresh < AUTO_REFRESH_INTERVAL_MS) return
+    suspend fun refreshIfSignedIn(force: Boolean = false) {
+        if (!force && System.currentTimeMillis() - lastAutoRefresh < AUTO_REFRESH_INTERVAL_MS) return
         if (!auth.loggedIn.first()) return
-        if (refreshProfile().isSuccess) lastAutoRefresh = System.currentTimeMillis()
+        refreshProfile(forceRankHistory = force).fold(
+            onSuccess = { lastAutoRefresh = System.currentTimeMillis() },
+            onFailure = {
+                _events.tryEmit(it.message ?: "osu! profile could not be refreshed")
+            }
+        )
     }
 
     suspend fun logout() {
@@ -120,11 +146,14 @@ class AccountRepository(
             rankedScore = stats?.rankedScore ?: 0L,
             gradeSS = (grades?.ss ?: 0) + (grades?.ssh ?: 0),
             gradeS = (grades?.s ?: 0) + (grades?.sh ?: 0),
-            gradeA = grades?.a ?: 0
+            gradeA = grades?.a ?: 0,
+            gradeSSH = grades?.ssh ?: 0,
+            gradeSH = grades?.sh ?: 0
         )
     }
 
     private companion object {
         const val AUTO_REFRESH_INTERVAL_MS = 30L * 60L * 1000L
+        const val RANK_HISTORY_REFRESH_INTERVAL_MS = 6L * 60L * 60L * 1000L
     }
 }

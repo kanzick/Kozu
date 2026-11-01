@@ -46,7 +46,13 @@ data class UserDto(
     @SerializedName("join_date") val joinDate: String? = null,
     @SerializedName("follower_count") val followerCount: Int? = null,
     @SerializedName("playmode") val playmode: String? = null,
+    @SerializedName("rank_history") val rankHistory: RankHistoryDto? = null,
     @SerializedName("statistics") val statistics: StatisticsDto? = null
+)
+
+data class RankHistoryDto(
+    @SerializedName("mode") val mode: String? = null,
+    @SerializedName("data") val data: List<Int> = emptyList()
 )
 
 data class CountryDto(

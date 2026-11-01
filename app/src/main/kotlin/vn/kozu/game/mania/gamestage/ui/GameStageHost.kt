@@ -46,10 +46,6 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
     else -> null
 }
 
-/**
- * Coordinates the full flow: list (PreviewStage) -> info popup -> gameplay -> results -> return to the popup.
- * Replaces direct calls to PreviewStageScreen.
- */
 @Composable
 fun GameStageHost(
     preview: PreviewStageModule,

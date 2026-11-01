@@ -11,11 +11,6 @@ import vn.kozu.data.local.SettingsStore
 import vn.kozu.domain.model.ThemeMode
 import vn.kozu.ui.KozuApp
 
-/**
- * Main activity of the Kozu application.
- * Manages Compose UI initialization, edge-to-edge layout, high refresh rate configuration,
- * and handles incoming OAuth deep links from osu!.
- */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         applyLaunchTheme()
@@ -43,9 +38,6 @@ class MainActivity : ComponentActivity() {
         handleOAuthIntent(intent)
     }
 
-    /**
-     * Handles deep link OAuth redirects from osu! authentication (kozu://oauth).
-     */
     private fun handleOAuthIntent(intent: Intent?) {
         val data = intent?.data ?: return
         if (data.scheme != "kozu" || data.host != "oauth") return
@@ -58,9 +50,6 @@ class MainActivity : ComponentActivity() {
         intent.data = null
     }
 
-    /**
-     * Configures the window to prefer the highest display refresh rate available (e.g. 90Hz/120Hz+).
-     */
     private fun preferHighRefreshRate() {
         val display = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             display

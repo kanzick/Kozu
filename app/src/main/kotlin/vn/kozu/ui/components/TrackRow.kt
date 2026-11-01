@@ -34,9 +34,6 @@ import androidx.compose.ui.unit.dp
 import vn.kozu.data.download.DownloadStatus
 import vn.kozu.domain.model.Beatmap
 
-/**
- * Standard list row displaying track artwork, title, artist, download status badge, favorite, and overflow menu.
- */
 @Composable
 fun TrackRow(
     beatmap: Beatmap,
@@ -128,7 +125,6 @@ fun TrackRow(
     }
 }
 
-/** Badge showing offline download status or mapper information */
 @Composable
 private fun DownloadBadge(
     isDownloaded: Boolean,

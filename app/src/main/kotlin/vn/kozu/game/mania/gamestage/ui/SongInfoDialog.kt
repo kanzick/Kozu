@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -19,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
+import androidx.compose.material3.rememberSliderState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -52,12 +54,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
-/**
- * Popup shown when a difficulty is tapped: song info at the top, settings below, and the Play button at the bottom.
- * Includes a leaderboard for this song and difficulty; the personal best appears in the song info.
- *
- * When [refreshKey] changes, the personal best is reloaded (e.g. after returning from a completed game).
- */
 @Composable
 fun SongInfoDialog(
     game: GameStageModule,
@@ -107,13 +103,13 @@ fun SongInfoDialog(
 
     Dialog(onDismissRequest = { onSettingsCommit(settings); onDismiss() }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(
-            modifier = Modifier.fillMaxWidth(0.94f).fillMaxHeight(0.92f),
+            modifier = Modifier.fillMaxWidth(0.94f).fillMaxHeight(0.92f).imePadding(),
             shape = MaterialTheme.shapes.large,
             tonalElevation = 6.dp,
         ) {
             Column(Modifier.fillMaxWidth()) {
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                    // ---------------- song information
+
                     Box(Modifier.fillMaxWidth().height(170.dp).background(Color(0xFF202020))) {
                         header?.let {
                             Image(it, null, Modifier.matchParentSize(), contentScale = ContentScale.Crop)
@@ -155,7 +151,7 @@ fun SongInfoDialog(
                         OutlinedButton(onClick = { showLeaderboard = true }) { Text("Leaderboard") }
 
                         Spacer(Modifier.height(16.dp))
-                        // ---------------- settings
+
                         SettingsPanel(settings, onSettingsChange, onSettingsCommit)
                         settingsError?.let {
                             Text(
@@ -167,7 +163,7 @@ fun SongInfoDialog(
                         }
                     }
                 }
-                // ---------------- Play
+
                 Button(
                     onClick = { chart?.let { onSettingsCommit(settings); onPlay(it) } },
                     enabled = chart != null,
@@ -271,6 +267,10 @@ private fun SettingSlider(
     onFinished: () -> Unit,
     onStep: ((Int) -> Unit)? = null,
 ) {
+    val sliderState = rememberSliderState(value = value, steps = steps, trackRange = range)
+    LaunchedEffect(value) {
+        sliderState.value = value
+    }
     Column(Modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
@@ -278,7 +278,11 @@ private fun SettingSlider(
             Text(valueText, fontWeight = FontWeight.Bold, modifier = Modifier.width(72.dp), maxLines = 1)
             if (onStep != null) TextButton(onClick = { onStep(1) }) { Text("+") }
         }
-        Slider(value = value, onValueChange = onChange, valueRange = range, steps = steps, onValueChangeFinished = onFinished)
+        Slider(
+            state = sliderState,
+            onValueChange = onChange,
+            onValueChangeFinished = onFinished
+        )
     }
 }
 

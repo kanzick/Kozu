@@ -7,9 +7,6 @@ import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.ui.graphics.vector.ImageVector
 
-/**
- * Navigation tabs in Kozu with title and material icon.
- */
 enum class KozuTab(val title: String, val icon: ImageVector) {
     HOME("Home", Icons.Rounded.Home),
     EXPLORE("Explore", Icons.Rounded.Explore),

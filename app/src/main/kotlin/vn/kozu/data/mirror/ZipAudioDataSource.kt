@@ -2,6 +2,7 @@ package vn.kozu.data.mirror
 
 import android.net.Uri
 import androidx.media3.common.C
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.TransferListener
@@ -9,11 +10,7 @@ import java.io.IOException
 import java.io.OutputStream
 import java.util.concurrent.CopyOnWriteArrayList
 
-/**
- * Media3 DataSource that reads a compressed audio member directly from an
- * osu! .osz archive. Decompression is incremental: playback can begin while
- * the rest of the audio is still arriving from the mirror.
- */
+@UnstableApi
 class ZipAudioDataSource(
     private val resolver: StreamResolver
 ) : DataSource {
@@ -65,9 +62,6 @@ class ZipAudioDataSource(
             throw IOException("Invalid audio seek position")
         }
 
-        // Media3 can request a byte range after a seek. ZIP members are deflated
-        // streams, so skipping is done by inflating and discarding preceding
-        // bytes. Normal first playback always starts at zero.
         if (startPosition > 0L) {
             skipFully(input!!, startPosition)
         } else if (requestedLength == C.LENGTH_UNSET.toLong() || requestedLength >= expectedLength) {
@@ -77,8 +71,7 @@ class ZipAudioDataSource(
 
         opened = true
         listeners.forEach { listener ->
-            // Transfer events are emitted by the DataSource wrapper through
-            // Media3's standard callbacks. The archive stream itself is raw.
+
         }
 
         val available = expectedLength - startPosition
@@ -161,7 +154,7 @@ class ZipAudioDataSource(
             val expected = expectedLength
             val actual = bytesRead
             if (startPosition != 0L || actual != expected) {
-                // An interrupted partial is not a usable full-song cache.
+
                 temp?.delete()
             }
         }

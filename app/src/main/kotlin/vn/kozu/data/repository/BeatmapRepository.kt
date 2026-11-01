@@ -32,7 +32,6 @@ import java.util.Base64
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
-/** One page of a catalog. Official cursor strings are opaque and must be reused unchanged. */
 data class CatalogResult(
     val items: List<Beatmap>,
     val error: String? = null,
@@ -52,11 +51,6 @@ private data class CachedCatalogPage(
     val result: CatalogResult
 )
 
-/**
- * osu! API v2 is the canonical catalog whenever an OAuth public token is
- * available. Public Hinai search is a no-auth fallback for guest browsing.
- * No OAuth secret is embedded in the APK.
- */
 class BeatmapRepository(
     private val api: OsuApi,
     private val auth: OsuAuth,
@@ -80,9 +74,7 @@ class BeatmapRepository(
         sort: SearchSort = SearchSort.RELEVANCE,
         category: SearchCategory? = null
     ): CatalogResult {
-        // Search intentionally includes every osu! ruleset and exactly two
-        // public statuses. The former Settings > Content mode/status choices
-        // are ignored so old saved preferences cannot silently narrow Search.
+
         return searchRankedAndLoved(
             query = query,
             sort = sort.apiValue,
@@ -141,7 +133,7 @@ class BeatmapRepository(
                 } catch (e: CancellationException) {
                     throw e
                 } catch (_: Exception) {
-                    // Fall back to the public beatmapset endpoint below.
+
                 }
             }
         }
@@ -160,7 +152,7 @@ class BeatmapRepository(
                 .build()
             publicClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) throw IOException("Could not load map difficulties (HTTP ${response.code})")
-                val body = response.body?.string().orEmpty()
+                val body = response.body.string()
                 if (body.isBlank()) emptyList() else parseManiaDifficulties(JSONObject(body))
             }
         }
@@ -196,8 +188,7 @@ class BeatmapRepository(
 
         val ranked = rankedRequest.await()
         val loved = lovedRequest.await()
-        // Interleave both result sets so a full Ranked page cannot push
-        // Loved results completely out of the first visible search page.
+
         val rankedItems = ranked.items.filter {
             it.status.equals("ranked", ignoreCase = true)
         }
@@ -239,7 +230,6 @@ class BeatmapRepository(
         mode = null
     )
 
-    /** Newest releases are limited to the two requested catalog states. */
     suspend fun newReleases(): CatalogResult = searchRankedAndLoved(
         query = "",
         sort = "updated_desc",
@@ -255,10 +245,6 @@ class BeatmapRepository(
         mode = null
     )
 
-    /**
-     * Mix pagination sourced from osu! official first, with a public mirror
-     * fallback. Only Ranked and Loved are queried, across every game mode.
-     */
     suspend fun mixPage(cursor: String?, sort: String): CatalogResult {
         val cacheKey = "$sort:${cursor.orEmpty()}"
         mixPageCache[cacheKey]?.let { cached ->
@@ -267,10 +253,6 @@ class BeatmapRepository(
             }
         }
 
-        // The official osu! API is the canonical catalogue. Guests (or users
-        // whose token cannot be refreshed) use Hinai's public index instead.
-        // Both paths request Ranked and Loved separately so no Pending, WIP,
-        // Graveyard, Approved or Qualified rows can leak into the visible Mix.
         val result = when {
             cursor?.startsWith(HINAI_MIX_CURSOR_PREFIX) == true -> {
                 fetchHinaiMixPage(cursor, sort)
@@ -286,11 +268,7 @@ class BeatmapRepository(
                 val official = officialMixPage(null, sort)
                 when {
                     official != null && official.error == null -> official
-                    // Hinai's public search index supports ranked_desc/plays_desc,
-                    // but not osu!'s updated_desc/updated_asc sort fields. Do not
-                    // call the same popular fallback twice and pretend it is the
-                    // oldest end of history. Guests get one sequential Ranked+Loved
-                    // stream, ordered by rank date rather than play count.
+
                     sort == "updated_asc" -> CatalogResult(
                         items = emptyList(),
                         source = CatalogSource.PUBLIC_MIRROR
@@ -394,9 +372,6 @@ class BeatmapRepository(
             else -> sort
         }
 
-        // Hinai v2 accepts one exact status at a time (ranked or loved), not
-        // a CSV of statuses. Sending a CSV was ignored by the API and allowed
-        // Pending/WIP rows to appear in All beatmaps on guest accounts.
         val rankedRequest = async {
             if (pair.ranked == END_CURSOR) {
                 CatalogResult(emptyList(), source = CatalogSource.PUBLIC_MIRROR)
@@ -547,7 +522,7 @@ class BeatmapRepository(
                 } catch (e: CancellationException) {
                     throw e
                 } catch (_: Exception) {
-                    // Continue to public metadata mirrors.
+
                 }
             }
         }
@@ -567,7 +542,7 @@ class BeatmapRepository(
                     .build()
                 publicClient.newCall(request).execute().use { response ->
                     if (!response.isSuccessful) return@use null
-                    val body = response.body?.string().orEmpty()
+                    val body = response.body.string()
                     if (body.isBlank()) null else parseDetail(JSONObject(body), id)
                 }
             }
@@ -611,8 +586,6 @@ class BeatmapRepository(
         )
         if (official != null && official.error == null) return official
 
-        // Public fallback uses the same exact status as the official request.
-        // In particular, it never leaves status blank for a Ranked/Loved query.
         return fetchHinaiSearch(
             query = query,
             status = status?.takeUnless { it == "any" },
@@ -740,7 +713,7 @@ class BeatmapRepository(
                         throw IOException("Hinai search returned HTTP ${response.code}")
                     }
 
-                    val body = response.body?.string().orEmpty()
+                    val body = response.body.string()
                     if (body.isBlank()) {
                         CatalogResult(
                             items = emptyList(),
@@ -823,7 +796,7 @@ class BeatmapRepository(
                 .build()
             publicClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return@use null
-                val body = response.body?.string().orEmpty()
+                val body = response.body.string()
                 gson.fromJson(body, BeatmapsetDto::class.java)?.toBeatmap()
             }
         } catch (e: CancellationException) {
@@ -854,7 +827,8 @@ class BeatmapRepository(
             mapper = item.optString("creator", item.optString("Creator"))
                 .takeUnless { it == "null" }.orEmpty(),
             status = status,
-            updatedAt = parseInstant(updated)
+            updatedAt = parseInstant(updated),
+            modes = parseModes(item.optJSONArray("beatmaps"))
         )
     }
 
@@ -878,12 +852,26 @@ class BeatmapRepository(
                     "lastUpdated",
                     data.optString("last_updated", data.optString("LastUpdate"))
                 )
-            )
+            ),
+            modes = parseModes(data.optJSONArray("beatmaps"))
         )
     }
 
+    private fun parseModes(beatmaps: JSONArray?): Set<Int> =
+        beatmaps?.let { items ->
+            List(items.length()) { index ->
+                val item = items.optJSONObject(index) ?: return@List -1
+                val mode = item.optInt("mode_int", -1)
+                if (mode in 0..3) mode else when (item.optString("mode").lowercase(Locale.US)) {
+                    "osu" -> 0
+                    "taiko" -> 1
+                    "fruits", "catch" -> 2
+                    "mania" -> 3
+                    else -> -1
+                }
+            }.filter { it in 0..3 }.toSet()
+        }.orEmpty()
 
-    /** Normalize osu!/Hinai status values before applying the strict Ranked+Loved filter. */
     private fun normalizeStatus(raw: Any?): String {
         val value = when (raw) {
             is Number -> raw.toInt().toString()
@@ -913,7 +901,16 @@ class BeatmapRepository(
             artist = artist.orEmpty(),
             mapper = creator.orEmpty(),
             status = status.orEmpty(),
-            updatedAt = parseInstant(lastUpdated)
+            updatedAt = parseInstant(lastUpdated),
+            modes = beatmaps.orEmpty().mapNotNull { beatmap ->
+                beatmap.modeInt ?: when (beatmap.mode?.lowercase(Locale.US)) {
+                    "osu" -> 0
+                    "taiko" -> 1
+                    "fruits", "catch" -> 2
+                    "mania" -> 3
+                    else -> null
+                }
+            }.filter { it in 0..3 }.toSet()
         )
     }
 

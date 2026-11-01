@@ -26,6 +26,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,6 +36,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -54,19 +57,20 @@ import vn.kozu.ui.components.HeaderAction
 import vn.kozu.ui.components.HeaderTitle
 import vn.kozu.ui.components.KozuLoading
 import vn.kozu.ui.components.LocalTrackActions
+import vn.kozu.ui.components.RefreshIndicator
 import vn.kozu.ui.components.ScreenHeader
 import vn.kozu.ui.components.SettingsAction
 import vn.kozu.ui.components.TrackRow
 import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.segmentedShape
 
-/**
- * Full screen Search overlay allowing users to search songs, artists, and mappers.
- */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
     onBack: () -> Unit,
     onOpenSettings: () -> Unit,
+    onRefresh: () -> Unit,
+    isAppRefreshing: Boolean,
     modifier: Modifier = Modifier,
     viewModel: SearchViewModel = viewModel(factory = SearchViewModel.Factory)
 ) {
@@ -75,13 +79,32 @@ fun SearchScreen(
     val actions = LocalTrackActions.current
     val keyboard = LocalSoftwareKeyboardController.current
     val listState = rememberLazyListState()
+    val pullState = rememberPullToRefreshState()
+    val refreshNow = {
+        if (!isAppRefreshing) {
+            if (ui.query.isNotBlank() || ui.category != null) viewModel.retry()
+            onRefresh()
+        }
+    }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-            .imePadding()
+    PullToRefreshBox(
+        isRefreshing = isAppRefreshing,
+        onRefresh = refreshNow,
+        state = pullState,
+        modifier = modifier.fillMaxSize().imePadding(),
+        indicator = {
+            RefreshIndicator(
+                state = pullState,
+                isRefreshing = isAppRefreshing,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
+        }
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface)
+        ) {
         ScreenHeader(
             leading = {
                 HeaderAction(
@@ -180,6 +203,7 @@ fun SearchScreen(
                                     }
                                 )
                             }
+                        }
                         }
                     }
                 }

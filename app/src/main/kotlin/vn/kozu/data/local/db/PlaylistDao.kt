@@ -8,10 +8,6 @@ import androidx.room.Query
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
-/**
- * One row per (playlist, song) pair. A playlist with no songs still produces one row
- * with [song] = null (LEFT JOIN), so empty playlists are not lost.
- */
 data class PlaylistRow(
     @Embedded val playlist: PlaylistEntity,
     @Embedded(prefix = "song_") val song: SongEntity?
@@ -20,7 +16,6 @@ data class PlaylistRow(
 @Dao
 interface PlaylistDao {
 
-    /** Single query => every emission is one consistent snapshot of playlists and their songs. */
     @Query(
         """
         SELECT p.id AS id, p.name AS name, p.createdAt AS createdAt,
@@ -46,8 +41,6 @@ interface PlaylistDao {
     @Query("DELETE FROM playlists")
     suspend fun deleteAllPlaylists()
 
-    // @Upsert (UPDATE on conflict), NOT REPLACE: REPLACE deletes the row first, which would
-    // CASCADE-delete the song out of every playlist.
     @Upsert
     suspend fun upsertSong(song: SongEntity)
 

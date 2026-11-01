@@ -3,6 +3,7 @@ package vn.kozu.data.mirror
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import androidx.core.net.toUri
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -27,7 +28,6 @@ import java.util.concurrent.ExecutorCompletionService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-/** Identifies the selected provider so the player can retry without reusing it. */
 data class ResolvedAudio(
     val uri: Uri,
     val label: String,
@@ -48,15 +48,6 @@ data class ArchiveAudioSession(
     val cacheFile: File
 )
 
-/**
- * Resolves full audio from several independent sources.
- *
- * Hinai is one provider, not the only provider: the resolver also checks
- * Sayobot's direct audio endpoint and the .osz archives from osu.direct,
- * Nekoha, Mirria, osu!dl, Mino/catboy, Sayobot and Beatconnect. Hinai's
- * JSON cascade can also choose a healthy partner URL without proxying all
- * archive bytes through Hinai. ZIP audio is inflated incrementally by Media3.
- */
 class StreamResolver(
     private val context: Context,
     client: OkHttpClient,
@@ -79,9 +70,6 @@ class StreamResolver(
         .retryOnConnectionFailure(true)
         .build()
 
-    // The read timeout is an idle-between-reads limit, not a whole-track
-    // deadline. Disable callTimeout here: a complete song can legitimately
-    // take several minutes to stream and must not be cut off at 60 seconds.
     private val dataClient = client.newBuilder()
         .connectTimeout(2, TimeUnit.SECONDS)
         .readTimeout(4, TimeUnit.SECONDS)
@@ -89,8 +77,6 @@ class StreamResolver(
         .retryOnConnectionFailure(true)
         .build()
 
-    // These workers only perform short HTTP Range probes. Daemon threads
-    // prevent an app process from being kept alive by an idle executor.
     private val zipProbeExecutor = Executors.newFixedThreadPool(
         MAX_PARALLEL_PROVIDERS
     ) { task ->
@@ -149,7 +135,6 @@ class StreamResolver(
 
     fun cacheBytes(): Long = streamDir.listFiles()?.sumOf { it.length() } ?: 0L
 
-    /** Clears transient streamed files only; offline downloads live elsewhere. */
     fun clearCache() {
         streamDir.listFiles()?.forEach { it.deleteRecursively() }
         fullUrlCache.clear()
@@ -161,7 +146,6 @@ class StreamResolver(
         labels.clear()
     }
 
-    /** Called by PlaybackController after Media3 reports that the chosen source failed. */
     fun markCurrentSourceFailed(id: Long): Boolean {
         val resolved = lastResolved.remove(id) ?: return false
         val failed = failedSources.computeIfAbsent(id) {
@@ -190,10 +174,6 @@ class StreamResolver(
         return true
     }
 
-    /**
-     * FULL mode returns a real full-length audio source or throws. It never
-     * silently switches to the 30-second osu! preview.
-     */
     fun resolve(id: Long): ResolvedAudio {
         val settings = current
         if (settings.wifiOnlyStreaming && NetworkInfo.isMetered(context)) {
@@ -290,10 +270,6 @@ class StreamResolver(
         val mirrors = settings.activeMirrors.filter { it.id !in excluded }
         if (mirrors.isEmpty() && excluded.isNotEmpty()) return null
 
-        // Race every independent provider together. Previously the resolver
-        // spent up to 12 seconds checking direct audio, then another 8 seconds
-        // probing ZIP mirrors. This single deadline prevents those budgets from
-        // stacking and lets a responsive archive mirror win immediately.
         val resolutionStartedAt = System.nanoTime()
         val tasks = ArrayList<Callable<ResolvedAudio?>>()
         val activeIds = mirrors.mapTo(mutableSetOf()) { it.id }
@@ -304,10 +280,7 @@ class StreamResolver(
         if ("sayobot-direct" !in excluded && "sayobot" in activeIds) {
             tasks += Callable { sayobotFull(id) }
         }
-        // Hinai's unmetered JSON cascade selects a live partner (usually
-        // osu.direct, with Nekoha/other partners as fallbacks) and returns
-        // its direct .osz URL. We then range-stream that partner URL ourselves.
-        // This uses Hinai as a routing hint, not as the only byte-stream host.
+
         if ("hinai-cascade" !in excluded && "hinai" in activeIds) {
             tasks += Callable { hinaiCascadeFull(id, mirrors) }
         }
@@ -383,10 +356,6 @@ class StreamResolver(
 
     private fun archiveKey(id: Long, sourceId: String): String = "$id:$sourceId"
 
-    /**
-     * Opens the selected ZIP member as a streaming input. The compressed audio
-     * bytes are fetched with HTTP Range and inflated as Media3 consumes them.
-     */
     fun openArchiveAudio(id: Long, sourceId: String): ArchiveAudioSession {
         val candidate = archiveCandidates[archiveKey(id, sourceId)]
             ?: throw IOException("Archive source expired; resolving it again")
@@ -414,7 +383,6 @@ class StreamResolver(
         )
     }
 
-    /** Promote a fully streamed archive member into the local stream cache. */
     fun completeArchiveAudio(
         id: Long,
         sourceId: String,
@@ -446,7 +414,6 @@ class StreamResolver(
         return true
     }
 
-    /** Hinai Music API is used only when it explicitly confirms a cached full track. */
     private fun hinaiCachedFullAudio(id: Long): ResolvedAudio? {
         return try {
             val request = Request.Builder()
@@ -458,7 +425,7 @@ class StreamResolver(
 
             val metadata = lookupClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return null
-                response.body?.string().orEmpty()
+                response.body.string()
             }
             if (metadata.isBlank()) return null
 
@@ -469,17 +436,14 @@ class StreamResolver(
             if (!song.optBoolean("audio_cached", false)) return null
 
             val url = "https://mirror.hinamizawa.ai/v3/osu/music/audio/$id"
-            // audio_cached is the authoritative full-track flag. Skip an
-            // extra Range probe here: cached Hinai songs are already the fast
-            // path and should not pay another network round-trip.
-            ResolvedAudio(Uri.parse(url), "Hinai · cached full song", "hinai-audio")
+
+            ResolvedAudio(url.toUri(), "Hinai · cached full song", "hinai-audio")
         } catch (e: Exception) {
             Log.d(TAG, "Hinai has no verified cached full audio for $id: ${e.message}")
             null
         }
     }
 
-    /** Sayobot's metadata endpoint returns the real audio filename for a set. */
     private fun sayobotFull(id: Long): ResolvedAudio? {
         return try {
             val request = Request.Builder()
@@ -490,7 +454,7 @@ class StreamResolver(
 
             val body = lookupClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return null
-                response.body?.string().orEmpty()
+                response.body.string()
             }
 
             val list = JSONObject(body)
@@ -504,10 +468,9 @@ class StreamResolver(
                 ?: return null
 
             val url = "https://dl.sayobot.cn/beatmaps/files/$id/${Uri.encode(audio)}"
-            // Verify the direct URL actually returns audio (not a CDN error page).
-            // This tiny Range probe runs inside the same global provider deadline.
+
             if (!probeAudio(url, "")) return null
-            ResolvedAudio(Uri.parse(url), "Sayobot · full song", "sayobot-direct")
+            ResolvedAudio(url.toUri(), "Sayobot · full song", "sayobot-direct")
         } catch (e: Exception) {
             Log.d(TAG, "Sayobot direct audio unavailable for $id: ${e.message}")
             null
@@ -528,7 +491,7 @@ class StreamResolver(
 
             val json = lookupClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return null
-                response.body?.string().orEmpty()
+                response.body.string()
             }
             if (json.isBlank()) return null
 
@@ -602,7 +565,7 @@ class StreamResolver(
     private fun preview(id: Long, settings: AppSettings): ResolvedAudio? {
         val official = Mirrors.OFFICIAL_PREVIEW.replace("{id}", id.toString())
         if (probeAudio(official, "")) {
-            return ResolvedAudio(Uri.parse(official), "Preview · osu!", "osu-preview")
+            return ResolvedAudio(official.toUri(), "Preview · osu!", "osu-preview")
         }
 
         for (mirror in settings.activeMirrors) {
@@ -612,7 +575,7 @@ class StreamResolver(
                     ?.let { mapOf("Referer" to it) }
                     .orEmpty()
                 return ResolvedAudio(
-                    Uri.parse(url),
+                    url.toUri(),
                     "Preview · ${mirror.name}",
                     "preview:${mirror.id}",
                     headers
@@ -674,7 +637,7 @@ class StreamResolver(
                         contentType.startsWith("text/")
                     ) return false
 
-                    val body = response.body ?: return false
+                    val body = response.body
                     val prefix = ByteArray(16)
                     val count = body.byteStream().use { input ->
                         var total = 0
@@ -687,9 +650,6 @@ class StreamResolver(
                     }
                     if (count < 4) return false
 
-                    // Do not trust Content-Type alone. A few mirrors return
-                    // error pages with an audio MIME type; validate the actual
-                    // bytes before exposing that URL to Media3.
                     hasAudioSignature(prefix, count)
                 }
             } catch (_: IOException) {
@@ -704,7 +664,6 @@ class StreamResolver(
                 return value.indices.all { bytes[offset + it].toInt().toChar() == value[it] }
             }
 
-            // ID3/MP3, Ogg/Opus, FLAC, WAV, MP4/M4A and AAC/ADTS.
             if (ascii("ID3") || ascii("OggS") || ascii("fLaC") || ascii("RIFF")) return true
             if (ascii("ftyp", 4)) return true
             val first = bytes[0].toInt() and 0xFF

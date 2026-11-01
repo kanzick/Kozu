@@ -87,9 +87,6 @@ class PlaybackController(
             val c = controller
             val id = c?.currentMediaItem?.mediaId?.toLongOrNull()
 
-            // A remote source can become unavailable after metadata resolution.
-            // Mark it and ask the resolver for another full-song provider before
-            // skipping the user's selected track.
             if (
                 c != null &&
                 id != null &&
@@ -131,8 +128,10 @@ class PlaybackController(
     init {
         connect()
         startTicker()
+        scope.launch {
+            PlaybackEvents.messages.collect { _messages.emit(it) }
+        }
     }
-
 
     fun playQueue(queue: List<Beatmap>, startIndex: Int = 0) {
         if (queue.isEmpty()) return
@@ -231,7 +230,6 @@ class PlaybackController(
         }
     }
 
-
     private fun withController(block: (MediaController) -> Unit) {
         val c = controller
         if (c != null) block(c) else pendingCommands.add(block)
@@ -284,7 +282,6 @@ class PlaybackController(
             audioInfo = describeAudio(c)
         )
     }
-
 
     private fun startTicker() {
         scope.launch {
@@ -343,40 +340,6 @@ class PlaybackController(
         else -> mime.substringAfter('/').uppercase(Locale.US)
     }
 
-    private fun Beatmap.toMediaItem(): MediaItem {
-        val extras = Bundle().apply {
-            putLong(KEY_ID, id)
-            putString(KEY_MAPPER, mapper)
-            putString(KEY_STATUS, status)
-            putLong(KEY_UPDATED, updatedAt)
-        }
-        val metadata = MediaMetadata.Builder()
-            .setTitle(title)
-            .setArtist(artist)
-            .setArtworkUri(thumbUrl.toUri())
-            .setExtras(extras)
-            .build()
-
-        val uri = "$SET_SCHEME://$id"
-        return MediaItem.Builder()
-            .setMediaId(id.toString())
-            .setUri(uri)
-            .setMediaMetadata(metadata)
-            .build()
-    }
-
-    private fun MediaItem.toBeatmap(): Beatmap? {
-        val extras = mediaMetadata.extras ?: return null
-        return Beatmap(
-            id = extras.getLong(KEY_ID),
-            title = mediaMetadata.title?.toString().orEmpty(),
-            artist = mediaMetadata.artist?.toString().orEmpty(),
-            mapper = extras.getString(KEY_MAPPER).orEmpty(),
-            status = extras.getString(KEY_STATUS).orEmpty(),
-            updatedAt = extras.getLong(KEY_UPDATED)
-        )
-    }
-
     companion object {
         private const val MAX_SOURCE_RETRIES = 10
         const val TAG = "PlaybackController"
@@ -385,6 +348,7 @@ class PlaybackController(
         const val KEY_MAPPER = "kozu.mapper"
         const val KEY_STATUS = "kozu.status"
         const val KEY_UPDATED = "kozu.updated"
+        const val KEY_MODES = "kozu.modes"
         const val SET_SCHEME = "kozu-set"
     }
 }

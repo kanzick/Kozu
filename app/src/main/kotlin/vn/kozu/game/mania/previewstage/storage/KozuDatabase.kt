@@ -3,19 +3,18 @@ package vn.kozu.game.mania.previewstage.storage
 import android.content.ContentValues
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
+import androidx.core.database.sqlite.transaction
 import vn.kozu.game.mania.previewstage.model.DifficultyRecord
 import vn.kozu.game.mania.previewstage.model.SongEntry
 import vn.kozu.game.mania.previewstage.osu.FileResolver
 import java.io.Closeable
 import java.io.File
 
-/** kozu.db: each song (kozu ID = BeatmapSetID) has N difficulties. */
 class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeable {
 
     fun hasSong(songId: Long): Boolean =
         db.rawQuery("SELECT 1 FROM kozu_song WHERE song_id = ?", arrayOf(songId.toString())).use { it.moveToFirst() }
 
-    /** Existing DB rows are reusable only while their beatmap and referenced assets still exist. */
     fun hasCompleteSongFiles(songId: Long, songDir: File): Boolean {
         var found = false
         db.rawQuery(
@@ -39,11 +38,9 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
         return found
     }
 
-    /** Replaces all data for one song in a single transaction. */
     fun replaceSong(songId: Long, sourceOsz: String, difficulties: List<DifficultyRecord>) {
-        db.beginTransaction()
-        try {
-            db.delete("kozu_song", "song_id = ?", arrayOf(songId.toString())) // Cascades deletion of old difficulties.
+        db.transaction {
+            db.delete("kozu_song", "song_id = ?", arrayOf(songId.toString()))
             db.insertOrThrow("kozu_song", null, ContentValues().apply {
                 put("song_id", songId)
                 put("source_osz", sourceOsz)
@@ -51,17 +48,13 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
                 put("imported_at", System.currentTimeMillis())
             })
             for (d in difficulties) db.insertOrThrow("kozu_difficulty", null, d.toValues())
-            db.setTransactionSuccessful()
-        } finally {
-            db.endTransaction()
         }
     }
 
     fun updateStarRatings(songId: Long, ratings: Map<Long, Double>): Int {
         if (ratings.isEmpty()) return 0
         var updated = 0
-        db.beginTransaction()
-        try {
+        db.transaction {
             for ((beatmapId, rating) in ratings) {
                 if (beatmapId <= 0L || !rating.isFinite() || rating <= 0.0) continue
                 updated += db.update(
@@ -71,28 +64,19 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
                     arrayOf(songId.toString(), beatmapId.toString()),
                 )
             }
-            db.setTransactionSuccessful()
-        } finally {
-            db.endTransaction()
         }
         return updated
     }
 
     fun deleteSong(songId: Long): Boolean {
-        db.beginTransaction()
-        return try {
+        return db.transaction {
             val deleted = db.delete("kozu_song", "song_id = ?", arrayOf(songId.toString())) > 0
-            db.setTransactionSuccessful()
             deleted
-        } finally {
-            db.endTransaction()
         }
     }
 
-    /** Removes non-mania difficulties and songs that no longer have any difficulties from the database. */
     fun removeNonManiaDifficulties() {
-        db.beginTransaction()
-        try {
+        db.transaction {
             db.delete("kozu_difficulty", "mode != ?", arrayOf("3"))
             db.execSQL(
                 """DELETE FROM kozu_song
@@ -101,13 +85,9 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
                        WHERE kozu_difficulty.song_id = kozu_song.song_id
                    )"""
             )
-            db.setTransactionSuccessful()
-        } finally {
-            db.endTransaction()
         }
     }
 
-    /** Loads the entire database into memory (ordered by song_id, then difficulty by CircleSize and OD). */
     fun loadAll(songsDir: File): List<SongEntry> {
         val byId = LinkedHashMap<Long, MutableList<DifficultyRecord>>()
         db.rawQuery("SELECT song_id FROM kozu_song ORDER BY song_id", null).use { c ->
@@ -197,8 +177,7 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
             try {
                 db.setForeignKeyConstraintsEnabled(true)
                 if (db.version < SCHEMA_VERSION) {
-                    db.beginTransaction()
-                    try {
+                    db.transaction {
                         db.execSQL(CREATE_SONG)
                         db.execSQL(CREATE_DIFFICULTY)
                         db.execSQL("CREATE INDEX IF NOT EXISTS idx_kozu_difficulty_song ON kozu_difficulty(song_id)")
@@ -208,9 +187,6 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
                             )
                         }
                         db.version = SCHEMA_VERSION
-                        db.setTransactionSuccessful()
-                    } finally {
-                        db.endTransaction()
                     }
                 }
             } catch (t: Throwable) {

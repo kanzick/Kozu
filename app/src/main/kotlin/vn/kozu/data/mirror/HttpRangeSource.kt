@@ -34,14 +34,14 @@ class HttpRangeSource(
             client.newCall(build("bytes=-$maxBytes")).execute().use { response ->
                 if (response.code != 206) return null
                 val header = response.header("Content-Range") ?: return null
-                // Expected form: bytes START-END/TOTAL
+
                 val range = header.removePrefix("bytes ").split('/', limit = 2)
                 if (range.size != 2) return null
                 val bounds = range[0].split('-', limit = 2)
                 if (bounds.size != 2) return null
                 val start = bounds[0].toLongOrNull() ?: return null
                 val totalLength = range[1].toLongOrNull() ?: return null
-                val bytes = response.body?.bytes() ?: return null
+                val bytes = response.body.bytes()
                 if (bytes.isEmpty() || start < 0L || totalLength < start + bytes.size) {
                     return null
                 }
@@ -68,10 +68,6 @@ class HttpRangeSource(
             throw IOException("Mirror returned an unexpected byte range")
         }
         val body = response.body
-        if (body == null) {
-            response.close()
-            throw IOException("Empty range response")
-        }
         return object : FilterInputStream(body.byteStream()) {
             override fun close() {
                 try {

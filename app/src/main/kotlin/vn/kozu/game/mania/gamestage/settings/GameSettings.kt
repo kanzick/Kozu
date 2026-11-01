@@ -11,15 +11,6 @@ enum class GameOrientation {
     LANDSCAPE,
 }
 
-/**
- * Player settings, stored in a separate file (see [SettingsStore]).
- *
- *  - [musicVolume], [hitsoundVolume]: 0..100
- *  - [speed]: fall speed 0.1..15.0 (step 0.1), see [NoteScroll]
- *  - [backgroundDim]: 0 = fully visible background, 100 = completely covered in black
- *  - [offsetMs]: positive = notes arrive later than the music (use if you tend to press late / use Bluetooth headphones)
- *  - [playerName]: name shown on the leaderboard
- */
 data class GameSettings(
     val musicVolume: Int = 80,
     val hitsoundVolume: Int = 70,
@@ -29,7 +20,7 @@ data class GameSettings(
     val playerName: String = DEFAULT_PLAYER_NAME,
     val orientation: GameOrientation = GameOrientation.PORTRAIT,
 ) {
-    /** Clamps all values to valid ranges (speed is rounded to one decimal place). */
+
     fun coerced(): GameSettings = copy(
         musicVolume = musicVolume.coerceIn(0, 100),
         hitsoundVolume = hitsoundVolume.coerceIn(0, 100),
@@ -47,10 +38,6 @@ data class GameSettings(
     }
 }
 
-/**
- * Reads/writes [GameSettings] to a UTF-8 `.properties` file. Writes to a temporary file before renaming,
- * so an interruption does not corrupt the old file. Loading tolerates missing or corrupt files by using defaults.
- */
 class SettingsStore(val file: File) {
 
     fun load(): GameSettings {
@@ -61,7 +48,7 @@ class SettingsStore(val file: File) {
         } catch (e: IOException) {
             return GameSettings()
         } catch (e: IllegalArgumentException) {
-            return GameSettings() // Invalid \u escape.
+            return GameSettings()
         }
         val d = GameSettings()
         return GameSettings(
@@ -92,7 +79,7 @@ class SettingsStore(val file: File) {
         val tmp = File(file.parentFile, file.name + ".tmp")
         tmp.writer(Charsets.UTF_8).use { p.store(it, "GameStage settings") }
         if (!tmp.renameTo(file)) {
-            // Some file systems do not allow renaming over an existing file.
+
             file.delete()
             if (!tmp.renameTo(file)) {
                 tmp.copyTo(file, overwrite = true)

@@ -15,20 +15,25 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
-/**
- * Modern flat screen header extending behind status bar with leading content and action buttons.
- */
 @Composable
 fun ScreenHeader(
     modifier: Modifier = Modifier,
@@ -55,7 +60,6 @@ fun ScreenHeader(
     }
 }
 
-/** Standard screen title header text */
 @Composable
 fun HeaderTitle(text: String) {
     Text(
@@ -65,7 +69,6 @@ fun HeaderTitle(text: String) {
     )
 }
 
-/** Header action icon button component */
 @Composable
 fun HeaderAction(
     icon: ImageVector,
@@ -73,8 +76,24 @@ fun HeaderAction(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     container: Color = MaterialTheme.colorScheme.primaryContainer,
-    content: Color = MaterialTheme.colorScheme.onPrimaryContainer
+    content: Color = MaterialTheme.colorScheme.onPrimaryContainer,
+    rotating: Boolean = false
 ) {
+    val rotation = if (rotating) {
+        val transition = rememberInfiniteTransition(label = "header-refresh")
+        val angle by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(850, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "header-refresh-rotation"
+        )
+        angle
+    } else {
+        0f
+    }
     Surface(
         modifier = modifier
             .padding(start = 8.dp)
@@ -85,12 +104,17 @@ fun HeaderAction(
         contentColor = content
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Icon(imageVector = icon, contentDescription = contentDescription, modifier = Modifier.size(22.dp))
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                modifier = Modifier
+                    .size(22.dp)
+                    .graphicsLayer { rotationZ = rotation }
+            )
         }
     }
 }
 
-/** Quick search action button for screen headers */
 @Composable
 fun SearchAction(onClick: () -> Unit) {
     HeaderAction(
@@ -102,7 +126,6 @@ fun SearchAction(onClick: () -> Unit) {
     )
 }
 
-/** Quick settings action button for screen headers */
 @Composable
 fun SettingsAction(onClick: () -> Unit) {
     HeaderAction(
