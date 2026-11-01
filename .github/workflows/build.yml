@@ -27,7 +27,7 @@ jobs:
           java-version: '27'
           distribution: temurin
 
-      - name: Setup Gradle
+      - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
       - name: Build Debug
