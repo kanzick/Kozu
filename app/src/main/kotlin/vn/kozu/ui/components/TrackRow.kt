@@ -33,10 +33,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import vn.kozu.data.download.DownloadStatus
 import vn.kozu.domain.model.Beatmap
+import vn.kozu.domain.model.displayArtist
+import vn.kozu.domain.model.displayTitle
 
-/**
- * Standard list row displaying track artwork, title, artist, download status badge, favorite, and overflow menu.
- */
 @Composable
 fun TrackRow(
     beatmap: Beatmap,
@@ -84,14 +83,14 @@ fun TrackRow(
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = beatmap.title,
+                    text = beatmap.displayTitle(LocalAppSettings.current.preferUnicode),
                     style = MaterialTheme.typography.titleMedium,
                     color = if (isCurrent) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = beatmap.artist,
+                    text = beatmap.displayArtist(LocalAppSettings.current.preferUnicode),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -101,7 +100,7 @@ fun TrackRow(
                     isDownloaded = beatmap.id in downloads.downloaded,
                     isOutdated = beatmap.id in downloads.outdated,
                     status = downloads.active[beatmap.id],
-                    mapper = beatmap.mapper
+                    mapper = if (LocalAppSettings.current.showMapper) beatmap.mapper else ""
                 )
             }
             if (trailing != null) {
@@ -128,7 +127,6 @@ fun TrackRow(
     }
 }
 
-/** Badge showing offline download status or mapper information */
 @Composable
 private fun DownloadBadge(
     isDownloaded: Boolean,

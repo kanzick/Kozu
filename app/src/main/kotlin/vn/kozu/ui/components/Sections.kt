@@ -26,9 +26,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-/**
- * Reusable section header component with optional action button and subtitle.
- */
 @Composable
 fun SectionHeader(
     title: String,
@@ -72,9 +69,6 @@ fun SectionHeader(
     }
 }
 
-/**
- * Empty state component displaying an icon, title, message, and optional action.
- */
 @Composable
 fun EmptyState(
     icon: ImageVector,
@@ -121,9 +115,6 @@ fun EmptyState(
     }
 }
 
-/**
- * Generates a rounded shape for segmented list items based on position index.
- */
 fun segmentedShape(index: Int, count: Int, large: Dp = 26.dp, small: Dp = 6.dp): Shape {
     val top = if (index == 0) large else small
     val bottom = if (index == count - 1) large else small

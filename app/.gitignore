@@ -1,4 +1,4 @@
 /build
-androidTest
-test
-/graphify-out
+/test
+!src/test/
+!src/test/**

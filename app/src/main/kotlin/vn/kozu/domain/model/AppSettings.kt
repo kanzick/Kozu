@@ -3,12 +3,42 @@ package vn.kozu.domain.model
 import androidx.compose.ui.graphics.Color
 
 enum class ThemeMode(val key: String, val label: String) {
-    SYSTEM("system", "System"),
-    LIGHT("light", "Light"),
-    DARK("dark", "Dark");
+    SYSTEM("system", "Follow System"),
+    LIGHT("light", "Light Theme"),
+    DARK("dark", "Dark Theme");
 
     companion object {
         fun fromKey(key: String?): ThemeMode = entries.firstOrNull { it.key == key } ?: SYSTEM
+    }
+}
+
+enum class AppStyle(val key: String, val label: String) {
+    EXPRESSIVE("expressive", "Expressive"),
+    CLASSIC("classic", "Classic");
+
+    companion object {
+        fun fromKey(key: String?): AppStyle = entries.firstOrNull { it.key == key } ?: EXPRESSIVE
+    }
+}
+
+enum class NavigationStyle(val key: String, val label: String) {
+    FLOATING("floating", "Floating"),
+    CLASSIC("classic", "Classic");
+
+    companion object {
+        fun fromKey(key: String?): NavigationStyle =
+            entries.firstOrNull { it.key == key } ?: FLOATING
+    }
+}
+
+enum class StartTab(val key: String, val label: String) {
+    HOME("home", "Home"),
+    EXPLORE("explore", "Explore"),
+    LIBRARY("library", "Library"),
+    GAME("game", "Game");
+
+    companion object {
+        fun fromKey(key: String?): StartTab = entries.firstOrNull { it.key == key } ?: HOME
     }
 }
 
@@ -49,7 +79,7 @@ enum class ModeFilter(val key: String, val label: String, val apiValue: Int?) {
 }
 
 enum class StatusFilter(val key: String, val label: String, val apiValue: String?) {
-    // Keep the persisted key for existing installs; only the default behavior changes.
+
     DEFAULT("default", "Ranked + Loved", null),
     RANKED("ranked", "Ranked", "ranked"),
     LOVED("loved", "Loved", "loved"),
@@ -60,8 +90,105 @@ enum class StatusFilter(val key: String, val label: String, val apiValue: String
     }
 }
 
+enum class AppFont(val key: String, val label: String) {
+    KOZU("kozu", "Kozu Default"),
+    SYSTEM("system", "System default");
+
+    companion object {
+        fun fromKey(key: String?): AppFont = entries.firstOrNull { it.key == key } ?: KOZU
+    }
+}
+
+enum class PaletteStyle(val key: String, val label: String, val description: String) {
+    TONAL_SPOT("tonal_spot", "Tonal Spot", "Balanced, calm colors"),
+    VIBRANT("vibrant", "Vibrant", "Rich and saturated colors"),
+    EXPRESSIVE("expressive", "Expressive", "Playful hues with strong contrast"),
+    NEUTRAL("neutral", "Neutral", "Muted colors with a hint of tint"),
+    MONOCHROME("monochrome", "Monochrome", "Grayscale with a single accent");
+
+    companion object {
+        fun fromKey(key: String?): PaletteStyle = entries.firstOrNull { it.key == key } ?: TONAL_SPOT
+    }
+}
+
+enum class CrossfadeDuration(val key: String, val label: String, val millis: Int) {
+    OFF("off", "Disabled", 0),
+    SHORT("3", "3 seconds", 3_000),
+    MEDIUM("5", "5 seconds", 5_000),
+    LONG("8", "8 seconds", 8_000),
+    EXTRA_LONG("12", "12 seconds", 12_000);
+
+    companion object {
+        fun fromKey(key: String?): CrossfadeDuration = entries.firstOrNull { it.key == key } ?: OFF
+    }
+}
+
+enum class QuickPicksSource(val key: String, val label: String) {
+    MIX("mix", "Mixed picks"),
+    TRENDING("trending", "Trending (Most played)"),
+    NEW_RELEASES("new", "New releases"),
+    LOVED("loved", "Loved picks");
+
+    companion object {
+        fun fromKey(key: String?): QuickPicksSource = entries.firstOrNull { it.key == key } ?: MIX
+    }
+}
+
+enum class QuickPicksLayout(val key: String, val label: String) {
+    CAROUSEL("carousel", "Carousel"),
+    COMPACT("compact", "Compact cards");
+
+    companion object {
+        fun fromKey(key: String?): QuickPicksLayout = entries.firstOrNull { it.key == key } ?: CAROUSEL
+    }
+}
+
+enum class ArtworkQuality(val key: String, val label: String, val description: String) {
+    LOW("low", "Low (150px)", "Saves data"),
+    MEDIUM("medium", "Medium (300px)", "Balanced"),
+    HIGH("high", "High (original)", "Sharpest covers");
+
+    companion object {
+        fun fromKey(key: String?): ArtworkQuality = entries.firstOrNull { it.key == key } ?: MEDIUM
+    }
+}
+
+enum class ProxyType(val key: String, val label: String) {
+    DISABLED("disabled", "Disabled"),
+    HTTP("http", "HTTP"),
+    SOCKS5("socks5", "SOCKS5");
+
+    companion object {
+        fun fromKey(key: String?): ProxyType = entries.firstOrNull { it.key == key } ?: DISABLED
+    }
+}
+
+enum class TopSize(val count: Int, val label: String) {
+    TEN(10, "10 songs"),
+    TWENTY_FIVE(25, "25 songs"),
+    FIFTY(50, "50 songs"),
+    HUNDRED(100, "100 songs");
+
+    companion object {
+        fun fromCount(count: Int?): TopSize = entries.firstOrNull { it.count == count } ?: FIFTY
+    }
+}
+
+data class ProxySettings(
+    val type: ProxyType = ProxyType.DISABLED,
+    val host: String = "",
+    val port: Int = 0,
+    val username: String = "",
+    val password: String = ""
+) {
+    val isActive: Boolean get() = type != ProxyType.DISABLED && host.isNotBlank() && port in 1..65535
+}
+
 data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    val appStyle: AppStyle = AppStyle.EXPRESSIVE,
+    val navigationStyle: NavigationStyle = NavigationStyle.FLOATING,
+    val startTab: StartTab = StartTab.HOME,
     val amoled: Boolean = false,
     val artworkColors: Boolean = true,
     val accent: AccentColor = AccentColor.PINK,
@@ -72,6 +199,8 @@ data class AppSettings(
     val wifiOnlyStreaming: Boolean = false,
     val streamCacheMb: Int = 512,
     val skipSilence: Boolean = false,
+    val equalizerEnabled: Boolean = false,
+    val equalizerGains: List<Float> = List(5) { 0f },
     val disabledMirrors: Set<String> = emptySet(),
     val customMirrors: List<Mirror> = emptyList(),
     val keepFullBeatmap: Boolean = true,
@@ -80,7 +209,51 @@ data class AppSettings(
     val showExplicit: Boolean = false,
     val modeFilter: ModeFilter = ModeFilter.ANY,
     val statusFilter: StatusFilter = StatusFilter.DEFAULT,
-    val lastSyncAt: Long = 0L
+    val lastSyncAt: Long = 0L,
+    val appFont: AppFont = AppFont.KOZU,
+    val paletteStyle: PaletteStyle = PaletteStyle.TONAL_SPOT,
+    val highRefreshRate: Boolean = true,
+    val performanceMode: Boolean = false,
+    val blurPlayer: Boolean = true,
+    val blurIntensity: Int = 72,
+    val showFileInfo: Boolean = false,
+    val compactNavigation: Boolean = false,
+    val navCornerRadius: Int = 32,
+    val showMixCard: Boolean = true,
+    val artworkQualityWifi: ArtworkQuality = ArtworkQuality.HIGH,
+    val artworkQualityMobile: ArtworkQuality = ArtworkQuality.MEDIUM,
+    val imageCacheMb: Int = 256,
+    val keepPlayingAfterClose: Boolean = true,
+    val resumeOnHeadset: Boolean = false,
+    val pauseOnHeadsetDisconnect: Boolean = true,
+    val crossfade: CrossfadeDuration = CrossfadeDuration.OFF,
+    val hiFiMode: Boolean = false,
+    val hardwareOffload: Boolean = false,
+    val rememberShuffle: Boolean = true,
+    val showQueueHistory: Boolean = false,
+    val autoplay: Boolean = true,
+    val avoidRepeats: Boolean = true,
+    val dedupeQueue: Boolean = true,
+    val preloadNext: Boolean = true,
+    val bassBoost: Int = 0,
+    val virtualizer: Int = 0,
+    val loudness: Int = 0,
+    val hapticFeedback: Boolean = true,
+    val autoOpenPlayer: Boolean = false,
+    val artworkSwipe: Boolean = true,
+    val keepScreenOn: Boolean = false,
+    val doubleTapSearch: Boolean = true,
+    val preferUnicode: Boolean = false,
+    val showMapper: Boolean = true,
+    val quickPicksSource: QuickPicksSource = QuickPicksSource.MIX,
+    val quickPicksLayout: QuickPicksLayout = QuickPicksLayout.CAROUSEL,
+    val topSize: TopSize = TopSize.FIFTY,
+    val proxy: ProxySettings = ProxySettings(),
+    val autoSyncLibrary: Boolean = true,
+    val downloadLimitMb: Int = 0,
+    val autoCleanCache: Boolean = false,
+    val autoUpdateCheck: Boolean = true,
+    val lastUpdateCheckAt: Long = 0L
 ) {
     val hasCredentials: Boolean get() = osuClientId.isNotBlank() && osuClientSecret.isNotBlank()
     val activeMirrors: List<Mirror> get() = Mirrors.active(customMirrors, disabledMirrors)

@@ -5,6 +5,7 @@ import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.SystemClock
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,6 +25,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.LocalContentColor
@@ -36,6 +38,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -43,6 +47,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
@@ -54,18 +59,29 @@ import androidx.core.net.toUri
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.first
 import vn.kozu.KozuApplication
 import vn.kozu.data.local.DownloadedSet
+import vn.kozu.data.update.UpdateResult
+import vn.kozu.data.update.checkIfDue
 import vn.kozu.di.AppContainer
 import vn.kozu.domain.model.AppSettings
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.Playlist
+import vn.kozu.domain.model.StartTab
 import vn.kozu.domain.model.ThemeMode
+import vn.kozu.ui.components.BeatmapInfoSheet
 import vn.kozu.ui.components.DownloadInfo
+import vn.kozu.ui.components.LocalAppSettings
 import vn.kozu.ui.components.LocalDownloads
 import vn.kozu.ui.components.LocalFavoriteIds
 import vn.kozu.ui.components.LocalIsSupporter
+import vn.kozu.ui.components.LocalMetered
+import vn.kozu.ui.components.rememberIsMetered
 import vn.kozu.ui.components.LocalNowPlaying
+import vn.kozu.ui.components.LocalPerformanceMode
 import vn.kozu.ui.components.LocalTrackActions
 import vn.kozu.ui.components.NowPlayingInfo
 import vn.kozu.ui.components.PlaylistPickerSheet
@@ -86,24 +102,28 @@ import vn.kozu.ui.theme.ArtworkPalette
 import vn.kozu.ui.theme.KozuMotion
 import vn.kozu.ui.theme.KozuTheme
 
-/**
- * Root composable of the Kozu application.
- * Manages dependency container initialization, artwork-based dynamic theme seed colors,
- * dark/light/AMOLED mode preferences, and system bar appearance synchronization.
- */
 @Composable
 fun KozuApp() {
     val context = LocalContext.current
     val container = remember { (context.applicationContext as KozuApplication).container }
     val playback = container.playback
-
     val cachedTheme = remember { container.settings.cachedThemeMode }
+    val cachedAccent = remember { container.settings.cachedAccent }
     val cachedAmoled = remember { container.settings.cachedAmoled }
     val settings by container.settings.settings.collectAsStateWithLifecycle(
-        initialValue = AppSettings(themeMode = cachedTheme, amoled = cachedAmoled)
+        initialValue = AppSettings(
+            themeMode = cachedTheme,
+            accent = cachedAccent,
+            amoled = cachedAmoled,
+            startTab = container.settings.cachedStartTab,
+            appFont = container.settings.cachedAppFont,
+            paletteStyle = container.settings.cachedPaletteStyle,
+            highRefreshRate = container.settings.cachedHighRefreshRate,
+            performanceMode = container.settings.cachedPerformanceMode
+        )
     )
-    val state by playback.state.collectAsStateWithLifecycle()
 
+    val state by playback.state.collectAsStateWithLifecycle()
     val systemDark = isSystemInDarkTheme()
     val dark = when (settings.themeMode) {
         ThemeMode.SYSTEM -> systemDark
@@ -111,7 +131,6 @@ fun KozuApp() {
         ThemeMode.DARK -> true
     }
 
-    // Extracts seed color from current track artwork
     var artworkSeed by remember { mutableStateOf<Color?>(null) }
     val currentArt = state.current?.thumbUrl
     LaunchedEffect(currentArt, settings.artworkColors) {
@@ -120,8 +139,18 @@ fun KozuApp() {
 
     val seed = if (state.current != null) artworkSeed ?: settings.accent.color else settings.accent.color
 
-    KozuTheme(seed = seed, darkTheme = dark, amoled = settings.amoled) {
+    KozuTheme(
+        seed = seed,
+        darkTheme = dark,
+        amoled = settings.amoled,
+        appStyle = settings.appStyle,
+        appFont = settings.appFont,
+        paletteStyle = settings.paletteStyle
+    ) {
         val view = LocalView.current
+        LaunchedEffect(settings.highRefreshRate) {
+            (view.context as? vn.kozu.MainActivity)?.applyRefreshRate(settings.highRefreshRate)
+        }
         SideEffect {
             val window = (view.context as? Activity)?.window
             if (window != null) {
@@ -130,16 +159,12 @@ fun KozuApp() {
                 controller.isAppearanceLightNavigationBars = !dark
             }
         }
-        KozuShell(container = container)
+        KozuShell(container = container, settings = settings)
     }
 }
 
-/**
- * Main application shell containing tab navigation, mini player,
- * floating navigation bar, settings overlay, full player overlay, and bottom sheets.
- */
 @Composable
-private fun KozuShell(container: AppContainer) {
+private fun KozuShell(container: AppContainer, settings: AppSettings) {
     val context = LocalContext.current
     val playback = container.playback
     val scope = rememberCoroutineScope()
@@ -151,7 +176,6 @@ private fun KozuShell(container: AppContainer) {
     val playlists by container.playlists.playlists.collectAsStateWithLifecycle(initialValue = emptyList<Playlist>())
     val downloadedSets by container.downloadsStore.sets.collectAsStateWithLifecycle(initialValue = emptyList<DownloadedSet>())
     val activeDownloads by container.downloads.status.collectAsStateWithLifecycle()
-    val discoverState by container.discover.state.collectAsStateWithLifecycle()
 
     val downloadInfo = remember(downloadedSets, activeDownloads) {
         DownloadInfo(
@@ -161,14 +185,19 @@ private fun KozuShell(container: AppContainer) {
         )
     }
 
-    var tab by rememberSaveable { mutableStateOf(KozuTab.HOME) }
+    var tab by rememberSaveable { mutableStateOf(settings.startTab.toKozuTab()) }
+    var searchFocusSignal by remember { mutableIntStateOf(0) }
+    var lastSearchTap by remember { mutableLongStateOf(0L) }
+    var lastMainTab by rememberSaveable { mutableStateOf(KozuTab.HOME) }
+    LaunchedEffect(tab) { if (tab != KozuTab.SEARCH) lastMainTab = tab }
     var playerOpen by rememberSaveable { mutableStateOf(false) }
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
-    var searchOpen by rememberSaveable { mutableStateOf(false) }
     var allBeatmapsOpen by rememberSaveable { mutableStateOf(false) }
     var gamePlayActive by remember { mutableStateOf(false) }
     var menuTarget by remember { mutableStateOf<Beatmap?>(null) }
     var playlistTarget by remember { mutableStateOf<Beatmap?>(null) }
+    var infoTarget by remember { mutableStateOf<Beatmap?>(null) }
+    var isAppRefreshing by remember { mutableStateOf(false) }
 
     val density = LocalDensity.current
     var chromeHeightPx by remember { mutableIntStateOf(0) }
@@ -186,17 +215,44 @@ private fun KozuShell(container: AppContainer) {
     }
 
     fun refreshApp() {
+        if (isAppRefreshing) return
+        isAppRefreshing = true
         container.discover.refresh()
         scope.launch {
-            container.accounts.refreshIfSignedIn()
+            try {
+                coroutineScope {
+                    val catalogUpdate = async {
+                        container.discover.state.first { !it.isRefreshing }
+                    }
+                    val profileUpdate = async {
+                        container.accounts.refreshIfSignedIn(force = true)
+                    }
+                    val libraryUpdate = async { container.sync.run() }
+                    profileUpdate.await()
+                    libraryUpdate.await()
+                    catalogUpdate.await()
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                notify("Some app data could not be refreshed")
+            } finally {
+                isAppRefreshing = false
+            }
         }
     }
 
-    // Common track action handlers provided via CompositionLocal
+    val latestSettings by rememberUpdatedState(settings)
     val actions = remember(playback, container) {
         object : TrackActions {
-            override fun play(queue: List<Beatmap>, index: Int) = playback.playQueue(queue, index)
-            override fun playShuffled(queue: List<Beatmap>) = playback.playShuffled(queue)
+            override fun play(queue: List<Beatmap>, index: Int) {
+                playback.playQueue(queue, index)
+                if (latestSettings.autoOpenPlayer) playerOpen = true
+            }
+            override fun playShuffled(queue: List<Beatmap>) {
+                playback.playShuffled(queue)
+                if (latestSettings.autoOpenPlayer) playerOpen = true
+            }
             override fun toggleFavorite(beatmap: Beatmap) {
                 scope.launch { container.favorites.toggle(beatmap) }
             }
@@ -216,14 +272,18 @@ private fun KozuShell(container: AppContainer) {
         }
     }
 
-    // Event listeners for playback, downloads, account updates, and library sync
     LaunchedEffect(playback) { playback.messages.collect { notify(it) } }
     LaunchedEffect(container) { container.downloads.events.collect { notify(it) } }
     LaunchedEffect(container) { container.accounts.events.collect { notify(it) } }
-    LaunchedEffect(container) { container.sync.runIfStale() }
+    LaunchedEffect(container) {
+        if (container.settings.settings.first().autoSyncLibrary) container.sync.runIfStale()
+    }
     LaunchedEffect(container) { container.accounts.refreshIfSignedIn() }
+    LaunchedEffect(container) {
+        val result = runCatching { container.updates.checkIfDue(container.settings) }.getOrNull()
+        if (result is UpdateResult.Available) notify("Kozu v${result.version} is available")
+    }
 
-    // Requests notification permission for media playback controls on Android 13+
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
     var askedNotifications by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(state.current != null) {
@@ -235,8 +295,12 @@ private fun KozuShell(container: AppContainer) {
         }
     }
 
+    val metered by rememberIsMetered()
     CompositionLocalProvider(
         LocalContentColor provides MaterialTheme.colorScheme.onSurface,
+        LocalAppSettings provides settings,
+        LocalMetered provides metered,
+        LocalPerformanceMode provides settings.performanceMode,
         LocalTrackActions provides actions,
         LocalNowPlaying provides NowPlayingInfo(state.current?.id, state.isPlaying),
         LocalFavoriteIds provides favoriteIds,
@@ -256,27 +320,38 @@ private fun KozuShell(container: AppContainer) {
                         onOpenSettings = { settingsOpen = true },
                         onOpenExplore = { tab = KozuTab.EXPLORE },
                         onOpenLibrary = { tab = KozuTab.LIBRARY },
-                        onOpenSearch = { searchOpen = true },
-                        onRefresh = ::refreshApp
+                        onRefresh = ::refreshApp,
+                        isAppRefreshing = isAppRefreshing
                     )
                     KozuTab.EXPLORE -> ExploreScreen(
                         listState = exploreList,
                         bottomPadding = bottomPadding,
                         onOpenSettings = { settingsOpen = true },
                         onOpenLibrary = { tab = KozuTab.LIBRARY },
-                        onOpenSearch = { searchOpen = true },
+                        onOpenSearch = { tab = KozuTab.SEARCH },
                         onOpenAllBeatmaps = { allBeatmapsOpen = true },
-                        onRefresh = ::refreshApp
+                        onRefresh = ::refreshApp,
+                        isAppRefreshing = isAppRefreshing
                     )
                     KozuTab.LIBRARY -> LibraryScreen(
                         listState = libraryList,
                         bottomPadding = bottomPadding,
                         onOpenSettings = { settingsOpen = true },
-                        onOpenSearch = { searchOpen = true }
+                        onRefresh = ::refreshApp,
+                        isAppRefreshing = isAppRefreshing
+                    )
+                    KozuTab.SEARCH -> SearchScreen(
+                        focusSignal = searchFocusSignal,
+                        bottomPadding = bottomPadding,
+                        onOpenSettings = { settingsOpen = true },
+                        onRefresh = ::refreshApp,
+                        isAppRefreshing = isAppRefreshing
                     )
                     KozuTab.GAME -> GameScreen(
                         bottomPadding = bottomPadding,
                         onOpenSettings = { settingsOpen = true },
+                        onRefresh = ::refreshApp,
+                        isAppRefreshing = isAppRefreshing,
                         onGameplayChanged = { active ->
                             if (active != gamePlayActive) {
                                 gamePlayActive = active
@@ -287,11 +362,17 @@ private fun KozuShell(container: AppContainer) {
                 }
             }
 
-            // Bottom bar holding mini player and floating navigation bar
             if (!gamePlayActive) {
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
+                        .background(
+                            Brush.verticalGradient(
+                                0f to Color.Transparent,
+                                0.3f to MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                                0.5f to MaterialTheme.colorScheme.surface
+                            )
+                        )
                         .onSizeChanged { chromeHeightPx = it.height }
                 ) {
                     AnimatedVisibility(
@@ -313,54 +394,51 @@ private fun KozuShell(container: AppContainer) {
                             )
                         }
                     }
-                    FloatingNavBar(selected = tab, onSelect = { tab = it })
+                    FloatingNavBar(
+                        selected = tab,
+                        style = settings.navigationStyle,
+                        compact = settings.compactNavigation,
+                        cornerRadius = settings.navCornerRadius,
+                        onSelect = { target ->
+                            if (target == KozuTab.SEARCH && latestSettings.doubleTapSearch) {
+                                val now = SystemClock.elapsedRealtime()
+                                if (now - lastSearchTap <= 380L) searchFocusSignal++
+                                lastSearchTap = now
+                            }
+                            tab = target
+                        }
+                    )
                 }
             }
 
-            SnackbarHost(
-                hostState = snackbar,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = bottomPadding)
-            )
+            if (tab == KozuTab.SEARCH && !settingsOpen && !allBeatmapsOpen && !playerOpen) {
+                BackHandler { tab = lastMainTab }
+            }
 
-            // Settings overlay screen
             AnimatedVisibility(
                 visible = settingsOpen,
                 enter = slideInHorizontally(tween(220, easing = FastOutSlowInEasing)) { it / 6 } + fadeIn(tween(180)),
                 exit = slideOutHorizontally(tween(180, easing = FastOutSlowInEasing)) { it / 6 } + fadeOut(tween(150))
             ) {
-                SettingsScreen(onBack = { settingsOpen = false })
+                SettingsScreen(
+                    onBack = { settingsOpen = false }
+                )
             }
 
-            // Search overlay screen
-            AnimatedVisibility(
-                visible = searchOpen,
-                enter = slideInHorizontally(KozuMotion.spatial()) { it } + fadeIn(),
-                exit = slideOutHorizontally(tween(240)) { it } + fadeOut()
-            ) {
-                SearchScreen(onBack = { searchOpen = false }, onOpenSettings = { settingsOpen = true })
-            }
-            if (searchOpen && !settingsOpen) BackHandler { searchOpen = false }
-
-            // Full catalog browser. This is a separate screen rather than an
-            // inert section header; it shares the paginated catalog state.
             AnimatedVisibility(
                 visible = allBeatmapsOpen,
                 enter = slideInHorizontally(KozuMotion.spatial()) { it } + fadeIn(),
                 exit = slideOutHorizontally(tween(240)) { it } + fadeOut()
             ) {
                 AllBeatmapsScreen(
-                    state = discoverState,
                     bottomPadding = bottomPadding,
                     onBack = { allBeatmapsOpen = false },
-                    onLoadMore = container.discover::loadMoreMix,
-                    onRetry = container.discover::refresh
+                    onRetry = ::refreshApp,
+                    isAppRefreshing = isAppRefreshing
                 )
             }
             if (allBeatmapsOpen && !settingsOpen) BackHandler { allBeatmapsOpen = false }
 
-            // Full-screen player screen overlay
             AnimatedVisibility(
                 visible = playerOpen && state.current != null,
                 enter = slideInVertically(KozuMotion.spatial()) { it } + fadeIn(),
@@ -383,11 +461,42 @@ private fun KozuShell(container: AppContainer) {
                         onFavorite = { actions.toggleFavorite(beatmap) },
                         onMore = { menuTarget = beatmap },
                         onSkipToQueueItem = playback::skipToQueueItem,
-                        onRemoveFromQueue = playback::removeFromQueue
+                        onRemoveFromQueue = playback::removeFromQueue,
+                        audioInfo = playback.audioInfo,
+                        sleepTimer = playback.sleepTimer,
+                        onSetSleepTimer = playback::setSleepTimer,
+                        onSleepAtEndOfTrack = playback::sleepAtEndOfTrack,
+                        onCancelSleepTimer = playback::cancelSleepTimer,
+                        onClearQueue = playback::clearQueue,
+                        onMoveQueueItem = playback::moveQueueItem,
+                        onSaveAsPlaylist = { tracks ->
+                            val unique = tracks.distinctBy { it.id }
+                            if (unique.isNotEmpty()) {
+                                scope.launch {
+                                    val id = container.playlists.create("Queue (${unique.size} tracks)")
+                                    unique.forEach { container.playlists.addTrack(id, it) }
+                                    snackbar.showSnackbar("Saved ${unique.size} tracks as a playlist")
+                                }
+                            }
+                        }
                     )
                 }
             }
             if (playerOpen && !settingsOpen) BackHandler { playerOpen = false }
+
+            val overlayOpen = settingsOpen || playerOpen || allBeatmapsOpen
+            SnackbarHost(
+                hostState = snackbar,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .then(
+                        if (overlayOpen) {
+                            Modifier.navigationBarsPadding().padding(bottom = 16.dp)
+                        } else {
+                            Modifier.padding(bottom = bottomPadding)
+                        }
+                    )
+            )
         }
 
         menuTarget?.let { beatmap ->
@@ -425,6 +534,10 @@ private fun KozuShell(container: AppContainer) {
                     menuTarget = null
                     notify("Removed offline copy")
                 },
+                onInfo = {
+                    infoTarget = beatmap
+                    menuTarget = null
+                },
                 onOpenInOsu = {
                     context.startActivity(Intent(Intent.ACTION_VIEW, beatmap.webUrl.toUri()))
                     menuTarget = null
@@ -457,7 +570,22 @@ private fun KozuShell(container: AppContainer) {
                 }
             )
         }
+
+        infoTarget?.let { beatmap ->
+            BeatmapInfoSheet(
+                beatmap = beatmap,
+                loadInfo = container.catalog::setInfo,
+                onDismiss = { infoTarget = null }
+            )
+        }
     }
+}
+
+private fun StartTab.toKozuTab(): KozuTab = when (this) {
+    StartTab.HOME -> KozuTab.HOME
+    StartTab.EXPLORE -> KozuTab.EXPLORE
+    StartTab.LIBRARY -> KozuTab.LIBRARY
+    StartTab.GAME -> KozuTab.GAME
 }
 
 @Composable

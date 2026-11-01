@@ -1,10 +1,5 @@
 package vn.kozu.ui.explore
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,7 +24,6 @@ import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.Icon
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -58,11 +52,11 @@ import vn.kozu.ui.components.RefreshIndicator
 import vn.kozu.ui.components.LocalTrackActions
 import vn.kozu.ui.components.MosaicCover
 import vn.kozu.ui.components.ScreenHeader
-import vn.kozu.ui.components.SearchAction
 import vn.kozu.ui.components.SectionHeader
 import vn.kozu.ui.components.SettingsAction
 import vn.kozu.ui.components.TrackRow
 import vn.kozu.ui.components.bounceClick
+import vn.kozu.ui.components.rememberKozuHaptics
 import vn.kozu.ui.components.segmentedShape
 import vn.kozu.ui.theme.KozuCookies
 
@@ -76,19 +70,21 @@ fun ExploreScreen(
     onOpenSearch: () -> Unit,
     onOpenAllBeatmaps: () -> Unit,
     onRefresh: () -> Unit,
+    isAppRefreshing: Boolean,
     modifier: Modifier = Modifier,
     viewModel: ExploreViewModel = viewModel(factory = ExploreViewModel.Factory)
 ) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val actions = LocalTrackActions.current
     val pullState = rememberPullToRefreshState()
-    val haptics = LocalHapticFeedback.current
+    val haptics = rememberKozuHaptics()
     val refreshNow = {
-        if (!ui.isRefreshing) {
-            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+        if (!ui.isRefreshing && !isAppRefreshing) {
+            haptics.press()
             onRefresh()
         }
     }
+    val refreshing = ui.isRefreshing || isAppRefreshing
 
     Column(modifier.fillMaxSize()) {
         ScreenHeader(
@@ -101,56 +97,23 @@ fun ExploreScreen(
                         if (ui.surprisePool.isNotEmpty()) {
                             actions.playShuffled(ui.surprisePool.shuffled())
                         }
-                        // Keep expanding the Ranked + Loved pool between Mix sessions.
+
                         viewModel.loadMoreMix()
                     }
                 )
-                SearchAction(onOpenSearch)
                 SettingsAction(onOpenSettings)
             }
         )
 
-        AnimatedVisibility(
-            visible = ui.isRefreshing,
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically()
-        ) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 8.dp),
-                shape = RoundedCornerShape(18.dp),
-                color = MaterialTheme.colorScheme.secondaryContainer
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        text = "Refreshing osu! catalog…",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                }
-            }
-        }
-
         PullToRefreshBox(
-            isRefreshing = ui.isRefreshing,
+            isRefreshing = refreshing,
             onRefresh = refreshNow,
             state = pullState,
             modifier = Modifier.fillMaxSize(),
             indicator = {
                 RefreshIndicator(
                     state = pullState,
-                    isRefreshing = ui.isRefreshing,
+                    isRefreshing = refreshing,
                     modifier = Modifier.align(Alignment.TopCenter)
                 )
             }
@@ -344,7 +307,6 @@ fun ExploreScreen(
         }
     }
 }
-
 
 @Composable
 private fun CollectionCard(collection: LibraryCollection, onClick: () -> Unit) {

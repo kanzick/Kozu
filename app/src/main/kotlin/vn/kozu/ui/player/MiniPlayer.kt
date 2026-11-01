@@ -5,6 +5,7 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
@@ -48,14 +50,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.StateFlow
 import vn.kozu.domain.model.Beatmap
+import vn.kozu.domain.model.displayArtist
+import vn.kozu.domain.model.displayTitle
+import vn.kozu.ui.components.LocalAppSettings
 import vn.kozu.ui.components.BeatmapArt
+import vn.kozu.ui.components.LocalPerformanceMode
 import vn.kozu.ui.components.bounceClick
+import vn.kozu.ui.components.rememberKozuHaptics
 
-/**
- * Compact persistent mini player bar floating above bottom navigation bar.
- * Displays artwork with progress ring, song title, artist, and playback controls (previous, play/pause, next).
- * Tapping opens the full player; swiping down closes the current track and queue.
- */
 @Composable
 fun MiniPlayer(
     beatmap: Beatmap,
@@ -85,8 +87,10 @@ fun MiniPlayer(
         isDragging = false
         settleOffset.snapTo(0f)
     }
-    LaunchedEffect(isPlaying) {
-        if (isPlaying) {
+    val performanceMode = LocalPerformanceMode.current
+    val haptics = rememberKozuHaptics()
+    LaunchedEffect(isPlaying, performanceMode) {
+        if (isPlaying && !performanceMode) {
             while (true) {
                 spin.animateTo(spin.value + 360f, tween(10_000, easing = LinearEasing))
             }
@@ -100,7 +104,7 @@ fun MiniPlayer(
         onClick = onOpen,
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 14.dp, vertical = 4.dp)
+            .padding(horizontal = 16.dp, vertical = 4.dp)
             .graphicsLayer { translationY = if (isDragging) dragOffset else settleOffset.value }
             .pointerInput(onDismiss, dragThreshold) {
                 var verticalDrag = 0f
@@ -145,11 +149,19 @@ fun MiniPlayer(
             },
         shape = RoundedCornerShape(32.dp),
         color = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        shadowElevation = 8.dp
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
     ) {
         Row(
-            modifier = Modifier.padding(start = 8.dp, end = 10.dp, top = 8.dp, bottom = 8.dp),
+            modifier = Modifier
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.primaryContainer,
+                            MaterialTheme.colorScheme.tertiaryContainer
+                        )
+                    )
+                )
+                .padding(start = 8.dp, end = 10.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(Modifier.size(50.dp), contentAlignment = Alignment.Center) {
@@ -187,13 +199,13 @@ fun MiniPlayer(
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = beatmap.title,
+                    text = beatmap.displayTitle(LocalAppSettings.current.preferUnicode),
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = beatmap.artist,
+                    text = beatmap.displayArtist(LocalAppSettings.current.preferUnicode),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.72f),
                     maxLines = 1,
@@ -204,7 +216,7 @@ fun MiniPlayer(
             Surface(
                 modifier = Modifier
                     .size(36.dp)
-                    .bounceClick(onClick = onPrevious),
+                    .bounceClick(onClick = { haptics.tick(); onPrevious() }),
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surfaceContainerHighest,
                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -221,7 +233,7 @@ fun MiniPlayer(
             Surface(
                 modifier = Modifier
                     .size(44.dp)
-                    .bounceClick(onClick = onPlayPause),
+                    .bounceClick(onClick = { haptics.press(); onPlayPause() }),
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
@@ -238,7 +250,7 @@ fun MiniPlayer(
             Surface(
                 modifier = Modifier
                     .size(36.dp)
-                    .bounceClick(onClick = onNext),
+                    .bounceClick(onClick = { haptics.tick(); onNext() }),
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surfaceContainerHighest,
                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant

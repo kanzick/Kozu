@@ -25,7 +25,7 @@ data class DiscoverState(
     val trending: List<Beatmap> = emptyList(),
     val newReleases: List<Beatmap> = emptyList(),
     val loved: List<Beatmap> = emptyList(),
-    /** Ranked + Loved sample assembled from newest and oldest catalog pages. */
+
     val mix: List<Beatmap> = emptyList(),
     val mixNewestCursor: String? = null,
     val mixOldestCursor: String? = null,
@@ -51,14 +51,10 @@ class DiscoverFeed(
     private val _state = MutableStateFlow(DiscoverState())
     val state: StateFlow<DiscoverState> = _state.asStateFlow()
 
-    // Alternate directions so the Mix keeps sampling both ends of
-    // osu!'s update history rather than only presenting the newest uploads.
     @Volatile private var nextMixNewest = true
 
     init {
-        // Reload the catalog when credentials or the signed-in session changes.
-        // This makes osu! official search become the active source immediately
-        // after login, and returns to the public mirror after logout.
+
         val inputsChanged = combine(settings.settings, auth.loggedIn) { s, loggedIn ->
             listOf(
                 s.osuClientId,
@@ -80,7 +76,6 @@ class DiscoverFeed(
         refreshTrigger.tryEmit(Unit)
     }
 
-    /** Loads the next official catalog page, alternating newest and oldest. */
     fun loadMoreMix() {
         val snapshot = _state.value
         if (snapshot.isLoading || snapshot.isLoadingMoreMix) return
@@ -148,9 +143,7 @@ class DiscoverFeed(
         }
 
         try {
-            // Load the all-status-independent Ranked + Loved catalog once and
-            // reuse its newest page for the New Releases rail. This avoids
-            // issuing duplicate ranked/loved searches on every cold start.
+
             val trending = async { catalog.trending() }
             val loved = async { catalog.lovedPicks() }
             val newestMix = async { catalog.mixPage(null, "updated_desc") }
@@ -196,7 +189,6 @@ class DiscoverFeed(
         }
     }
 }
-
 
 private fun Beatmap.isRankedOrLoved(): Boolean =
     status.equals("ranked", ignoreCase = true) ||

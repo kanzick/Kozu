@@ -4,13 +4,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,10 +25,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,14 +38,29 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import vn.kozu.ui.explore.ActiveFilterChips
+import vn.kozu.ui.explore.BrowseFilterSheet
+import vn.kozu.ui.explore.FilterAction
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import kotlinx.coroutines.delay
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -50,71 +68,100 @@ import vn.kozu.data.repository.CatalogSource
 import vn.kozu.domain.model.SearchCategory
 import vn.kozu.domain.model.SearchSort
 import vn.kozu.ui.components.EmptyState
-import vn.kozu.ui.components.HeaderAction
-import vn.kozu.ui.components.HeaderTitle
 import vn.kozu.ui.components.KozuLoading
 import vn.kozu.ui.components.LocalTrackActions
+import vn.kozu.ui.components.RefreshIndicator
 import vn.kozu.ui.components.ScreenHeader
 import vn.kozu.ui.components.SettingsAction
 import vn.kozu.ui.components.TrackRow
 import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.segmentedShape
 
-/**
- * Full screen Search overlay allowing users to search songs, artists, and mappers.
- */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SearchScreen(
-    onBack: () -> Unit,
+    bottomPadding: Dp,
     onOpenSettings: () -> Unit,
+    onRefresh: () -> Unit,
+    isAppRefreshing: Boolean,
     modifier: Modifier = Modifier,
+    focusSignal: Int = 0,
     viewModel: SearchViewModel = viewModel(factory = SearchViewModel.Factory)
 ) {
+    val searchFocus = remember { FocusRequester() }
+    LaunchedEffect(focusSignal) {
+        if (focusSignal > 0) {
+            delay(180)
+            searchFocus.requestFocus()
+        }
+    }
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val recents by viewModel.recentSearches.collectAsStateWithLifecycle()
     val actions = LocalTrackActions.current
     val keyboard = LocalSoftwareKeyboardController.current
     val listState = rememberLazyListState()
+    var showFilters by rememberSaveable { mutableStateOf(false) }
+    val pullState = rememberPullToRefreshState()
+    val listBottom = if (WindowInsets.isImeVisible) 16.dp else bottomPadding
+    val refreshNow = {
+        if (!isAppRefreshing) {
+            if (ui.query.isNotBlank() || ui.filters.hasActiveFilters) viewModel.retry()
+            onRefresh()
+        }
+    }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-            .imePadding()
+    PullToRefreshBox(
+        isRefreshing = isAppRefreshing,
+        onRefresh = refreshNow,
+        state = pullState,
+        modifier = modifier.fillMaxSize().imePadding(),
+        indicator = {
+            RefreshIndicator(
+                state = pullState,
+                isRefreshing = isAppRefreshing,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
+        }
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface)
+        ) {
         ScreenHeader(
             leading = {
-                HeaderAction(
-                    icon = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = "Back",
-                    onClick = onBack,
-                    container = MaterialTheme.colorScheme.primary,
-                    content = MaterialTheme.colorScheme.onPrimary
+                SearchField(
+                    query = ui.query,
+                    onQueryChange = viewModel::onQueryChange,
+                    onSearch = {
+                        viewModel.remember()
+                        keyboard?.hide()
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .focusRequester(searchFocus)
                 )
-                Spacer(Modifier.width(12.dp))
-                HeaderTitle("Search")
             },
             actions = {
+                Spacer(Modifier.width(8.dp))
+                FilterAction(
+                    active = ui.filters.hasActiveFilters,
+                    onClick = {
+                        keyboard?.hide()
+                        showFilters = true
+                    }
+                )
+                Spacer(Modifier.width(8.dp))
                 SettingsAction(onOpenSettings)
             }
         )
 
-        Spacer(Modifier.height(16.dp))
-        SearchField(
-            query = ui.query,
-            onQueryChange = viewModel::onQueryChange,
-            onSearch = {
-                viewModel.remember()
-                keyboard?.hide()
-            }
-        )
-
-        val isIdle = ui.query.isBlank() && ui.category == null
+        val isIdle = ui.isIdle
         if (isIdle) {
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(top = 20.dp, bottom = 24.dp)
+                contentPadding = PaddingValues(top = 8.dp, bottom = listBottom)
             ) {
                 if (recents.isNotEmpty()) {
                     item(key = "recents") {
@@ -131,24 +178,31 @@ fun SearchScreen(
                 }
             }
         } else {
-            FilterRow(
-                sort = ui.sort,
-                category = ui.category,
-                onSort = viewModel::onSortChange,
-                onClearCategory = { viewModel.onCategoryChange(null) }
-            )
             if (ui.phase == SearchPhase.DONE) {
                 Text(
-                    text = when (ui.source) {
-                        CatalogSource.OFFICIAL_OSU -> "osu! official · Ranked + Loved · all game modes"
-                        CatalogSource.PUBLIC_MIRROR -> "Public catalog fallback · Ranked + Loved · all game modes"
-                        CatalogSource.MIXED -> "osu! official + public fallback · Ranked + Loved"
-                        CatalogSource.NONE -> "Ranked + Loved · all game modes"
-                    },
+                    text = (ui.total?.let { "%,d results".format(it) } ?: "${ui.results.size} results") +
+                        " · " + ui.filters.sort.label,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
                 )
+            }
+            if (ui.filters.hasActiveFilters) {
+                ActiveFilterChips(
+                    filters = ui.filters.activeFilters,
+                    onRemove = { filter -> viewModel.updateFilters(filter.clear) },
+                    onReset = viewModel::resetFilters
+                )
+            }
+            val nearEnd by remember {
+                derivedStateOf {
+                    val info = listState.layoutInfo
+                    val last = info.visibleItemsInfo.lastOrNull()?.index ?: -1
+                    info.totalItemsCount > 0 && last >= info.totalItemsCount - 6
+                }
+            }
+            LaunchedEffect(nearEnd, ui.results.size, ui.hasMore) {
+                if (nearEnd && ui.hasMore && !ui.isLoadingMore && ui.loadMoreError == null) viewModel.loadMore()
             }
             when (ui.phase) {
                 SearchPhase.IDLE -> Unit
@@ -158,7 +212,7 @@ fun SearchScreen(
                         EmptyState(
                             icon = Icons.Rounded.Search,
                             title = if (ui.error == null) "No results found" else "Catalog unavailable",
-                            message = ui.error ?: "Try searching for a different song, artist or mapper.",
+                            message = ui.error ?: "Try a different song, artist or mapper, or loosen the filters.",
                             action = if (ui.error == null) null else ({
                                 TextButton(onClick = viewModel::retry) { Text("Retry") }
                             })
@@ -167,7 +221,7 @@ fun SearchScreen(
                         LazyColumn(
                             state = listState,
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+                            contentPadding = PaddingValues(start = 20.dp, top = 12.dp, end = 20.dp, bottom = listBottom),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             items(ui.results, key = { it.id }) { beatmap ->
@@ -180,11 +234,28 @@ fun SearchScreen(
                                     }
                                 )
                             }
+                            if (ui.isLoadingMore) item(key = "more") { KozuLoading() }
+                            if (ui.loadMoreError != null) item(key = "more-error") {
+                                TextButton(onClick = viewModel::loadMore) { Text("Retry loading more") }
+                            }
                         }
                     }
                 }
             }
         }
+        }
+    }
+
+    if (showFilters) {
+        BrowseFilterSheet(
+            initial = ui.filters,
+            isLoggedIn = ui.isLoggedIn,
+            onDismiss = { showFilters = false },
+            onApply = {
+                viewModel.applyFilters(it)
+                showFilters = false
+            }
+        )
     }
 }
 
@@ -192,18 +263,23 @@ fun SearchScreen(
 private fun SearchField(
     query: String,
     onQueryChange: (String) -> Unit,
-    onSearch: () -> Unit
+    onSearch: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     TextField(
         value = query,
         onValueChange = onQueryChange,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp),
+        modifier = modifier.fillMaxWidth(),
         singleLine = true,
         shape = CircleShape,
-        textStyle = MaterialTheme.typography.titleMedium,
-        placeholder = { Text("Songs, artists or mappers") },
+        textStyle = MaterialTheme.typography.bodyLarge,
+        placeholder = {
+            Text(
+                text = "Search beatmaps",
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        },
         leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
         trailingIcon = {
             if (query.isNotEmpty()) {

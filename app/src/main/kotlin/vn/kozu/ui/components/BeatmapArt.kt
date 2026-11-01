@@ -22,11 +22,9 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import vn.kozu.domain.model.ArtworkQuality
 import vn.kozu.domain.model.Beatmap
 
-/**
- * Renders cover artwork for a beatmap with fallback placeholder and crossfade transition.
- */
 @Composable
 fun BeatmapArt(
     beatmap: Beatmap,
@@ -34,7 +32,14 @@ fun BeatmapArt(
     shape: Shape = RoundedCornerShape(20.dp),
     large: Boolean = false
 ) {
-    val url = if (large) beatmap.artUrl else beatmap.thumbUrl
+    val appSettings = LocalAppSettings.current
+    val metered = LocalMetered.current
+    val quality = if (metered) appSettings.artworkQualityMobile else appSettings.artworkQualityWifi
+    val url = when (quality) {
+        ArtworkQuality.LOW -> "https://assets.ppy.sh/beatmaps/${beatmap.id}/covers/list.jpg"
+        ArtworkQuality.MEDIUM -> beatmap.thumbUrl
+        ArtworkQuality.HIGH -> if (large) beatmap.artUrl else beatmap.thumbUrl
+    }
     val context = LocalContext.current
     val colors = MaterialTheme.colorScheme
 
@@ -48,7 +53,7 @@ fun BeatmapArt(
             imageVector = Icons.Rounded.MusicNote,
             contentDescription = null,
             tint = colors.onPrimaryContainer.copy(alpha = 0.55f),
-            modifier = Modifier.size(28.dp)
+            modifier = Modifier.size(if (large) 56.dp else 28.dp)
         )
         val request = remember(url) {
             ImageRequest.Builder(context).data(url).crossfade(200).build()

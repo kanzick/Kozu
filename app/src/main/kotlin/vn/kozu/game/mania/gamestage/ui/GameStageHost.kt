@@ -46,10 +46,6 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
     else -> null
 }
 
-/**
- * Coordinates the full flow: list (PreviewStage) -> info popup -> gameplay -> results -> return to the popup.
- * Replaces direct calls to PreviewStageScreen.
- */
 @Composable
 fun GameStageHost(
     preview: PreviewStageModule,
@@ -147,11 +143,12 @@ fun GameStageHost(
             },
         )
 
-        else -> Box(modifier.fillMaxSize().padding(contentPadding)) {
+        else -> Box(modifier.fillMaxSize()) {
             PreviewStageScreen(
                 module = preview,
                 onAddMaps = onAddMaps,
                 onDifficultyClick = { song, diff -> popup = Selection(song, diff) },
+                contentPadding = contentPadding,
             )
             initializationError?.let { message ->
                 Surface(

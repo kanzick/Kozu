@@ -1,6 +1,16 @@
 package vn.kozu.di
 
 import android.content.Context
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import vn.kozu.data.backup.BackupManager
+import vn.kozu.data.storage.CacheCleaner
+import vn.kozu.data.update.UpdateChecker
+import vn.kozu.data.remote.ProxyController
 import vn.kozu.data.download.DownloadManager
 import vn.kozu.data.local.AccountStore
 import vn.kozu.data.local.DownloadsStore
@@ -18,15 +28,9 @@ import vn.kozu.data.repository.DiscoverFeed
 import vn.kozu.data.repository.LibrarySync
 import vn.kozu.player.PlaybackController
 
-/**
- * Dependency injection container for Kozu.
- * Instantiates and provides shared dependencies for storage, network,
- * repositories, downloads, and playback.
- */
 class AppContainer(context: Context) {
     val appContext = context.applicationContext
 
-    // Local stores
     val settings = SettingsStore(appContext)
     val favorites = FavoritesStore(appContext)
     val playlists = PlaylistStore(appContext)
@@ -34,28 +38,25 @@ class AppContainer(context: Context) {
     val downloadsStore = DownloadsStore(appContext)
     private val accountStore = AccountStore(appContext)
 
-    // Network and osu! authentication
     val httpClient = OsuApiFactory.client()
     private val api = OsuApiFactory.create(httpClient)
     val auth = OsuAuth(api, settings, accountStore)
 
-    // Repositories
     val accounts = AccountRepository(auth, api, accountStore)
     val catalog = BeatmapRepository(api, auth, settings, httpClient)
     val discover = DiscoverFeed(catalog, settings, auth)
 
-    // Streaming and downloading
     val streams = StreamResolver(appContext, httpClient, downloadsStore, settings)
     val downloads = DownloadManager(
         context = appContext,
         client = httpClient,
         settings = settings,
         store = downloadsStore,
-        auth = auth
+        auth = auth,
+        history = history
     )
     val mirrorTester = MirrorTester(httpClient)
 
-    // Library synchronization
     val sync = LibrarySync(
         catalog,
         favorites,
@@ -66,8 +67,20 @@ class AppContainer(context: Context) {
         settings
     )
 
-    // Playback
     val playback: PlaybackController by lazy {
-        PlaybackController(appContext, history, streams)
+        PlaybackController(appContext, history, streams, catalog, settings.settings)
+    }
+
+    val updates = UpdateChecker(appContext, httpClient)
+    val backup = BackupManager(settings, favorites, playlists, history)
+    val cacheCleaner = CacheCleaner(appContext, streams, settings)
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    init {
+        scope.launch {
+            settings.settings.map { it.proxy }.distinctUntilChanged().collect { ProxyController.update(it) }
+        }
+        scope.launch { runCatching { cacheCleaner.cleanIfNeeded() } }
     }
 }

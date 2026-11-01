@@ -16,13 +16,16 @@ import vn.kozu.data.local.DownloadedSet
 import vn.kozu.data.mirror.MirrorTestResult
 import vn.kozu.di.AppContainer
 import vn.kozu.domain.model.AccentColor
+import vn.kozu.domain.model.AppStyle
 import vn.kozu.domain.model.AppSettings
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.Mirror
 import vn.kozu.domain.model.Mirrors
 import vn.kozu.domain.model.ModeFilter
+import vn.kozu.domain.model.NavigationStyle
 import vn.kozu.domain.model.OsuProfile
 import vn.kozu.domain.model.StatusFilter
+import vn.kozu.domain.model.StartTab
 import vn.kozu.domain.model.StreamMode
 import vn.kozu.domain.model.ThemeMode
 import vn.kozu.player.PlaybackService
@@ -68,6 +71,7 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val syncing: StateFlow<Boolean> = container.sync.running
+    val catalog = container.discover.state
 
     private val _verify = MutableStateFlow<VerifyState>(VerifyState.Idle)
     val verify: StateFlow<VerifyState> = _verify.asStateFlow()
@@ -119,6 +123,11 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
     fun setRange(value: StatsRange) = _range.update { value }
 
     fun setThemeMode(mode: ThemeMode) = viewModelScope.launch { container.settings.setThemeMode(mode) }
+    fun setAppStyle(style: AppStyle) =
+        viewModelScope.launch { container.settings.setAppStyle(style) }
+    fun setNavigationStyle(style: NavigationStyle) =
+        viewModelScope.launch { container.settings.setNavigationStyle(style) }
+    fun setStartTab(tab: StartTab) = viewModelScope.launch { container.settings.setStartTab(tab) }
     fun setAmoled(enabled: Boolean) = viewModelScope.launch { container.settings.setAmoled(enabled) }
     fun setArtworkColors(enabled: Boolean) = viewModelScope.launch { container.settings.setArtworkColors(enabled) }
     fun setAccent(accent: AccentColor) = viewModelScope.launch { container.settings.setAccent(accent) }
@@ -127,12 +136,22 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
     fun setWifiOnlyStreaming(enabled: Boolean) = viewModelScope.launch { container.settings.setWifiOnlyStreaming(enabled) }
     fun setSkipSilence(enabled: Boolean) = viewModelScope.launch { container.settings.setSkipSilence(enabled) }
     fun setStreamCacheMb(mb: Int) = viewModelScope.launch { container.settings.setStreamCacheMb(mb) }
+    fun setEqualizerEnabled(enabled: Boolean) =
+        viewModelScope.launch { container.settings.setEqualizerEnabled(enabled) }
+    fun setEqualizerGains(gains: List<Float>) =
+        viewModelScope.launch { container.settings.setEqualizerGains(gains) }
     fun setKeepFull(enabled: Boolean) = viewModelScope.launch { container.settings.setKeepFullBeatmap(enabled) }
     fun setWifiOnlyDownloads(enabled: Boolean) = viewModelScope.launch { container.settings.setWifiOnlyDownloads(enabled) }
     fun setAutoUpdate(enabled: Boolean) = viewModelScope.launch { container.settings.setAutoUpdateDownloads(enabled) }
     fun setShowExplicit(enabled: Boolean) = viewModelScope.launch { container.settings.setShowExplicit(enabled) }
     fun setModeFilter(filter: ModeFilter) = viewModelScope.launch { container.settings.setModeFilter(filter) }
     fun setStatusFilter(filter: StatusFilter) = viewModelScope.launch { container.settings.setStatusFilter(filter) }
+    fun refreshCatalog() = container.discover.refresh()
+
+    fun save(block: suspend vn.kozu.data.local.SettingsStore.() -> Unit) =
+        viewModelScope.launch { container.settings.block() }
+
+    val appContainer: AppContainer get() = container
 
     fun clearHistory() = viewModelScope.launch { container.history.clear() }
     fun clearSearches() = viewModelScope.launch { container.settings.clearRecentSearches() }
@@ -181,8 +200,11 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
     fun refreshProfile() {
         viewModelScope.launch {
             _profileLoading.value = true
-            container.accounts.refreshProfile()
-            _profileLoading.value = false
+            try {
+                container.accounts.refreshProfile(forceRankHistory = true)
+            } finally {
+                _profileLoading.value = false
+            }
         }
     }
 

@@ -74,11 +74,6 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
     else -> null
 }
 
-/**
- * Gameplay screen. Motion is drawn ENTIRELY from time (position = a linear function of chart time),
- * without accumulating across frames. Time comes from the current frame's vsync timestamp, so a delayed
- * frame does not cause stuttering. Touches are judged by their event time, not their processing time.
- */
 @Composable
 fun PlayScreen(
     session: GameSession,
@@ -124,7 +119,7 @@ fun PlayScreen(
         while (isActive) {
             withFrameNanos { frameNanos ->
                 session.frame()
-                // Render time from this frame's vsync timestamp.
+
                 drawTime[0] = session.core.chartTimeAt(frameNanos)
                 frameTick.longValue = frameNanos
             }
@@ -193,13 +188,12 @@ fun PlayScreen(
                     true
                 }
         ) {
-            frameTick.longValue // Observe: redraw each frame without recomposing.
+            frameTick.longValue
             val w = size.width
             val h = size.height
             val t = drawTime[0]
             val layout = PlayfieldLayout(w, h, chart.keys)
 
-            // ---- background + dimming
             val bg = session.background
             if (bg != null) {
                 val scale = max(w / bg.width, h / bg.height)
@@ -214,7 +208,6 @@ fun PlayScreen(
             }
             drawRect(Color.Black.copy(alpha = if (bg == null) 0.82f else dimAlpha))
 
-            // ---- playfield
             drawRoundRect(
                 color = colors.surface.copy(alpha = 0.78f),
                 topLeft = Offset(layout.left, 0f),
@@ -226,7 +219,6 @@ fun PlayScreen(
                 drawRect(colors.onSurface.copy(alpha = 0.16f), Offset(x - 1f, 0f), Size(2f, h))
             }
 
-            // ---- held keys
             for (c in 0 until chart.keys) {
                 if (engine.keyDown[c]) {
                     drawRect(
@@ -237,7 +229,6 @@ fun PlayScreen(
                 }
             }
 
-            // ---- notes
             val pad = layout.columnWidth * 0.06f
             val noteW = layout.columnWidth - pad * 2
             for (c in 0 until chart.keys) {
@@ -255,7 +246,7 @@ fun PlayScreen(
                         i++
                         continue
                     }
-                    if (n.timeMs - t > travelMs + 50) break // Not visible yet; subsequent notes are even farther away.
+                    if (n.timeMs - t > travelMs + 50) break
                     val headY = NoteScroll.yAt(n.timeMs.toDouble(), t, travelMs, layout.judgeY)
                     if (!n.isHold) {
                         if (headY - layout.noteHeight < h && headY > 0f) {
@@ -305,7 +296,6 @@ fun PlayScreen(
                 }
             }
 
-            // ---- judgement line
             drawRoundRect(
                 colors.primary,
                 Offset(layout.left, layout.judgeY),
@@ -313,13 +303,11 @@ fun PlayScreen(
                 CornerRadius(2.dp.toPx())
             )
 
-            // ---- song progress
             val progress = (t / max(1.0, chart.lastEventTimeMs.toDouble())).coerceIn(0.0, 1.0).toFloat()
             drawRect(colors.onSurface.copy(alpha = 0.28f), Offset(0f, 0f), Size(w, 4.dp.toPx()))
             drawRect(colors.primary, Offset(0f, 0f), Size(w * progress, 4.dp.toPx()))
         }
 
-        // ---- HUD (recompose only when a judgement is made)
         if (phase == GameSession.Phase.PLAYING || phase == GameSession.Phase.FINISHED) {
             Hud(session)
         }

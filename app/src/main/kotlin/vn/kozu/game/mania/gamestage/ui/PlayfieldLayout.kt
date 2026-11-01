@@ -4,9 +4,8 @@ import androidx.compose.ui.graphics.Color
 import vn.kozu.game.mania.gamestage.scoring.Judgement
 import kotlin.math.min
 
-/** Playfield layout shared by rendering and touch handling so both stay aligned. */
 class PlayfieldLayout(width: Float, height: Float, val keys: Int) {
-    /** Landscape playfields keep a fixed proportional gutter on both sides across device sizes. */
+
     val columnWidth: Float = if (width > height && keys in LANDSCAPE_EXPANDED_KEY_RANGE) {
         width * LANDSCAPE_FIELD_WIDTH_FRACTION / keys
     } else {
@@ -18,7 +17,6 @@ class PlayfieldLayout(width: Float, height: Float, val keys: Int) {
     val judgeY: Float = height * 0.82f
     val noteHeight: Float = columnWidth * 0.30f
 
-    /** Column for x (touches outside the playfield snap to the nearest column). */
     fun columnAt(x: Float): Int = ((x - left) / columnWidth).toInt().coerceIn(0, keys - 1)
 
     fun columnX(c: Int): Float = left + c * columnWidth

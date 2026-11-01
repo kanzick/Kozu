@@ -1,7 +1,7 @@
 package vn.kozu.data.remote.osu
 
-import android.net.Uri
 import android.os.SystemClock
+import androidx.core.net.toUri
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -39,7 +39,7 @@ class OsuAuth(
         if (!current.hasCredentials) return null
         val state = UUID.randomUUID().toString()
         account.savePendingState(state)
-        return Uri.parse("https://osu.ppy.sh/oauth/authorize").buildUpon()
+        return "https://osu.ppy.sh/oauth/authorize".toUri().buildUpon()
             .appendQueryParameter("client_id", current.osuClientId)
             .appendQueryParameter("redirect_uri", REDIRECT_URI)
             .appendQueryParameter("response_type", "code")

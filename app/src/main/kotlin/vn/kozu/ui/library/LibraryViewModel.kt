@@ -18,25 +18,24 @@ import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.Playlist
 import vn.kozu.ui.containerFactory
 
-/** Library tabs */
 enum class LibraryTab(val label: String) {
-    LIKED("LIKED"),
-    PLAYLISTS("PLAYLISTS"),
-    SONGS("SONGS"),
-    DOWNLOADS("DOWNLOADS")
+    SONGS("Songs"),
+    LIKED("Liked"),
+    PLAYLISTS("Playlists"),
+    DOWNLOADS("Downloads")
 }
 
-/** Sorting options for library items */
 enum class LibrarySort(val label: String) {
-    RECENT("Recently added"),
+    RECENT("Date added"),
     TITLE("Title"),
-    ARTIST("Artist")
+    ARTIST("Artist"),
+    MAPPER("Mapper")
 }
 
-/** UI state metadata for Library screen */
 data class LibraryUiState(
     val tab: LibraryTab = LibraryTab.LIKED,
     val sort: LibrarySort = LibrarySort.RECENT,
+    val ascending: Boolean = false,
     val grid: Boolean = false,
     val liked: List<Beatmap> = emptyList(),
     val songs: List<Beatmap> = emptyList(),
@@ -48,15 +47,15 @@ data class LibraryUiState(
     val downloadedBytes: Long = 0L
 )
 
-/** ViewModel managing user library, liked tracks, custom playlists, and offline downloads */
 class LibraryViewModel(private val container: AppContainer) : ViewModel() {
 
     private val tab = MutableStateFlow(LibraryTab.LIKED)
     private val sort = MutableStateFlow(LibrarySort.RECENT)
     private val grid = MutableStateFlow(false)
+    private val ascending = MutableStateFlow(false)
     private val openedId = MutableStateFlow<String?>(null)
 
-    private val prefs = combine(tab, sort, grid, openedId) { t, s, g, o -> arrayOf<Any?>(t, s, g, o) }
+    private val prefs = combine(tab, sort, grid, openedId, ascending) { t, s, g, o, a -> arrayOf<Any?>(t, s, g, o, a) }
 
     private val downloadState = combine(container.downloadsStore.sets, container.downloads.status) { sets, status ->
         sets to status
@@ -70,12 +69,14 @@ class LibraryViewModel(private val container: AppContainer) : ViewModel() {
         downloadState
     ) { p, favorites, history, playlists, downloadState ->
         val currentSort = p[1] as LibrarySort
+        val asc = p[4] as Boolean
         LibraryUiState(
             tab = p[0] as LibraryTab,
             sort = currentSort,
+            ascending = asc,
             grid = p[2] as Boolean,
-            liked = favorites.applySort(currentSort),
-            songs = history.recent.applySort(currentSort),
+            liked = favorites.applySort(currentSort, asc),
+            songs = history.recent.applySort(currentSort, asc),
             playlists = playlists,
             openedPlaylist = playlists.firstOrNull { it.id == p[3] },
             downloads = downloadState.first,
@@ -88,6 +89,7 @@ class LibraryViewModel(private val container: AppContainer) : ViewModel() {
     fun selectTab(value: LibraryTab) = tab.update { value }
     fun selectSort(value: LibrarySort) = sort.update { value }
     fun toggleGrid() = grid.update { !it }
+    fun toggleDirection() = ascending.update { !it }
     fun openPlaylist(id: String) = openedId.update { id }
     fun closePlaylist() = openedId.update { null }
 
@@ -104,10 +106,15 @@ class LibraryViewModel(private val container: AppContainer) : ViewModel() {
     fun removeFromPlaylist(playlistId: String, beatmapId: Long) =
         viewModelScope.launch { container.playlists.removeTrack(playlistId, beatmapId) }
 
-    private fun List<Beatmap>.applySort(sort: LibrarySort): List<Beatmap> = when (sort) {
-        LibrarySort.RECENT -> this
-        LibrarySort.TITLE -> sortedBy { it.title.lowercase() }
-        LibrarySort.ARTIST -> sortedBy { it.artist.lowercase() }
+    private fun List<Beatmap>.applySort(sort: LibrarySort, ascending: Boolean): List<Beatmap> {
+        val sorted = when (sort) {
+            LibrarySort.RECENT -> this
+            LibrarySort.TITLE -> sortedBy { it.title.lowercase() }
+            LibrarySort.ARTIST -> sortedBy { it.artist.lowercase() }
+            LibrarySort.MAPPER -> sortedBy { it.mapper.lowercase() }
+        }
+        val reverse = if (sort == LibrarySort.RECENT) ascending else !ascending
+        return if (reverse) sorted.reversed() else sorted
     }
 
     companion object {

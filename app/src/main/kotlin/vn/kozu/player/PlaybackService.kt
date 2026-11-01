@@ -2,10 +2,21 @@ package vn.kozu.player
 
 import android.app.PendingIntent
 import android.content.Intent
+import android.media.AudioDeviceCallback
+import android.media.AudioDeviceInfo
+import android.media.AudioManager
+import android.media.audiofx.Equalizer
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.TrackSelectionParameters
+import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.DataSource
@@ -19,18 +30,21 @@ import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import java.util.concurrent.TimeUnit
 import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import vn.kozu.KozuApplication
@@ -38,6 +52,7 @@ import vn.kozu.MainActivity
 import vn.kozu.data.mirror.StreamResolver
 import vn.kozu.data.mirror.ZipAudioDataSource
 import vn.kozu.data.remote.osu.OsuApiFactory
+import vn.kozu.domain.model.AppSettings
 import java.io.File
 import java.io.IOException
 
@@ -46,29 +61,81 @@ class PlaybackService : MediaSessionService() {
 
     private var session: MediaSession? = null
     private var mediaCache: SimpleCache? = null
-    private var cacheDatabaseProvider: StandaloneDatabaseProvider? = null
-    private var mediaCacheDirectory: File? = null
     private var streamResolver: StreamResolver? = null
+    private var player: ExoPlayer? = null
+    private var equalizer: Equalizer? = null
+    private var equalizerSessionId = 0
+    private var audioEffects: AudioEffectsController? = null
+    private var crossfade: CrossfadeController? = null
+    private var tickerJob: Job? = null
+    private var audioManager: AudioManager? = null
+    private var currentSettings = AppSettings()
+    private var equalizerErrorReported = false
     private var taskWasRemoved = false
+    private var pausedForNoisy = false
+    private var hiFiAtBuild = false
+    private var hiFiNoticeShown = false
+    private val playbackSessionStore by lazy { PlaybackSessionStore(this) }
 
     private val scope = CoroutineScope(
         SupervisorJob() + Dispatchers.Main.immediate
     )
 
-    private val taskRemovalListener = object : Player.Listener {
+    private val audioDeviceCallback = object : AudioDeviceCallback() {
+        override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) {
+            if (addedDevices.any { it.isSink && isHeadsetOutput(it.type) }) {
+                resumeAfterReconnect()
+            }
+        }
+    }
+
+    private val playerListener = object : Player.Listener {
+        override fun onTracksChanged(tracks: Tracks) {
+            applyAudioEffects()
+        }
+
+        override fun onAudioSessionIdChanged(audioSessionId: Int) {
+            applyAudioEffects()
+        }
+
+        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            crossfade?.onMediaItemTransition(reason)
+        }
+
+        override fun onPositionDiscontinuity(
+            oldPosition: Player.PositionInfo,
+            newPosition: Player.PositionInfo,
+            reason: Int
+        ) {
+            if (
+                reason == Player.DISCONTINUITY_REASON_SEEK ||
+                reason == Player.DISCONTINUITY_REASON_SEEK_ADJUSTMENT
+            ) {
+                crossfade?.onSeek()
+            }
+        }
+
         override fun onPlayWhenReadyChanged(
             playWhenReady: Boolean,
             reason: Int
         ) {
+            pausedForNoisy = !playWhenReady &&
+                reason == Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_BECOMING_NOISY
+            crossfade?.tick()
             if (taskWasRemoved && !playWhenReady) {
                 stopSelf()
             }
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
+            crossfade?.tick()
             if (taskWasRemoved && playbackState == Player.STATE_ENDED) {
                 stopSelf()
             }
+        }
+
+        override fun onEvents(player: Player, events: Player.Events) {
+            savePlaybackSession(player)
         }
     }
 
@@ -79,22 +146,15 @@ class PlaybackService : MediaSessionService() {
         val streams = container.streams
         streamResolver = streams
 
-        // This cache is intentionally session-only. Remove leftovers from a
-        // previous process before opening the directory again. SimpleCache.delete
-        // also clears its database index; deleting the directory alone is unsafe.
         val cacheDirectory = File(cacheDir, MEDIA_CACHE_DIRECTORY)
         val databaseProvider = StandaloneDatabaseProvider(this)
-        runBlocking(Dispatchers.IO) {
-            SimpleCache.delete(cacheDirectory, databaseProvider)
+
+        val initialSettings = runBlocking(Dispatchers.IO) {
+            container.settings.settings.first()
         }
-        streams.clearCache()
-
-        mediaCacheDirectory = cacheDirectory
-        cacheDatabaseProvider = databaseProvider
-
-        val configuredCacheMb = runBlocking(Dispatchers.IO) {
-            container.settings.settings.first().streamCacheMb
-        }.coerceIn(MIN_CACHE_MB, MAX_CACHE_MB)
+        currentSettings = initialSettings
+        hiFiAtBuild = initialSettings.hiFiMode
+        val configuredCacheMb = initialSettings.streamCacheMb.coerceIn(MIN_CACHE_MB, MAX_CACHE_MB)
         val cacheLimitBytes = configuredCacheMb.toLong() * BYTES_PER_MEGABYTE
 
         val cache = SimpleCache(
@@ -104,10 +164,6 @@ class PlaybackService : MediaSessionService() {
         )
         mediaCache = cache
 
-        // Reuse Kozu's OkHttp client so catalog, mirror and audio requests share
-        // DNS, TLS sessions and the connection pool.
-        // Keep first-byte connection/read waits bounded, but do not impose a
-        // whole-call timeout: a song is a long-lived streaming response.
         val playbackClient = container.httpClient.newBuilder()
             .connectTimeout(2, TimeUnit.SECONDS)
             .readTimeout(4, TimeUnit.SECONDS)
@@ -118,8 +174,6 @@ class PlaybackService : MediaSessionService() {
             .setUserAgent(OsuApiFactory.USER_AGENT)
         val upstream = DefaultDataSource.Factory(this, http)
 
-        // Route custom ZIP-audio URIs to a streaming/inflating DataSource.
-        // Ordinary HTTP, file, content and asset URIs still use DefaultDataSource.
         val routedUpstream = DataSource.Factory {
             KozuRoutingDataSource(upstream, streams)
         }
@@ -129,8 +183,6 @@ class PlaybackService : MediaSessionService() {
             .setUpstreamDataSourceFactory(routedUpstream)
             .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
 
-        // Resolve internal beatmap IDs to local downloads or a genuine full-song
-        // source. Resolver errors remain explicit; FULL never falls back to preview.
         val resolving = ResolvingDataSource.Factory(
             cachedDataSource,
             object : ResolvingDataSource.Resolver {
@@ -147,8 +199,6 @@ class PlaybackService : MediaSessionService() {
             }
         )
 
-        // A larger buffer reduces interruptions on variable mobile networks.
-        // Initial playback is still allowed after the smaller startup threshold.
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
                 10_000,
@@ -158,7 +208,10 @@ class PlaybackService : MediaSessionService() {
             )
             .build()
 
-        val player = ExoPlayer.Builder(this)
+        val renderersFactory = DefaultRenderersFactory(this)
+            .setEnableAudioFloatOutput(initialSettings.hiFiMode)
+
+        val player = ExoPlayer.Builder(this, renderersFactory)
             .setMediaSourceFactory(DefaultMediaSourceFactory(resolving))
             .setLoadControl(loadControl)
             .setAudioAttributes(
@@ -168,18 +221,48 @@ class PlaybackService : MediaSessionService() {
                     .build(),
                 true
             )
-            .setHandleAudioBecomingNoisy(true)
+            .setHandleAudioBecomingNoisy(initialSettings.pauseOnHeadsetDisconnect)
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
+        this.player = player
 
-        player.addListener(taskRemovalListener)
+        SleepFade.gain = 1f
+        val effects = AudioEffectsController { PlaybackEvents.report(it) }
+        audioEffects = effects
+        val fader = CrossfadeController(player) { SleepFade.gain }
+        crossfade = fader
+
+        player.addListener(playerListener)
+        restorePlaybackSession(player, initialSettings.rememberShuffle)
+        applySettings(player, initialSettings)
+
+        scope.launch {
+            while (true) {
+                delay(5_000L)
+                player.let(::savePlaybackSession)
+            }
+        }
+
+        tickerJob = scope.launch {
+            while (isActive) {
+                val ramping = fader.tick()
+                delay(
+                    when {
+                        ramping -> RAMP_TICK_MS
+                        player.isPlaying -> PLAYING_TICK_MS
+                        else -> IDLE_TICK_MS
+                    }
+                )
+            }
+        }
 
         scope.launch {
             container.settings.settings
-                .map { it.skipSilence }
                 .distinctUntilChanged()
-                .collect { player.skipSilenceEnabled = it }
+                .collect { settings -> applySettings(player, settings) }
         }
+
+        registerAudioDeviceCallback()
 
         val openApp = PendingIntent.getActivity(
             this,
@@ -198,13 +281,174 @@ class PlaybackService : MediaSessionService() {
         controllerInfo: MediaSession.ControllerInfo
     ): MediaSession? = session
 
+    private fun applySettings(player: ExoPlayer, settings: AppSettings) {
+        currentSettings = settings
+        player.skipSilenceEnabled = settings.skipSilence
+        player.setHandleAudioBecomingNoisy(settings.pauseOnHeadsetDisconnect)
+        applyOffload(player, settings.hardwareOffload)
+        applyPreload(player, settings.preloadNext)
+        crossfade?.setFadeMs(settings.crossfade.millis)
+        applyAudioEffects()
+        announceHiFiChange(settings.hiFiMode)
+    }
+
+    private fun applyOffload(player: ExoPlayer, enabled: Boolean) {
+        val mode = if (enabled) {
+            TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED
+        } else {
+            TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED
+        }
+        val parameters = player.trackSelectionParameters
+        if (parameters.audioOffloadPreferences.audioOffloadMode == mode) return
+
+        val preferences = TrackSelectionParameters.AudioOffloadPreferences.Builder()
+            .setAudioOffloadMode(mode)
+            .setIsGaplessSupportRequired(true)
+            .build()
+        player.trackSelectionParameters = parameters.buildUpon()
+            .setAudioOffloadPreferences(preferences)
+            .build()
+    }
+
+    private fun applyPreload(player: ExoPlayer, enabled: Boolean) {
+        val configuration = if (enabled) {
+            ExoPlayer.PreloadConfiguration(PRELOAD_DURATION_US)
+        } else {
+            ExoPlayer.PreloadConfiguration.DEFAULT
+        }
+        if (player.preloadConfiguration.targetPreloadDurationUs == configuration.targetPreloadDurationUs) return
+        player.preloadConfiguration = configuration
+    }
+
+    private fun announceHiFiChange(enabled: Boolean) {
+        if (enabled == hiFiAtBuild) {
+            hiFiNoticeShown = false
+        } else if (!hiFiNoticeShown) {
+            hiFiNoticeShown = true
+            PlaybackEvents.report("Restart playback to apply Hi-Fi mode")
+        }
+    }
+
+    private fun applyAudioEffects() {
+        val player = player ?: return
+        val settings = currentSettings
+        applyEqualizer(player, settings)
+        audioEffects?.apply(
+            audioSessionId = player.audioSessionId,
+            bassBoost = settings.bassBoost,
+            virtualizer = settings.virtualizer,
+            loudness = settings.loudness
+        )
+    }
+
+    private fun registerAudioDeviceCallback() {
+        val manager = getSystemService(AudioManager::class.java) ?: return
+        audioManager = manager
+        manager.registerAudioDeviceCallback(audioDeviceCallback, Handler(Looper.getMainLooper()))
+    }
+
+    private fun resumeAfterReconnect() {
+        val player = player ?: return
+        if (!pausedForNoisy || !currentSettings.resumeOnHeadset) return
+        pausedForNoisy = false
+        if (
+            player.mediaItemCount > 0 &&
+            !player.playWhenReady &&
+            player.playbackState != Player.STATE_IDLE &&
+            player.playbackState != Player.STATE_ENDED
+        ) {
+            player.play()
+        }
+    }
+
+    private fun isHeadsetOutput(type: Int): Boolean = when (type) {
+        AudioDeviceInfo.TYPE_WIRED_HEADPHONES,
+        AudioDeviceInfo.TYPE_WIRED_HEADSET,
+        AudioDeviceInfo.TYPE_BLUETOOTH_A2DP,
+        AudioDeviceInfo.TYPE_BLUETOOTH_SCO,
+        AudioDeviceInfo.TYPE_USB_HEADSET,
+        AudioDeviceInfo.TYPE_USB_DEVICE,
+        AudioDeviceInfo.TYPE_USB_ACCESSORY,
+        AudioDeviceInfo.TYPE_HEARING_AID -> true
+        else -> isBleOutput(type)
+    }
+
+    private fun isBleOutput(type: Int): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return false
+        if (type == AudioDeviceInfo.TYPE_BLE_HEADSET || type == AudioDeviceInfo.TYPE_BLE_SPEAKER) return true
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            type == AudioDeviceInfo.TYPE_BLE_BROADCAST
+    }
+
+    private fun applyEqualizer(player: ExoPlayer, settings: AppSettings) {
+        if (!settings.equalizerEnabled) {
+            equalizer?.enabled = false
+            return
+        }
+
+        val audioSessionId = player.audioSessionId
+        if (audioSessionId <= 0) return
+
+        if (audioSessionId != equalizerSessionId) {
+            equalizer?.release()
+            equalizer = null
+            equalizerSessionId = 0
+            try {
+                equalizer = Equalizer(0, audioSessionId)
+                equalizerSessionId = audioSessionId
+            } catch (error: RuntimeException) {
+                reportEqualizerFailure(error)
+                return
+            }
+        }
+
+        val effect = equalizer ?: return
+        try {
+            val range = effect.bandLevelRange
+            val minimum = range[0].toInt()
+            val maximum = range[1].toInt()
+            for (index in 0 until effect.numberOfBands.toInt()) {
+                val frequencyHz = effect.getCenterFreq(index.toShort()) / 1_000f
+                val normalized = EqualizerProfile.gainAt(
+                    frequencyHz,
+                    settings.equalizerGains
+                )
+                val level = EqualizerProfile.gainToMilliBel(normalized)
+                    .coerceIn(minimum, maximum)
+                effect.setBandLevel(index.toShort(), level.toShort())
+            }
+            effect.enabled = true
+            equalizerErrorReported = false
+        } catch (error: RuntimeException) {
+            equalizer?.release()
+            equalizer = null
+            equalizerSessionId = 0
+            reportEqualizerFailure(error)
+        }
+    }
+
+    private fun reportEqualizerFailure(error: RuntimeException) {
+        Log.e(TAG, "Could not apply the device equalizer", error)
+        if (!equalizerErrorReported) {
+            PlaybackEvents.report("The equalizer is not supported by this device.")
+            equalizerErrorReported = true
+        }
+    }
+
     override fun onTaskRemoved(rootIntent: Intent?) {
         taskWasRemoved = true
         val player = session?.player
 
-        // Preserve normal background playback when the task is swiped away.
-        // Once the user pauses or the queue ends, destroy the service and clear
-        // transient streaming caches. Offline beatmap downloads are untouched.
+        if (!currentSettings.keepPlayingAfterClose) {
+            if (player != null) {
+                player.pause()
+                savePlaybackSession(player)
+                player.stop()
+            }
+            pauseAllPlayersAndStopSelf()
+            return
+        }
+
         if (
             player == null ||
             !player.playWhenReady ||
@@ -216,46 +460,72 @@ class PlaybackService : MediaSessionService() {
 
     override fun onDestroy() {
         scope.cancel()
+        tickerJob = null
+        audioManager?.unregisterAudioDeviceCallback(audioDeviceCallback)
+        audioManager = null
+        audioEffects?.release()
+        audioEffects = null
+        crossfade?.release()
+        crossfade = null
+        SleepFade.gain = 1f
+        equalizer?.release()
+        equalizer = null
+        equalizerSessionId = 0
 
         session?.run {
-            player.removeListener(taskRemovalListener)
+            savePlaybackSession(player)
+            player.removeListener(playerListener)
             player.release()
             release()
         }
         session = null
+        player = null
 
         mediaCache?.release()
         mediaCache = null
 
-        val directory = mediaCacheDirectory
-        val database = cacheDatabaseProvider
-        val streams = streamResolver
-        if (directory != null && database != null) {
-            Thread({
-                try {
-                    SimpleCache.delete(directory, database)
-                } catch (_: Exception) {
-                    // A later service start also cleans any leftover cache.
-                }
-                streams?.clearCache()
-            }, "Kozu-cache-cleanup").start()
-        } else {
-            streams?.clearCache()
-        }
-
-        cacheDatabaseProvider = null
-        mediaCacheDirectory = null
         streamResolver = null
 
         super.onDestroy()
     }
 
+    private fun restorePlaybackSession(player: ExoPlayer, restoreModes: Boolean) {
+        val saved = playbackSessionStore.load() ?: return
+        player.setMediaItems(
+            saved.queue.map { it.toMediaItem() },
+            saved.queueIndex,
+            saved.positionMs
+        )
+        player.shuffleModeEnabled = restoreModes && saved.shuffleEnabled
+        player.repeatMode = if (restoreModes) saved.repeatMode else Player.REPEAT_MODE_OFF
+        player.prepare()
+    }
+
+    private fun savePlaybackSession(player: Player) {
+        val queue = List(player.mediaItemCount) { index ->
+            player.getMediaItemAt(index).toBeatmap()
+        }.filterNotNull()
+        playbackSessionStore.save(
+            PlaybackSessionSnapshot(
+                queue = queue,
+                queueIndex = player.currentMediaItemIndex.coerceAtLeast(0),
+                positionMs = player.currentPosition,
+                shuffleEnabled = player.shuffleModeEnabled,
+                repeatMode = player.repeatMode
+            )
+        )
+    }
+
     companion object {
+        private const val TAG = "PlaybackService"
         private const val MEDIA_CACHE_DIRECTORY = "kozu-media3-cache"
         private const val MIN_CACHE_MB = 128
         private const val MAX_CACHE_MB = 2048
         private const val BYTES_PER_MEGABYTE = 1024L * 1024L
-
+        private const val PRELOAD_DURATION_US = 10_000_000L
+        private const val RAMP_TICK_MS = 40L
+        private const val PLAYING_TICK_MS = 250L
+        private const val IDLE_TICK_MS = 500L
         fun mediaCacheBytes(context: android.content.Context): Long {
             val directory = File(
                 context.applicationContext.cacheDir,
@@ -266,10 +536,6 @@ class PlaybackService : MediaSessionService() {
                 .sumOf { it.length() }
         }
 
-        /**
-         * Clears Media3 cache only when no SimpleCache instance has the folder
-         * locked. An active player owns that lock and clears its cache in onDestroy.
-         */
         fun clearMediaCacheIfUnlocked(context: android.content.Context) {
             val appContext = context.applicationContext
             val directory = File(appContext.cacheDir, MEDIA_CACHE_DIRECTORY)
@@ -282,15 +548,13 @@ class PlaybackService : MediaSessionService() {
                         StandaloneDatabaseProvider(appContext)
                     )
                 } catch (_: Exception) {
-                    // The next PlaybackService start performs a full cleanup.
+
                 }
             }, "Kozu-media-cache-clear").start()
         }
     }
 }
 
-
-/** Routes incremental ZIP audio streams while preserving the normal Media3 sources. */
 @OptIn(UnstableApi::class)
 private class KozuRoutingDataSource(
     private val upstreamFactory: DataSource.Factory,

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.withTransaction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import vn.kozu.data.local.db.KozuDatabase
 import vn.kozu.data.local.db.PlaylistEntity
@@ -13,18 +14,13 @@ import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.Playlist
 import java.util.UUID
 
-/**
- * Playlist backend, stored in a local Room (SQLite) database:
- * playlists + songs + song_in_playlist (junction). Public API is unchanged from the
- * old DataStore/JSON version, so the UI and LibrarySync need no edits.
- */
 class PlaylistStore(context: Context) {
 
     private val db = KozuDatabase.get(context)
     private val dao = db.playlistDao()
 
     val playlists: Flow<List<Playlist>> = dao.observeRows().map { rows ->
-        // groupBy keeps first-seen order, and the query already sorts by playlist then position.
+
         rows.groupBy { it.playlist.id }.values.map { group ->
             val head = group.first().playlist
             Playlist(
@@ -82,7 +78,44 @@ class PlaylistStore(context: Context) {
         dao.deleteOrphanSongs()
     }
 
-    /** Must be called inside a transaction. Adds the song to the end of the playlist (no duplicates). */
+    suspend fun snapshot(): List<Playlist> = playlists.first()
+
+    suspend fun importAll(incoming: List<Playlist>): Int {
+        val existing = playlists.first().associateBy { it.id }
+        return db.withTransaction {
+            val knownSongs = dao.getAllSongs().map { it.id }.toMutableSet()
+            var changes = 0
+            incoming.forEach { playlist ->
+                val current = existing[playlist.id]
+                if (current == null) {
+                    dao.insertPlaylist(
+                        PlaylistEntity(
+                            id = playlist.id,
+                            name = playlist.name.trim().ifBlank { "Imported playlist" },
+                            createdAt = playlist.createdAt
+                        )
+                    )
+                    changes++
+                }
+                val present = current?.tracks?.map { it.id }?.toMutableSet() ?: mutableSetOf()
+                playlist.tracks.forEach { track ->
+                    if (!present.add(track.id)) return@forEach
+                    if (knownSongs.add(track.id)) dao.upsertSong(track.toEntity())
+                    val inserted = dao.insertLink(
+                        SongInPlaylistEntity(
+                            playlistId = playlist.id,
+                            songId = track.id,
+                            position = dao.nextPosition(playlist.id),
+                            addedAt = System.currentTimeMillis()
+                        )
+                    )
+                    if (inserted != -1L) changes++
+                }
+            }
+            changes
+        }
+    }
+
     private suspend fun link(playlistId: String, beatmap: Beatmap) {
         dao.upsertSong(beatmap.toEntity())
         dao.insertLink(

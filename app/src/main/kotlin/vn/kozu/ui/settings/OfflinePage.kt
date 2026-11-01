@@ -38,9 +38,9 @@ fun OfflinePage(viewModel: SettingsViewModel, onBack: () -> Unit) {
         "Never"
     }
 
-    SettingsScaffold(title = "Offline", onBack = onBack) {
+    SettingsScaffold(title = "Music Management", onBack = onBack) {
         SettingsGroup(
-            title = "Storage",
+            title = "Storage Sense",
             items = listOf(
                 {
                     Column {

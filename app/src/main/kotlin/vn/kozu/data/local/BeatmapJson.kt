@@ -14,6 +14,13 @@ internal object BeatmapJson {
         .put("mapper", beatmap.mapper)
         .put("status", beatmap.status)
         .put("updated", beatmap.updatedAt)
+        .also { json ->
+            if (beatmap.titleUnicode.isNotBlank()) json.put("titleUnicode", beatmap.titleUnicode)
+            if (beatmap.artistUnicode.isNotBlank()) json.put("artistUnicode", beatmap.artistUnicode)
+        }
+        .put("modes", JSONArray().also { modes ->
+            beatmap.modes.sorted().forEach(modes::put)
+        })
 
     fun decode(obj: JSONObject): Beatmap = Beatmap(
         id = obj.getLong("id"),
@@ -21,7 +28,14 @@ internal object BeatmapJson {
         artist = obj.optString("artist"),
         mapper = obj.optString("mapper"),
         status = obj.optString("status"),
-        updatedAt = obj.optLong("updated", 0L)
+        updatedAt = obj.optLong("updated", 0L),
+        titleUnicode = obj.optString("titleUnicode"),
+        artistUnicode = obj.optString("artistUnicode"),
+        modes = obj.optJSONArray("modes")?.let { values ->
+            List(values.length()) { index -> values.optInt(index, -1) }
+                .filter { it in 0..3 }
+                .toSet()
+        }.orEmpty()
     )
 
     fun encodeList(list: List<Beatmap>): JSONArray {
@@ -47,6 +61,9 @@ internal object BeatmapJson {
         artist = fresh.artist.ifBlank { old.artist },
         mapper = fresh.mapper.ifBlank { old.mapper },
         status = fresh.status.ifBlank { old.status },
-        updatedAt = if (fresh.updatedAt > 0L) fresh.updatedAt else old.updatedAt
+        updatedAt = if (fresh.updatedAt > 0L) fresh.updatedAt else old.updatedAt,
+        modes = fresh.modes.ifEmpty { old.modes },
+        titleUnicode = fresh.titleUnicode.ifBlank { old.titleUnicode },
+        artistUnicode = fresh.artistUnicode.ifBlank { old.artistUnicode }
     )
 }

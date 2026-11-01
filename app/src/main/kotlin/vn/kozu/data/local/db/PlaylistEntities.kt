@@ -5,7 +5,6 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-/** A user-created playlist. */
 @Entity(tableName = "playlists")
 data class PlaylistEntity(
     @PrimaryKey val id: String,
@@ -13,7 +12,6 @@ data class PlaylistEntity(
     val createdAt: Long
 )
 
-/** Cached beatmap info for every song that is in at least one playlist. */
 @Entity(tableName = "songs")
 data class SongEntity(
     @PrimaryKey val id: Long,
@@ -24,10 +22,6 @@ data class SongEntity(
     val updatedAt: Long
 )
 
-/**
- * Junction table: which song is in which playlist, and at what position.
- * Deleting a playlist or a song automatically deletes its links (CASCADE).
- */
 @Entity(
     tableName = "song_in_playlist",
     primaryKeys = ["playlistId", "songId"],
