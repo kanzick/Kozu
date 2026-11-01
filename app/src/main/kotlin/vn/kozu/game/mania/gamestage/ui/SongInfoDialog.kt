@@ -42,6 +42,7 @@ import vn.kozu.game.mania.gamestage.GameStageModule
 import vn.kozu.game.mania.gamestage.chart.ManiaChart
 import vn.kozu.game.mania.gamestage.engine.NoteScroll
 import vn.kozu.game.mania.gamestage.media.BackgroundLoader
+import vn.kozu.game.mania.gamestage.settings.GameOrientation
 import vn.kozu.game.mania.gamestage.settings.GameSettings
 import vn.kozu.game.mania.previewstage.model.DifficultyRecord
 import vn.kozu.game.mania.previewstage.model.ScoreRecord
@@ -188,6 +189,43 @@ private fun SettingsPanel(
     onCommit: (GameSettings) -> Unit,
 ) {
     Text("Game settings", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+
+    Text("Screen orientation", fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        if (s.orientation == GameOrientation.PORTRAIT) {
+            Button(
+                onClick = {},
+                modifier = Modifier.weight(1f),
+            ) { Text("Portrait") }
+        } else {
+            OutlinedButton(
+                onClick = {
+                    val updated = s.copy(orientation = GameOrientation.PORTRAIT)
+                    onChange(updated)
+                    onCommit(updated)
+                },
+                modifier = Modifier.weight(1f),
+            ) { Text("Portrait") }
+        }
+        if (s.orientation == GameOrientation.LANDSCAPE) {
+            Button(
+                onClick = {},
+                modifier = Modifier.weight(1f),
+            ) { Text("Landscape") }
+        } else {
+            OutlinedButton(
+                onClick = {
+                    val updated = s.copy(orientation = GameOrientation.LANDSCAPE)
+                    onChange(updated)
+                    onCommit(updated)
+                },
+                modifier = Modifier.weight(1f),
+            ) { Text("Landscape") }
+        }
+    }
 
     Text("Audio", fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
     SettingSlider("Music", "${s.musicVolume}", s.musicVolume.toFloat(), 0f..100f, 99,

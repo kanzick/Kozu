@@ -24,7 +24,8 @@ import java.io.File
 
 data class GameMapDownloadState(
     val progress: Float? = null,
-    val error: String? = null
+    val error: String? = null,
+    val ratingWarning: String? = null
 )
 
 class GameViewModel(private val container: AppContainer) : ViewModel() {
@@ -104,7 +105,21 @@ class GameViewModel(private val container: AppContainer) : ViewModel() {
                 if (beatmap.id !in _localMapIds.value) {
                     throw IllegalStateException("The downloaded archive contains no valid Mania charts")
                 }
-                _downloads.update { it + (beatmap.id to GameMapDownloadState(progress = 1f)) }
+                var ratingWarning: String? = null
+                try {
+                    val ratings = container.catalog.maniaDifficulties(beatmap.id)
+                        .associate { it.id to it.difficultyRating }
+                    if (previewModule.updateStarRatings(beatmap.id, ratings) == 0) {
+                        ratingWarning = "Star ratings were not available for this map."
+                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    ratingWarning = "Map added, but star ratings could not be loaded: ${e.message ?: "request failed"}"
+                }
+                _downloads.update {
+                    it + (beatmap.id to GameMapDownloadState(progress = 1f, ratingWarning = ratingWarning))
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

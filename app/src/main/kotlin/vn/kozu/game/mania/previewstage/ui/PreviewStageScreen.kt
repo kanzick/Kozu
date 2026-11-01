@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material.icons.rounded.SportsEsports
@@ -36,6 +37,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,6 +58,7 @@ import vn.kozu.game.mania.previewstage.PreviewStageModule
 import vn.kozu.game.mania.previewstage.model.DifficultyRecord
 import vn.kozu.game.mania.previewstage.model.SongEntry
 import vn.kozu.game.mania.previewstage.model.StartupReport
+import java.util.Locale
 
 @Composable
 fun PreviewStageScreen(
@@ -70,10 +73,17 @@ fun PreviewStageScreen(
     var deleteTarget by remember { mutableStateOf<SongEntry?>(null) }
     var deleteError by remember { mutableStateOf<String?>(null) }
     var deletingSongId by remember { mutableStateOf<Long?>(null) }
+    var previewError by remember { mutableStateOf<Pair<Long, String>?>(null) }
     var searchQuery by remember { mutableStateOf("") }
-    var songs by remember { mutableStateOf(emptyList<SongEntry>()) }
+    val songs by module.catalog.entries.collectAsState()
     var expandedId by remember { mutableStateOf<Long?>(null) }
     val scope = rememberCoroutineScope()
+    val playPreview: (SongEntry, DifficultyRecord) -> Unit = { song, difficulty ->
+        previewError = null
+        module.playPreview(song, difficulty) { message ->
+            previewError = song.songId to message
+        }
+    }
     val visibleSongs = remember(songs, searchQuery) {
         val query = searchQuery.trim()
         if (query.isEmpty()) songs else songs.filter { song ->
@@ -92,7 +102,6 @@ fun PreviewStageScreen(
     LaunchedEffect(module) {
         try {
             report = module.start()
-            songs = module.catalog.all()
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -186,6 +195,7 @@ fun PreviewStageScreen(
                                 song.difficulties.map { difficulty -> song to difficulty }
                             }
                             candidates.randomOrNull()?.let { (song, difficulty) ->
+                                playPreview(song, difficulty)
                                 onDifficultyClick?.invoke(song, difficulty)
                             }
                         },
@@ -275,9 +285,22 @@ fun PreviewStageScreen(
                     song = song,
                     expanded = expandedId == song.songId,
                     onToggle = {
-                        expandedId = if (expandedId == song.songId) null else song.songId
+                        if (expandedId == song.songId) {
+                            expandedId = null
+                            previewError = null
+                            module.stopPreview()
+                        } else {
+                            expandedId = song.songId
+                            previewError = null
+                            song.defaultPreview?.let { difficulty ->
+                                playPreview(song, difficulty)
+                            }
+                        }
                     },
+                    onPreview = { song.defaultPreview?.let { playPreview(song, it) } },
+                    previewError = previewError?.takeIf { it.first == song.songId }?.second,
                     onDifficultyClick = { difficulty ->
+                        playPreview(song, difficulty)
                         onDifficultyClick?.invoke(song, difficulty)
                     },
                     onDelete = { deleteTarget = song },
@@ -308,7 +331,6 @@ fun PreviewStageScreen(
                         scope.launch {
                             try {
                                 module.deleteSong(song.songId)
-                                songs = module.catalog.all()
                                 if (expandedId == song.songId) expandedId = null
                                 deleteTarget = null
                             } catch (e: CancellationException) {
@@ -339,6 +361,8 @@ private fun ChartSetCard(
     song: SongEntry,
     expanded: Boolean,
     onToggle: () -> Unit,
+    onPreview: () -> Unit,
+    previewError: String?,
     onDifficultyClick: (DifficultyRecord) -> Unit,
     onDelete: () -> Unit,
     deleting: Boolean,
@@ -381,12 +405,34 @@ private fun ChartSetCard(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                    song.difficulties
+                        .map { it.starRating }
+                        .filter { it > 0.0 }
+                        .maxOrNull()
+                        ?.let { rating ->
+                            Text(
+                                "Up to ${String.format(Locale.US, "%.2f★", rating)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                maxLines = 1
+                            )
+                        }
                 }
                 IconButton(onClick = onDelete, enabled = !deleting) {
                     Icon(
                         Icons.Rounded.Delete,
                         contentDescription = "Delete map",
                         tint = MaterialTheme.colorScheme.error,
+                    )
+                }
+                IconButton(
+                    onClick = onPreview,
+                    enabled = song.defaultPreview != null,
+                ) {
+                    Icon(
+                        Icons.Rounded.PlayArrow,
+                        contentDescription = "Play preview",
+                        tint = MaterialTheme.colorScheme.primary,
                     )
                 }
                 Surface(
@@ -402,6 +448,14 @@ private fun ChartSetCard(
                         )
                     }
                 }
+            }
+            previewError?.let {
+                Text(
+                    "Preview unavailable: $it",
+                    modifier = Modifier.padding(start = 18.dp, end = 18.dp, bottom = 10.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
             }
             AnimatedVisibility(visible = expanded) {
                 Column(
@@ -438,7 +492,14 @@ private fun DifficultyRow(difficulty: DifficultyRecord, onClick: () -> Unit) {
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    "CS ${fmt(difficulty.circleSize)} · OD ${fmt(difficulty.overallDifficulty)} · HP ${fmt(difficulty.hpDrainRate)}",
+                    buildList {
+                        if (difficulty.starRating > 0.0) {
+                            add(String.format(Locale.US, "%.2f★", difficulty.starRating))
+                        }
+                        add("CS ${fmt(difficulty.circleSize)}")
+                        add("OD ${fmt(difficulty.overallDifficulty)}")
+                        add("HP ${fmt(difficulty.hpDrainRate)}")
+                    }.joinToString(" · "),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

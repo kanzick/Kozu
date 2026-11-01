@@ -41,6 +41,7 @@ data class DifficultyRecord(
     val approachRate: Double,
     val sliderMultiplier: Double,
     val sliderTickRate: Double,
+    val starRating: Double = 0.0,
 
     // [Events] + file information resolved on disk
     val backgroundFilename: String?,

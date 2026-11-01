@@ -1,5 +1,9 @@
 package vn.kozu.game.mania.gamestage.ui
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.pm.ActivityInfo
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,10 +24,12 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import vn.kozu.game.mania.gamestage.GameStageModule
 import vn.kozu.game.mania.gamestage.chart.ManiaChart
 import vn.kozu.game.mania.gamestage.scoring.GameResult
+import vn.kozu.game.mania.gamestage.settings.GameOrientation
 import vn.kozu.game.mania.gamestage.session.GameSession
 import vn.kozu.game.mania.previewstage.PreviewStageModule
 import vn.kozu.game.mania.previewstage.model.DifficultyRecord
@@ -33,6 +39,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.CancellationException
 
 private class Selection(val song: SongEntry, val difficulty: DifficultyRecord, val chart: ManiaChart? = null)
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
 
 /**
  * Coordinates the full flow: list (PreviewStage) -> info popup -> gameplay -> results -> return to the popup.
@@ -89,6 +101,20 @@ fun GameStageHost(
     val currentSession = session
     val currentResult = result
     val currentPlaying = playing
+    val activity = LocalContext.current.findActivity()
+    val lockOrientation = currentSession != null || currentResult != null
+    DisposableEffect(activity, lockOrientation, settings.orientation) {
+        if (activity == null || !lockOrientation) {
+            onDispose { }
+        } else {
+            val previousOrientation = activity.requestedOrientation
+            activity.requestedOrientation = when (settings.orientation) {
+                GameOrientation.PORTRAIT -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                GameOrientation.LANDSCAPE -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            }
+            onDispose { activity.requestedOrientation = previousOrientation }
+        }
+    }
     val currentOnGameplayChanged by rememberUpdatedState(onGameplayChanged)
     SideEffect { currentOnGameplayChanged(currentSession != null || currentResult != null) }
     DisposableEffect(Unit) {
