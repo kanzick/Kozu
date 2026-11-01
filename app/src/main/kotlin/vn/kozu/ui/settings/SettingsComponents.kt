@@ -56,43 +56,7 @@ fun SettingsScaffold(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Surface(modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .imePadding()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Surface(
-                    modifier = Modifier
-                        .size(52.dp)
-                        .bounceClick(onClick = onBack),
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surfaceContainerHighest
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
-                    }
-                }
-                Spacer(Modifier.weight(1f))
-            }
-            Spacer(Modifier.height(20.dp))
-            Text(
-                title,
-                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold)
-            )
-            Spacer(Modifier.height(22.dp))
-            content()
-            Spacer(Modifier.height(28.dp))
-        }
-    }
+    SettingsPageScaffold(title = title, onBack = onBack, modifier = modifier, content = content)
 }
 
 @Composable
@@ -148,25 +112,19 @@ fun SettingsEntry(
 @Composable
 fun SettingsGroup(title: String?, items: List<@Composable () -> Unit>) {
     Column {
-        if (title != null) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = 8.dp, bottom = 10.dp)
-            )
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items.forEach { item ->
+        if (title != null) SettingsSectionTitle(title)
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            items.forEachIndexed { index, item ->
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
+                    shape = groupShape(index, items.size),
                     color = MaterialTheme.colorScheme.surfaceContainer
                 ) {
                     Box(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) { item() }
                 }
             }
         }
+        Spacer(Modifier.height(10.dp))
     }
 }
 

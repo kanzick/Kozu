@@ -37,14 +37,15 @@ fun WavySlider(
     onScrubFinished: (Float) -> Unit,
     activeColor: Color,
     inactiveColor: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    animated: Boolean = true
 ) {
     var dragging by remember { mutableStateOf(false) }
     var lastFraction by remember { mutableFloatStateOf(0f) }
     var phase by remember { mutableFloatStateOf(0f) }
 
     val amplitude by animateFloatAsState(
-        targetValue = if (isPlaying && !dragging) 1f else 0f,
+        targetValue = if (animated && isPlaying && !dragging) 1f else 0f,
         animationSpec = KozuMotion.spatial(),
         label = "waveAmplitude"
     )
@@ -54,8 +55,8 @@ fun WavySlider(
         label = "thumbWidth"
     )
 
-    LaunchedEffect(isPlaying) {
-        if (!isPlaying) return@LaunchedEffect
+    LaunchedEffect(isPlaying, animated) {
+        if (!isPlaying || !animated) return@LaunchedEffect
         var last = 0L
         while (true) {
             androidx.compose.runtime.withFrameNanos { now ->

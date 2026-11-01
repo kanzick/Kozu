@@ -143,11 +143,12 @@ fun GameStageHost(
             },
         )
 
-        else -> Box(modifier.fillMaxSize().padding(contentPadding)) {
+        else -> Box(modifier.fillMaxSize()) {
             PreviewStageScreen(
                 module = preview,
                 onAddMaps = onAddMaps,
                 onDifficultyClick = { song, diff -> popup = Selection(song, diff) },
+                contentPadding = contentPadding,
             )
             initializationError?.let { message ->
                 Surface(

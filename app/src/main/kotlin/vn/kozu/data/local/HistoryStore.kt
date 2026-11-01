@@ -72,6 +72,44 @@ class HistoryStore(context: Context) {
         }
     }
 
+    suspend fun snapshot(): History = history.first()
+
+    suspend fun importAll(incoming: History): Int {
+        var added = 0
+        store.edit { prefs ->
+            val current = read(prefs)
+            val seen = current.events.map { it.beatmapId to it.at }.toHashSet()
+            val fresh = incoming.events.filter { it.beatmapId > 0L && it.at > 0L && seen.add(it.beatmapId to it.at) }
+            added = fresh.size
+            val events = (current.events + fresh).sortedBy { it.at }.takeLast(MAX_EVENTS)
+            val referenced = events.map { it.beatmapId }.toSet()
+            val tracks = (incoming.tracks + current.tracks).filterKeys { it in referenced }
+            val days = HashMap(current.dailyMs)
+            incoming.dailyMs.forEach { (day, ms) -> if (ms > 0L) days[day] = maxOf(days[day] ?: 0L, ms) }
+            val daily = days.toSortedMap().entries.toList().takeLast(MAX_DAYS).associate { it.key to it.value }
+            write(prefs, History(tracks, events, daily))
+        }
+        return added
+    }
+
+    suspend fun normalize(): Int {
+        var removed = 0
+        store.edit { prefs ->
+            val current = read(prefs)
+            val valid = current.events.filter { it.beatmapId > 0L && it.at > 0L }.distinct().sortedBy { it.at }
+            val events = valid.takeLast(MAX_EVENTS)
+            val referenced = events.map { it.beatmapId }.toSet()
+            val tracks = current.tracks.filterKeys { it in referenced }
+            val dayPattern = Regex("\\d{4}-\\d{2}-\\d{2}")
+            val daily = current.dailyMs.filter { (day, ms) -> dayPattern.matches(day) && ms > 0L }
+                .toSortedMap().entries.toList().takeLast(MAX_DAYS).associate { it.key to it.value }
+            removed = (current.events.size - events.size) + (current.tracks.size - tracks.size) +
+                (current.dailyMs.size - daily.size)
+            write(prefs, History(tracks, events, daily))
+        }
+        return removed
+    }
+
     suspend fun clear() {
         store.edit {
             it.remove(tracksKey)

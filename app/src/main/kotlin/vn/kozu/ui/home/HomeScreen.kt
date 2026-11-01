@@ -71,11 +71,13 @@ import vn.kozu.domain.model.ListeningStats
 import vn.kozu.domain.model.OsuProfile
 import vn.kozu.ui.components.BeatmapArt
 import vn.kozu.ui.components.CoverCard
+import vn.kozu.domain.model.QuickPicksLayout
+import vn.kozu.ui.components.rememberKozuHaptics
+import vn.kozu.ui.components.LocalAppSettings
 import vn.kozu.ui.components.KozuLoading
 import vn.kozu.ui.components.RefreshIndicator
 import vn.kozu.ui.components.LocalTrackActions
 import vn.kozu.ui.components.ScreenHeader
-import vn.kozu.ui.components.SearchAction
 import vn.kozu.ui.components.SectionHeader
 import vn.kozu.ui.components.SettingsAction
 import vn.kozu.ui.components.TrackPill
@@ -96,20 +98,20 @@ fun HomeScreen(
     onOpenSettings: () -> Unit,
     onOpenExplore: () -> Unit,
     onOpenLibrary: () -> Unit,
-    onOpenSearch: () -> Unit,
     onRefresh: () -> Unit,
     isAppRefreshing: Boolean,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory)
 ) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
+    val appSettings = LocalAppSettings.current
     val catalogError = ui.error
     val actions = LocalTrackActions.current
     val pullState = rememberPullToRefreshState()
-    val haptics = LocalHapticFeedback.current
+    val haptics = rememberKozuHaptics()
     val refreshNow = {
         if (!ui.isRefreshing && !isAppRefreshing) {
-            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+            haptics.press()
             onRefresh()
         }
     }
@@ -134,25 +136,35 @@ fun HomeScreen(
         ScreenHeader(
             leading = {
                 Surface(
-                    modifier = Modifier
-                        .size(46.dp)
-                        .graphicsLayer { rotationZ = refreshRotation },
-                    shape = KozuCookies.Soft9,
-                    color = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(Icons.Rounded.MusicNote, contentDescription = null, modifier = Modifier.size(26.dp))
+                    Row(
+                        modifier = Modifier.padding(start = 10.dp, end = 22.dp, top = 8.dp, bottom = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .graphicsLayer { rotationZ = refreshRotation },
+                            shape = KozuCookies.Soft9,
+                            color = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Rounded.MusicNote, contentDescription = null, modifier = Modifier.size(22.dp))
+                            }
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            text = "Kozu",
+                            style = MaterialTheme.typography.headlineMedium
+                        )
                     }
                 }
-                Spacer(Modifier.width(12.dp))
-                Text(
-                    text = "Kozu",
-                    style = MaterialTheme.typography.headlineLarge
-                )
             },
             actions = {
-                SearchAction(onOpenSearch)
                 SettingsAction(onOpenSettings)
             }
         )
@@ -195,45 +207,9 @@ fun HomeScreen(
                     }
                 }
 
-                item(key = "quick-header") {
+                if (appSettings.showMixCard) item(key = "mix") {
                     Column {
                         Spacer(Modifier.height(28.dp))
-                        SectionHeader(title = "Quick Picks", onAction = onOpenExplore)
-                        Spacer(Modifier.height(14.dp))
-                    }
-                }
-                item(key = "quick-row") {
-                    if (ui.quickPicks.isEmpty()) {
-                        if (ui.isLoading) {
-                            KozuLoading()
-                        } else {
-                            Text(
-                                "No live beatmaps are available right now.",
-                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    } else {
-                        LazyRow(
-                            contentPadding = PaddingValues(horizontal = 20.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            itemsIndexed(ui.quickPicks, key = { _, b -> b.id }) { index, beatmap ->
-                                CoverCard(
-                                    beatmap = beatmap,
-                                    size = 176.dp,
-                                    shape = RoundedCornerShape(38.dp),
-                                    rank = index + 1,
-                                    onClick = { actions.play(ui.quickPicks, index) }
-                                )
-                            }
-                        }
-                    }
-                }
-
-                item(key = "mix") {
-                    Column {
-                        Spacer(Modifier.height(32.dp))
                         YourMixCard(
                             mix = ui.mix,
                             onShuffle = {
@@ -297,13 +273,7 @@ fun HomeScreen(
 @Composable
 private fun OsuPulseCard(profile: OsuProfile) {
     val ranks = profile.rankHistory.takeLast(90).filter { it > 0 }
-    val rankChange = ranks.firstOrNull()?.minus(ranks.lastOrNull() ?: 0) ?: 0
     val numberFormat = NumberFormat.getIntegerInstance()
-    val changeLabel = when {
-        rankChange > 0 -> "↑ ${numberFormat.format(rankChange)} places"
-        rankChange < 0 -> "↓ ${numberFormat.format(-rankChange)} places"
-        else -> "Rank history"
-    }
     Surface(
         modifier = Modifier
             .padding(horizontal = 20.dp)
@@ -364,18 +334,6 @@ private fun OsuPulseCard(profile: OsuProfile) {
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(Modifier.weight(1f))
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.secondaryContainer
-                ) {
-                    Text(
-                        changeLabel,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                }
                 Spacer(Modifier.weight(1f))
                 Text(
                     "Today",

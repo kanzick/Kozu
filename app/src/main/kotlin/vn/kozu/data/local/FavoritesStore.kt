@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import vn.kozu.domain.model.Beatmap
 
@@ -36,6 +37,20 @@ class FavoritesStore(context: Context) {
 
     suspend fun clear() {
         store.edit { it.remove(key) }
+    }
+
+    suspend fun snapshot(): List<Beatmap> = favorites.first()
+
+    suspend fun importAll(incoming: List<Beatmap>): Int {
+        var added = 0
+        store.edit { prefs ->
+            val current = read(prefs)
+            val known = current.map { it.id }.toMutableSet()
+            val fresh = incoming.filter { known.add(it.id) }
+            added = fresh.size
+            if (fresh.isNotEmpty()) prefs[key] = BeatmapJson.encodeList(current + fresh).toString()
+        }
+        return added
     }
 
     private fun read(prefs: Preferences): List<Beatmap> = BeatmapJson.decodeList(prefs[key])

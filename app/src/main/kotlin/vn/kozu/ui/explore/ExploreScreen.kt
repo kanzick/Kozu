@@ -52,11 +52,11 @@ import vn.kozu.ui.components.RefreshIndicator
 import vn.kozu.ui.components.LocalTrackActions
 import vn.kozu.ui.components.MosaicCover
 import vn.kozu.ui.components.ScreenHeader
-import vn.kozu.ui.components.SearchAction
 import vn.kozu.ui.components.SectionHeader
 import vn.kozu.ui.components.SettingsAction
 import vn.kozu.ui.components.TrackRow
 import vn.kozu.ui.components.bounceClick
+import vn.kozu.ui.components.rememberKozuHaptics
 import vn.kozu.ui.components.segmentedShape
 import vn.kozu.ui.theme.KozuCookies
 
@@ -77,10 +77,10 @@ fun ExploreScreen(
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val actions = LocalTrackActions.current
     val pullState = rememberPullToRefreshState()
-    val haptics = LocalHapticFeedback.current
+    val haptics = rememberKozuHaptics()
     val refreshNow = {
         if (!ui.isRefreshing && !isAppRefreshing) {
-            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+            haptics.press()
             onRefresh()
         }
     }
@@ -101,7 +101,6 @@ fun ExploreScreen(
                         viewModel.loadMoreMix()
                     }
                 )
-                SearchAction(onOpenSearch)
                 SettingsAction(onOpenSettings)
             }
         )

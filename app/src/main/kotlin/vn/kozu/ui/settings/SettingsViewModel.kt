@@ -148,6 +148,11 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
     fun setStatusFilter(filter: StatusFilter) = viewModelScope.launch { container.settings.setStatusFilter(filter) }
     fun refreshCatalog() = container.discover.refresh()
 
+    fun save(block: suspend vn.kozu.data.local.SettingsStore.() -> Unit) =
+        viewModelScope.launch { container.settings.block() }
+
+    val appContainer: AppContainer get() = container
+
     fun clearHistory() = viewModelScope.launch { container.history.clear() }
     fun clearSearches() = viewModelScope.launch { container.settings.clearRecentSearches() }
 

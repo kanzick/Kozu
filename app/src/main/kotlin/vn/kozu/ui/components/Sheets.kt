@@ -23,6 +23,7 @@ import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Update
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
 import androidx.compose.material.icons.rounded.Share
@@ -106,6 +107,7 @@ fun TrackMenuSheet(
     onAddToPlaylist: () -> Unit,
     onDownload: () -> Unit,
     onRemoveDownload: () -> Unit,
+    onInfo: () -> Unit,
     onOpenInOsu: () -> Unit,
     onShare: () -> Unit
 ) {
@@ -131,6 +133,7 @@ fun TrackMenuSheet(
             } else {
                 SheetAction(Icons.Rounded.Download, "Download for offline", onDownload)
             }
+            SheetAction(Icons.Rounded.Info, "Beatmap info", onInfo)
             SheetAction(Icons.Rounded.Language, "Open on osu!", onOpenInOsu)
             SheetAction(Icons.Rounded.Share, "Share", onShare)
             Spacer(Modifier.height(16.dp))

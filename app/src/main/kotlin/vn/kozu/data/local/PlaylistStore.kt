@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.withTransaction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import vn.kozu.data.local.db.KozuDatabase
 import vn.kozu.data.local.db.PlaylistEntity
@@ -75,6 +76,44 @@ class PlaylistStore(context: Context) {
     suspend fun clear() = db.withTransaction {
         dao.deleteAllPlaylists()
         dao.deleteOrphanSongs()
+    }
+
+    suspend fun snapshot(): List<Playlist> = playlists.first()
+
+    suspend fun importAll(incoming: List<Playlist>): Int {
+        val existing = playlists.first().associateBy { it.id }
+        return db.withTransaction {
+            val knownSongs = dao.getAllSongs().map { it.id }.toMutableSet()
+            var changes = 0
+            incoming.forEach { playlist ->
+                val current = existing[playlist.id]
+                if (current == null) {
+                    dao.insertPlaylist(
+                        PlaylistEntity(
+                            id = playlist.id,
+                            name = playlist.name.trim().ifBlank { "Imported playlist" },
+                            createdAt = playlist.createdAt
+                        )
+                    )
+                    changes++
+                }
+                val present = current?.tracks?.map { it.id }?.toMutableSet() ?: mutableSetOf()
+                playlist.tracks.forEach { track ->
+                    if (!present.add(track.id)) return@forEach
+                    if (knownSongs.add(track.id)) dao.upsertSong(track.toEntity())
+                    val inserted = dao.insertLink(
+                        SongInPlaylistEntity(
+                            playlistId = playlist.id,
+                            songId = track.id,
+                            position = dao.nextPosition(playlist.id),
+                            addedAt = System.currentTimeMillis()
+                        )
+                    )
+                    if (inserted != -1L) changes++
+                }
+            }
+            changes
+        }
     }
 
     private suspend fun link(playlistId: String, beatmap: Beatmap) {

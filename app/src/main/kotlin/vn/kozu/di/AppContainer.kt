@@ -1,6 +1,16 @@
 package vn.kozu.di
 
 import android.content.Context
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import vn.kozu.data.backup.BackupManager
+import vn.kozu.data.storage.CacheCleaner
+import vn.kozu.data.update.UpdateChecker
+import vn.kozu.data.remote.ProxyController
 import vn.kozu.data.download.DownloadManager
 import vn.kozu.data.local.AccountStore
 import vn.kozu.data.local.DownloadsStore
@@ -42,7 +52,8 @@ class AppContainer(context: Context) {
         client = httpClient,
         settings = settings,
         store = downloadsStore,
-        auth = auth
+        auth = auth,
+        history = history
     )
     val mirrorTester = MirrorTester(httpClient)
 
@@ -57,6 +68,19 @@ class AppContainer(context: Context) {
     )
 
     val playback: PlaybackController by lazy {
-        PlaybackController(appContext, history, streams)
+        PlaybackController(appContext, history, streams, catalog, settings.settings)
+    }
+
+    val updates = UpdateChecker(appContext, httpClient)
+    val backup = BackupManager(settings, favorites, playlists, history)
+    val cacheCleaner = CacheCleaner(appContext, streams, settings)
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    init {
+        scope.launch {
+            settings.settings.map { it.proxy }.distinctUntilChanged().collect { ProxyController.update(it) }
+        }
+        scope.launch { runCatching { cacheCleaner.cleanIfNeeded() } }
     }
 }

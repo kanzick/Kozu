@@ -5,20 +5,61 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import vn.kozu.domain.model.PaletteStyle
 
 val OsuPink = Color(0xFFFF66AA)
 
-fun kozuColorScheme(seed: Color, dark: Boolean, amoled: Boolean = false): ColorScheme {
+fun kozuColorScheme(
+    seed: Color,
+    dark: Boolean,
+    amoled: Boolean = false,
+    style: PaletteStyle = PaletteStyle.TONAL_SPOT
+): ColorScheme {
     val lch = Oklch.fromColor(seed)
-    val isGray = lch.c < 0.035
+    val isGray = lch.c < 0.035 || style == PaletteStyle.MONOCHROME
     val hue = lch.h
 
-    val primaryChroma = if (isGray) 0.02 else (lch.c * 1.15).coerceIn(0.12, 0.24)
+    val baseChroma = if (isGray) 0.02 else (lch.c * 1.15).coerceIn(0.12, 0.24)
+    val primaryChroma = when (style) {
+        PaletteStyle.TONAL_SPOT -> baseChroma
+        PaletteStyle.VIBRANT -> (baseChroma * 1.35).coerceIn(0.16, 0.3)
+        PaletteStyle.EXPRESSIVE -> (baseChroma * 1.2).coerceIn(0.14, 0.28)
+        PaletteStyle.NEUTRAL -> if (isGray) 0.02 else (baseChroma * 0.38).coerceIn(0.03, 0.08)
+        PaletteStyle.MONOCHROME -> 0.0
+    }
+    val secondaryHue = when (style) {
+        PaletteStyle.EXPRESSIVE -> (hue + 65.0) % 360.0
+        PaletteStyle.VIBRANT -> (hue + 25.0) % 360.0
+        else -> (hue + 12.0) % 360.0
+    }
+    val tertiaryHue = when (style) {
+        PaletteStyle.EXPRESSIVE -> (hue + 135.0) % 360.0
+        PaletteStyle.VIBRANT -> (hue + 60.0) % 360.0
+        else -> (hue + 305.0) % 360.0
+    }
+    val secondaryFactor = when (style) {
+        PaletteStyle.VIBRANT -> 0.6
+        PaletteStyle.EXPRESSIVE -> 0.55
+        PaletteStyle.NEUTRAL -> 0.5
+        else -> 0.32
+    }
+    val tertiaryFactor = when (style) {
+        PaletteStyle.VIBRANT -> 0.85
+        PaletteStyle.EXPRESSIVE -> 0.8
+        PaletteStyle.NEUTRAL -> 0.7
+        else -> 0.62
+    }
+    val neutralChroma = when {
+        isGray -> 0.004
+        style == PaletteStyle.VIBRANT || style == PaletteStyle.EXPRESSIVE -> 0.02
+        style == PaletteStyle.NEUTRAL -> 0.006
+        else -> 0.012
+    }
     val primary = TonalPalette(hue, primaryChroma)
-    val secondary = TonalPalette((hue + 12.0) % 360.0, if (isGray) 0.015 else primaryChroma * 0.32)
-    val tertiary = TonalPalette((hue + 305.0) % 360.0, if (isGray) 0.02 else primaryChroma * 0.62)
-    val neutral = TonalPalette(hue, if (isGray) 0.004 else 0.012)
-    val neutralVariant = TonalPalette(hue, if (isGray) 0.008 else 0.022)
+    val secondary = TonalPalette(secondaryHue, if (isGray) 0.0 else primaryChroma * secondaryFactor)
+    val tertiary = TonalPalette(tertiaryHue, if (isGray) 0.0 else primaryChroma * tertiaryFactor)
+    val neutral = TonalPalette(hue, neutralChroma)
+    val neutralVariant = TonalPalette(hue, neutralChroma * 1.8)
     val error = TonalPalette(29.0, 0.2)
 
     return if (dark) {

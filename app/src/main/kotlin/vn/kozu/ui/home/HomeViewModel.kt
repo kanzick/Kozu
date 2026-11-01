@@ -12,6 +12,7 @@ import vn.kozu.di.AppContainer
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.ListeningStats
 import vn.kozu.domain.model.OsuProfile
+import vn.kozu.domain.model.QuickPicksSource
 import vn.kozu.ui.containerFactory
 import java.util.Calendar
 import java.util.Random
@@ -68,11 +69,18 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
             if (loggedIn) profile?.username.orEmpty() else ""
         }
 
+        val quickPicks = when (settings.quickPicksSource) {
+            QuickPicksSource.MIX -> discover.mix.take(6) + history.mostPlayed.take(4)
+            QuickPicksSource.TRENDING -> discover.trending.take(6) + history.mostPlayed.take(4)
+            QuickPicksSource.NEW_RELEASES -> discover.newReleases
+            QuickPicksSource.LOVED -> discover.loved
+        }.distinctBy { it.id }.take(10).ifEmpty {
+            (discover.mix.take(6) + history.mostPlayed.take(4)).distinctBy { it.id }.take(10)
+        }
+
         HomeUiState(
             displayName = greetingName,
-            quickPicks = (discover.mix.take(6) + history.mostPlayed.take(4))
-                .distinctBy { it.id }
-                .take(10),
+            quickPicks = quickPicks,
             mix = mix,
             recent = history.recent.take(12),
             madeForYou = discover.newReleases.take(10),

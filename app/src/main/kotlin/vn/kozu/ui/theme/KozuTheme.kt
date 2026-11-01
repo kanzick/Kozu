@@ -16,7 +16,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import vn.kozu.domain.model.AppFont
 import vn.kozu.domain.model.AppStyle
+import vn.kozu.domain.model.PaletteStyle
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -25,16 +27,21 @@ fun KozuTheme(
     darkTheme: Boolean,
     amoled: Boolean,
     appStyle: AppStyle = AppStyle.EXPRESSIVE,
+    appFont: AppFont = AppFont.KOZU,
+    paletteStyle: PaletteStyle = PaletteStyle.TONAL_SPOT,
     content: @Composable () -> Unit
 ) {
-    val target = remember(seed, darkTheme, amoled) { kozuColorScheme(seed, darkTheme, amoled) }
+    val target = remember(seed, darkTheme, amoled, paletteStyle) {
+        kozuColorScheme(seed, darkTheme, amoled, paletteStyle)
+    }
     val animated = rememberAnimatedColorScheme(target)
+    val typography = if (appFont == AppFont.SYSTEM) SystemKozuTypography else KozuTypography
 
     if (appStyle == AppStyle.EXPRESSIVE) {
         MaterialExpressiveTheme(
             colorScheme = animated,
             shapes = KozuShapes,
-            typography = KozuTypography,
+            typography = typography,
             content = content
         )
     } else {

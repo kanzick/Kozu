@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import vn.kozu.player.RepeatState
 import vn.kozu.ui.components.bounceClick
+import vn.kozu.ui.components.rememberKozuHaptics
 import vn.kozu.ui.theme.KozuMotion
 
 @Composable
@@ -50,6 +51,7 @@ fun TransportControls(
     onNext: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val haptics = rememberKozuHaptics()
     val prevSource = remember { MutableInteractionSource() }
     val playSource = remember { MutableInteractionSource() }
     val nextSource = remember { MutableInteractionSource() }
@@ -77,7 +79,7 @@ fun TransportControls(
             container = MaterialTheme.colorScheme.secondaryContainer,
             content = MaterialTheme.colorScheme.onSecondaryContainer,
             source = prevSource,
-            onClick = onPrevious
+            onClick = { haptics.tick(); onPrevious() }
         )
         TransportButton(
             icon = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
@@ -88,7 +90,7 @@ fun TransportControls(
             content = MaterialTheme.colorScheme.onPrimary,
             source = playSource,
             iconSize = 40.dp,
-            onClick = onPlayPause
+            onClick = { haptics.press(); onPlayPause() }
         )
         TransportButton(
             icon = Icons.Rounded.SkipNext,
@@ -98,7 +100,7 @@ fun TransportControls(
             container = MaterialTheme.colorScheme.secondaryContainer,
             content = MaterialTheme.colorScheme.onSecondaryContainer,
             source = nextSource,
-            onClick = onNext
+            onClick = { haptics.tick(); onNext() }
         )
     }
 }
@@ -143,6 +145,7 @@ fun PlayerToggleRow(
     onFavorite: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val haptics = rememberKozuHaptics()
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = CircleShape,
@@ -152,18 +155,18 @@ fun PlayerToggleRow(
             modifier = Modifier.padding(6.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            ToggleSegment(Icons.Rounded.Shuffle, "Shuffle", shuffle, onShuffle)
+            ToggleSegment(Icons.Rounded.Shuffle, "Shuffle", shuffle) { haptics.tick(); onShuffle() }
             ToggleSegment(
                 icon = if (repeat == RepeatState.ONE) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat,
                 description = "Repeat",
                 active = repeat != RepeatState.OFF,
-                onClick = onRepeat
+                onClick = { haptics.tick(); onRepeat() }
             )
             ToggleSegment(
                 icon = if (isFavorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
                 description = "Like",
                 active = isFavorite,
-                onClick = onFavorite
+                onClick = { if (isFavorite) haptics.tick() else haptics.confirm(); onFavorite() }
             )
         }
     }

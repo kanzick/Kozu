@@ -21,7 +21,23 @@ data class BeatmapsetDto(
     @SerializedName("creator") val creator: String? = null,
     @SerializedName("status") val status: String? = null,
     @SerializedName("last_updated") val lastUpdated: String? = null,
-    @SerializedName("beatmaps") val beatmaps: List<OsuBeatmapDto>? = null
+    @SerializedName("beatmaps") val beatmaps: List<OsuBeatmapDto>? = null,
+    @SerializedName("title_unicode") val titleUnicode: String? = null,
+    @SerializedName("artist_unicode") val artistUnicode: String? = null,
+    @SerializedName("play_count") val playCount: Long? = null,
+    @SerializedName("favourite_count") val favouriteCount: Int? = null,
+    @SerializedName("bpm") val bpm: Double? = null,
+    @SerializedName("genre_id") val genreId: Int? = null,
+    @SerializedName("language_id") val languageId: Int? = null,
+    @SerializedName("video") val video: Boolean? = null,
+    @SerializedName("storyboard") val storyboard: Boolean? = null,
+    @SerializedName("nsfw") val nsfw: Boolean? = null,
+    @SerializedName("source") val source: String? = null,
+    @SerializedName("tags") val tags: String? = null,
+    @SerializedName("ranked_date") val rankedDate: String? = null,
+    @SerializedName("submitted_date") val submittedDate: String? = null,
+    @SerializedName("user_id") val userId: Long? = null,
+    @SerializedName("ratings") val ratings: List<Int>? = null
 )
 
 data class OsuBeatmapDto(
@@ -32,7 +48,17 @@ data class OsuBeatmapDto(
     @SerializedName("difficulty_rating") val difficultyRating: Double? = null,
     @SerializedName("cs") val circleSize: Double? = null,
     @SerializedName("bpm") val bpm: Double? = null,
-    @SerializedName("total_length") val totalLength: Int? = null
+    @SerializedName("total_length") val totalLength: Int? = null,
+    @SerializedName("hit_length") val hitLength: Int? = null,
+    @SerializedName("ar") val approachRate: Double? = null,
+    @SerializedName("accuracy") val accuracy: Double? = null,
+    @SerializedName("drain") val drain: Double? = null,
+    @SerializedName("count_circles") val countCircles: Int? = null,
+    @SerializedName("count_sliders") val countSliders: Int? = null,
+    @SerializedName("count_spinners") val countSpinners: Int? = null,
+    @SerializedName("max_combo") val maxCombo: Int? = null,
+    @SerializedName("status") val status: String? = null,
+    @SerializedName("convert") val convert: Boolean? = null
 )
 
 data class UserDto(

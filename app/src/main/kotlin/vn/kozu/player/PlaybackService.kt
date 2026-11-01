@@ -2,12 +2,20 @@ package vn.kozu.player
 
 import android.app.PendingIntent
 import android.content.Intent
+import android.media.AudioDeviceCallback
+import android.media.AudioDeviceInfo
+import android.media.AudioManager
 import android.media.audiofx.Equalizer
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.TrackSelectionParameters
 import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
@@ -22,17 +30,21 @@ import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import java.util.concurrent.TimeUnit
 import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import vn.kozu.KozuApplication
@@ -53,30 +65,70 @@ class PlaybackService : MediaSessionService() {
     private var player: ExoPlayer? = null
     private var equalizer: Equalizer? = null
     private var equalizerSessionId = 0
+    private var audioEffects: AudioEffectsController? = null
+    private var crossfade: CrossfadeController? = null
+    private var tickerJob: Job? = null
+    private var audioManager: AudioManager? = null
     private var currentSettings = AppSettings()
     private var equalizerErrorReported = false
     private var taskWasRemoved = false
+    private var pausedForNoisy = false
+    private var hiFiAtBuild = false
+    private var hiFiNoticeShown = false
     private val playbackSessionStore by lazy { PlaybackSessionStore(this) }
 
     private val scope = CoroutineScope(
         SupervisorJob() + Dispatchers.Main.immediate
     )
 
-    private val taskRemovalListener = object : Player.Listener {
+    private val audioDeviceCallback = object : AudioDeviceCallback() {
+        override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) {
+            if (addedDevices.any { it.isSink && isHeadsetOutput(it.type) }) {
+                resumeAfterReconnect()
+            }
+        }
+    }
+
+    private val playerListener = object : Player.Listener {
         override fun onTracksChanged(tracks: Tracks) {
-            player?.let { applyEqualizer(it, currentSettings) }
+            applyAudioEffects()
+        }
+
+        override fun onAudioSessionIdChanged(audioSessionId: Int) {
+            applyAudioEffects()
+        }
+
+        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            crossfade?.onMediaItemTransition(reason)
+        }
+
+        override fun onPositionDiscontinuity(
+            oldPosition: Player.PositionInfo,
+            newPosition: Player.PositionInfo,
+            reason: Int
+        ) {
+            if (
+                reason == Player.DISCONTINUITY_REASON_SEEK ||
+                reason == Player.DISCONTINUITY_REASON_SEEK_ADJUSTMENT
+            ) {
+                crossfade?.onSeek()
+            }
         }
 
         override fun onPlayWhenReadyChanged(
             playWhenReady: Boolean,
             reason: Int
         ) {
+            pausedForNoisy = !playWhenReady &&
+                reason == Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_BECOMING_NOISY
+            crossfade?.tick()
             if (taskWasRemoved && !playWhenReady) {
                 stopSelf()
             }
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
+            crossfade?.tick()
             if (taskWasRemoved && playbackState == Player.STATE_ENDED) {
                 stopSelf()
             }
@@ -97,9 +149,12 @@ class PlaybackService : MediaSessionService() {
         val cacheDirectory = File(cacheDir, MEDIA_CACHE_DIRECTORY)
         val databaseProvider = StandaloneDatabaseProvider(this)
 
-        val configuredCacheMb = runBlocking(Dispatchers.IO) {
-            container.settings.settings.first().streamCacheMb
-        }.coerceIn(MIN_CACHE_MB, MAX_CACHE_MB)
+        val initialSettings = runBlocking(Dispatchers.IO) {
+            container.settings.settings.first()
+        }
+        currentSettings = initialSettings
+        hiFiAtBuild = initialSettings.hiFiMode
+        val configuredCacheMb = initialSettings.streamCacheMb.coerceIn(MIN_CACHE_MB, MAX_CACHE_MB)
         val cacheLimitBytes = configuredCacheMb.toLong() * BYTES_PER_MEGABYTE
 
         val cache = SimpleCache(
@@ -153,7 +208,10 @@ class PlaybackService : MediaSessionService() {
             )
             .build()
 
-        val player = ExoPlayer.Builder(this)
+        val renderersFactory = DefaultRenderersFactory(this)
+            .setEnableAudioFloatOutput(initialSettings.hiFiMode)
+
+        val player = ExoPlayer.Builder(this, renderersFactory)
             .setMediaSourceFactory(DefaultMediaSourceFactory(resolving))
             .setLoadControl(loadControl)
             .setAudioAttributes(
@@ -163,29 +221,48 @@ class PlaybackService : MediaSessionService() {
                     .build(),
                 true
             )
-            .setHandleAudioBecomingNoisy(true)
+            .setHandleAudioBecomingNoisy(initialSettings.pauseOnHeadsetDisconnect)
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
         this.player = player
 
-        player.addListener(taskRemovalListener)
-        restorePlaybackSession(player)
+        SleepFade.gain = 1f
+        val effects = AudioEffectsController { PlaybackEvents.report(it) }
+        audioEffects = effects
+        val fader = CrossfadeController(player) { SleepFade.gain }
+        crossfade = fader
+
+        player.addListener(playerListener)
+        restorePlaybackSession(player, initialSettings.rememberShuffle)
+        applySettings(player, initialSettings)
+
         scope.launch {
             while (true) {
-                kotlinx.coroutines.delay(5_000L)
+                delay(5_000L)
                 player.let(::savePlaybackSession)
+            }
+        }
+
+        tickerJob = scope.launch {
+            while (isActive) {
+                val ramping = fader.tick()
+                delay(
+                    when {
+                        ramping -> RAMP_TICK_MS
+                        player.isPlaying -> PLAYING_TICK_MS
+                        else -> IDLE_TICK_MS
+                    }
+                )
             }
         }
 
         scope.launch {
             container.settings.settings
                 .distinctUntilChanged()
-                .collect { settings ->
-                    currentSettings = settings
-                    player.skipSilenceEnabled = settings.skipSilence
-                    applyEqualizer(player, settings)
-                }
+                .collect { settings -> applySettings(player, settings) }
         }
+
+        registerAudioDeviceCallback()
 
         val openApp = PendingIntent.getActivity(
             this,
@@ -203,6 +280,105 @@ class PlaybackService : MediaSessionService() {
     override fun onGetSession(
         controllerInfo: MediaSession.ControllerInfo
     ): MediaSession? = session
+
+    private fun applySettings(player: ExoPlayer, settings: AppSettings) {
+        currentSettings = settings
+        player.skipSilenceEnabled = settings.skipSilence
+        player.setHandleAudioBecomingNoisy(settings.pauseOnHeadsetDisconnect)
+        applyOffload(player, settings.hardwareOffload)
+        applyPreload(player, settings.preloadNext)
+        crossfade?.setFadeMs(settings.crossfade.millis)
+        applyAudioEffects()
+        announceHiFiChange(settings.hiFiMode)
+    }
+
+    private fun applyOffload(player: ExoPlayer, enabled: Boolean) {
+        val mode = if (enabled) {
+            TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED
+        } else {
+            TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED
+        }
+        val parameters = player.trackSelectionParameters
+        if (parameters.audioOffloadPreferences.audioOffloadMode == mode) return
+
+        val preferences = TrackSelectionParameters.AudioOffloadPreferences.Builder()
+            .setAudioOffloadMode(mode)
+            .setIsGaplessSupportRequired(true)
+            .build()
+        player.trackSelectionParameters = parameters.buildUpon()
+            .setAudioOffloadPreferences(preferences)
+            .build()
+    }
+
+    private fun applyPreload(player: ExoPlayer, enabled: Boolean) {
+        val configuration = if (enabled) {
+            ExoPlayer.PreloadConfiguration(PRELOAD_DURATION_US)
+        } else {
+            ExoPlayer.PreloadConfiguration.DEFAULT
+        }
+        if (player.preloadConfiguration.targetPreloadDurationUs == configuration.targetPreloadDurationUs) return
+        player.preloadConfiguration = configuration
+    }
+
+    private fun announceHiFiChange(enabled: Boolean) {
+        if (enabled == hiFiAtBuild) {
+            hiFiNoticeShown = false
+        } else if (!hiFiNoticeShown) {
+            hiFiNoticeShown = true
+            PlaybackEvents.report("Restart playback to apply Hi-Fi mode")
+        }
+    }
+
+    private fun applyAudioEffects() {
+        val player = player ?: return
+        val settings = currentSettings
+        applyEqualizer(player, settings)
+        audioEffects?.apply(
+            audioSessionId = player.audioSessionId,
+            bassBoost = settings.bassBoost,
+            virtualizer = settings.virtualizer,
+            loudness = settings.loudness
+        )
+    }
+
+    private fun registerAudioDeviceCallback() {
+        val manager = getSystemService(AudioManager::class.java) ?: return
+        audioManager = manager
+        manager.registerAudioDeviceCallback(audioDeviceCallback, Handler(Looper.getMainLooper()))
+    }
+
+    private fun resumeAfterReconnect() {
+        val player = player ?: return
+        if (!pausedForNoisy || !currentSettings.resumeOnHeadset) return
+        pausedForNoisy = false
+        if (
+            player.mediaItemCount > 0 &&
+            !player.playWhenReady &&
+            player.playbackState != Player.STATE_IDLE &&
+            player.playbackState != Player.STATE_ENDED
+        ) {
+            player.play()
+        }
+    }
+
+    private fun isHeadsetOutput(type: Int): Boolean = when (type) {
+        AudioDeviceInfo.TYPE_WIRED_HEADPHONES,
+        AudioDeviceInfo.TYPE_WIRED_HEADSET,
+        AudioDeviceInfo.TYPE_BLUETOOTH_A2DP,
+        AudioDeviceInfo.TYPE_BLUETOOTH_SCO,
+        AudioDeviceInfo.TYPE_USB_HEADSET,
+        AudioDeviceInfo.TYPE_USB_DEVICE,
+        AudioDeviceInfo.TYPE_USB_ACCESSORY,
+        AudioDeviceInfo.TYPE_HEARING_AID -> true
+        else -> isBleOutput(type)
+    }
+
+    private fun isBleOutput(type: Int): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return false
+        if (type == AudioDeviceInfo.TYPE_BLE_HEADSET || type == AudioDeviceInfo.TYPE_BLE_SPEAKER) return true
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            type == AudioDeviceInfo.TYPE_BLE_BROADCAST
+    }
 
     private fun applyEqualizer(player: ExoPlayer, settings: AppSettings) {
         if (!settings.equalizerEnabled) {
@@ -263,6 +439,16 @@ class PlaybackService : MediaSessionService() {
         taskWasRemoved = true
         val player = session?.player
 
+        if (!currentSettings.keepPlayingAfterClose) {
+            if (player != null) {
+                player.pause()
+                savePlaybackSession(player)
+                player.stop()
+            }
+            pauseAllPlayersAndStopSelf()
+            return
+        }
+
         if (
             player == null ||
             !player.playWhenReady ||
@@ -274,13 +460,21 @@ class PlaybackService : MediaSessionService() {
 
     override fun onDestroy() {
         scope.cancel()
+        tickerJob = null
+        audioManager?.unregisterAudioDeviceCallback(audioDeviceCallback)
+        audioManager = null
+        audioEffects?.release()
+        audioEffects = null
+        crossfade?.release()
+        crossfade = null
+        SleepFade.gain = 1f
         equalizer?.release()
         equalizer = null
         equalizerSessionId = 0
 
         session?.run {
             savePlaybackSession(player)
-            player.removeListener(taskRemovalListener)
+            player.removeListener(playerListener)
             player.release()
             release()
         }
@@ -295,15 +489,15 @@ class PlaybackService : MediaSessionService() {
         super.onDestroy()
     }
 
-    private fun restorePlaybackSession(player: ExoPlayer) {
+    private fun restorePlaybackSession(player: ExoPlayer, restoreModes: Boolean) {
         val saved = playbackSessionStore.load() ?: return
         player.setMediaItems(
             saved.queue.map { it.toMediaItem() },
             saved.queueIndex,
             saved.positionMs
         )
-        player.shuffleModeEnabled = saved.shuffleEnabled
-        player.repeatMode = saved.repeatMode
+        player.shuffleModeEnabled = restoreModes && saved.shuffleEnabled
+        player.repeatMode = if (restoreModes) saved.repeatMode else Player.REPEAT_MODE_OFF
         player.prepare()
     }
 
@@ -328,7 +522,10 @@ class PlaybackService : MediaSessionService() {
         private const val MIN_CACHE_MB = 128
         private const val MAX_CACHE_MB = 2048
         private const val BYTES_PER_MEGABYTE = 1024L * 1024L
-
+        private const val PRELOAD_DURATION_US = 10_000_000L
+        private const val RAMP_TICK_MS = 40L
+        private const val PLAYING_TICK_MS = 250L
+        private const val IDLE_TICK_MS = 500L
         fun mediaCacheBytes(context: android.content.Context): Long {
             val directory = File(
                 context.applicationContext.cacheDir,

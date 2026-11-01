@@ -1,6 +1,7 @@
 package vn.kozu.data.remote.osu
 
 import okhttp3.OkHttpClient
+import vn.kozu.data.remote.ProxyController
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -13,7 +14,7 @@ object OsuApiFactory {
 
     fun client(): OkHttpClient {
         val logging = HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }
-        return OkHttpClient.Builder()
+        return ProxyController.apply(OkHttpClient.Builder())
             .connectTimeout(12, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .followRedirects(true)

@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -32,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -61,6 +61,38 @@ fun ScreenHeader(
 }
 
 @Composable
+fun CenteredHeader(
+    title: String,
+    leading: @Composable () -> Unit,
+    trailing: @Composable () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface
+    ) {
+        Row(
+            modifier = Modifier
+                .statusBarsPadding()
+                .fillMaxWidth()
+                .padding(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(Modifier.size(46.dp), contentAlignment = Alignment.Center) { leading() }
+            Text(
+                text = title,
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.headlineMedium,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                maxLines = 1
+            )
+            Box(Modifier.size(46.dp), contentAlignment = Alignment.Center) { trailing() }
+        }
+    }
+}
+
+@Composable
 fun HeaderTitle(text: String) {
     Text(
         text = text,
@@ -77,7 +109,8 @@ fun HeaderAction(
     modifier: Modifier = Modifier,
     container: Color = MaterialTheme.colorScheme.primaryContainer,
     content: Color = MaterialTheme.colorScheme.onPrimaryContainer,
-    rotating: Boolean = false
+    rotating: Boolean = false,
+    startPadding: Dp = 8.dp
 ) {
     val rotation = if (rotating) {
         val transition = rememberInfiniteTransition(label = "header-refresh")
@@ -96,7 +129,7 @@ fun HeaderAction(
     }
     Surface(
         modifier = modifier
-            .padding(start = 8.dp)
+            .padding(start = startPadding)
             .size(46.dp)
             .bounceClick(onClick = onClick),
         shape = CircleShape,
@@ -113,17 +146,6 @@ fun HeaderAction(
             )
         }
     }
-}
-
-@Composable
-fun SearchAction(onClick: () -> Unit) {
-    HeaderAction(
-        icon = Icons.Rounded.Search,
-        contentDescription = "Search",
-        onClick = onClick,
-        container = MaterialTheme.colorScheme.surfaceContainerHigh,
-        content = MaterialTheme.colorScheme.onSurface
-    )
 }
 
 @Composable

@@ -63,6 +63,11 @@ interface OsuApi {
         @Query("g") genre: Int? = null,
         @Query("m") mode: Int? = null,
         @Query("nsfw") nsfw: Boolean? = null,
-        @Query("cursor_string") cursorString: String? = null
+        @Query("cursor_string") cursorString: String? = null,
+        @Query("l") language: Int? = null,
+        @Query("e") extra: String? = null,
+        @Query("c") general: String? = null,
+        @Query("r") rank: String? = null,
+        @Query("played") played: String? = null
     ): BeatmapsetSearchResponse
 }

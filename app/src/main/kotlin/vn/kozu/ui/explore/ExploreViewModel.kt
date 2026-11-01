@@ -43,13 +43,14 @@ class ExploreViewModel(private val container: AppContainer) : ViewModel() {
         container.discover.state,
         container.favorites.favorites,
         container.history.history,
-        container.playlists.playlists
-    ) { discover, favorites, history, playlists ->
+        container.playlists.playlists,
+        container.settings.settings
+    ) { discover, favorites, history, playlists, settings ->
         val collections = buildList {
             if (favorites.isNotEmpty()) {
                 add(LibraryCollection("liked", "Liked songs", "Liked", favorites))
             }
-            val most = history.mostPlayed.take(30)
+            val most = history.mostPlayed.take(settings.topSize.count)
             if (most.isNotEmpty()) {
                 add(LibraryCollection("most-played", "Most played", "Auto", most))
             }
