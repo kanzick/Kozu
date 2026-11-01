@@ -57,6 +57,27 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
         }
     }
 
+    fun updateStarRatings(songId: Long, ratings: Map<Long, Double>): Int {
+        if (ratings.isEmpty()) return 0
+        var updated = 0
+        db.beginTransaction()
+        try {
+            for ((beatmapId, rating) in ratings) {
+                if (beatmapId <= 0L || !rating.isFinite() || rating <= 0.0) continue
+                updated += db.update(
+                    "kozu_difficulty",
+                    ContentValues().apply { put("star_rating", rating) },
+                    "song_id = ? AND beatmap_id = ?",
+                    arrayOf(songId.toString(), beatmapId.toString()),
+                )
+            }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+        return updated
+    }
+
     fun deleteSong(songId: Long): Boolean {
         db.beginTransaction()
         return try {
@@ -134,6 +155,7 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
         put("hp_drain_rate", hpDrainRate); put("circle_size", circleSize)
         put("overall_difficulty", overallDifficulty); put("approach_rate", approachRate)
         put("slider_multiplier", sliderMultiplier); put("slider_tick_rate", sliderTickRate)
+        put("star_rating", starRating)
         put("background_filename", backgroundFilename)
         put("audio_path", audioPath); put("audio_exists", if (audioExists) 1 else 0)
         put("background_path", backgroundPath); put("background_exists", if (backgroundExists) 1 else 0)
@@ -160,6 +182,7 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
             hpDrainRate = d("hp_drain_rate"), circleSize = d("circle_size"),
             overallDifficulty = d("overall_difficulty"), approachRate = d("approach_rate"),
             sliderMultiplier = d("slider_multiplier"), sliderTickRate = d("slider_tick_rate"),
+            starRating = d("star_rating"),
             backgroundFilename = sn("background_filename"),
             audioPath = sn("audio_path"), audioExists = i("audio_exists") != 0,
             backgroundPath = sn("background_path"), backgroundExists = i("background_exists") != 0,
@@ -167,7 +190,7 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
     }
 
     companion object {
-        private const val SCHEMA_VERSION = 1
+        private const val SCHEMA_VERSION = 2
 
         fun open(file: File): KozuDatabase {
             val db = SQLiteDatabase.openOrCreateDatabase(file, null)
@@ -179,6 +202,11 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
                         db.execSQL(CREATE_SONG)
                         db.execSQL(CREATE_DIFFICULTY)
                         db.execSQL("CREATE INDEX IF NOT EXISTS idx_kozu_difficulty_song ON kozu_difficulty(song_id)")
+                        if (!hasColumn(db, "kozu_difficulty", "star_rating")) {
+                            db.execSQL(
+                                "ALTER TABLE kozu_difficulty ADD COLUMN star_rating REAL NOT NULL DEFAULT 0"
+                            )
+                        }
                         db.version = SCHEMA_VERSION
                         db.setTransactionSuccessful()
                     } finally {
@@ -190,6 +218,13 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
             }
             return KozuDatabase(db)
         }
+
+        private fun hasColumn(db: SQLiteDatabase, table: String, column: String): Boolean =
+            db.rawQuery("PRAGMA table_info($table)", null).use { cursor ->
+                val nameIndex = cursor.getColumnIndexOrThrow("name")
+                generateSequence { if (cursor.moveToNext()) cursor.getString(nameIndex) else null }
+                    .any { it == column }
+            }
 
         private const val CREATE_SONG = """
             CREATE TABLE IF NOT EXISTS kozu_song (
@@ -233,6 +268,7 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
                 approach_rate         REAL    NOT NULL,
                 slider_multiplier     REAL    NOT NULL,
                 slider_tick_rate      REAL    NOT NULL,
+                star_rating           REAL    NOT NULL DEFAULT 0,
                 -- [Events] + resolved files (relative paths from songs/<song_id>/)
                 background_filename   TEXT,
                 audio_path            TEXT,

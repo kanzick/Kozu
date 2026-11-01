@@ -6,8 +6,13 @@ import kotlin.math.min
 
 /** Playfield layout shared by rendering and touch handling so both stay aligned. */
 class PlayfieldLayout(width: Float, height: Float, val keys: Int) {
-    /** Column width: fits the screen width without becoming too large in landscape. */
-    val columnWidth: Float = min(width / keys, height * 0.22f)
+    /** Landscape playfields keep a fixed proportional gutter on both sides across device sizes. */
+    val columnWidth: Float = if (width > height && keys in LANDSCAPE_EXPANDED_KEY_RANGE) {
+        width * LANDSCAPE_FIELD_WIDTH_FRACTION / keys
+    } else {
+        val maxFieldWidth = if (width > height) width * LANDSCAPE_FIELD_WIDTH_FRACTION else width
+        min(maxFieldWidth / keys, height * 0.22f)
+    }
     val left: Float = (width - columnWidth * keys) / 2f
     val right: Float = left + columnWidth * keys
     val judgeY: Float = height * 0.82f
@@ -17,6 +22,11 @@ class PlayfieldLayout(width: Float, height: Float, val keys: Int) {
     fun columnAt(x: Float): Int = ((x - left) / columnWidth).toInt().coerceIn(0, keys - 1)
 
     fun columnX(c: Int): Float = left + c * columnWidth
+
+    private companion object {
+        const val LANDSCAPE_FIELD_WIDTH_FRACTION = 0.84f
+        val LANDSCAPE_EXPANDED_KEY_RANGE = 4..6
+    }
 }
 
 internal object PlayColors {

@@ -6,6 +6,11 @@ import java.io.IOException
 import java.util.Properties
 import kotlin.math.roundToInt
 
+enum class GameOrientation {
+    PORTRAIT,
+    LANDSCAPE,
+}
+
 /**
  * Player settings, stored in a separate file (see [SettingsStore]).
  *
@@ -22,6 +27,7 @@ data class GameSettings(
     val backgroundDim: Int = 60,
     val offsetMs: Int = 0,
     val playerName: String = DEFAULT_PLAYER_NAME,
+    val orientation: GameOrientation = GameOrientation.PORTRAIT,
 ) {
     /** Clamps all values to valid ranges (speed is rounded to one decimal place). */
     fun coerced(): GameSettings = copy(
@@ -65,6 +71,9 @@ class SettingsStore(val file: File) {
             backgroundDim = p.getProperty(K_DIM)?.trim()?.toIntOrNull() ?: d.backgroundDim,
             offsetMs = p.getProperty(K_OFFSET)?.trim()?.toIntOrNull() ?: d.offsetMs,
             playerName = p.getProperty(K_PLAYER) ?: d.playerName,
+            orientation = p.getProperty(K_ORIENTATION)
+                ?.let { value -> GameOrientation.values().firstOrNull { it.name == value } }
+                ?: d.orientation,
         ).coerced()
     }
 
@@ -77,6 +86,7 @@ class SettingsStore(val file: File) {
         p.setProperty(K_DIM, s.backgroundDim.toString())
         p.setProperty(K_OFFSET, s.offsetMs.toString())
         p.setProperty(K_PLAYER, s.playerName)
+        p.setProperty(K_ORIENTATION, s.orientation.name)
 
         file.parentFile?.let { if (!it.isDirectory && !it.mkdirs() && !it.isDirectory) throw IOException("Could not create settings folder ${it.path}") }
         val tmp = File(file.parentFile, file.name + ".tmp")
@@ -98,5 +108,6 @@ class SettingsStore(val file: File) {
         const val K_DIM = "background.dim"
         const val K_OFFSET = "offset.ms"
         const val K_PLAYER = "player.name"
+        const val K_ORIENTATION = "screen.orientation"
     }
 }
