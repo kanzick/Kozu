@@ -1,4 +1,4 @@
-name: Release APK
+name: Release
 
 on:
   release:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Release tag (for example 0.1.1 or 0.1.1-beta.1)
+        description: Release tag (7.2.7)
         required: true
         type: string
 
@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   release:
-    name: Build and upload APKs
+    name: Build release APK
     runs-on: ubuntu-24.04
     timeout-minutes: 45
 
@@ -128,7 +128,7 @@ jobs:
             -storepass "$ANDROID_KEYSTORE_PASSWORD" \
             -alias "$ANDROID_KEY_ALIAS" >/dev/null
 
-      - name: Build Release APKs
+      - name: Build Release APK
         env:
           ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/kozu-release.jks
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -139,7 +139,7 @@ jobs:
           set -euo pipefail
           ./gradlew clean :app:assembleRelease --stacktrace
 
-      - name: Verify and package APKs
+      - name: Verify package APK
         shell: bash
         run: |
           set -euo pipefail
@@ -149,30 +149,57 @@ jobs:
             sort -V | tail -n 1)"
 
           test -x "$tools/apksigner"
-          test -x "$tools/aapt2"
+          test -x "$tools/aapt"
 
           output="app/build/outputs/apk/release"
           mkdir -p dist
 
           variants=(
-            "arm64-v8a:app-arm64-v8a-release.apk"
-            "armeabi-v7a:app-armeabi-v7a-release.apk"
-            "universal:app-universal-release.apk"
-            "x86:app-x86-release.apk"
-            "x86_64:app-x86_64-release.apk"
+            "arm64-v8a:app-arm64-v8a-release.apk:kozu-arm64-v8a.apk"
+            "armeabi-v7a:app-armeabi-v7a-release.apk:kozu-armeabi-v7a.apk"
+            "universal:app-universal-release.apk:kozu-universal.apk"
+            "x86:app-x86-release.apk:kozu-x86.apk"
+            "x86_64:app-x86_64-release.apk:kozu-x86_64.apk"
           )
+
+          expected_apks=(
+            app-arm64-v8a-release.apk
+            app-armeabi-v7a-release.apk
+            app-universal-release.apk
+            app-x86-release.apk
+            app-x86_64-release.apk
+          )
+          mapfile -t actual_apks < <(
+            find "$output" -maxdepth 1 -type f -name '*.apk' -printf '%f\n' |
+              sort
+          )
+
+          if ! diff -u \
+            <(printf '%s\n' "${expected_apks[@]}" | sort) \
+            <(printf '%s\n' "${actual_apks[@]}"); then
+            echo "::error::Release build must produce exactly the five expected APKs."
+            echo "::error::Check ABI split configuration and build output metadata."
+            exit 1
+          fi
 
           reference_certificate=""
 
           for variant in "${variants[@]}"; do
             label="${variant%%:*}"
-            filename="${variant#*:}"
+            remainder="${variant#*:}"
+            filename="${remainder%%:*}"
+            release_filename="${remainder#*:}"
             source="$output/$filename"
-            destination="dist/$filename"
+            destination="dist/$release_filename"
 
             if [[ ! -f "$source" ]]; then
               echo "::error::Missing APK: $source"
               find app/build/outputs/apk -maxdepth 5 -type f -print || true
+              exit 1
+            fi
+
+            if ! unzip -tq "$source" >/dev/null; then
+              echo "::error::APK archive validation failed: $filename"
               exit 1
             fi
 
@@ -219,10 +246,16 @@ jobs:
               exit 1
             fi
 
-            "$tools/aapt2" dump badging "$source" > badging.txt
+            "$tools/aapt" dump badging "$source" > badging.txt
 
             grep -Fq "package: name='vn.kozu'" badging.txt || {
               echo "::error::Incorrect applicationId: $filename"
+              exit 1
+            }
+
+            tr -d '\r' < badging.txt |
+              grep -Fqx "sdkVersion:'28'" || {
+              echo "::error::Unexpected or missing minimum SDK in $filename"
               exit 1
             }
 
@@ -246,12 +279,12 @@ jobs:
 
             cp "$source" "$destination"
 
-            echo "Verified: $filename"
+            echo "Verified: $filename -> $release_filename"
           done
 
           echo "All APKs passed verification."
 
-      - name: Upload APKs to release
+      - name: Upload APK
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
@@ -259,13 +292,64 @@ jobs:
         run: |
           set -euo pipefail
 
+          while IFS= read -r asset; do
+            case "$asset" in
+              app-arm64-v8a-release.apk|app-armeabi-v7a-release.apk|app-universal-release.apk|app-x86-release.apk|app-x86_64-release.apk)
+                gh release delete-asset "$TAG" "$asset" --yes
+                ;;
+            esac
+          done < <(gh release view "$TAG" --json assets --jq '.assets[].name')
+
           gh release upload "$TAG" \
-            dist/app-arm64-v8a-release.apk \
-            dist/app-armeabi-v7a-release.apk \
-            dist/app-universal-release.apk \
-            dist/app-x86-release.apk \
-            dist/app-x86_64-release.apk \
+            dist/kozu-arm64-v8a.apk \
+            dist/kozu-armeabi-v7a.apk \
+            dist/kozu-universal.apk \
+            dist/kozu-x86.apk \
+            dist/kozu-x86_64.apk \
             --clobber
+
+      - name: Verify APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          gh release view "$TAG" --json assets > release-assets.json
+
+          python3 - <<'PY'
+          import json
+
+          expected = {
+              "kozu-arm64-v8a.apk",
+              "kozu-armeabi-v7a.apk",
+              "kozu-universal.apk",
+              "kozu-x86.apk",
+              "kozu-x86_64.apk",
+          }
+
+          with open("release-assets.json", encoding="utf-8") as file:
+              release = json.load(file)
+
+          actual = {
+              asset["name"]
+              for asset in release.get("assets", [])
+              if asset["name"].lower().endswith(".apk")
+          }
+
+          missing = sorted(expected - actual)
+          unexpected = sorted(actual - expected)
+
+          if missing or unexpected:
+              if missing:
+                  print("Missing APK assets: " + ", ".join(missing))
+              if unexpected:
+                  print("Unexpected APK assets: " + ", ".join(unexpected))
+              raise SystemExit(1)
+
+          print("Release contains exactly the five expected APK assets.")
+          PY
 
       - name: Generate download table at end of release description
         env:
@@ -298,30 +382,35 @@ jobs:
 
           variants = [
               (
-                  "app-arm64-v8a-release.apk",
+                  "kozu-arm64-v8a",
+                  "kozu-arm64-v8a.apk",
                   "**Recommended:** Modern ARM64 phones (Pixel, Samsung, OnePlus, Xiaomi, etc.)",
               ),
               (
-                  "app-armeabi-v7a-release.apk",
-                  "Older / budget 32-bit ARM phones",
+                  "kozu-armeabi-v7a",
+                  "kozu-armeabi-v7a.apk",
+                  "Older/budget 32-bit ARM phones",
               ),
               (
-                  "app-universal-release.apk",
+                  "kozu-universal",
+                  "kozu-universal.apk",
                   "Includes all supported architectures",
               ),
               (
-                  "app-x86-release.apk",
+                  "kozu-x86",
+                  "kozu-x86.apk",
                   "32-bit x86 emulators",
               ),
               (
-                  "app-x86_64-release.apk",
+                  "kozu-x86_64",
+                  "kozu-x86_64.apk",
                   "64-bit x86 emulators and Chromebooks",
               ),
           ]
 
           missing = [
               filename
-              for filename, _ in variants
+              for _, filename, _ in variants
               if filename not in existing_assets
           ]
 
@@ -337,20 +426,20 @@ jobs:
               start_marker,
               "## Downloads⬇️",
               "",
-              "| APK | Architecture / Target |",
+              "| APK | Devices |",
               "|---|---|",
           ]
 
           encoded_tag = quote(tag, safe="")
 
-          for filename, target in variants:
+          for display_name, filename, target in variants:
               download_url = (
                   f"https://github.com/{repository}/releases/download/"
                   f"{encoded_tag}/{quote(filename, safe='')}"
               )
 
               lines.append(
-                  f"| [`{filename}`]({download_url}) | {target} |"
+                  f"| [`{display_name}`]({download_url}) | {target} |"
               )
 
           lines.append(end_marker)

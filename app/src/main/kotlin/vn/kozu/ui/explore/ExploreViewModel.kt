@@ -17,7 +17,7 @@ data class LibraryCollection(
     val id: String,
     val title: String,
     val label: String,
-    val tracks: List<Beatmap>
+    val tracks: List<Beatmap>,
 )
 
 data class ExploreUiState(
@@ -31,49 +31,53 @@ data class ExploreUiState(
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
     val isLoadingMoreMix: Boolean = false,
-    val hasMoreMix: Boolean = false
+    val hasMoreMix: Boolean = false,
 ) {
     val surprisePool: List<Beatmap>
         get() = mix
 }
 
-class ExploreViewModel(private val container: AppContainer) : ViewModel() {
+class ExploreViewModel(
+    private val container: AppContainer,
+) : ViewModel() {
+    val ui: StateFlow<ExploreUiState> =
+        combine(
+            container.discover.state,
+            container.favorites.favorites,
+            container.history.history,
+            container.playlists.playlists,
+            container.settings.settings,
+        ) { discover, favorites, history, playlists, settings ->
+            val collections =
+                buildList {
+                    if (favorites.isNotEmpty()) {
+                        add(LibraryCollection("liked", "Liked songs", "Liked", favorites))
+                    }
+                    val most = history.mostPlayed.take(settings.topSize.count)
+                    if (most.isNotEmpty()) {
+                        add(LibraryCollection("most-played", "Most played", "Auto", most))
+                    }
+                    playlists.forEach { add(LibraryCollection(it.id, it.name, "Playlist", it.tracks)) }
+                }
 
-    val ui: StateFlow<ExploreUiState> = combine(
-        container.discover.state,
-        container.favorites.favorites,
-        container.history.history,
-        container.playlists.playlists
-    ) { discover, favorites, history, playlists ->
-        val collections = buildList {
-            if (favorites.isNotEmpty()) {
-                add(LibraryCollection("liked", "Liked songs", "Liked", favorites))
-            }
-            val most = history.mostPlayed.take(30)
-            if (most.isNotEmpty()) {
-                add(LibraryCollection("most-played", "Most played", "Auto", most))
-            }
-            playlists.forEach { add(LibraryCollection(it.id, it.name, "Playlist", it.tracks)) }
-        }
-
-        ExploreUiState(
-            collections = collections,
-            newReleases = discover.newReleases.filter { it.isRankedOrLoved() },
-            listenAgain = history.recent.take(12),
-            trending = discover.trending.filter { it.status.equals("ranked", true) },
-            loved = discover.loved.filter { it.status.equals("loved", true) },
-            mix = discover.mix.filter { it.isRankedOrLoved() },
-            mixSource = discover.mixSource,
-            isLoading = discover.isLoading,
-            isRefreshing = discover.isRefreshing,
-            isLoadingMoreMix = discover.isLoadingMoreMix,
-            hasMoreMix = discover.hasMoreMix
+            ExploreUiState(
+                collections = collections,
+                newReleases = discover.newReleases.filter { it.isRankedOrLoved() },
+                listenAgain = history.recent.take(12),
+                trending = discover.trending.filter { it.status.equals("ranked", true) },
+                loved = discover.loved.filter { it.status.equals("loved", true) },
+                mix = discover.mix.filter { it.isRankedOrLoved() },
+                mixSource = discover.mixSource,
+                isLoading = discover.isLoading,
+                isRefreshing = discover.isRefreshing,
+                isLoadingMoreMix = discover.isLoadingMoreMix,
+                hasMoreMix = discover.hasMoreMix,
+            )
+        }.flowOn(Dispatchers.Default).stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            ExploreUiState(),
         )
-    }.flowOn(Dispatchers.Default).stateIn(
-        viewModelScope,
-        SharingStarted.WhileSubscribed(5_000),
-        ExploreUiState()
-    )
 
     fun loadMoreMix() = container.discover.loadMoreMix()
 
@@ -81,7 +85,6 @@ class ExploreViewModel(private val container: AppContainer) : ViewModel() {
         val Factory = containerFactory { ExploreViewModel(it) }
     }
 }
-
 
 private fun Beatmap.isRankedOrLoved(): Boolean =
     status.equals("ranked", ignoreCase = true) ||

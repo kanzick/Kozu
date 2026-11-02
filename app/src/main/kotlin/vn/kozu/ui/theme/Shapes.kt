@@ -13,27 +13,25 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
-/**
- * Custom Material 3 shapes configuration for Kozu.
- */
-val KozuShapes = Shapes(
-    extraSmall = RoundedCornerShape(10.dp),
-    small = RoundedCornerShape(16.dp),
-    medium = RoundedCornerShape(22.dp),
-    large = RoundedCornerShape(30.dp),
-    extraLarge = RoundedCornerShape(40.dp)
-)
+val KozuShapes =
+    Shapes(
+        extraSmall = RoundedCornerShape(10.dp),
+        small = RoundedCornerShape(16.dp),
+        medium = RoundedCornerShape(22.dp),
+        large = RoundedCornerShape(30.dp),
+        extraLarge = RoundedCornerShape(40.dp),
+    )
 
-/**
- * Custom scalloped cookie-like shape algorithmically drawn using trigonometry.
- */
 class CookieShape(
     private val sides: Int,
     private val depth: Float = 0.06f,
-    private val rotationDegrees: Float = 0f
+    private val rotationDegrees: Float = 0f,
 ) : Shape {
-
-    override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
+    override fun createOutline(
+        size: Size,
+        layoutDirection: LayoutDirection,
+        density: Density,
+    ): Outline {
         val path = Path()
         val cx = size.width / 2f
         val cy = size.height / 2f
@@ -52,9 +50,6 @@ class CookieShape(
     }
 }
 
-/**
- * Preset cookie shapes for cover artwork and decorative components.
- */
 object KozuCookies {
     val Soft9 = CookieShape(sides = 9, depth = 0.045f)
     val Bold6 = CookieShape(sides = 6, depth = 0.06f, rotationDegrees = 30f)
@@ -63,6 +58,5 @@ object KozuCookies {
 
     private val all = listOf(Soft9, Bold6, Flower8, Clover4)
 
-    /** Returns a cookie shape based on index */
     fun forIndex(index: Int): Shape = all[index.mod(all.size)]
 }

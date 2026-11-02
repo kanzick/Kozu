@@ -3,6 +3,7 @@ package vn.kozu.game.mania.previewstage.storage
 import android.content.ContentValues
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
+import androidx.core.database.sqlite.transaction
 import vn.kozu.game.mania.previewstage.model.ScoreRecord
 import java.io.Closeable
 import java.io.File
@@ -72,7 +73,6 @@ class ScoreDatabase private constructor(private val db: SQLiteDatabase) : Closea
             arrayOf(songId.toString(), difficulty, limit.toString())
         ).use { it.toRecords() }
 
-    /** A player's best score for this song and difficulty (null if they have not played). */
     fun bestScore(songId: Long, difficulty: String, playerName: String): ScoreRecord? =
         db.rawQuery(
             """SELECT player_name, song_id, difficulty, score, accuracy, "rank", true_combo, max_combo, played_at
@@ -125,8 +125,7 @@ class ScoreDatabase private constructor(private val db: SQLiteDatabase) : Closea
             val db = SQLiteDatabase.openOrCreateDatabase(file, null)
             try {
                 if (db.version < SCHEMA_VERSION) {
-                    db.beginTransaction()
-                    try {
+                    db.transaction {
                         if (db.version < 1) {
                             db.execSQL(
                                 """CREATE TABLE IF NOT EXISTS score (
@@ -161,9 +160,6 @@ class ScoreDatabase private constructor(private val db: SQLiteDatabase) : Closea
                             "CREATE INDEX IF NOT EXISTS idx_score_song_diff ON score(song_id, difficulty, score DESC)"
                         )
                         db.version = SCHEMA_VERSION
-                        db.setTransactionSuccessful()
-                    } finally {
-                        db.endTransaction()
                     }
                 }
             } catch (t: Throwable) {

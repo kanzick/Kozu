@@ -22,6 +22,7 @@ import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material.icons.rounded.SportsEsports
@@ -37,6 +38,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -60,6 +62,7 @@ import vn.kozu.game.mania.previewstage.model.ScoreRecord
 import vn.kozu.game.mania.previewstage.model.SongEntry
 import vn.kozu.game.mania.previewstage.model.StartupReport
 import java.util.Locale
+import java.util.Locale
 
 @Composable
 fun PreviewStageScreen(
@@ -77,13 +80,21 @@ fun PreviewStageScreen(
     var deleteError by remember { mutableStateOf<String?>(null) }
     var deletingSongId by remember { mutableStateOf<Long?>(null) }
     var previewError by remember { mutableStateOf<Pair<Long, String>?>(null) }
+    var previewError by remember { mutableStateOf<Pair<Long, String>?>(null) }
     var searchQuery by remember { mutableStateOf("") }
+    val songs by module.catalog.entries.collectAsState()
     val songs by module.catalog.entries.collectAsState()
     var expandedId by remember { mutableStateOf<Long?>(null) }
     var bestScoresBySong by remember { mutableStateOf<Map<Long, Map<String, ScoreRecord>>>(emptyMap()) }
     var scoreErrors by remember { mutableStateOf<Map<Long, String>>(emptyMap()) }
     var loadingScoresFor by remember { mutableStateOf<Long?>(null) }
     val scope = rememberCoroutineScope()
+    val playPreview: (SongEntry, DifficultyRecord) -> Unit = { song, difficulty ->
+        previewError = null
+        module.playPreview(song, difficulty) { message ->
+            previewError = song.songId to message
+        }
+    }
     val playPreview: (SongEntry, DifficultyRecord) -> Unit = { song, difficulty ->
         previewError = null
         module.playPreview(song, difficulty) { message ->
@@ -218,6 +229,7 @@ fun PreviewStageScreen(
                             }
                             candidates.randomOrNull()?.let { (song, difficulty) ->
                                 playPreview(song, difficulty)
+                                playPreview(song, difficulty)
                                 onDifficultyClick?.invoke(song, difficulty)
                             }
                         },
@@ -325,6 +337,7 @@ fun PreviewStageScreen(
                     scoreError = scoreErrors[song.songId],
                     scoresLoading = loadingScoresFor == song.songId,
                     onDifficultyClick = { difficulty ->
+                        playPreview(song, difficulty)
                         playPreview(song, difficulty)
                         onDifficultyClick?.invoke(song, difficulty)
                     },
@@ -465,6 +478,16 @@ private fun ChartSetCard(
                         tint = MaterialTheme.colorScheme.primary,
                     )
                 }
+                IconButton(
+                    onClick = onPreview,
+                    enabled = song.defaultPreview != null,
+                ) {
+                    Icon(
+                        Icons.Rounded.PlayArrow,
+                        contentDescription = "Play preview",
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
                 Surface(
                     modifier = Modifier.size(44.dp),
                     shape = CircleShape,
@@ -478,6 +501,14 @@ private fun ChartSetCard(
                         )
                     }
                 }
+            }
+            previewError?.let {
+                Text(
+                    "Preview unavailable: $it",
+                    modifier = Modifier.padding(start = 18.dp, end = 18.dp, bottom = 10.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
             }
             previewError?.let {
                 Text(
@@ -546,6 +577,14 @@ private fun DifficultyRow(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
+                    buildList {
+                        if (difficulty.starRating > 0.0) {
+                            add(String.format(Locale.US, "%.2f★", difficulty.starRating))
+                        }
+                        add("CS ${fmt(difficulty.circleSize)}")
+                        add("OD ${fmt(difficulty.overallDifficulty)}")
+                        add("HP ${fmt(difficulty.hpDrainRate)}")
+                    }.joinToString(" · "),
                     buildList {
                         if (difficulty.starRating > 0.0) {
                             add(String.format(Locale.US, "%.2f★", difficulty.starRating))

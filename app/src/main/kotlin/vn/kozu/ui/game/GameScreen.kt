@@ -1,47 +1,55 @@
 package vn.kozu.ui.game
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.togetherWith
-import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import vn.kozu.game.mania.gamestage.ui.GameStageHost
 import vn.kozu.game.ui.game.AddMapScreen
 import vn.kozu.game.ui.game.GameViewModel
-import vn.kozu.game.mania.gamestage.ui.GameStageHost
 import vn.kozu.ui.components.HeaderTitle
+import vn.kozu.ui.components.RefreshIndicator
 import vn.kozu.ui.components.ScreenHeader
 import vn.kozu.ui.components.SettingsAction
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GameScreen(
     isSelected: Boolean,
     bottomPadding: Dp,
     onOpenSettings: () -> Unit,
+    onRefresh: () -> Unit,
+    isAppRefreshing: Boolean,
     onGameplayChanged: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: GameViewModel = viewModel(factory = GameViewModel.Factory)
+    viewModel: GameViewModel = viewModel(factory = GameViewModel.Factory),
 ) {
     var addMapsOpen by remember { mutableStateOf(false) }
     var gameplayActive by remember { mutableStateOf(false) }
+    val pullState = rememberPullToRefreshState()
     BackHandler(enabled = addMapsOpen && !gameplayActive) { addMapsOpen = false }
 
     Column(modifier.fillMaxSize()) {
@@ -54,12 +62,12 @@ fun GameScreen(
                             Icon(
                                 Icons.Rounded.Add,
                                 contentDescription = "Add maps",
-                                tint = MaterialTheme.colorScheme.onSurface
+                                tint = MaterialTheme.colorScheme.onSurface,
                             )
                         }
                     }
                     SettingsAction(onOpenSettings)
-                }
+                },
             )
         }
 

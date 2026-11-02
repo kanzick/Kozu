@@ -11,31 +11,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import vn.kozu.ui.theme.KozuMotion
 
-/**
- * Modifier extension providing bouncy spring scale animation on press.
- */
 @Composable
 fun Modifier.bounceClick(
     enabled: Boolean = true,
     pressedScale: Float = 0.94f,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ): Modifier {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (pressed && enabled) pressedScale else 1f,
         animationSpec = KozuMotion.press(),
-        label = "bounceScale"
+        label = "bounceScale",
     )
     return this
         .graphicsLayer {
             scaleX = scale
             scaleY = scale
-        }
-        .clickable(
+        }.clickable(
             interactionSource = interaction,
             indication = null,
             enabled = enabled,
-            onClick = onClick
+            onClick = onClick,
         )
 }

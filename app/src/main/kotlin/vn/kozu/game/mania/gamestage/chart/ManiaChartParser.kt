@@ -2,15 +2,6 @@ package vn.kozu.game.mania.gamestage.chart
 
 class ChartParseException(message: String) : Exception(message)
 
-/**
- * Parses a mania-mode (Mode: 3) .osu file into [ManiaChart]. Plain Kotlin/JVM, so it can be tested locally.
- *
- * osu! rules:
- *  - number of columns = CircleSize
- *  - note column = floor(x * keys / 512)
- *  - type bit 0 = regular note, bit 7 (128) = hold; a hold's endTime is the first field in the extras
- *  - note hitsound comes from its own hit sample; fields set to 0 fall back to the active TimingPoint
- */
 object ManiaChartParser {
     const val MAX_KEYS = 20
 
@@ -85,11 +76,10 @@ object ManiaChartParser {
             val uninherited = p.getOrNull(6)?.trim()?.let { it != "0" } ?: (beat > 0)
             out += Timing(time, beat, set, index, volume, uninherited)
         }
-        // sortedBy is stable: for equal timestamps, the later entry in the file takes precedence.
+
         return out.sortedBy { it.time }
     }
 
-    /** Timing point active at [time]; before the first point, use the first one (matching osu!). */
     private fun timingAt(timings: List<Timing>, time: Double): Timing? {
         if (timings.isEmpty()) return null
         var lo = 0

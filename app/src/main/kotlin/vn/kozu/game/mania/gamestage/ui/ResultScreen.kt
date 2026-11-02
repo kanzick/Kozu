@@ -31,7 +31,6 @@ import vn.kozu.game.mania.gamestage.scoring.GameResult
 import vn.kozu.game.mania.gamestage.scoring.Judgement
 import vn.kozu.game.mania.previewstage.model.DifficultyRecord
 
-/** Result screen data; [outcome]/[saveError] are populated after score.db finishes writing. */
 data class ResultData(
     val result: GameResult,
     val outcome: SubmitOutcome? = null,

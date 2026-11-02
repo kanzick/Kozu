@@ -32,7 +32,10 @@ import vn.kozu.ui.theme.KozuMotion
 import vn.kozu.util.formatDuration
 
 @Composable
-fun StatsPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
+fun StatsPage(
+    viewModel: SettingsViewModel,
+    onBack: () -> Unit,
+) {
     val range by viewModel.range.collectAsStateWithLifecycle()
     val stats by viewModel.stats.collectAsStateWithLifecycle()
     val actions = LocalTrackActions.current
@@ -40,15 +43,16 @@ fun StatsPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
     SettingsScaffold(title = "Listening Stats", onBack = onBack) {
         SettingsGroup(
             title = null,
-            items = listOf({
-                ChoiceRow(
-                    title = "Period",
-                    options = StatsRange.entries.toList(),
-                    selected = range,
-                    label = { it.label },
-                    onSelect = viewModel::setRange
-                )
-            })
+            items =
+                listOf({
+                    ChoiceRow(
+                        title = "Period",
+                        options = StatsRange.entries.toList(),
+                        selected = range,
+                        label = { it.label },
+                        onSelect = viewModel::setRange,
+                    )
+                }),
         )
         Spacer(Modifier.height(16.dp))
 
@@ -63,7 +67,7 @@ fun StatsPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(30.dp),
-                color = MaterialTheme.colorScheme.surfaceContainer
+                color = MaterialTheme.colorScheme.surfaceContainer,
             ) {
                 Column(Modifier.padding(18.dp)) {
                     Text("Daily listening", style = MaterialTheme.typography.titleMedium)
@@ -77,13 +81,14 @@ fun StatsPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
         if (stats.topTracks.isEmpty()) {
             SettingsGroup(
                 title = null,
-                items = listOf({
-                    Text(
-                        "Nothing to show yet. Listen to a few songs and your top tracks, artists and mappers will appear here.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                })
+                items =
+                    listOf({
+                        Text(
+                            "Nothing to show yet. Listen to a few songs and your top tracks, artists and mappers will appear here.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }),
             )
             return@SettingsScaffold
         }
@@ -92,7 +97,7 @@ fun StatsPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
             "Top songs",
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 8.dp, bottom = 10.dp)
+            modifier = Modifier.padding(start = 8.dp, bottom = 10.dp),
         )
         val queue = stats.topTracks.map { it.first }
         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -106,9 +111,9 @@ fun StatsPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                             "$count×",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(end = 16.dp)
+                            modifier = Modifier.padding(end = 16.dp),
                         )
-                    }
+                    },
                 )
             }
         }
@@ -124,55 +129,65 @@ fun StatsPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
 private fun DayBars(values: List<Long>) {
     val max = (values.maxOrNull() ?: 0L).coerceAtLeast(1L)
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(110.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(110.dp),
         horizontalArrangement = Arrangement.spacedBy(if (values.size > 14) 3.dp else 6.dp),
-        verticalAlignment = Alignment.Bottom
+        verticalAlignment = Alignment.Bottom,
     ) {
         values.forEachIndexed { index, ms ->
             val fraction by animateFloatAsState(
                 targetValue = if (ms <= 0L) 0.06f else (ms.toFloat() / max).coerceIn(0.1f, 1f),
                 animationSpec = KozuMotion.spatial(),
-                label = "dayBar$index"
+                label = "dayBar$index",
             )
             Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight(fraction.coerceIn(0f, 1f))
-                    .background(
-                        if (ms > 0L) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
-                        CircleShape
-                    )
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .fillMaxHeight(fraction.coerceIn(0f, 1f))
+                        .background(
+                            if (ms > 0L) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                            CircleShape,
+                        ),
             )
         }
     }
 }
 
 @Composable
-private fun RankedList(title: String, items: List<Pair<String, Int>>) {
+private fun RankedList(
+    title: String,
+    items: List<Pair<String, Int>>,
+) {
     if (items.isEmpty()) return
     val max = items.first().second.coerceAtLeast(1)
     SettingsGroup(
         title = title,
-        items = items.map { (name, count) ->
-            @Composable {
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            name,
-                            style = MaterialTheme.typography.titleMedium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Text("$count plays", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        items =
+            items.map { (name, count) ->
+                @Composable {
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                name,
+                                style = MaterialTheme.typography.titleMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                "$count plays",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        LinearProgressIndicator(progress = { count.toFloat() / max }, modifier = Modifier.fillMaxWidth())
                     }
-                    Spacer(Modifier.height(8.dp))
-                    LinearProgressIndicator(progress = { count.toFloat() / max }, modifier = Modifier.fillMaxWidth())
                 }
-            }
-        }
+            },
     )
 }

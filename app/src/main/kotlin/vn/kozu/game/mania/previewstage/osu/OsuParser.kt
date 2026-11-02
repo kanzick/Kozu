@@ -1,6 +1,5 @@
 package vn.kozu.game.mania.previewstage.osu
 
-/** Raw data read from an .osu file: only [General], [Metadata], [Difficulty], and the background image in [Events]. */
 data class OsuBeatmap(
     val audioFilename: String,
     val audioLeadIn: Int,
@@ -34,11 +33,9 @@ data class OsuBeatmap(
     val backgroundFilename: String?,
 )
 
-/** Plain Kotlin/JVM parser with no Android dependencies, so it can be tested locally. */
 object OsuParser {
     const val MODE_MANIA = 3
 
-    // 0,0,"bg.jpg",0,0   or   Background,0,"bg.jpg",0,0
     private val BACKGROUND = Regex("""^(?:0|Background)\s*,\s*-?\d+\s*,\s*(?:"([^"]*)"|([^,]*))""")
 
     fun parse(text: String): OsuBeatmap {
@@ -69,7 +66,6 @@ object OsuParser {
             }
         }
 
-        // Default matches osu!: PreviewTime = -1 means "not set".
         return OsuBeatmap(
             audioFilename = general["AudioFilename"].orEmpty(),
             audioLeadIn = general.int("AudioLeadIn", 0),
@@ -96,7 +92,7 @@ object OsuParser {
             hpDrainRate = difficulty.dbl("HPDrainRate", 5.0),
             circleSize = difficulty.dbl("CircleSize", 5.0),
             overallDifficulty = difficulty.dbl("OverallDifficulty", 5.0),
-            // osu!: if ApproachRate is missing, use OverallDifficulty.
+
             approachRate = difficulty.dbl("ApproachRate", difficulty.dbl("OverallDifficulty", 5.0)),
             sliderMultiplier = difficulty.dbl("SliderMultiplier", 1.4),
             sliderTickRate = difficulty.dbl("SliderTickRate", 1.0),

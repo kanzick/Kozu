@@ -1,10 +1,5 @@
 package vn.kozu.ui.explore
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,9 +23,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material3.Icon
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -40,10 +34,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -54,15 +48,15 @@ import vn.kozu.ui.components.EmptyState
 import vn.kozu.ui.components.HeaderAction
 import vn.kozu.ui.components.HeaderTitle
 import vn.kozu.ui.components.KozuLoading
-import vn.kozu.ui.components.RefreshIndicator
 import vn.kozu.ui.components.LocalTrackActions
 import vn.kozu.ui.components.MosaicCover
+import vn.kozu.ui.components.RefreshIndicator
 import vn.kozu.ui.components.ScreenHeader
-import vn.kozu.ui.components.SearchAction
 import vn.kozu.ui.components.SectionHeader
 import vn.kozu.ui.components.SettingsAction
 import vn.kozu.ui.components.TrackRow
 import vn.kozu.ui.components.bounceClick
+import vn.kozu.ui.components.rememberKozuHaptics
 import vn.kozu.ui.components.segmentedShape
 import vn.kozu.ui.theme.KozuCookies
 
@@ -76,19 +70,21 @@ fun ExploreScreen(
     onOpenSearch: () -> Unit,
     onOpenAllBeatmaps: () -> Unit,
     onRefresh: () -> Unit,
+    isAppRefreshing: Boolean,
     modifier: Modifier = Modifier,
-    viewModel: ExploreViewModel = viewModel(factory = ExploreViewModel.Factory)
+    viewModel: ExploreViewModel = viewModel(factory = ExploreViewModel.Factory),
 ) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val actions = LocalTrackActions.current
     val pullState = rememberPullToRefreshState()
-    val haptics = LocalHapticFeedback.current
+    val haptics = rememberKozuHaptics()
     val refreshNow = {
-        if (!ui.isRefreshing) {
-            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+        if (!ui.isRefreshing && !isAppRefreshing) {
+            haptics.press()
             onRefresh()
         }
     }
+    val refreshing = ui.isRefreshing || isAppRefreshing
 
     Column(modifier.fillMaxSize()) {
         ScreenHeader(
@@ -101,64 +97,31 @@ fun ExploreScreen(
                         if (ui.surprisePool.isNotEmpty()) {
                             actions.playShuffled(ui.surprisePool.shuffled())
                         }
-                        // Keep expanding the Ranked + Loved pool between Mix sessions.
+
                         viewModel.loadMoreMix()
-                    }
+                    },
                 )
-                SearchAction(onOpenSearch)
                 SettingsAction(onOpenSettings)
-            }
+            },
         )
 
-        AnimatedVisibility(
-            visible = ui.isRefreshing,
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically()
-        ) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 8.dp),
-                shape = RoundedCornerShape(18.dp),
-                color = MaterialTheme.colorScheme.secondaryContainer
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        text = "Refreshing osu! catalog…",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                }
-            }
-        }
-
         PullToRefreshBox(
-            isRefreshing = ui.isRefreshing,
+            isRefreshing = refreshing,
             onRefresh = refreshNow,
             state = pullState,
             modifier = Modifier.fillMaxSize(),
             indicator = {
                 RefreshIndicator(
                     state = pullState,
-                    isRefreshing = ui.isRefreshing,
-                    modifier = Modifier.align(Alignment.TopCenter)
+                    isRefreshing = refreshing,
+                    modifier = Modifier.align(Alignment.TopCenter),
                 )
-            }
+            },
         ) {
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(top = 24.dp, bottom = bottomPadding)
+                contentPadding = PaddingValues(top = 24.dp, bottom = bottomPadding),
             ) {
                 item(key = "library") {
                     Column {
@@ -166,24 +129,25 @@ fun ExploreScreen(
                         Spacer(Modifier.height(14.dp))
                         if (ui.collections.isEmpty()) {
                             Surface(
-                                modifier = Modifier
-                                    .padding(horizontal = 20.dp)
-                                    .fillMaxWidth()
-                                    .bounceClick(pressedScale = 0.98f, onClick = onOpenSearch),
+                                modifier =
+                                    Modifier
+                                        .padding(horizontal = 20.dp)
+                                        .fillMaxWidth()
+                                        .bounceClick(pressedScale = 0.98f, onClick = onOpenSearch),
                                 shape = RoundedCornerShape(36.dp),
-                                color = MaterialTheme.colorScheme.surfaceContainer
+                                color = MaterialTheme.colorScheme.surfaceContainer,
                             ) {
                                 EmptyState(
                                     icon = Icons.AutoMirrored.Rounded.QueueMusic,
                                     title = "Start your collection",
                                     message = "Like songs or build a playlist and it will live here.",
-                                    shape = KozuCookies.Soft9
+                                    shape = KozuCookies.Soft9,
                                 )
                             }
                         } else {
                             LazyRow(
                                 contentPadding = PaddingValues(horizontal = 20.dp),
-                                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                                horizontalArrangement = Arrangement.spacedBy(14.dp),
                             ) {
                                 itemsIndexed(ui.collections, key = { _, c -> c.id }) { _, collection ->
                                     CollectionCard(collection) {
@@ -203,7 +167,7 @@ fun ExploreScreen(
                             Spacer(Modifier.height(14.dp))
                             LazyRow(
                                 contentPadding = PaddingValues(horizontal = 20.dp),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
                             ) {
                                 itemsIndexed(ui.newReleases, key = { _, b -> "new-${b.id}" }) { index, beatmap ->
                                     CoverCard(
@@ -212,7 +176,7 @@ fun ExploreScreen(
                                         shape = RoundedCornerShape(34.dp),
                                         badge = beatmap.status.ifBlank { "New" },
                                         showPlay = true,
-                                        onClick = { actions.play(ui.newReleases, index) }
+                                        onClick = { actions.play(ui.newReleases, index) },
                                     )
                                 }
                             }
@@ -228,7 +192,7 @@ fun ExploreScreen(
                         SectionHeader(
                             title = "All beatmaps",
                             subtitle = "Browse Ranked + Loved maps across all game modes",
-                            onAction = onOpenAllBeatmaps
+                            onAction = onOpenAllBeatmaps,
                         )
                         Spacer(Modifier.height(14.dp))
                         if (ui.mix.isEmpty()) {
@@ -238,24 +202,25 @@ fun ExploreScreen(
                                 Text(
                                     "The catalog is unavailable right now.",
                                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                         } else {
                             val preview = ui.mix.sortedByDescending { it.updatedAt }.take(10)
                             LazyRow(
                                 contentPadding = PaddingValues(horizontal = 20.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
                                 itemsIndexed(
                                     preview,
-                                    key = { _, beatmap -> "all-preview-${beatmap.id}" }) { index, beatmap ->
+                                    key = { _, beatmap -> "all-preview-${beatmap.id}" },
+                                ) { index, beatmap ->
                                     CoverCard(
                                         beatmap = beatmap,
                                         size = 142.dp,
                                         shape = KozuCookies.forIndex(index),
                                         badge = beatmap.status.ifBlank { "Beatmap" },
-                                        onClick = { actions.play(preview, index) }
+                                        onClick = { actions.play(preview, index) },
                                     )
                                 }
                             }
@@ -271,14 +236,14 @@ fun ExploreScreen(
                             Spacer(Modifier.height(14.dp))
                             LazyRow(
                                 contentPadding = PaddingValues(horizontal = 20.dp),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
                             ) {
                                 itemsIndexed(ui.listenAgain, key = { _, b -> "again-${b.id}" }) { index, beatmap ->
                                     CoverCard(
                                         beatmap = beatmap,
                                         size = 140.dp,
                                         shape = KozuCookies.forIndex(index),
-                                        onClick = { actions.play(ui.listenAgain, index) }
+                                        onClick = { actions.play(ui.listenAgain, index) },
                                     )
                                 }
                             }
@@ -297,22 +262,23 @@ fun ExploreScreen(
                     val chart = ui.trending.take(6)
                     itemsIndexed(chart, key = { _, b -> "chart-${b.id}" }) { index, beatmap ->
                         Row(
-                            modifier = Modifier
-                                .padding(horizontal = 20.dp)
-                                .padding(vertical = 1.5.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            modifier =
+                                Modifier
+                                    .padding(horizontal = 20.dp)
+                                    .padding(vertical = 1.5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
                                 text = (index + 1).toString(),
                                 modifier = Modifier.width(40.dp),
                                 style = MaterialTheme.typography.headlineLarge,
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
                             )
                             TrackRow(
                                 beatmap = beatmap,
                                 shape = segmentedShape(index, chart.size, large = 24.dp),
                                 modifier = Modifier.weight(1f),
-                                onClick = { actions.play(chart, index) }
+                                onClick = { actions.play(chart, index) },
                             )
                         }
                     }
@@ -326,14 +292,14 @@ fun ExploreScreen(
                             Spacer(Modifier.height(14.dp))
                             LazyRow(
                                 contentPadding = PaddingValues(horizontal = 20.dp),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
                             ) {
                                 itemsIndexed(ui.loved, key = { _, b -> "loved-${b.id}" }) { index, beatmap ->
                                     CoverCard(
                                         beatmap = beatmap,
                                         size = 150.dp,
                                         shape = KozuCookies.forIndex(index + 2),
-                                        onClick = { actions.play(ui.loved, index) }
+                                        onClick = { actions.play(ui.loved, index) },
                                     )
                                 }
                             }
@@ -345,19 +311,22 @@ fun ExploreScreen(
     }
 }
 
-
 @Composable
-private fun CollectionCard(collection: LibraryCollection, onClick: () -> Unit) {
+private fun CollectionCard(
+    collection: LibraryCollection,
+    onClick: () -> Unit,
+) {
     Surface(
-        modifier = Modifier
-            .width(310.dp)
-            .bounceClick(pressedScale = 0.97f, onClick = onClick),
+        modifier =
+            Modifier
+                .width(310.dp)
+                .bounceClick(pressedScale = 0.97f, onClick = onClick),
         shape = RoundedCornerShape(36.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer
+        color = MaterialTheme.colorScheme.surfaceContainer,
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             MosaicCover(collection.tracks)
             Spacer(Modifier.width(16.dp))
@@ -366,37 +335,37 @@ private fun CollectionCard(collection: LibraryCollection, onClick: () -> Unit) {
                     text = collection.title,
                     style = MaterialTheme.typography.titleLarge,
                     maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = "${collection.tracks.size} ${if (collection.tracks.size == 1) "song" else "songs"}",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(10.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Surface(
                         shape = CircleShape,
-                        color = MaterialTheme.colorScheme.tertiaryContainer
+                        color = MaterialTheme.colorScheme.tertiaryContainer,
                     ) {
                         Text(
                             text = collection.label,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                            color = MaterialTheme.colorScheme.onTertiaryContainer,
                         )
                     }
                     Spacer(Modifier.weight(1f))
                     Surface(
                         modifier = Modifier.size(42.dp),
                         shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 Icons.Rounded.PlayArrow,
                                 contentDescription = "Play ${collection.title}",
-                                tint = MaterialTheme.colorScheme.onPrimary
+                                tint = MaterialTheme.colorScheme.onPrimary,
                             )
                         }
                     }

@@ -31,10 +31,6 @@ import java.io.File
 import java.io.IOException
 import kotlin.coroutines.resume
 
-/**
- * A play session connecting [GameCore] (clock + judgement + score) to music, hitsounds, the background, and HUD.
- * All functions except [prepare] are called on the main thread.
- */
 class GameSession(
     val song: SongEntry,
     val difficulty: DifficultyRecord,
@@ -55,7 +51,6 @@ class GameSession(
     var background by mutableStateOf<ImageBitmap?>(null); private set
     var preparationLog by mutableStateOf<List<String>>(emptyList()); private set
 
-    // HUD: updated only after a judgement, so it does not recompose every frame.
     var score by mutableLongStateOf(0L); private set
     var combo by mutableIntStateOf(0); private set
     var accuracy by mutableDoubleStateOf(1.0); private set
@@ -153,8 +148,6 @@ class GameSession(
         return ids.size
     }
 
-    // ------------------------------------------------------------ engine callbacks
-
     override fun onHit(note: ChartNote) {
         if (note.id >= noteSounds.size) return
         val volume = noteVolumes[note.id]
@@ -171,9 +164,6 @@ class GameSession(
         judgementSeq++
     }
 
-    // ------------------------------------------------------------ per frame / input
-
-    /** Called once per frame; returns chart time for rendering. */
     fun frame(): Double {
         if (phase != Phase.PLAYING) return core.chartTimeNow()
         val a = audio.anchor
@@ -182,7 +172,7 @@ class GameSession(
             val firstLock = !core.clock.isAudioLocked
             core.clock.onAudioAnchor(a)
             if (firstLock && a.precise && audioRequestNano != 0L) {
-                // Measure MediaPlayer startup latency so the next start() call can be issued that much earlier.
+
                 val audioZeroNano = a.systemNano - (a.mediaTimeMs * 1e6).toLong()
                 learnedLatencyMs = ((audioZeroNano - audioRequestNano) / 1e6).coerceIn(0.0, 500.0)
             }
@@ -200,7 +190,6 @@ class GameSession(
         return t
     }
 
-    /** Converts a touch event's uptimeMillis to System.nanoTime (Android's shared monotonic clock). */
     fun eventNano(uptimeMillis: Long): Long =
         System.nanoTime() - (SystemClock.uptimeMillis() - uptimeMillis) * 1_000_000L
 
@@ -219,7 +208,6 @@ class GameSession(
         release()
     }
 
-    /** Aborts the session without a result. */
     fun abort() {
         if (phase == Phase.PLAYING || phase == Phase.PAUSED || phase == Phase.LOADING || phase == Phase.READY) {
             phase = Phase.FAILED

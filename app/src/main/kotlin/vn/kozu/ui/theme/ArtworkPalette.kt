@@ -12,17 +12,10 @@ import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
 
-/**
- * Utility object that extracts prominent seed colors from track artwork images for dynamic theme generation.
- */
 object ArtworkPalette {
-
     private const val TAG = "ArtworkPalette"
     private val cache = LruCache<String, Int>(64)
 
-    /**
-     * Fetches artwork, extracts a vibrant/dominant color, and returns a Compose [Color].
-     */
     suspend fun seedColor(imageUrl: String?): Color? {
         if (imageUrl.isNullOrBlank()) return null
         cache.get(imageUrl)?.let { return Color(it) }
@@ -39,16 +32,17 @@ object ArtworkPalette {
             connection.readTimeout = 8_000
             try {
                 connection.connect()
-                val bitmap = connection.inputStream.use { stream ->
-                    BitmapFactory.decodeStream(
-                        stream,
-                        null,
-                        BitmapFactory.Options().apply {
-                            inSampleSize = 2
-                            inPreferredConfig = Bitmap.Config.RGB_565
-                        }
-                    )
-                } ?: return null
+                val bitmap =
+                    connection.inputStream.use { stream ->
+                        BitmapFactory.decodeStream(
+                            stream,
+                            null,
+                            BitmapFactory.Options().apply {
+                                inSampleSize = 2
+                                inPreferredConfig = Bitmap.Config.RGB_565
+                            },
+                        )
+                    } ?: return null
                 try {
                     val palette = Palette.from(bitmap).resizeBitmapArea(24_000).generate()
                     palette.vibrantSwatch?.rgb

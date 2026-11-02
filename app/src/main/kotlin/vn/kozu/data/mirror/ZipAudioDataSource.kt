@@ -2,6 +2,7 @@ package vn.kozu.data.mirror
 
 import android.net.Uri
 import androidx.media3.common.C
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.TransferListener
@@ -9,15 +10,10 @@ import java.io.IOException
 import java.io.OutputStream
 import java.util.concurrent.CopyOnWriteArrayList
 
-/**
- * Media3 DataSource that reads a compressed audio member directly from an
- * osu! .osz archive. Decompression is incremental: playback can begin while
- * the rest of the audio is still arriving from the mirror.
- */
+@UnstableApi
 class ZipAudioDataSource(
-    private val resolver: StreamResolver
+    private val resolver: StreamResolver,
 ) : DataSource {
-
     private val listeners = CopyOnWriteArrayList<TransferListener>()
 
     private var openedUri: Uri? = null
@@ -47,7 +43,8 @@ class ZipAudioDataSource(
 
         setId = uri.host?.toLongOrNull()
             ?: throw IOException("Invalid beatmapset id in ZIP audio URI")
-        sourceId = uri.getQueryParameter("source")
+        sourceId = uri
+            .getQueryParameter("source")
             ?.takeIf { it.isNotBlank() }
             ?: throw IOException("Missing archive source id")
 
@@ -65,9 +62,6 @@ class ZipAudioDataSource(
             throw IOException("Invalid audio seek position")
         }
 
-        // Media3 can request a byte range after a seek. ZIP members are deflated
-        // streams, so skipping is done by inflating and discarding preceding
-        // bytes. Normal first playback always starts at zero.
         if (startPosition > 0L) {
             skipFully(input!!, startPosition)
         } else if (requestedLength == C.LENGTH_UNSET.toLong() || requestedLength >= expectedLength) {
@@ -77,8 +71,6 @@ class ZipAudioDataSource(
 
         opened = true
         listeners.forEach { listener ->
-            // Transfer events are emitted by the DataSource wrapper through
-            // Media3's standard callbacks. The archive stream itself is raw.
         }
 
         val available = expectedLength - startPosition
@@ -92,18 +84,19 @@ class ZipAudioDataSource(
     override fun read(
         buffer: ByteArray,
         offset: Int,
-        length: Int
+        length: Int,
     ): Int {
         if (length == 0) return 0
         val stream = input ?: return C.RESULT_END_OF_INPUT
 
         val alreadyRead = startPosition + bytesRead
         val remainingInEntry = expectedLength - alreadyRead
-        val remainingInRequest = if (requestedLength == C.LENGTH_UNSET.toLong()) {
-            Long.MAX_VALUE
-        } else {
-            requestedLength - bytesRead
-        }
+        val remainingInRequest =
+            if (requestedLength == C.LENGTH_UNSET.toLong()) {
+                Long.MAX_VALUE
+            } else {
+                requestedLength - bytesRead
+            }
         val remaining = minOf(remainingInEntry, remainingInRequest)
 
         if (remaining <= 0L) {
@@ -111,11 +104,12 @@ class ZipAudioDataSource(
             return C.RESULT_END_OF_INPUT
         }
 
-        val count = stream.read(
-            buffer,
-            offset,
-            minOf(length.toLong(), remaining).toInt()
-        )
+        val count =
+            stream.read(
+                buffer,
+                offset,
+                minOf(length.toLong(), remaining).toInt(),
+            )
 
         if (count < 0) {
             if (alreadyRead < expectedLength && remainingInRequest > 0L) {
@@ -161,7 +155,6 @@ class ZipAudioDataSource(
             val expected = expectedLength
             val actual = bytesRead
             if (startPosition != 0L || actual != expected) {
-                // An interrupted partial is not a usable full-song cache.
                 temp?.delete()
             }
         }
@@ -199,11 +192,14 @@ class ZipAudioDataSource(
             temporary = temp,
             target = target,
             bytesWritten = bytesRead,
-            expectedLength = expectedLength
+            expectedLength = expectedLength,
         )
     }
 
-    private fun skipFully(stream: java.io.InputStream, amount: Long) {
+    private fun skipFully(
+        stream: java.io.InputStream,
+        amount: Long,
+    ) {
         var remaining = amount
         val scratch = ByteArray(32 * 1024)
         while (remaining > 0L) {
@@ -211,11 +207,12 @@ class ZipAudioDataSource(
             if (skipped > 0L) {
                 remaining -= skipped
             } else {
-                val read = stream.read(
-                    scratch,
-                    0,
-                    minOf(scratch.size.toLong(), remaining).toInt()
-                )
+                val read =
+                    stream.read(
+                        scratch,
+                        0,
+                        minOf(scratch.size.toLong(), remaining).toInt(),
+                    )
                 if (read < 0) {
                     throw IOException("Unable to seek within archive audio")
                 }

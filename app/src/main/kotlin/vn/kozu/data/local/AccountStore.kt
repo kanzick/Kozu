@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import vn.kozu.domain.model.OsuProfile
@@ -14,25 +15,34 @@ import vn.kozu.domain.model.OsuProfile
 data class OsuSession(
     val accessToken: String,
     val refreshToken: String,
-    val expiresAtMs: Long
+    val expiresAtMs: Long,
 )
 
-class AccountStore(context: Context) {
-
+class AccountStore(
+    context: Context,
+) {
     private val store = context.applicationContext.accountDataStore
     private val accessKey = stringPreferencesKey("access_token")
     private val refreshKey = stringPreferencesKey("refresh_token")
     private val expiresKey = longPreferencesKey("expires_at")
+    private val rankHistoryFetchedKey = longPreferencesKey("rank_history_fetched_at")
     private val profileKey = stringPreferencesKey("profile")
     private val stateKey = stringPreferencesKey("pending_state")
 
-    val session: Flow<OsuSession?> = store.data.map { prefs ->
-        val access = prefs[accessKey]
-        if (access.isNullOrBlank()) null
-        else OsuSession(access, prefs[refreshKey].orEmpty(), prefs[expiresKey] ?: 0L)
-    }.distinctUntilChanged()
+    val session: Flow<OsuSession?> =
+        store.data
+            .map { prefs ->
+                val access = prefs[accessKey]
+                if (access.isNullOrBlank()) {
+                    null
+                } else {
+                    OsuSession(access, prefs[refreshKey].orEmpty(), prefs[expiresKey] ?: 0L)
+                }
+            }.distinctUntilChanged()
 
     val profile: Flow<OsuProfile?> = store.data.map { decodeProfile(it[profileKey]) }.distinctUntilChanged()
+    val rankHistoryFetchedAt: Flow<Long> =
+        store.data.map { it[rankHistoryFetchedKey] ?: 0L }.distinctUntilChanged()
 
     suspend fun saveSession(session: OsuSession) {
         store.edit {
@@ -44,6 +54,10 @@ class AccountStore(context: Context) {
 
     suspend fun saveProfile(profile: OsuProfile) {
         store.edit { it[profileKey] = encodeProfile(profile) }
+    }
+
+    suspend fun markRankHistoryFetched(atMs: Long) {
+        store.edit { it[rankHistoryFetchedKey] = atMs }
     }
 
     suspend fun savePendingState(state: String) {
@@ -65,33 +79,41 @@ class AccountStore(context: Context) {
             it.remove(refreshKey)
             it.remove(expiresKey)
             it.remove(profileKey)
+            it.remove(rankHistoryFetchedKey)
             it.remove(stateKey)
         }
     }
 
-    private fun encodeProfile(p: OsuProfile): String = JSONObject()
-        .put("id", p.id)
-        .put("username", p.username)
-        .put("avatar", p.avatarUrl)
-        .put("cover", p.coverUrl)
-        .put("cc", p.countryCode)
-        .put("country", p.countryName)
-        .put("supporter", p.isSupporter)
-        .put("joined", p.joinDate)
-        .put("followers", p.followers)
-        .put("mode", p.mode)
-        .put("grank", p.globalRank)
-        .put("crank", p.countryRank)
-        .put("pp", p.pp)
-        .put("acc", p.accuracy)
-        .put("plays", p.playCount)
-        .put("time", p.playTimeSeconds)
-        .put("level", p.level)
-        .put("score", p.rankedScore)
-        .put("ss", p.gradeSS)
-        .put("s", p.gradeS)
-        .put("a", p.gradeA)
-        .toString()
+    private fun encodeProfile(p: OsuProfile): String {
+        val rankHistory = JSONArray()
+        p.rankHistory.takeLast(90).forEach(rankHistory::put)
+        return JSONObject()
+            .put("id", p.id)
+            .put("username", p.username)
+            .put("avatar", p.avatarUrl)
+            .put("cover", p.coverUrl)
+            .put("cc", p.countryCode)
+            .put("country", p.countryName)
+            .put("supporter", p.isSupporter)
+            .put("joined", p.joinDate)
+            .put("followers", p.followers)
+            .put("mode", p.mode)
+            .put("grank", p.globalRank)
+            .put("crank", p.countryRank)
+            .put("pp", p.pp)
+            .put("acc", p.accuracy)
+            .put("plays", p.playCount)
+            .put("time", p.playTimeSeconds)
+            .put("level", p.level)
+            .put("score", p.rankedScore)
+            .put("ss", p.gradeSS)
+            .put("ssh", p.gradeSSH)
+            .put("s", p.gradeS)
+            .put("sh", p.gradeSH)
+            .put("a", p.gradeA)
+            .put("rankHistory", rankHistory)
+            .toString()
+    }
 
     private fun decodeProfile(json: String?): OsuProfile? {
         if (json.isNullOrBlank()) return null
@@ -117,8 +139,16 @@ class AccountStore(context: Context) {
                 level = o.optDouble("level"),
                 rankedScore = o.optLong("score"),
                 gradeSS = o.optInt("ss"),
+                gradeSSH = o.optInt("ssh"),
                 gradeS = o.optInt("s"),
-                gradeA = o.optInt("a")
+                gradeSH = o.optInt("sh"),
+                gradeA = o.optInt("a"),
+                rankHistory =
+                    o
+                        .optJSONArray("rankHistory")
+                        ?.let { history ->
+                            List(history.length()) { history.optInt(it) }.filter { it > 0 }.takeLast(90)
+                        }.orEmpty(),
             )
         } catch (e: JSONException) {
             null

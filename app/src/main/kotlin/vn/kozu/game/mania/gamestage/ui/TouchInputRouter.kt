@@ -1,9 +1,5 @@
 package vn.kozu.game.mania.gamestage.ui
 
-/**
- * Maps up to ten simultaneous pointers to gameplay columns.
- * Wide charts treat the touch as a finite horizontal region that may overlap several columns.
- */
 internal class TouchInputRouter(
     private val keys: Int,
     private val left: Float,
@@ -34,7 +30,6 @@ internal class TouchInputRouter(
         return Changes(pressed = pressed, released = released)
     }
 
-    /** Returns columns that are no longer held after this pointer is lifted. */
     fun release(pointerId: Long): Changes {
         val columns = pointers.remove(pointerId) ?: return Changes()
         return Changes(released = columns.filter { --activePointersByColumn[it] == 0 }.toIntArray())

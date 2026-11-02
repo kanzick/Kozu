@@ -41,7 +41,7 @@ android {
         minSdk = 28
         targetSdk = 37
         versionCode = (System.currentTimeMillis() / 1000L).toInt()
-        versionName = "0.1.1"
+        versionName = "0.1.2"
     }
 
     buildTypes {
@@ -148,6 +148,7 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network)
     implementation(libs.androidx.profileinstaller)
+    implementation(libs.reorderables)
     testImplementation(libs.junit)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Update
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
 import androidx.compose.material.icons.rounded.Share
@@ -48,7 +50,6 @@ import androidx.compose.ui.unit.dp
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.Playlist
 
-/** Bottom sheet action row item */
 @Composable
 private fun SheetAction(icon: ImageVector, label: String, onClick: () -> Unit) {
     Row(
@@ -64,7 +65,6 @@ private fun SheetAction(icon: ImageVector, label: String, onClick: () -> Unit) {
     }
 }
 
-/** Track header preview in bottom sheets */
 @Composable
 private fun SheetTrackHeader(beatmap: Beatmap) {
     Row(
@@ -93,9 +93,6 @@ private fun SheetTrackHeader(beatmap: Beatmap) {
     }
 }
 
-/**
- * Context menu bottom sheet displaying actions for a beatmap (play next, add to playlist, download, share).
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TrackMenuSheet(
@@ -110,6 +107,7 @@ fun TrackMenuSheet(
     onAddToPlaylist: () -> Unit,
     onDownload: () -> Unit,
     onRemoveDownload: () -> Unit,
+    onInfo: () -> Unit,
     onOpenInOsu: () -> Unit,
     onShare: () -> Unit
 ) {
@@ -135,6 +133,7 @@ fun TrackMenuSheet(
             } else {
                 SheetAction(Icons.Rounded.Download, "Download for offline", onDownload)
             }
+            SheetAction(Icons.Rounded.Info, "Beatmap info", onInfo)
             SheetAction(Icons.Rounded.Language, "Open on osu!", onOpenInOsu)
             SheetAction(Icons.Rounded.Share, "Share", onShare)
             Spacer(Modifier.height(16.dp))
@@ -142,9 +141,6 @@ fun TrackMenuSheet(
     }
 }
 
-/**
- * Bottom sheet allowing user to choose an existing playlist or create a new one for a beatmap.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaylistPickerSheet(
@@ -197,7 +193,6 @@ fun PlaylistPickerSheet(
     }
 }
 
-/** Dialog for entering a playlist name */
 @Composable
 fun NamePlaylistDialog(
     title: String,
@@ -209,6 +204,7 @@ fun NamePlaylistDialog(
     var name by remember { mutableStateOf(initial) }
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = Modifier.imePadding(),
         title = { Text(title) },
         text = {
             OutlinedTextField(

@@ -135,7 +135,7 @@ fun PlayScreen(
         while (isActive) {
             withFrameNanos { frameNanos ->
                 session.frame()
-                // Render time from this frame's vsync timestamp.
+
                 drawTime[0] = session.core.chartTimeAt(frameNanos)
                 frameTick.longValue = frameNanos
             }
@@ -210,13 +210,12 @@ fun PlayScreen(
                     true
                 }
         ) {
-            frameTick.longValue // Observe: redraw each frame without recomposing.
+            frameTick.longValue
             val w = size.width
             val h = size.height
             val t = drawTime[0]
             val layout = PlayfieldLayout(w, h, chart.keys)
 
-            // ---- background + dimming
             val bg = session.background
             if (bg != null) {
                 val scale = max(w / bg.width, h / bg.height)
@@ -255,13 +254,11 @@ fun PlayScreen(
                 )
             }
 
-            // ---- song progress
             val progress = (t / max(1.0, chart.lastEventTimeMs.toDouble())).coerceIn(0.0, 1.0).toFloat()
             drawRect(colors.onSurface.copy(alpha = 0.28f), Offset(0f, 0f), Size(w, 4.dp.toPx()))
             drawRect(colors.primary, Offset(0f, 0f), Size(w * progress, 4.dp.toPx()))
         }
 
-        // ---- HUD (recompose only when a judgement is made)
         if (phase == GameSession.Phase.PLAYING || phase == GameSession.Phase.FINISHED) {
             Hud(session)
         }

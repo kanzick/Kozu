@@ -11,11 +11,10 @@ import java.util.zip.ZipFile
 data class ExtractResult(
     val audioFile: String,
     val backgroundFile: String,
-    val sizeBytes: Long
+    val sizeBytes: Long,
 )
 
 object OszExtractor {
-
     private val videoExtensions = setOf("mp4", "avi", "flv", "mov", "wmv", "mkv", "webm", "m4v", "mpg", "mpeg")
     private val audioExtensions = setOf("mp3", "ogg", "wav", "m4a", "flac", "aac", "opus")
     private val imageExtensions = setOf("jpg", "jpeg", "png", "bmp", "webp")
@@ -30,7 +29,11 @@ object OszExtractor {
         }
     }
 
-    fun extract(osz: File, destination: File, keepFull: Boolean): ExtractResult {
+    fun extract(
+        osz: File,
+        destination: File,
+        keepFull: Boolean,
+    ): ExtractResult {
         val charsets = listOf(Charsets.UTF_8, Charset.forName("windows-1252"), Charset.forName("Shift_JIS"))
         var failure: Exception? = null
         for (charset in charsets) {
@@ -47,9 +50,19 @@ object OszExtractor {
         throw IOException("Could not read beatmap archive", failure)
     }
 
-    private fun extractWith(osz: File, destination: File, keepFull: Boolean, charset: Charset): ExtractResult {
+    private fun extractWith(
+        osz: File,
+        destination: File,
+        keepFull: Boolean,
+        charset: Charset,
+    ): ExtractResult {
         ZipFile(osz, charset).use { zip ->
-            val entries = zip.entries().asSequence().filter { !it.isDirectory }.toList()
+            val entries =
+                zip
+                    .entries()
+                    .asSequence()
+                    .filter { !it.isDirectory }
+                    .toList()
             if (entries.isEmpty()) throw IOException("Empty archive")
 
             val osuEntries = entries.filter { it.name.lowercase().endsWith(".osu") }
@@ -63,11 +76,13 @@ object OszExtractor {
                 if (audioName.isNotEmpty() && backgroundName.isNotEmpty()) break
             }
 
-            val audioEntry = findEntry(entries, audioName)
-                ?: entries.filter { extension(it.name) in audioExtensions }.maxByOrNull { it.size }
-                ?: throw IOException("No audio file in beatmap")
-            val backgroundEntry = findEntry(entries, backgroundName)
-                ?: entries.filter { extension(it.name) in imageExtensions }.maxByOrNull { it.size }
+            val audioEntry =
+                findEntry(entries, audioName)
+                    ?: entries.filter { extension(it.name) in audioExtensions }.maxByOrNull { it.size }
+                    ?: throw IOException("No audio file in beatmap")
+            val backgroundEntry =
+                findEntry(entries, backgroundName)
+                    ?: entries.filter { extension(it.name) in imageExtensions }.maxByOrNull { it.size }
 
             val normalizedAudio = normalize(audioEntry.name)
             val normalizedBackground = backgroundEntry?.let { normalize(it.name) }.orEmpty()
@@ -94,14 +109,21 @@ object OszExtractor {
         }
     }
 
-    private fun findEntry(entries: List<ZipEntry>, name: String): ZipEntry? {
+    private fun findEntry(
+        entries: List<ZipEntry>,
+        name: String,
+    ): ZipEntry? {
         if (name.isBlank()) return null
         val wanted = normalize(name).lowercase()
         return entries.firstOrNull { normalize(it.name).lowercase() == wanted }
     }
 
     private fun normalize(name: String): String =
-        name.replace('\\', '/').split('/').filter { it.isNotEmpty() && it != "." && it != ".." }.joinToString("/")
+        name
+            .replace('\\', '/')
+            .split('/')
+            .filter { it.isNotEmpty() && it != "." && it != ".." }
+            .joinToString("/")
 
     private fun extension(name: String): String = name.substringAfterLast('.', "").lowercase()
 }

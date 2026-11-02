@@ -26,10 +26,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import vn.kozu.domain.model.Beatmap
+import vn.kozu.domain.model.displayArtist
+import vn.kozu.domain.model.displayTitle
 
-/**
- * Cover card component displaying artwork, rank badge, optional equalizer overlay, and track details.
- */
 @Composable
 fun CoverCard(
     beatmap: Beatmap,
@@ -109,7 +108,7 @@ fun CoverCard(
         }
         Spacer(Modifier.height(10.dp))
         Text(
-            text = beatmap.title,
+            text = beatmap.displayTitle(LocalAppSettings.current.preferUnicode),
             style = MaterialTheme.typography.titleMedium,
             color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
@@ -117,7 +116,7 @@ fun CoverCard(
             modifier = Modifier.padding(horizontal = 4.dp)
         )
         Text(
-            text = beatmap.artist,
+            text = beatmap.displayArtist(LocalAppSettings.current.preferUnicode),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
@@ -127,7 +126,6 @@ fun CoverCard(
     }
 }
 
-/** Horizontal track pill component for compact lists */
 @Composable
 fun TrackPill(
     beatmap: Beatmap,
@@ -152,13 +150,13 @@ fun TrackPill(
             Spacer(Modifier.width(12.dp))
             Column(Modifier.width(132.dp)) {
                 Text(
-                    text = beatmap.title,
+                    text = beatmap.displayTitle(LocalAppSettings.current.preferUnicode),
                     style = MaterialTheme.typography.titleSmall,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = beatmap.artist,
+                    text = beatmap.displayArtist(LocalAppSettings.current.preferUnicode),
                     style = MaterialTheme.typography.bodySmall,
                     color = contentColor.copy(alpha = 0.7f),
                     maxLines = 1,

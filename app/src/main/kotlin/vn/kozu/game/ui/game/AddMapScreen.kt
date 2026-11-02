@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -36,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -65,6 +67,14 @@ private data class MapPagingSnapshot(
     val loadingMore: Boolean,
 )
 
+private data class MapPagingSnapshot(
+    val lastVisibleIndex: Int,
+    val resultCount: Int,
+    val hasMore: Boolean,
+    val loading: Boolean,
+    val loadingMore: Boolean,
+)
+
 @Composable
 fun AddMapScreen(
     viewModel: GameViewModel,
@@ -77,9 +87,10 @@ fun AddMapScreen(
     val downloads by viewModel.downloads.collectAsStateWithLifecycle()
     val localMapIds by viewModel.localMapIds.collectAsStateWithLifecycle()
     val localSongs by viewModel.previewModule.catalog.entries.collectAsStateWithLifecycle()
+    val localSongs by viewModel.previewModule.catalog.entries.collectAsStateWithLifecycle()
     var query by remember { mutableStateOf("") }
     var maps by remember { mutableStateOf(emptyList<Beatmap>()) }
-    var nextPage by remember { mutableStateOf(1) }
+    var nextPage by remember { mutableIntStateOf(1) }
     var hasMore by remember { mutableStateOf(false) }
     var loading by remember { mutableStateOf(true) }
     var loadingMore by remember { mutableStateOf(false) }
@@ -87,6 +98,7 @@ fun AddMapScreen(
     var moduleError by remember { mutableStateOf<String?>(null) }
     var expandedMapId by remember { mutableStateOf<Long?>(null) }
     var difficulties by remember { mutableStateOf<List<BeatmapDifficulty>?>(null) }
+    var fetchedDifficulties by remember { mutableStateOf<Map<Long, List<BeatmapDifficulty>>>(emptyMap()) }
     var fetchedDifficulties by remember { mutableStateOf<Map<Long, List<BeatmapDifficulty>>>(emptyMap()) }
     var difficultiesLoading by remember { mutableStateOf(false) }
     var difficultiesError by remember { mutableStateOf<String?>(null) }
@@ -102,6 +114,9 @@ fun AddMapScreen(
         difficultiesError = null
         difficultiesLoading = true
         try {
+            val loaded = viewModel.maniaDifficulties(mapId)
+            difficulties = loaded
+            fetchedDifficulties = fetchedDifficulties + (mapId to loaded)
             val loaded = viewModel.maniaDifficulties(mapId)
             difficulties = loaded
             fetchedDifficulties = fetchedDifficulties + (mapId to loaded)
@@ -134,6 +149,7 @@ fun AddMapScreen(
         loading = true
         loadingMore = false
         error = null
+        fetchedDifficulties = emptyMap()
         fetchedDifficulties = emptyMap()
         try {
             val result = viewModel.searchMania(query, 0)
@@ -186,7 +202,7 @@ fun AddMapScreen(
         }
     }
 
-    Column(modifier.fillMaxSize()) {
+    Column(modifier.fillMaxSize().imePadding()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -280,6 +296,15 @@ fun AddMapScreen(
                                 ?.map { it.difficultyRating }
                                 ?.filter { it > 0.0 }
                                 ?.maxOrNull(),
+                        maxStarRating = localSongs.firstOrNull { it.songId == beatmap.id }
+                            ?.difficulties
+                            ?.map { it.starRating }
+                            ?.filter { it > 0.0 }
+                            ?.maxOrNull()
+                            ?: fetchedDifficulties[beatmap.id]
+                                ?.map { it.difficultyRating }
+                                ?.filter { it > 0.0 }
+                                ?.maxOrNull(),
                         isExpanded = expandedMapId == beatmap.id,
                         difficulties = if (expandedMapId == beatmap.id) difficulties else null,
                         difficultiesLoading = expandedMapId == beatmap.id && difficultiesLoading,
@@ -321,6 +346,7 @@ private fun AddMapCard(
     beatmap: Beatmap,
     isAdded: Boolean,
     download: GameMapDownloadState?,
+    maxStarRating: Double?,
     maxStarRating: Double?,
     isExpanded: Boolean,
     difficulties: List<BeatmapDifficulty>?,
@@ -380,7 +406,18 @@ private fun AddMapCard(
                                 maxLines = 1
                             )
                         }
+                        maxStarRating?.let {
+                            Text(
+                                "Up to ${String.format(Locale.US, "%.2f★", it)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                maxLines = 1
+                            )
+                        }
                         download?.error?.let {
+                            Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                        }
+                        download?.ratingWarning?.let {
                             Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                         }
                         download?.ratingWarning?.let {

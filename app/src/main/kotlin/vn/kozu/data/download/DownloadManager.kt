@@ -26,6 +26,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import vn.kozu.data.local.DownloadedSet
 import vn.kozu.data.local.DownloadsStore
+import vn.kozu.data.local.HistoryStore
 import vn.kozu.data.local.SettingsStore
 import vn.kozu.data.remote.osu.OsuAuth
 import vn.kozu.domain.model.Beatmap
@@ -53,8 +54,13 @@ class DownloadManager(
     private val client: OkHttpClient,
     private val settings: SettingsStore,
     private val store: DownloadsStore,
-    private val auth: OsuAuth
+    private val auth: OsuAuth,
+    private val history: HistoryStore? = null
 ) {
+    private companion object {
+        const val BYTES_PER_MB = 1024L * 1024L
+    }
+
     private val appContext = context.applicationContext
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val semaphore = Semaphore(2)
@@ -228,6 +234,15 @@ class DownloadManager(
             staging.deleteRecursively()
 
             val result = OszExtractor.extract(temp, staging, current.keepFullBeatmap)
+            if (!reserveSpace(id, result.sizeBytes, current.downloadLimitMb)) {
+                staging.deleteRecursively()
+                temp.delete()
+                fail(
+                    id,
+                    "Not enough room under the ${formatLimit(current.downloadLimitMb)} download limit. Raise it in Storage Sense."
+                )
+                return
+            }
             destination.deleteRecursively()
             if (!staging.renameTo(destination)) {
                 throw IOException("Could not store the beatmap files")
@@ -257,12 +272,34 @@ class DownloadManager(
         }
     }
 
-    /**
-     * Signed-in users try osu!'s official download endpoint first.
-     * Guests go straight to the public mirrors. If the official endpoint
-     * rejects the app's OAuth token or is unavailable, public mirrors are
-     * always tried afterwards.
-     */
+    private suspend fun reserveSpace(id: Long, needed: Long, limitMb: Int): Boolean {
+        if (limitMb <= 0) return true
+        val limit = limitMb * BYTES_PER_MB
+        if (needed > limit) return false
+        val others = store.sets.first().filter { it.beatmap.id != id }
+        var used = others.sumOf { it.sizeBytes }
+        if (used + needed <= limit) return true
+
+        val lastPlayed = history?.snapshot()?.events.orEmpty()
+            .groupBy { it.beatmapId }
+            .mapValues { entry -> entry.value.maxOf { it.at } }
+        var evicted = 0
+        for (candidate in others.sortedBy { lastPlayed[it.beatmap.id] ?: it.downloadedAt }) {
+            if (used + needed <= limit) break
+            store.remove(candidate.beatmap.id)
+            store.folder(candidate.beatmap.id).deleteRecursively()
+            used -= candidate.sizeBytes
+            evicted++
+        }
+        if (evicted > 0) {
+            _events.tryEmit("Removed $evicted least recently played ${if (evicted == 1) "download" else "downloads"} to stay within the storage limit")
+        }
+        return used + needed <= limit
+    }
+
+    private fun formatLimit(limitMb: Int): String =
+        if (limitMb >= 1024 && limitMb % 1024 == 0) "${limitMb / 1024} GB" else "$limitMb MB"
+
     private suspend fun buildSources(mirrors: List<Source>, setId: Long): List<Source> {
         val sources = ArrayList<Source>(mirrors.size + 1)
 
@@ -300,8 +337,7 @@ class DownloadManager(
             builder.header("Referer", source.referer)
         }
         if (source.authorization.isNotBlank()) {
-            // This bearer token is sent only to osu.ppy.sh. OkHttp removes
-            // Authorization when following a redirect to a different host.
+
             builder.header("Authorization", source.authorization)
         }
 
@@ -371,8 +407,7 @@ class DownloadManager(
                 Intent(appContext, DownloadService::class.java)
             )
         } catch (_: Exception) {
-            // The download remains managed by this process even if foreground
-            // service startup is unavailable on the current Android state.
+
         }
     }
 }

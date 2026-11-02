@@ -5,7 +5,6 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import java.io.File
 
-/** Loads a suitably downscaled background image instead of the original 2560x1440 image into memory. Call on an IO thread. */
 object BackgroundLoader {
     fun load(file: File, maxWidth: Int, maxHeight: Int): ImageBitmap? {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }

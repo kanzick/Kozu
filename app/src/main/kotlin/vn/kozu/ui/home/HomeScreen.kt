@@ -1,12 +1,14 @@
 package vn.kozu.ui.home
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,12 +34,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
-import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material3.Icon
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -45,6 +45,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -58,16 +65,19 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil3.compose.AsyncImage
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.ListeningStats
+import vn.kozu.domain.model.OsuProfile
 import vn.kozu.ui.components.BeatmapArt
 import vn.kozu.ui.components.CoverCard
-import vn.kozu.ui.components.HeaderAction
+import vn.kozu.domain.model.QuickPicksLayout
+import vn.kozu.ui.components.rememberKozuHaptics
+import vn.kozu.ui.components.LocalAppSettings
 import vn.kozu.ui.components.KozuLoading
 import vn.kozu.ui.components.RefreshIndicator
 import vn.kozu.ui.components.LocalTrackActions
 import vn.kozu.ui.components.ScreenHeader
-import vn.kozu.ui.components.SearchAction
 import vn.kozu.ui.components.SectionHeader
 import vn.kozu.ui.components.SettingsAction
 import vn.kozu.ui.components.TrackPill
@@ -78,6 +88,7 @@ import vn.kozu.ui.theme.KozuCookies
 import vn.kozu.ui.theme.KozuMotion
 import vn.kozu.util.formatDuration
 import java.util.Calendar
+import java.text.NumberFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,102 +98,86 @@ fun HomeScreen(
     onOpenSettings: () -> Unit,
     onOpenExplore: () -> Unit,
     onOpenLibrary: () -> Unit,
-    onOpenSearch: () -> Unit,
     onRefresh: () -> Unit,
+    isAppRefreshing: Boolean,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory)
 ) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
+    val appSettings = LocalAppSettings.current
     val catalogError = ui.error
     val actions = LocalTrackActions.current
     val pullState = rememberPullToRefreshState()
-    val haptics = LocalHapticFeedback.current
+    val haptics = rememberKozuHaptics()
     val refreshNow = {
-        if (!ui.isRefreshing) {
-            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+        if (!ui.isRefreshing && !isAppRefreshing) {
+            haptics.press()
             onRefresh()
         }
+    }
+    val refreshing = ui.isRefreshing || isAppRefreshing
+    val refreshRotation = if (refreshing) {
+        val transition = rememberInfiniteTransition(label = "home-refresh")
+        val rotation by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 900, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "home-refresh-rotation"
+        )
+        rotation
+    } else {
+        pullState.distanceFraction.coerceIn(0f, 1f) * 180f
     }
 
     Column(modifier.fillMaxSize()) {
         ScreenHeader(
             leading = {
                 Surface(
-                    modifier = Modifier
-                        .size(46.dp)
-                        .bounceClick(pressedScale = 0.96f, onClick = refreshNow),
-                    shape = KozuCookies.Soft9,
-                    color = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(Icons.Rounded.MusicNote, contentDescription = null, modifier = Modifier.size(26.dp))
+                    Row(
+                        modifier = Modifier.padding(start = 10.dp, end = 22.dp, top = 8.dp, bottom = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .graphicsLayer { rotationZ = refreshRotation },
+                            shape = KozuCookies.Soft9,
+                            color = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Rounded.MusicNote, contentDescription = null, modifier = Modifier.size(22.dp))
+                            }
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            text = "Kozu",
+                            style = MaterialTheme.typography.headlineMedium
+                        )
                     }
                 }
-                Spacer(Modifier.width(12.dp))
-                Text(
-                    text = "Kozu",
-                    modifier = Modifier.bounceClick(
-                        pressedScale = 0.98f,
-                        onClick = refreshNow
-                    ),
-                    style = MaterialTheme.typography.headlineLarge
-                )
             },
             actions = {
-                HeaderAction(
-                    icon = if (catalogError != null) Icons.Rounded.CloudOff else Icons.Rounded.Cloud,
-                    contentDescription = if (catalogError != null) "osu! catalog unavailable" else "osu! catalog connected",
-                    onClick = onOpenSettings,
-                    container = MaterialTheme.colorScheme.secondaryContainer,
-                    content = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-                SearchAction(onOpenSearch)
                 SettingsAction(onOpenSettings)
             }
         )
 
-        AnimatedVisibility(
-            visible = ui.isRefreshing,
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically()
-        ) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 8.dp),
-                shape = RoundedCornerShape(18.dp),
-                color = MaterialTheme.colorScheme.secondaryContainer
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        text = "Refreshing osu! catalog…",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                }
-            }
-        }
-
         PullToRefreshBox(
-            isRefreshing = ui.isRefreshing,
+            isRefreshing = refreshing,
             onRefresh = refreshNow,
             state = pullState,
             modifier = Modifier.fillMaxSize(),
             indicator = {
                 RefreshIndicator(
                     state = pullState,
-                    isRefreshing = ui.isRefreshing,
+                    isRefreshing = refreshing,
                     modifier = Modifier.align(Alignment.TopCenter)
                 )
             }
@@ -194,6 +189,14 @@ fun HomeScreen(
             ) {
                 item(key = "greeting") { Greeting(name = ui.displayName) }
 
+                ui.profile?.let { profile ->
+                    item(key = "osu-profile") {
+                        Column(Modifier.padding(top = 20.dp)) {
+                            OsuPulseCard(profile = profile)
+                        }
+                    }
+                }
+
                 if (catalogError != null) {
                     item(key = "catalog-error") {
                         CatalogErrorBanner(
@@ -204,45 +207,9 @@ fun HomeScreen(
                     }
                 }
 
-                item(key = "quick-header") {
+                if (appSettings.showMixCard) item(key = "mix") {
                     Column {
                         Spacer(Modifier.height(28.dp))
-                        SectionHeader(title = "Quick Picks", onAction = onOpenExplore)
-                        Spacer(Modifier.height(14.dp))
-                    }
-                }
-                item(key = "quick-row") {
-                    if (ui.quickPicks.isEmpty()) {
-                        if (ui.isLoading) {
-                            KozuLoading()
-                        } else {
-                            Text(
-                                "No live beatmaps are available right now.",
-                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    } else {
-                        LazyRow(
-                            contentPadding = PaddingValues(horizontal = 20.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            itemsIndexed(ui.quickPicks, key = { _, b -> b.id }) { index, beatmap ->
-                                CoverCard(
-                                    beatmap = beatmap,
-                                    size = 176.dp,
-                                    shape = RoundedCornerShape(38.dp),
-                                    rank = index + 1,
-                                    onClick = { actions.play(ui.quickPicks, index) }
-                                )
-                            }
-                        }
-                    }
-                }
-
-                item(key = "mix") {
-                    Column {
-                        Spacer(Modifier.height(32.dp))
                         YourMixCard(
                             mix = ui.mix,
                             onShuffle = {
@@ -280,8 +247,8 @@ fun HomeScreen(
                         Column {
                             Spacer(Modifier.height(32.dp))
                             SectionHeader(
-                                title = "Made for you",
-                                subtitle = "Fresh from the osu! catalog",
+                                title = "osu! Updates",
+                                subtitle = "Recently updated beatmaps",
                                 onAction = onOpenExplore
                             )
                             Spacer(Modifier.height(14.dp))
@@ -300,6 +267,196 @@ fun HomeScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun OsuPulseCard(profile: OsuProfile) {
+    val ranks = profile.rankHistory.takeLast(90).filter { it > 0 }
+    val numberFormat = NumberFormat.getIntegerInstance()
+    Surface(
+        modifier = Modifier
+            .padding(horizontal = 20.dp)
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        tonalElevation = 1.dp
+    ) {
+        Column(Modifier.padding(horizontal = 18.dp, vertical = 16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AsyncImage(
+                    model = profile.avatarUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(CircleShape)
+                )
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = profile.username,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "${profile.flag} ${profile.countryName} · ${profile.mode.uppercase()}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                RankMetric(
+                    title = "Global rank",
+                    value = if (profile.globalRank > 0) "#${numberFormat.format(profile.globalRank)}" else "Unranked",
+                    modifier = Modifier.weight(1f)
+                )
+                RankMetric(
+                    title = "Country rank",
+                    value = if (profile.countryRank > 0) "#${numberFormat.format(profile.countryRank)}" else "—",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            Spacer(Modifier.height(6.dp))
+            OsuRankHistoryChart(profile.rankHistory)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "90 days",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.weight(1f))
+                Text(
+                    "Today",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OsuStat("pp", numberFormat.format(profile.pp.toLong()), Modifier.weight(1f))
+                OsuStat("Plays", compactOsuCount(profile.playCount), Modifier.weight(1f))
+                OsuStat("Play time", formatOsuPlayTime(profile.playTimeSeconds), Modifier.weight(1.2f))
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
+private fun RankMetric(title: String, value: String, modifier: Modifier = Modifier) {
+    Column(modifier) {
+        Text(
+            title,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            value,
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.primary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+private fun OsuStat(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(modifier) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1
+        )
+        Text(
+            value,
+            style = MaterialTheme.typography.labelLarge,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+private fun compactOsuCount(value: Int): String = when {
+    value >= 1_000_000 -> "%.1fM".format(value / 1_000_000.0)
+    value >= 10_000 -> "%.1fK".format(value / 1_000.0)
+    else -> NumberFormat.getIntegerInstance().format(value)
+}
+
+private fun formatOsuPlayTime(seconds: Long): String {
+    val hours = seconds.coerceAtLeast(0) / 3_600
+    val days = hours / 24
+    return if (days > 0) "${days}d ${hours % 24}h" else "${hours}h"
+}
+
+@Composable
+private fun OsuRankHistoryChart(values: List<Int>) {
+    val color = MaterialTheme.colorScheme.primary
+    val ranks = values.takeLast(90).filter { it > 0 }
+    if (ranks.isEmpty()) {
+        Text(
+            "Rank history is not available yet",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(vertical = 10.dp)
+        )
+        return
+    }
+    val minRank = ranks.minOrNull()?.toFloat() ?: return
+    val maxRank = ranks.maxOrNull()?.toFloat() ?: return
+    val padding = ((maxRank - minRank) * 0.08f).coerceAtLeast(1f)
+    val chartMin = (minRank - padding).coerceAtLeast(1f)
+    val chartMax = maxRank + padding
+    val chartRange = (chartMax - chartMin).coerceAtLeast(1f)
+    Canvas(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(58.dp)
+    ) {
+        val points = ranks.mapIndexed { index, rank ->
+            val x = if (ranks.size == 1) size.width else index.toFloat() / ranks.lastIndex * size.width
+            val y = ((rank - chartMin) / chartRange * size.height).coerceIn(0f, size.height)
+            androidx.compose.ui.geometry.Offset(x, y)
+        }
+        val linePath = Path().apply {
+            moveTo(points.first().x, points.first().y)
+            points.drop(1).forEach { lineTo(it.x, it.y) }
+        }
+        val areaPath = Path().apply {
+            moveTo(points.first().x, size.height)
+            lineTo(points.first().x, points.first().y)
+            points.drop(1).forEach { lineTo(it.x, it.y) }
+            lineTo(points.last().x, size.height)
+            close()
+        }
+        drawPath(
+            areaPath,
+            brush = Brush.verticalGradient(
+                listOf(color.copy(alpha = 0.24f), color.copy(alpha = 0.01f))
+            )
+        )
+        drawPath(
+            linePath,
+            color,
+            style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
+        )
+        val lastPoint = points.last()
+        drawCircle(color.copy(alpha = 0.22f), radius = 8.dp.toPx(), center = lastPoint)
+        drawCircle(color, radius = 4.dp.toPx(), center = lastPoint)
     }
 }
 

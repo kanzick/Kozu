@@ -5,7 +5,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import vn.kozu.game.mania.previewstage.model.SongEntry
 
-/** In-memory copy of kozu.db, replaced atomically so it can be read safely from the UI thread. */
 class KozuCatalog {
     @Volatile
     private var songs: List<SongEntry> = emptyList()

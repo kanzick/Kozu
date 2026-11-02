@@ -7,14 +7,13 @@ import kotlin.math.hypot
 import kotlin.math.pow
 import kotlin.math.sin
 
-/**
- * OKLCH color space transformations for perceptually uniform color generation.
- */
 internal object Oklch {
+    data class Lch(
+        val l: Double,
+        val c: Double,
+        val h: Double,
+    )
 
-    data class Lch(val l: Double, val c: Double, val h: Double)
-
-    /** Converts a Compose [Color] into OKLCH representation */
     fun fromColor(color: Color): Lch {
         val r = srgbToLinear(color.red.toDouble())
         val g = srgbToLinear(color.green.toDouble())
@@ -33,8 +32,11 @@ internal object Oklch {
         return Lch(lightness, hypot(a, bb), hue)
     }
 
-    /** Converts OKLCH parameters to a gamut-clipped sRGB Compose [Color] */
-    fun toColor(lightness: Double, chroma: Double, hue: Double): Color {
+    fun toColor(
+        lightness: Double,
+        chroma: Double,
+        hue: Double,
+    ): Color {
         var c = chroma
         if (!inGamut(lightness, c, hue)) {
             var lo = 0.0
@@ -49,16 +51,24 @@ internal object Oklch {
         return Color(
             red = linearToSrgb(rgb[0]).toFloat(),
             green = linearToSrgb(rgb[1]).toFloat(),
-            blue = linearToSrgb(rgb[2]).toFloat()
+            blue = linearToSrgb(rgb[2]).toFloat(),
         )
     }
 
-    private fun inGamut(lightness: Double, chroma: Double, hue: Double): Boolean {
+    private fun inGamut(
+        lightness: Double,
+        chroma: Double,
+        hue: Double,
+    ): Boolean {
         val rgb = linearRgb(lightness, chroma, hue)
         return rgb.all { it >= -EPSILON && it <= 1.0 + EPSILON }
     }
 
-    private fun linearRgb(lightness: Double, chroma: Double, hue: Double): DoubleArray {
+    private fun linearRgb(
+        lightness: Double,
+        chroma: Double,
+        hue: Double,
+    ): DoubleArray {
         val radians = Math.toRadians(hue)
         val a = chroma * cos(radians)
         val b = chroma * sin(radians)
@@ -70,12 +80,11 @@ internal object Oklch {
         return doubleArrayOf(
             4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
             -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
-            -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s
+            -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s,
         )
     }
 
-    private fun srgbToLinear(x: Double): Double =
-        if (x <= 0.04045) x / 12.92 else ((x + 0.055) / 1.055).pow(2.4)
+    private fun srgbToLinear(x: Double): Double = if (x <= 0.04045) x / 12.92 else ((x + 0.055) / 1.055).pow(2.4)
 
     private fun linearToSrgb(x: Double): Double {
         val v = x.coerceIn(0.0, 1.0)
@@ -85,20 +94,20 @@ internal object Oklch {
     private const val EPSILON = 1e-4
 }
 
-/**
- * Tonal palette generator producing colors for given lightness tones (0..100).
- */
-internal class TonalPalette(private val hue: Double, private val chroma: Double) {
-
+internal class TonalPalette(
+    private val hue: Double,
+    private val chroma: Double,
+) {
     private val cache = HashMap<Int, Color>()
 
-    fun tone(tone: Int): Color = cache.getOrPut(tone) {
-        when {
-            tone <= 0 -> Color.Black
-            tone >= 100 -> Color.White
-            else -> Oklch.toColor(toneToLightness(tone.toDouble()), chroma, hue)
+    fun tone(tone: Int): Color =
+        cache.getOrPut(tone) {
+            when {
+                tone <= 0 -> Color.Black
+                tone >= 100 -> Color.White
+                else -> Oklch.toColor(toneToLightness(tone.toDouble()), chroma, hue)
+            }
         }
-    }
 
     private fun toneToLightness(tone: Double): Double = tone / 100.0
 }
