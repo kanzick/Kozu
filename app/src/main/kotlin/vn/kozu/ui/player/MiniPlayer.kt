@@ -18,8 +18,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Pause
-import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.Icon
@@ -56,6 +54,7 @@ import vn.kozu.ui.components.BeatmapArt
 import vn.kozu.ui.components.LocalAppSettings
 import vn.kozu.ui.components.LocalPerformanceMode
 import vn.kozu.ui.components.bounceClick
+import vn.kozu.ui.components.playbackIconVector
 import vn.kozu.ui.components.rememberKozuHaptics
 
 @Composable
@@ -250,7 +249,7 @@ fun MiniPlayer(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                        imageVector = playbackIconVector(LocalAppSettings.current.playbackIcon, isPlaying),
                         contentDescription = if (isPlaying) "Pause" else "Play",
                         modifier = Modifier.size(26.dp),
                     )

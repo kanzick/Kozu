@@ -8,7 +8,6 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
-import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,7 +35,7 @@ fun KozuTheme(
             kozuColorScheme(seed, darkTheme, amoled, paletteStyle)
         }
     val animated = rememberAnimatedColorScheme(target)
-    val typography = if (appFont == AppFont.SYSTEM) SystemKozuTypography else KozuTypography
+    val typography = typographyFor(appFont)
 
     if (appStyle == AppStyle.EXPRESSIVE) {
         MaterialExpressiveTheme(
@@ -49,7 +48,7 @@ fun KozuTheme(
         MaterialTheme(
             colorScheme = animated,
             shapes = Shapes(),
-            typography = Typography(),
+            typography = typography,
             content = content,
         )
     }

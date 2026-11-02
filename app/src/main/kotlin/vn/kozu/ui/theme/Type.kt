@@ -8,11 +8,26 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import vn.kozu.R
+import vn.kozu.domain.model.AppFont
 
 @OptIn(ExperimentalTextApi::class)
 private fun quicksand(weight: FontWeight) =
     Font(
         resId = R.font.quicksand,
+        weight = weight,
+        variationSettings = FontVariation.Settings(FontVariation.weight(weight.weight)),
+    )
+
+private fun googleSans(weight: FontWeight) =
+    Font(
+        resId = R.font.google_sans,
+        weight = weight,
+        variationSettings = FontVariation.Settings(FontVariation.weight(weight.weight)),
+    )
+
+private fun googleSansFlex(weight: FontWeight) =
+    Font(
+        resId = R.font.google_sans_flex,
         weight = weight,
         variationSettings = FontVariation.Settings(FontVariation.weight(weight.weight)),
     )
@@ -62,3 +77,36 @@ private fun buildTypography(family: FontFamily) =
 val KozuTypography = buildTypography(QuicksandFontFamily)
 
 val SystemKozuTypography = buildTypography(FontFamily.Default)
+
+val RobotoKozuTypography = buildTypography(FontFamily.SansSerif)
+
+val GoogleSansTypography =
+    buildTypography(
+        FontFamily(
+            googleSans(FontWeight.Light),
+            googleSans(FontWeight.Normal),
+            googleSans(FontWeight.Medium),
+            googleSans(FontWeight.SemiBold),
+            googleSans(FontWeight.Bold),
+        ),
+    )
+
+val GoogleSansFlexTypography =
+    buildTypography(
+        FontFamily(
+            googleSansFlex(FontWeight.Light),
+            googleSansFlex(FontWeight.Normal),
+            googleSansFlex(FontWeight.Medium),
+            googleSansFlex(FontWeight.SemiBold),
+            googleSansFlex(FontWeight.Bold),
+        ),
+    )
+
+fun typographyFor(font: AppFont) =
+    when (font) {
+        AppFont.KOZU -> KozuTypography
+        AppFont.SYSTEM -> SystemKozuTypography
+        AppFont.ROBOTO -> RobotoKozuTypography
+        AppFont.GOOGLE_SANS -> GoogleSansTypography
+        AppFont.GOOGLE_SANS_FLEX -> GoogleSansFlexTypography
+    }

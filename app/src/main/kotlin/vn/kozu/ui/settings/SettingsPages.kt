@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -35,9 +36,12 @@ import vn.kozu.domain.model.AppFont
 import vn.kozu.domain.model.AppStyle
 import vn.kozu.domain.model.ArtworkQuality
 import vn.kozu.domain.model.CrossfadeDuration
+import vn.kozu.domain.model.LibraryDensity
+import vn.kozu.domain.model.LibraryNavigationMode
 import vn.kozu.domain.model.ModeFilter
 import vn.kozu.domain.model.NavigationStyle
 import vn.kozu.domain.model.PaletteStyle
+import vn.kozu.domain.model.PlaybackIcon
 import vn.kozu.domain.model.ProxySettings
 import vn.kozu.domain.model.QuickPicksLayout
 import vn.kozu.domain.model.QuickPicksSource
@@ -46,6 +50,7 @@ import vn.kozu.domain.model.StatusFilter
 import vn.kozu.domain.model.StreamMode
 import vn.kozu.domain.model.ThemeMode
 import vn.kozu.domain.model.TopSize
+import vn.kozu.ui.components.playbackIconVector
 import vn.kozu.util.AppIcon
 import java.text.DateFormat
 import java.util.Date
@@ -153,12 +158,24 @@ fun AppearancePage(
                 settings.blurIntensity.toFloat(),
                 0f..120f,
                 valueLabel = { "${it.toInt()} dp" },
-                steps = 23,
                 enabled = settings.blurPlayer && !settings.performanceMode,
             ) { value -> viewModel.save { setBlurIntensity(value.toInt()) } }
             switch(Setting.SHOW_FILE_INFO, settings.showFileInfo) { enabled ->
                 viewModel.save { setShowFileInfo(enabled) }
             }
+            dropdown(
+                Setting.PLAYBACK_ICON,
+                settings.playbackIcon,
+                PlaybackIcon.entries.toList(),
+                { it.label },
+                leading = { icon ->
+                    Icon(
+                        imageVector = playbackIconVector(icon, isPlaying = false),
+                        contentDescription = null,
+                        modifier = Modifier.size(22.dp),
+                    )
+                },
+            ) { icon -> viewModel.save { setPlaybackIcon(icon) } }
         }
         SettingsSection("Navigation bar") {
             dropdown(
@@ -176,7 +193,6 @@ fun AppearancePage(
                 settings.navCornerRadius.toFloat(),
                 0f..32f,
                 valueLabel = { "${it.toInt()} dp" },
-                steps = 15,
                 enabled = floating,
             ) { value -> viewModel.save { setNavCornerRadius(value.toInt()) } }
         }
@@ -188,6 +204,20 @@ fun AppearancePage(
                 { it.label },
                 onSelect = viewModel::setStartTab,
             )
+        }
+        SettingsSection("Library") {
+            dropdown(
+                Setting.LIBRARY_LAYOUT,
+                settings.libraryNavigationMode,
+                LibraryNavigationMode.entries.toList(),
+                { it.label },
+            ) { mode -> viewModel.save { setLibraryNavigationMode(mode) } }
+            dropdown(
+                Setting.LIBRARY_DENSITY,
+                settings.libraryDensity,
+                LibraryDensity.entries.toList(),
+                { it.label },
+            ) { density -> viewModel.save { setLibraryDensity(density) } }
         }
     }
 }
@@ -384,7 +414,6 @@ fun MusicPage(
                 settings.imageCacheMb.toFloat(),
                 32f..1024f,
                 valueLabel = { "${it.toInt()} MB" },
-                steps = 30,
             ) { value -> viewModel.save { setImageCacheMb(value.toInt()) } }
         }
     }

@@ -129,10 +129,54 @@ enum class AppFont(
 ) {
     KOZU("kozu", "Kozu Default"),
     SYSTEM("system", "System default"),
+    ROBOTO("roboto", "Roboto"),
+    GOOGLE_SANS("google_sans", "Google Sans"),
+    GOOGLE_SANS_FLEX("google_sans_flex", "Google Sans Flex"),
     ;
 
     companion object {
         fun fromKey(key: String?): AppFont = entries.firstOrNull { it.key == key } ?: KOZU
+    }
+}
+
+enum class LibraryNavigationMode(
+    val key: String,
+    val label: String,
+) {
+    COMPACT("compact", "Compact swipe tabs"),
+    TAB_ROW("tab_row", "Visible tab row"),
+    ;
+
+    companion object {
+        fun fromKey(key: String?): LibraryNavigationMode = entries.firstOrNull { it.key == key } ?: COMPACT
+    }
+}
+
+enum class LibraryDensity(
+    val key: String,
+    val label: String,
+) {
+    COMFORTABLE("comfortable", "Comfortable"),
+    COMPACT("compact", "Compact"),
+    ;
+
+    companion object {
+        fun fromKey(key: String?): LibraryDensity = entries.firstOrNull { it.key == key } ?: COMPACT
+    }
+}
+
+enum class PlaybackIcon(
+    val key: String,
+    val label: String,
+) {
+    ARROW("arrow", "Play arrow"),
+    CIRCLE("circle", "Play circle"),
+    CIRCLE_FILLED("circle_filled", "Filled play circle"),
+    CIRCLE_OUTLINE("circle_outline", "Outlined play circle"),
+    ;
+
+    companion object {
+        fun fromKey(key: String?): PlaybackIcon = entries.firstOrNull { it.key == key } ?: ARROW
     }
 }
 
@@ -279,6 +323,10 @@ data class AppSettings(
     val statusFilter: StatusFilter = StatusFilter.DEFAULT,
     val lastSyncAt: Long = 0L,
     val appFont: AppFont = AppFont.KOZU,
+    val libraryNavigationMode: LibraryNavigationMode = LibraryNavigationMode.COMPACT,
+    val libraryDensity: LibraryDensity = LibraryDensity.COMPACT,
+    val libraryGrid: Boolean = false,
+    val playbackIcon: PlaybackIcon = PlaybackIcon.ARROW,
     val paletteStyle: PaletteStyle = PaletteStyle.TONAL_SPOT,
     val highRefreshRate: Boolean = true,
     val performanceMode: Boolean = false,

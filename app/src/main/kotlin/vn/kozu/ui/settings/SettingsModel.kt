@@ -60,6 +60,7 @@ import androidx.compose.material.icons.rounded.TouchApp
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Upload
 import androidx.compose.material.icons.rounded.Vibration
+import androidx.compose.material.icons.rounded.ViewAgenda
 import androidx.compose.material.icons.rounded.ViewCarousel
 import androidx.compose.material.icons.rounded.WbSunny
 import androidx.compose.material.icons.rounded.Wifi
@@ -219,8 +220,29 @@ enum class Setting(
         SettingsPage.APPEARANCE,
         Icons.Rounded.FormatSize,
         "App font",
-        "Choose between the Kozu font and the system font.",
-        "typeface quicksand",
+        "Choose Quicksand, Roboto, Google Sans, or Google Sans Flex.",
+        "typeface quicksand roboto google sans flex",
+    ),
+    PLAYBACK_ICON(
+        SettingsPage.APPEARANCE,
+        Icons.Rounded.PlayCircle,
+        "Playback icon",
+        "Choose the play symbol used across player and library controls.",
+        "play pause control icon",
+    ),
+    LIBRARY_LAYOUT(
+        SettingsPage.APPEARANCE,
+        Icons.Rounded.ViewCarousel,
+        "Library navigation",
+        "Choose compact swipe navigation or a visible tab row.",
+        "library tabs compact layout",
+    ),
+    LIBRARY_DENSITY(
+        SettingsPage.APPEARANCE,
+        Icons.Rounded.ViewAgenda,
+        "Library density",
+        "Choose compact rows or more spacious track listings.",
+        "library compact dense spacing",
     ),
     APP_ICON(SettingsPage.APPEARANCE, Icons.Rounded.AutoAwesome, "App icon", "Select your preferred app icon.", "launcher logo"),
     APP_STYLE(

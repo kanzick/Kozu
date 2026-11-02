@@ -21,10 +21,13 @@ import vn.kozu.domain.model.AppSettings
 import vn.kozu.domain.model.AppStyle
 import vn.kozu.domain.model.ArtworkQuality
 import vn.kozu.domain.model.CrossfadeDuration
+import vn.kozu.domain.model.LibraryDensity
+import vn.kozu.domain.model.LibraryNavigationMode
 import vn.kozu.domain.model.Mirror
 import vn.kozu.domain.model.ModeFilter
 import vn.kozu.domain.model.NavigationStyle
 import vn.kozu.domain.model.PaletteStyle
+import vn.kozu.domain.model.PlaybackIcon
 import vn.kozu.domain.model.ProxySettings
 import vn.kozu.domain.model.ProxyType
 import vn.kozu.domain.model.QuickPicksLayout
@@ -82,6 +85,10 @@ class SettingsStore(
         val statusFilter = stringPreferencesKey("status_filter")
         val lastSync = longPreferencesKey("last_sync_at")
         val appFont = stringPreferencesKey("app_font")
+        val libraryNavigationMode = stringPreferencesKey("library_navigation_mode")
+        val libraryDensity = stringPreferencesKey("library_density")
+        val libraryGrid = booleanPreferencesKey("library_grid")
+        val playbackIcon = stringPreferencesKey("playback_icon")
         val paletteStyle = stringPreferencesKey("palette_style")
         val highRefreshRate = booleanPreferencesKey("high_refresh_rate")
         val performanceMode = booleanPreferencesKey("performance_mode")
@@ -184,6 +191,10 @@ class SettingsStore(
                     statusFilter = StatusFilter.fromKey(prefs[Keys.statusFilter]),
                     lastSyncAt = prefs[Keys.lastSync] ?: 0L,
                     appFont = AppFont.fromKey(prefs[Keys.appFont]),
+                    libraryNavigationMode = LibraryNavigationMode.fromKey(prefs[Keys.libraryNavigationMode]),
+                    libraryDensity = LibraryDensity.fromKey(prefs[Keys.libraryDensity]),
+                    libraryGrid = prefs[Keys.libraryGrid] ?: false,
+                    playbackIcon = PlaybackIcon.fromKey(prefs[Keys.playbackIcon]),
                     paletteStyle = PaletteStyle.fromKey(prefs[Keys.paletteStyle]),
                     highRefreshRate = prefs[Keys.highRefreshRate] ?: true,
                     performanceMode = prefs[Keys.performanceMode] ?: false,
@@ -326,6 +337,14 @@ class SettingsStore(
         withContext(Dispatchers.IO) { prefsCache.edit().putString("app_font", font.key).commit() }
         store.edit { it[Keys.appFont] = font.key }
     }
+
+    suspend fun setLibraryNavigationMode(mode: LibraryNavigationMode) = store.edit { it[Keys.libraryNavigationMode] = mode.key }
+
+    suspend fun setLibraryDensity(density: LibraryDensity) = store.edit { it[Keys.libraryDensity] = density.key }
+
+    suspend fun setLibraryGrid(enabled: Boolean) = store.edit { it[Keys.libraryGrid] = enabled }
+
+    suspend fun setPlaybackIcon(icon: PlaybackIcon) = store.edit { it[Keys.playbackIcon] = icon.key }
 
     suspend fun setPaletteStyle(style: PaletteStyle) {
         withContext(Dispatchers.IO) { prefsCache.edit().putString("palette_style", style.key).commit() }

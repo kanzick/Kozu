@@ -19,8 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
-import androidx.compose.material.icons.rounded.Pause
-import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.RepeatOne
 import androidx.compose.material.icons.rounded.Shuffle
@@ -39,7 +37,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import vn.kozu.player.RepeatState
+import vn.kozu.ui.components.LocalAppSettings
 import vn.kozu.ui.components.bounceClick
+import vn.kozu.ui.components.playbackIconVector
 import vn.kozu.ui.components.rememberKozuHaptics
 import vn.kozu.ui.theme.KozuMotion
 
@@ -85,7 +85,7 @@ fun TransportControls(
             },
         )
         TransportButton(
-            icon = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+            icon = playbackIconVector(LocalAppSettings.current.playbackIcon, isPlaying),
             description = if (isPlaying) "Pause" else "Play",
             weight = playWeight,
             shape = RoundedCornerShape(playRadius),
