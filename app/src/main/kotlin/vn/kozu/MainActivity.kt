@@ -29,11 +29,12 @@ class MainActivity : ComponentActivity() {
     private fun applyLaunchTheme() {
         val systemDark =
             resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
-        val dark = when (SettingsStore.initialThemeMode(this)) {
-            ThemeMode.SYSTEM -> systemDark
-            ThemeMode.LIGHT -> false
-            ThemeMode.DARK -> true
-        }
+        val dark =
+            when (SettingsStore.initialThemeMode(this)) {
+                ThemeMode.SYSTEM -> systemDark
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+            }
         setTheme(if (dark) R.style.Theme_Kozu_Dark else R.style.Theme_Kozu_Light)
     }
 
@@ -56,7 +57,7 @@ class MainActivity : ComponentActivity() {
         container.accounts.onCallback(
             data.getQueryParameter("code"),
             data.getQueryParameter("state"),
-            data.getQueryParameter("error")
+            data.getQueryParameter("error"),
         )
         intent.data = null
     }
@@ -71,24 +72,27 @@ class MainActivity : ComponentActivity() {
     private fun openBeatmapSet(id: Long) {
         val container = (application as KozuApplication).container
         lifecycleScope.launch {
-            val beatmap = try {
-                container.catalog.details(id)
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (_: Exception) {
-                null
-            } ?: vn.kozu.domain.model.Beatmap(id = id, title = "Beatmap $id", artist = "")
+            val beatmap =
+                try {
+                    container.catalog.details(id)
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    null
+                } ?: vn.kozu.domain.model
+                    .Beatmap(id = id, title = "Beatmap $id", artist = "")
             container.playback.playQueue(listOf(beatmap), 0)
         }
     }
 
     fun applyRefreshRate(enabled: Boolean) {
-        val display = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            display
-        } else {
-            @Suppress("DEPRECATION")
-            windowManager.defaultDisplay
-        }
+        val display =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                display
+            } else {
+                @Suppress("DEPRECATION")
+                windowManager.defaultDisplay
+            }
         val highest = display?.supportedModes?.maxOfOrNull { it.refreshRate } ?: return
         val target = if (enabled && highest > 0f) highest else 0f
         if (window.attributes.preferredRefreshRate != target) {

@@ -10,26 +10,33 @@ import kotlin.math.sin
 object CrossfadeCurve {
     const val MIN_TRACK_FACTOR = 3
 
-    fun isEligible(durationMs: Long, fadeMs: Int): Boolean =
-        fadeMs > 0 && durationMs != C.TIME_UNSET && durationMs >= MIN_TRACK_FACTOR.toLong() * fadeMs
+    fun isEligible(
+        durationMs: Long,
+        fadeMs: Int,
+    ): Boolean = fadeMs > 0 && durationMs != C.TIME_UNSET && durationMs >= MIN_TRACK_FACTOR.toLong() * fadeMs
 
-    fun fadeOutGain(remainingMs: Long, fadeMs: Int): Float {
+    fun fadeOutGain(
+        remainingMs: Long,
+        fadeMs: Int,
+    ): Float {
         if (fadeMs <= 0 || remainingMs >= fadeMs) return 1f
         return ease(remainingMs.toFloat() / fadeMs)
     }
 
-    fun fadeInGain(positionMs: Long, fadeMs: Int): Float {
+    fun fadeInGain(
+        positionMs: Long,
+        fadeMs: Int,
+    ): Float {
         if (fadeMs <= 0 || positionMs >= fadeMs) return 1f
         return ease(positionMs.toFloat() / fadeMs)
     }
 
-    private fun ease(fraction: Float): Float =
-        sin(fraction.coerceIn(0f, 1f) * (PI.toFloat() / 2f))
+    private fun ease(fraction: Float): Float = sin(fraction.coerceIn(0f, 1f) * (PI.toFloat() / 2f))
 }
 
 class CrossfadeController(
     private val player: Player,
-    private val externalGain: () -> Float = { 1f }
+    private val externalGain: () -> Float = { 1f },
 ) {
     private var fadeMs = 0
     private var fadeInPending = false
@@ -50,7 +57,7 @@ class CrossfadeController(
         fadeInPending = fadeMs > 0 && (
             reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO ||
                 reason == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT
-            )
+        )
         tick()
     }
 

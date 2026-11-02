@@ -8,13 +8,17 @@ import java.util.zip.InflaterInputStream
 
 interface RangeSource {
     fun length(): Long
-    fun open(offset: Long, endInclusive: Long): InputStream
+
+    fun open(
+        offset: Long,
+        endInclusive: Long,
+    ): InputStream
 }
 
 data class RangeTail(
     val start: Long,
     val totalLength: Long,
-    val bytes: ByteArray
+    val bytes: ByteArray,
 )
 
 interface TailRangeSource {
@@ -26,11 +30,10 @@ data class ZipEntryInfo(
     val method: Int,
     val compressedSize: Long,
     val uncompressedSize: Long,
-    val localHeaderOffset: Long
+    val localHeaderOffset: Long,
 )
 
 object RemoteZip {
-
     private val audioExtensions = setOf("mp3", "ogg", "wav", "m4a", "flac", "aac", "opus")
     private const val EOCD_SIGNATURE = 0x06054b50
     private const val CENTRAL_SIGNATURE = 0x02014b50
@@ -38,7 +41,6 @@ object RemoteZip {
     private const val TAIL_BYTES = 66_000L
 
     fun readEntries(source: RangeSource): List<ZipEntryInfo> {
-
         val rangedTail = (source as? TailRangeSource)?.readTail(TAIL_BYTES)
         val total = rangedTail?.totalLength ?: source.length()
         if (total < 22) throw IOException("Not a zip file")
@@ -62,11 +64,12 @@ object RemoteZip {
         if (cdOffset == 0xFFFFFFFFL || count == 0xFFFF) throw IOException("Zip64 is not supported")
         if (cdSize <= 0 || cdOffset + cdSize > total) throw IOException("Invalid central directory")
 
-        val central = if (cdOffset >= tailStart) {
-            tail.copyOfRange((cdOffset - tailStart).toInt(), (cdOffset - tailStart + cdSize).toInt())
-        } else {
-            readFully(source, cdOffset, cdOffset + cdSize - 1)
-        }
+        val central =
+            if (cdOffset >= tailStart) {
+                tail.copyOfRange((cdOffset - tailStart).toInt(), (cdOffset - tailStart + cdSize).toInt())
+            } else {
+                readFully(source, cdOffset, cdOffset + cdSize - 1)
+            }
 
         val entries = ArrayList<ZipEntryInfo>(count)
         var p = 0
@@ -86,7 +89,10 @@ object RemoteZip {
         return entries
     }
 
-    fun pickAudio(entries: List<ZipEntryInfo>, preferredName: String? = null): ZipEntryInfo? {
+    fun pickAudio(
+        entries: List<ZipEntryInfo>,
+        preferredName: String? = null,
+    ): ZipEntryInfo? {
         val audio = entries.filter { it.name.substringAfterLast('.', "").lowercase() in audioExtensions }
         if (preferredName != null) {
             audio.firstOrNull { it.name.equals(preferredName, ignoreCase = true) }?.let { return it }
@@ -94,16 +100,20 @@ object RemoteZip {
         return audio.maxByOrNull { it.uncompressedSize }
     }
 
-    fun openEntryStream(source: RangeSource, entry: ZipEntryInfo): InputStream {
+    fun openEntryStream(
+        source: RangeSource,
+        entry: ZipEntryInfo,
+    ): InputStream {
         if (entry.compressedSize <= 0L) {
             throw IOException("Empty audio entry")
         }
 
-        val header = readFully(
-            source,
-            entry.localHeaderOffset,
-            entry.localHeaderOffset + 29L
-        )
+        val header =
+            readFully(
+                source,
+                entry.localHeaderOffset,
+                entry.localHeaderOffset + 29L,
+            )
         if (le32(header, 0) != LOCAL_SIGNATURE) {
             throw IOException("Invalid local header")
         }
@@ -128,8 +138,14 @@ object RemoteZip {
 
         val raw = source.open(dataStart, dataEnd)
         return when (entry.method) {
-            0 -> raw
-            8 -> InflaterInputStream(raw, Inflater(true))
+            0 -> {
+                raw
+            }
+
+            8 -> {
+                InflaterInputStream(raw, Inflater(true))
+            }
+
             else -> {
                 raw.close()
                 throw IOException("Unsupported compression method ${entry.method}")
@@ -137,7 +153,10 @@ object RemoteZip {
         }
     }
 
-    private fun readFully(input: InputStream, bytes: ByteArray) {
+    private fun readFully(
+        input: InputStream,
+        bytes: ByteArray,
+    ) {
         var offset = 0
         while (offset < bytes.size) {
             val read = input.read(bytes, offset, bytes.size - offset)
@@ -146,7 +165,10 @@ object RemoteZip {
         }
     }
 
-    private fun skipFully(input: InputStream, amount: Long) {
+    private fun skipFully(
+        input: InputStream,
+        amount: Long,
+    ) {
         var remaining = amount
         val scratch = ByteArray(1024)
         while (remaining > 0L) {
@@ -161,7 +183,12 @@ object RemoteZip {
         }
     }
 
-    fun extract(source: RangeSource, entry: ZipEntryInfo, target: File, onProgress: (Float) -> Unit = {}) {
+    fun extract(
+        source: RangeSource,
+        entry: ZipEntryInfo,
+        target: File,
+        onProgress: (Float) -> Unit = {},
+    ) {
         val header = readFully(source, entry.localHeaderOffset, entry.localHeaderOffset + 29)
         if (le32(header, 0) != LOCAL_SIGNATURE) throw IOException("Invalid local header")
         val dataStart = entry.localHeaderOffset + 30 + le16(header, 26) + le16(header, 28)
@@ -169,17 +196,25 @@ object RemoteZip {
         val dataEnd = dataStart + entry.compressedSize - 1
 
         val raw = source.open(dataStart, dataEnd)
-        val counting = CountingInputStream(raw) { read ->
-            onProgress((read.toFloat() / entry.compressedSize).coerceIn(0f, 1f))
-        }
-        val stream: InputStream = when (entry.method) {
-            0 -> counting
-            8 -> InflaterInputStream(counting, Inflater(true))
-            else -> {
-                raw.close()
-                throw IOException("Unsupported compression method ${entry.method}")
+        val counting =
+            CountingInputStream(raw) { read ->
+                onProgress((read.toFloat() / entry.compressedSize).coerceIn(0f, 1f))
             }
-        }
+        val stream: InputStream =
+            when (entry.method) {
+                0 -> {
+                    counting
+                }
+
+                8 -> {
+                    InflaterInputStream(counting, Inflater(true))
+                }
+
+                else -> {
+                    raw.close()
+                    throw IOException("Unsupported compression method ${entry.method}")
+                }
+            }
         target.parentFile?.mkdirs()
         stream.use { input ->
             target.outputStream().buffered().use { output ->
@@ -194,15 +229,25 @@ object RemoteZip {
         if (target.length() <= 0L) throw IOException("Extracted file is empty")
     }
 
-    private fun readFully(source: RangeSource, start: Long, endInclusive: Long): ByteArray {
+    private fun readFully(
+        source: RangeSource,
+        start: Long,
+        endInclusive: Long,
+    ): ByteArray {
         source.open(start, endInclusive).use { input ->
             return input.readBytes()
         }
     }
 
-    private fun le16(b: ByteArray, o: Int): Int = (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)
+    private fun le16(
+        b: ByteArray,
+        o: Int,
+    ): Int = (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)
 
-    private fun le32(b: ByteArray, o: Int): Int =
+    private fun le32(
+        b: ByteArray,
+        o: Int,
+    ): Int =
         (b[o].toInt() and 0xFF) or
             ((b[o + 1].toInt() and 0xFF) shl 8) or
             ((b[o + 2].toInt() and 0xFF) shl 16) or
@@ -210,7 +255,7 @@ object RemoteZip {
 
     private class CountingInputStream(
         private val delegate: InputStream,
-        private val onRead: (Long) -> Unit
+        private val onRead: (Long) -> Unit,
     ) : InputStream() {
         private var total = 0L
 
@@ -223,7 +268,11 @@ object RemoteZip {
             return v
         }
 
-        override fun read(b: ByteArray, off: Int, len: Int): Int {
+        override fun read(
+            b: ByteArray,
+            off: Int,
+            len: Int,
+        ): Int {
             val n = delegate.read(b, off, len)
             if (n > 0) {
                 total += n

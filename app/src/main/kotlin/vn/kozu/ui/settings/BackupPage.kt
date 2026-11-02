@@ -24,9 +24,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,13 +56,23 @@ private const val MAX_BACKUP_BYTES = 25_000_000
 
 private sealed interface BackupPicker {
     data object Create : BackupPicker
-    data class Restore(val json: String, val info: BackupInfo) : BackupPicker
+
+    data class Restore(
+        val json: String,
+        val info: BackupInfo,
+    ) : BackupPicker
 }
 
-private data class BackupOutcome(val success: Boolean, val text: String)
+private data class BackupOutcome(
+    val success: Boolean,
+    val text: String,
+)
 
 @Composable
-fun BackupPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
+fun BackupPage(
+    viewModel: SettingsViewModel,
+    onBack: () -> Unit,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val backup = viewModel.appContainer.backup
@@ -71,50 +82,56 @@ fun BackupPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
     var busy by remember { mutableStateOf(false) }
     var outcome by remember { mutableStateOf<BackupOutcome?>(null) }
 
-    val createLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument("application/json")
-    ) { uri ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        scope.launch {
-            busy = true
-            outcome = try {
-                val json = backup.create(pending)
-                withContext(Dispatchers.IO) {
-                    val stream = context.contentResolver.openOutputStream(uri, "wt")
-                        ?: throw IOException("Could not open the selected file")
-                    stream.use { it.write(json.toByteArray(Charsets.UTF_8)) }
-                }
-                BackupOutcome(true, "Backup saved with ${pending.joinToString { it.label.lowercase() }}.")
-            } catch (e: BackupException) {
-                BackupOutcome(false, e.message ?: "Backup failed")
-            } catch (e: Exception) {
-                BackupOutcome(false, "Could not save the backup: ${e.message ?: "unknown error"}")
+    val createLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.CreateDocument("application/json"),
+        ) { uri ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            scope.launch {
+                busy = true
+                outcome =
+                    try {
+                        val json = backup.create(pending)
+                        withContext(Dispatchers.IO) {
+                            val stream =
+                                context.contentResolver.openOutputStream(uri, "wt")
+                                    ?: throw IOException("Could not open the selected file")
+                            stream.use { it.write(json.toByteArray(Charsets.UTF_8)) }
+                        }
+                        BackupOutcome(true, "Backup saved with ${pending.joinToString { it.label.lowercase() }}.")
+                    } catch (e: BackupException) {
+                        BackupOutcome(false, e.message ?: "Backup failed")
+                    } catch (e: Exception) {
+                        BackupOutcome(false, "Could not save the backup: ${e.message ?: "unknown error"}")
+                    }
+                busy = false
             }
-            busy = false
         }
-    }
 
-    val restoreLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        scope.launch {
-            busy = true
-            try {
-                val json = withContext(Dispatchers.IO) {
-                    val stream = context.contentResolver.openInputStream(uri)
-                        ?: throw IOException("Could not open the selected file")
-                    stream.use { readLimited(it) }
+    val restoreLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.OpenDocument(),
+        ) { uri ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            scope.launch {
+                busy = true
+                try {
+                    val json =
+                        withContext(Dispatchers.IO) {
+                            val stream =
+                                context.contentResolver.openInputStream(uri)
+                                    ?: throw IOException("Could not open the selected file")
+                            stream.use { readLimited(it) }
+                        }
+                    picker = BackupPicker.Restore(json, backup.inspect(json))
+                } catch (e: BackupException) {
+                    outcome = BackupOutcome(false, e.message ?: "Invalid backup")
+                } catch (e: Exception) {
+                    outcome = BackupOutcome(false, "Could not read the file: ${e.message ?: "unknown error"}")
                 }
-                picker = BackupPicker.Restore(json, backup.inspect(json))
-            } catch (e: BackupException) {
-                outcome = BackupOutcome(false, e.message ?: "Invalid backup")
-            } catch (e: Exception) {
-                outcome = BackupOutcome(false, "Could not read the file: ${e.message ?: "unknown error"}")
+                busy = false
             }
-            busy = false
         }
-    }
 
     SettingsScaffold(title = "Backup & Restore", onBack = onBack) {
         if (!infoDismissed) {
@@ -126,12 +143,12 @@ fun BackupPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
             action(
                 Setting.EXPORT_BACKUP,
                 label = if (busy) "Working…" else "Create backup",
-                enabled = !busy
+                enabled = !busy,
             ) { picker = BackupPicker.Create }
             action(
                 Setting.IMPORT_BACKUP,
                 label = if (busy) "Working…" else "Restore backup",
-                enabled = !busy
+                enabled = !busy,
             ) { restoreLauncher.launch(arrayOf("*/*")) }
         }
         outcome?.let { result ->
@@ -142,42 +159,51 @@ fun BackupPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
     }
 
     when (val current = picker) {
-        BackupPicker.Create -> SectionSheet(
-            title = "Create backup",
-            confirm = "Choose file",
-            available = BackupSection.entries,
-            counts = emptyMap(),
-            onConfirm = { selected ->
-                picker = null
-                pending = selected
-                val stamp = SimpleDateFormat("yyyyMMdd-HHmm", Locale.US).format(Date())
-                createLauncher.launch("kozu-backup-$stamp.kozubackup")
-            },
-            onDismiss = { picker = null }
-        )
-        is BackupPicker.Restore -> SectionSheet(
-            title = "Restore backup",
-            confirm = "Restore",
-            available = BackupSection.entries.filter { it in current.info.sections },
-            counts = current.info.counts,
-            subtitle = if (current.info.createdAt > 0L) "Created ${formatDateTime(current.info.createdAt)}" else null,
-            onConfirm = { selected ->
-                picker = null
-                scope.launch {
-                    busy = true
-                    outcome = try {
-                        BackupOutcome(true, backup.restore(current.json, selected))
-                    } catch (e: BackupException) {
-                        BackupOutcome(false, e.message ?: "Restore failed")
-                    } catch (e: Exception) {
-                        BackupOutcome(false, "Restore failed: ${e.message ?: "unknown error"}")
+        BackupPicker.Create -> {
+            SectionSheet(
+                title = "Create backup",
+                confirm = "Choose file",
+                available = BackupSection.entries,
+                counts = emptyMap(),
+                onConfirm = { selected ->
+                    picker = null
+                    pending = selected
+                    val stamp = SimpleDateFormat("yyyyMMdd-HHmm", Locale.US).format(Date())
+                    createLauncher.launch("kozu-backup-$stamp.kozubackup")
+                },
+                onDismiss = { picker = null },
+            )
+        }
+
+        is BackupPicker.Restore -> {
+            SectionSheet(
+                title = "Restore backup",
+                confirm = "Restore",
+                available = BackupSection.entries.filter { it in current.info.sections },
+                counts = current.info.counts,
+                subtitle = if (current.info.createdAt > 0L) "Created ${formatDateTime(current.info.createdAt)}" else null,
+                onConfirm = { selected ->
+                    picker = null
+                    scope.launch {
+                        busy = true
+                        outcome =
+                            try {
+                                BackupOutcome(true, backup.restore(current.json, selected))
+                            } catch (e: BackupException) {
+                                BackupOutcome(false, e.message ?: "Restore failed")
+                            } catch (e: Exception) {
+                                BackupOutcome(false, "Restore failed: ${e.message ?: "unknown error"}")
+                            }
+                        busy = false
                     }
-                    busy = false
-                }
-            },
-            onDismiss = { picker = null }
-        )
-        null -> Unit
+                },
+                onDismiss = { picker = null },
+            )
+        }
+
+        null -> {
+            Unit
+        }
     }
 }
 
@@ -194,17 +220,20 @@ private fun readLimited(stream: java.io.InputStream): String {
 }
 
 @Composable
-private fun HowItWorksCard(shape: Shape, onDismiss: () -> Unit) {
+private fun HowItWorksCard(
+    shape: Shape,
+    onDismiss: () -> Unit,
+) {
     SettingCard(setting = null, shape = shape, onClick = null) {
         Row(
             modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 14.dp, end = 4.dp),
-            verticalAlignment = Alignment.Top
+            verticalAlignment = Alignment.Top,
         ) {
             Surface(
                 shape = androidx.compose.foundation.shape.CircleShape,
                 color = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.padding(top = 4.dp)
+                modifier = Modifier.padding(top = 4.dp),
             ) {
                 Icon(Icons.Rounded.Info, contentDescription = null, modifier = Modifier.padding(10.dp))
             }
@@ -217,7 +246,7 @@ private fun HowItWorksCard(shape: Shape, onDismiss: () -> Unit) {
                         "Restoring merges the file into what you already have and never removes anything. " +
                         "Sign-in tokens, API credentials and proxy passwords are never stored in a backup, and downloaded songs are not included.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             IconButton(onClick = onDismiss) {
@@ -228,13 +257,16 @@ private fun HowItWorksCard(shape: Shape, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun OutcomeCard(shape: Shape, outcome: BackupOutcome) {
+private fun OutcomeCard(
+    shape: Shape,
+    outcome: BackupOutcome,
+) {
     SettingCard(setting = null, shape = shape, onClick = null) {
         Column(Modifier.padding(horizontal = 18.dp, vertical = 16.dp)) {
             Text(
                 if (outcome.success) "Done" else "Something went wrong",
                 style = MaterialTheme.typography.titleMedium,
-                color = if (outcome.success) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                color = if (outcome.success) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
             )
             Spacer(Modifier.height(4.dp))
             Text(outcome.text, style = MaterialTheme.typography.bodyMedium)
@@ -251,21 +283,26 @@ private fun SectionSheet(
     counts: Map<BackupSection, Int>,
     subtitle: String? = null,
     onConfirm: (Set<BackupSection>) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     var selected by remember { mutableStateOf(available.toSet()) }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = MaterialTheme.colorScheme.surface
+        sheetState =
+            rememberBottomSheetState(
+                initialValue = SheetValue.Hidden,
+                enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
+            ),
+        containerColor = MaterialTheme.colorScheme.surface,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 24.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 24.dp),
         ) {
             Text(title, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(vertical = 8.dp))
             if (subtitle != null) {
@@ -278,11 +315,11 @@ private fun SectionSheet(
                     onClick = { selected = if (checked) selected - section else selected + section },
                     shape = groupShape(index, available.size),
                     color = if (checked) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Checkbox(checked = checked, onCheckedChange = { selected = if (it) selected + section else selected - section })
                         Spacer(Modifier.width(8.dp))
@@ -291,7 +328,7 @@ private fun SectionSheet(
                             Text(
                                 section.description,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         counts[section]?.let {
@@ -307,7 +344,7 @@ private fun SectionSheet(
                 Button(
                     onClick = { onConfirm(selected) },
                     enabled = selected.isNotEmpty(),
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 ) { Text(confirm) }
             }
         }

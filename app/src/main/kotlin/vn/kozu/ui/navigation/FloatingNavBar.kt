@@ -55,7 +55,7 @@ fun FloatingNavBar(
     onSelect: (KozuTab) -> Unit,
     modifier: Modifier = Modifier,
     compact: Boolean = false,
-    cornerRadius: Int = 32
+    cornerRadius: Int = 32,
 ) {
     if (style == NavigationStyle.CLASSIC) {
         ClassicNavBar(selected = selected, onSelect = onSelect, modifier = modifier)
@@ -65,7 +65,7 @@ fun FloatingNavBar(
             compact = compact,
             cornerRadius = cornerRadius,
             onSelect = onSelect,
-            modifier = modifier
+            modifier = modifier,
         )
     }
 }
@@ -76,7 +76,7 @@ private fun PillNavBar(
     compact: Boolean,
     cornerRadius: Int,
     onSelect: (KozuTab) -> Unit,
-    modifier: Modifier
+    modifier: Modifier,
 ) {
     val tabs = KozuTab.entries.filter { it.inPill }
     val barHeight = if (compact) 56.dp else 64.dp
@@ -84,24 +84,27 @@ private fun PillNavBar(
     val barShape = RoundedCornerShape((barHeight.value * radius / 64f).dp)
     val itemShape = RoundedCornerShape(((barHeight.value - 18f) * radius / 64f).dp)
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .navigationBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Surface(
-            modifier = Modifier
-                .weight(1f)
-                .height(barHeight),
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .height(barHeight),
             shape = barShape,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 9.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 9.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 tabs.forEach { tab ->
                     PillItem(
@@ -110,7 +113,7 @@ private fun PillNavBar(
                         compact = compact,
                         itemHeight = barHeight - 18.dp,
                         shape = itemShape,
-                        onClick = { onSelect(tab) }
+                        onClick = { onSelect(tab) },
                     )
                 }
             }
@@ -120,7 +123,7 @@ private fun PillNavBar(
             isSelected = selected == KozuTab.SEARCH,
             size = if (compact) 48.dp else 56.dp,
             shape = RoundedCornerShape(((if (compact) 48f else 56f) * radius / 64f).dp),
-            onClick = { onSelect(KozuTab.SEARCH) }
+            onClick = { onSelect(KozuTab.SEARCH) },
         )
     }
 }
@@ -132,50 +135,51 @@ private fun RowScope.PillItem(
     compact: Boolean,
     itemHeight: Dp,
     shape: Shape,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
     val weight by animateFloatAsState(
         targetValue = if (isSelected && !compact) 2.4f else 1f,
         animationSpec = KozuMotion.spatial(),
-        label = "navItemWeight"
+        label = "navItemWeight",
     )
     val container by animateColorAsState(
         targetValue = if (isSelected) colors.primary else Color.Transparent,
         animationSpec = tween(200),
-        label = "navItemContainer"
+        label = "navItemContainer",
     )
     val content by animateColorAsState(
         targetValue = if (isSelected) colors.onPrimary else colors.primary,
         animationSpec = tween(200),
-        label = "navItemContent"
+        label = "navItemContent",
     )
 
     Box(
-        modifier = Modifier
-            .weight(weight.coerceAtLeast(0.2f))
-            .height(itemHeight)
-            .bounceClick(pressedScale = 0.95f, onClick = onClick)
-            .clip(shape)
-            .background(container)
-            .semantics(mergeDescendants = true) {
-                role = Role.Tab
-                this.selected = isSelected
-                contentDescription = tab.title
-            },
-        contentAlignment = Alignment.Center
+        modifier =
+            Modifier
+                .weight(weight.coerceAtLeast(0.2f))
+                .height(itemHeight)
+                .bounceClick(pressedScale = 0.95f, onClick = onClick)
+                .clip(shape)
+                .background(container)
+                .semantics(mergeDescendants = true) {
+                    role = Role.Tab
+                    this.selected = isSelected
+                    contentDescription = tab.title
+                },
+        contentAlignment = Alignment.Center,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = if (isSelected) tab.icon else tab.outlinedIcon,
                 contentDescription = null,
                 tint = content,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(24.dp),
             )
             AnimatedVisibility(
                 visible = isSelected && !compact,
                 enter = fadeIn(tween(160)) + expandHorizontally(KozuMotion.spatial()),
-                exit = fadeOut(tween(90)) + shrinkHorizontally(tween(160))
+                exit = fadeOut(tween(90)) + shrinkHorizontally(tween(160)),
             ) {
                 Text(
                     text = tab.title,
@@ -183,7 +187,7 @@ private fun RowScope.PillItem(
                     style = MaterialTheme.typography.labelLarge,
                     color = content,
                     maxLines = 1,
-                    overflow = TextOverflow.Clip
+                    overflow = TextOverflow.Clip,
                 )
             }
         }
@@ -195,37 +199,38 @@ private fun SearchButton(
     isSelected: Boolean,
     size: Dp,
     shape: Shape,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
     val container by animateColorAsState(
         targetValue = if (isSelected) colors.primary else colors.surfaceContainerHigh,
         animationSpec = tween(200),
-        label = "searchContainer"
+        label = "searchContainer",
     )
     val content by animateColorAsState(
         targetValue = if (isSelected) colors.onPrimary else colors.primary,
         animationSpec = tween(200),
-        label = "searchContent"
+        label = "searchContent",
     )
     Box(
-        modifier = Modifier
-            .size(size)
-            .bounceClick(pressedScale = 0.92f, onClick = onClick)
-            .clip(shape)
-            .background(container)
-            .semantics(mergeDescendants = true) {
-                role = Role.Tab
-                this.selected = isSelected
-                contentDescription = KozuTab.SEARCH.title
-            },
-        contentAlignment = Alignment.Center
+        modifier =
+            Modifier
+                .size(size)
+                .bounceClick(pressedScale = 0.92f, onClick = onClick)
+                .clip(shape)
+                .background(container)
+                .semantics(mergeDescendants = true) {
+                    role = Role.Tab
+                    this.selected = isSelected
+                    contentDescription = KozuTab.SEARCH.title
+                },
+        contentAlignment = Alignment.Center,
     ) {
         Icon(
             imageVector = if (isSelected) KozuTab.SEARCH.icon else KozuTab.SEARCH.outlinedIcon,
             contentDescription = null,
             tint = content,
-            modifier = Modifier.size(26.dp)
+            modifier = Modifier.size(26.dp),
         )
     }
 }
@@ -234,27 +239,28 @@ private fun SearchButton(
 private fun ClassicNavBar(
     selected: KozuTab,
     onSelect: (KozuTab) -> Unit,
-    modifier: Modifier
+    modifier: Modifier,
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RectangleShape,
-        color = MaterialTheme.colorScheme.surfaceContainerLow
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = 8.dp, vertical = 6.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             KozuTab.entries.forEach { tab ->
                 ClassicItem(
                     tab = tab,
                     isSelected = selected == tab,
                     modifier = Modifier.weight(1f),
-                    onClick = { onSelect(tab) }
+                    onClick = { onSelect(tab) },
                 )
             }
         }
@@ -266,35 +272,35 @@ private fun ClassicItem(
     tab: KozuTab,
     isSelected: Boolean,
     modifier: Modifier,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     val tint by animateColorAsState(
         targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
         animationSpec = tween(180),
-        label = "classicNavContent"
+        label = "classicNavContent",
     )
     Column(
-        modifier = modifier
-            .bounceClick(pressedScale = 0.96f, onClick = onClick)
-            .semantics(mergeDescendants = true) {
-                role = Role.Tab
-                this.selected = isSelected
-            }
-            .padding(horizontal = 2.dp, vertical = 7.dp),
+        modifier =
+            modifier
+                .bounceClick(pressedScale = 0.96f, onClick = onClick)
+                .semantics(mergeDescendants = true) {
+                    role = Role.Tab
+                    this.selected = isSelected
+                }.padding(horizontal = 2.dp, vertical = 7.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp)
+        verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Icon(
             imageVector = if (isSelected) tab.icon else tab.outlinedIcon,
             contentDescription = null,
             tint = tint,
-            modifier = Modifier.size(22.dp)
+            modifier = Modifier.size(22.dp),
         )
         Text(
             text = tab.title,
             style = MaterialTheme.typography.labelSmall,
             color = tint,
-            maxLines = 1
+            maxLines = 1,
         )
     }
 }

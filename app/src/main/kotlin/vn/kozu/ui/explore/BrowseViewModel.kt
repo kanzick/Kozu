@@ -29,11 +29,12 @@ data class BrowseUiState(
     val hasMore: Boolean = false,
     val source: CatalogSource = CatalogSource.NONE,
     val ignoredFilters: List<String> = emptyList(),
-    val isLoggedIn: Boolean = false
+    val isLoggedIn: Boolean = false,
 )
 
-class BrowseViewModel(private val container: AppContainer) : ViewModel() {
-
+class BrowseViewModel(
+    private val container: AppContainer,
+) : ViewModel() {
     private val _ui = MutableStateFlow(BrowseUiState())
     val ui: StateFlow<BrowseUiState> = _ui.asStateFlow()
 
@@ -64,11 +65,12 @@ class BrowseViewModel(private val container: AppContainer) : ViewModel() {
             started = true
             viewModelScope.launch {
                 val settings = container.settings.settings.first()
-                val initial = BrowseFilters(
-                    mode = settings.modeFilter,
-                    status = BrowseStatus.from(settings.statusFilter),
-                    explicit = settings.showExplicit
-                )
+                val initial =
+                    BrowseFilters(
+                        mode = settings.modeFilter,
+                        status = BrowseStatus.from(settings.statusFilter),
+                        explicit = settings.showExplicit,
+                    )
                 _ui.update { it.copy(filters = initial) }
                 reload()
             }
@@ -83,10 +85,11 @@ class BrowseViewModel(private val container: AppContainer) : ViewModel() {
     fun onQueryChange(value: String) {
         _ui.update { it.copy(filters = it.filters.copy(query = value)) }
         queryJob?.cancel()
-        queryJob = viewModelScope.launch {
-            delay(QUERY_DEBOUNCE_MS)
-            if (_ui.value.filters.normalized() != applied) reload()
-        }
+        queryJob =
+            viewModelScope.launch {
+                delay(QUERY_DEBOUNCE_MS)
+                if (_ui.value.filters.normalized() != applied) reload()
+            }
     }
 
     fun submitQuery() {
@@ -105,8 +108,7 @@ class BrowseViewModel(private val container: AppContainer) : ViewModel() {
         if (!unchanged) reload()
     }
 
-    fun updateFilters(transform: (BrowseFilters) -> BrowseFilters) =
-        applyFilters(transform(_ui.value.filters))
+    fun updateFilters(transform: (BrowseFilters) -> BrowseFilters) = applyFilters(transform(_ui.value.filters))
 
     fun resetFilters() = applyFilters(_ui.value.filters.resetFilters())
 
@@ -121,25 +123,27 @@ class BrowseViewModel(private val container: AppContainer) : ViewModel() {
         if (state.isLoading || state.isRefreshing || state.isLoadingMore) return
         val token = generation
         _ui.update { it.copy(isLoadingMore = true, loadMoreError = null) }
-        pageJob = viewModelScope.launch {
-            val result = container.catalog.browse(active, next)
-            if (token != generation) return@launch
-            if (result.error != null) {
-                _ui.update { it.copy(isLoadingMore = false, loadMoreError = result.error) }
-                return@launch
+        pageJob =
+            viewModelScope.launch {
+                val result = container.catalog.browse(active, next)
+                if (token != generation) return@launch
+                if (result.error != null) {
+                    _ui.update { it.copy(isLoadingMore = false, loadMoreError = result.error) }
+                    return@launch
+                }
+                val exhausted =
+                    result.nextCursor == null ||
+                        (result.items.isEmpty() && result.nextCursor == next)
+                cursor = if (exhausted) null else result.nextCursor
+                _ui.update {
+                    it.copy(
+                        items = (it.items + result.items).distinctBy { beatmap -> beatmap.id },
+                        total = result.total ?: it.total,
+                        isLoadingMore = false,
+                        hasMore = !exhausted,
+                    )
+                }
             }
-            val exhausted = result.nextCursor == null ||
-                (result.items.isEmpty() && result.nextCursor == next)
-            cursor = if (exhausted) null else result.nextCursor
-            _ui.update {
-                it.copy(
-                    items = (it.items + result.items).distinctBy { beatmap -> beatmap.id },
-                    total = result.total ?: it.total,
-                    isLoadingMore = false,
-                    hasMore = !exhausted
-                )
-            }
-        }
     }
 
     private fun reload(keepItems: Boolean = false) {
@@ -159,42 +163,46 @@ class BrowseViewModel(private val container: AppContainer) : ViewModel() {
                 isRefreshing = hasItems,
                 isLoadingMore = false,
                 error = null,
-                loadMoreError = null
+                loadMoreError = null,
             )
         }
-        pageJob = viewModelScope.launch {
-            val result = container.catalog.browse(filters, null)
-            if (token != generation) return@launch
-            if (result.error != null) {
-                cursor = if (hasItems) previousCursor else null
+        pageJob =
+            viewModelScope.launch {
+                val result = container.catalog.browse(filters, null)
+                if (token != generation) return@launch
+                if (result.error != null) {
+                    cursor = if (hasItems) previousCursor else null
+                    _ui.update {
+                        it.copy(
+                            isLoading = false,
+                            isRefreshing = false,
+                            error = result.error,
+                            source = result.source,
+                        )
+                    }
+                    return@launch
+                }
+                lastLoadedAt = System.currentTimeMillis()
+                cursor = result.nextCursor
                 _ui.update {
                     it.copy(
+                        items = result.items.distinctBy { beatmap -> beatmap.id },
+                        total = result.total,
                         isLoading = false,
                         isRefreshing = false,
-                        error = result.error,
-                        source = result.source
+                        hasMore = result.nextCursor != null,
+                        error = null,
+                        source = result.source,
+                        ignoredFilters = result.ignoredFilters,
                     )
                 }
-                return@launch
             }
-            lastLoadedAt = System.currentTimeMillis()
-            cursor = result.nextCursor
-            _ui.update {
-                it.copy(
-                    items = result.items.distinctBy { beatmap -> beatmap.id },
-                    total = result.total,
-                    isLoading = false,
-                    isRefreshing = false,
-                    hasMore = result.nextCursor != null,
-                    error = null,
-                    source = result.source,
-                    ignoredFilters = result.ignoredFilters
-                )
-            }
-        }
     }
 
-    private fun syncSettings(previous: BrowseFilters, next: BrowseFilters) {
+    private fun syncSettings(
+        previous: BrowseFilters,
+        next: BrowseFilters,
+    ) {
         if (previous.explicit != next.explicit) {
             viewModelScope.launch { container.settings.setShowExplicit(next.explicit) }
         }

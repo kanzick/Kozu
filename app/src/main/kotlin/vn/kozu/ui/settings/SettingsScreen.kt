@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -54,6 +55,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -99,6 +101,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory)
 ) {
     var page by rememberSaveable { mutableStateOf(SettingsPage.ROOT) }
+    val pageStateHolder = rememberSaveableStateHolder()
     var highlight by rememberSaveable { mutableStateOf<String?>(null) }
     var searchOpen by rememberSaveable { mutableStateOf(false) }
     var proxyOpen by rememberSaveable { mutableStateOf(false) }
@@ -148,30 +151,32 @@ fun SettingsScreen(
                 },
                 label = "settingsPages"
             ) { current ->
-                when (current) {
-                    SettingsPage.ROOT -> SettingsRoot(
-                        profile = profile,
-                        loggedIn = loggedIn,
-                        onBack = onBack,
-                        onOpen = { page = it },
-                        onSearch = { searchOpen = true }
-                    )
-                    SettingsPage.ACCOUNT -> AccountPage(viewModel, close)
-                    SettingsPage.MUSIC -> MusicPage(viewModel, close)
-                    SettingsPage.CONTENT -> ContentPage(viewModel, { proxyOpen = true }, close)
-                    SettingsPage.APPEARANCE -> AppearancePage(viewModel, close)
-                    SettingsPage.PLAYBACK -> PlaybackPage(viewModel, { page = SettingsPage.EQUALIZER }, close)
-                    SettingsPage.BEHAVIOR -> BehaviorPage(viewModel, close)
-                    SettingsPage.BACKUP -> BackupPage(viewModel, close)
-                    SettingsPage.DEVELOPER -> DeveloperPage(viewModel, close)
-                    SettingsPage.STORAGE -> StoragePage(viewModel, close)
-                    SettingsPage.EQUALIZER -> EqualizerPage(viewModel, close)
-                    SettingsPage.DEVICE -> DevicePage(viewModel, close)
-                    SettingsPage.DOWNLOADS -> OfflinePage(viewModel, close)
-                    SettingsPage.SOURCES -> SourcesPage(viewModel, close)
-                    SettingsPage.STATS -> StatsPage(viewModel, close)
-                    SettingsPage.ABOUT -> AboutPage(viewModel, { page = SettingsPage.LICENSES }, close)
-                    SettingsPage.LICENSES -> LicensesPage(close)
+                pageStateHolder.SaveableStateProvider(current.name) {
+                    when (current) {
+                        SettingsPage.ROOT -> SettingsRoot(
+                            profile = profile,
+                            loggedIn = loggedIn,
+                            onBack = onBack,
+                            onOpen = { page = it },
+                            onSearch = { searchOpen = true }
+                        )
+                        SettingsPage.ACCOUNT -> AccountPage(viewModel, close)
+                        SettingsPage.MUSIC -> MusicPage(viewModel, close)
+                        SettingsPage.CONTENT -> ContentPage(viewModel, { proxyOpen = true }, close)
+                        SettingsPage.APPEARANCE -> AppearancePage(viewModel, close)
+                        SettingsPage.PLAYBACK -> PlaybackPage(viewModel, { page = SettingsPage.EQUALIZER }, close)
+                        SettingsPage.BEHAVIOR -> BehaviorPage(viewModel, close)
+                        SettingsPage.BACKUP -> BackupPage(viewModel, close)
+                        SettingsPage.DEVELOPER -> DeveloperPage(viewModel, close)
+                        SettingsPage.STORAGE -> StoragePage(viewModel, close)
+                        SettingsPage.EQUALIZER -> EqualizerPage(viewModel, close)
+                        SettingsPage.DEVICE -> DevicePage(viewModel, close)
+                        SettingsPage.DOWNLOADS -> OfflinePage(viewModel, close)
+                        SettingsPage.SOURCES -> SourcesPage(viewModel, close)
+                        SettingsPage.STATS -> StatsPage(viewModel, close)
+                        SettingsPage.ABOUT -> AboutPage(viewModel, { page = SettingsPage.LICENSES }, close)
+                        SettingsPage.LICENSES -> LicensesPage(close)
+                    }
                 }
             }
         }
@@ -406,7 +411,7 @@ private fun SettingsSearchOverlay(onClose: () -> Unit, onPick: (Setting) -> Unit
                 modifier = Modifier
                     .statusBarsPadding()
                     .fillMaxWidth()
-                    .height(68.dp)
+                    .heightIn(min = 68.dp)
                     .padding(horizontal = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -422,7 +427,9 @@ private fun SettingsSearchOverlay(onClose: () -> Unit, onPick: (Setting) -> Unit
                     modifier = Modifier
                         .weight(1f)
                         .focusRequester(focus),
-                    singleLine = true,
+                    singleLine = false,
+                    minLines = 1,
+                    maxLines = 2,
                     placeholder = { Text("Search settings") },
                     textStyle = MaterialTheme.typography.bodyLarge,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),

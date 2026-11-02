@@ -9,8 +9,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -31,7 +31,10 @@ import vn.kozu.domain.model.Mirror
 import vn.kozu.domain.model.Mirrors
 
 @Composable
-fun SourcesPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
+fun SourcesPage(
+    viewModel: SettingsViewModel,
+    onBack: () -> Unit,
+) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val results by viewModel.mirrorResults.collectAsStateWithLifecycle()
     val testing by viewModel.testing.collectAsStateWithLifecycle()
@@ -43,68 +46,80 @@ fun SourcesPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
     SettingsScaffold(title = "Sources", onBack = onBack) {
         SettingsGroup(
             title = null,
-            items = listOf({
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("How Kozu finds audio", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        "Full song mode tries the enabled public mirrors and only plays a full audio file. It never silently switches to a short preview. Preview mode is used only when you explicitly select it.\n\nGuests and signed-in users have the same catalog, streaming, and download access.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        PrimaryPill(
-                            if (testing) "Testing…" else "Test sources",
-                            enabled = !testing
-                        ) { viewModel.testMirrors() }
-                        Spacer(Modifier.width(12.dp))
-                        when (official) {
-                            true -> Text(
-                                "osu! preview reachable",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+            items =
+                listOf({
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("How Kozu finds audio", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "Full song mode tries the enabled public mirrors and only plays a full audio file. It never silently switches to a short preview. Preview mode is used only when you explicitly select it.\n\nGuests and signed-in users have the same catalog, streaming, and download access.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            PrimaryPill(
+                                if (testing) "Testing…" else "Test sources",
+                                enabled = !testing,
+                            ) { viewModel.testMirrors() }
+                            Spacer(Modifier.width(12.dp))
+                            when (official) {
+                                true -> {
+                                    Text(
+                                        "osu! preview reachable",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
 
-                            false -> Text(
-                                "osu! preview unreachable",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.error
-                            )
+                                false -> {
+                                    Text(
+                                        "osu! preview unreachable",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.error,
+                                    )
+                                }
 
-                            null -> Unit
+                                null -> {
+                                    Unit
+                                }
+                            }
                         }
                     }
-                }
-            })
+                }),
         )
         Spacer(Modifier.height(24.dp))
         SettingsGroup(
             title = "Mirrors",
-            items = mirrors.map { mirror ->
-                @Composable {
-                    MirrorRow(
-                        mirror = mirror,
-                        enabled = mirror.id !in settings.disabledMirrors,
-                        result = results[mirror.id],
-                        onToggle = { viewModel.setMirrorEnabled(mirror.id, it) },
-                        onRemove = if (mirror.builtIn) null else ({ viewModel.removeMirror(mirror.id) })
-                    )
-                }
-            } + listOf<@Composable () -> Unit>({
-                ActionRow(
-                    "Add custom mirror",
-                    "Use {id} where the beatmapset id goes",
-                    { showAdd = true })
-            })
+            items =
+                mirrors.map { mirror ->
+                    @Composable {
+                        MirrorRow(
+                            mirror = mirror,
+                            enabled = mirror.id !in settings.disabledMirrors,
+                            result = results[mirror.id],
+                            onToggle = { viewModel.setMirrorEnabled(mirror.id, it) },
+                            onRemove = if (mirror.builtIn) null else ({ viewModel.removeMirror(mirror.id) }),
+                        )
+                    }
+                } +
+                    listOf<@Composable () -> Unit>({
+                        ActionRow(
+                            "Add custom mirror",
+                            "Use {id} where the beatmapset id goes",
+                            { showAdd = true },
+                        )
+                    }),
         )
     }
 
-    if (showAdd) AddMirrorDialog(
-        onDismiss = { showAdd = false },
-        onAdd = { name, download, preview ->
-            showAdd = false
-            viewModel.addMirror(name, download, preview)
-        }
-    )
+    if (showAdd) {
+        AddMirrorDialog(
+            onDismiss = { showAdd = false },
+            onAdd = { name, download, preview ->
+                showAdd = false
+                viewModel.addMirror(name, download, preview)
+            },
+        )
+    }
 }
 
 @Composable
@@ -113,7 +128,7 @@ private fun MirrorRow(
     enabled: Boolean,
     result: MirrorTestResult?,
     onToggle: (Boolean) -> Unit,
-    onRemove: (() -> Unit)?
+    onRemove: (() -> Unit)?,
 ) {
     Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -122,7 +137,7 @@ private fun MirrorRow(
                 Text(
                     mirror.downloadUrl.substringAfter("://").substringBefore('/'),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Switch(checked = enabled, onCheckedChange = onToggle)
@@ -131,13 +146,14 @@ private fun MirrorRow(
             Spacer(Modifier.height(6.dp))
             val color = if (result.reachable) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
             Text(
-                "${result.note} · ${result.millis} ms" + when (result.previewOk) {
-                    true -> " · preview ok"
-                    false -> " · preview failed"
-                    null -> ""
-                },
+                "${result.note} · ${result.millis} ms" +
+                    when (result.previewOk) {
+                        true -> " · preview ok"
+                        false -> " · preview failed"
+                        null -> ""
+                    },
                 style = MaterialTheme.typography.labelMedium,
-                color = color
+                color = color,
             )
         }
         if (onRemove != null) {
@@ -147,7 +163,10 @@ private fun MirrorRow(
 }
 
 @Composable
-private fun AddMirrorDialog(onDismiss: () -> Unit, onAdd: (String, String, String) -> Unit) {
+private fun AddMirrorDialog(
+    onDismiss: () -> Unit,
+    onAdd: (String, String, String) -> Unit,
+) {
     var name by remember { mutableStateOf("") }
     var download by remember { mutableStateOf("https://") }
     var preview by remember { mutableStateOf("") }
@@ -160,7 +179,7 @@ private fun AddMirrorDialog(onDismiss: () -> Unit, onAdd: (String, String, Strin
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 OutlinedTextField(
                     value = name,
@@ -168,28 +187,32 @@ private fun AddMirrorDialog(onDismiss: () -> Unit, onAdd: (String, String, Strin
                     singleLine = true,
                     label = { Text("Name") },
                     shape = RoundedCornerShape(18.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(
                     value = download,
-                    onValueChange = { download = it.trim() },
-                    singleLine = true,
+                    onValueChange = { download = it.replace("\n", "").trim() },
+                    singleLine = false,
+                    minLines = 1,
+                    maxLines = 3,
                     label = { Text("Download URL") },
                     placeholder = { Text("https://example.com/d/{id}") },
                     shape = RoundedCornerShape(18.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(
                     value = preview,
-                    onValueChange = { preview = it.trim() },
-                    singleLine = true,
+                    onValueChange = { preview = it.replace("\n", "").trim() },
+                    singleLine = false,
+                    minLines = 1,
+                    maxLines = 3,
                     label = { Text("Preview URL (optional)") },
                     shape = RoundedCornerShape(18.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         },
         confirmButton = { TextButton(onClick = { onAdd(name, download, preview) }, enabled = valid) { Text("Add") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }

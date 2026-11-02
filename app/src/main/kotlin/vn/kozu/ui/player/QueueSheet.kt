@@ -59,7 +59,7 @@ fun QueueSheet(
     shuffle: Boolean = false,
     onClear: () -> Unit = {},
     onMove: (from: Int, to: Int) -> Unit = { _, _ -> },
-    onSaveAsPlaylist: (List<Beatmap>) -> Unit = {}
+    onSaveAsPlaylist: (List<Beatmap>) -> Unit = {},
 ) {
     val showHistory = LocalAppSettings.current.showQueueHistory
     val haptics = rememberKozuHaptics()
@@ -68,36 +68,38 @@ fun QueueSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberBottomSheetState(
-            initialValue = SheetValue.Hidden,
-            enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)
-        ),
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        sheetState =
+            rememberBottomSheetState(
+                initialValue = SheetValue.Hidden,
+                enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
+            ),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
         Column(Modifier.navigationBarsPadding()) {
             Text(
                 text = "Up next",
                 style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
             )
             Text(
                 text = "${queue.size} ${if (queue.size == 1) "track" else "tracks"} in queue",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 24.dp)
+                modifier = Modifier.padding(horizontal = 24.dp),
             )
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 TextButton(
                     onClick = {
                         haptics.tick()
                         onSaveAsPlaylist(queue)
                     },
-                    enabled = queue.isNotEmpty()
+                    enabled = queue.isNotEmpty(),
                 ) {
                     Icon(Icons.AutoMirrored.Rounded.PlaylistAdd, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
@@ -110,7 +112,7 @@ fun QueueSheet(
                         onDismiss()
                     },
                     enabled = queue.isNotEmpty(),
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                 ) {
                     Icon(Icons.Rounded.ClearAll, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
@@ -119,12 +121,13 @@ fun QueueSheet(
             }
             Spacer(Modifier.height(4.dp))
 
-            val listState = rememberLazyListState(
-                initialFirstVisibleItemIndex = (currentIndex - firstShown - 1).coerceAtLeast(0)
-            )
+            val listState =
+                rememberLazyListState(
+                    initialFirstVisibleItemIndex = (currentIndex - firstShown - 1).coerceAtLeast(0),
+                )
             LazyColumn(
                 state = listState,
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
             ) {
                 items(shownCount) { offset ->
                     val index = firstShown + offset
@@ -132,18 +135,23 @@ fun QueueSheet(
                     val isCurrent = index == currentIndex
                     val isPast = !shuffle && showHistory && index < currentIndex
                     Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 3.dp)
-                            .alpha(if (isPast) 0.55f else 1f)
-                            .bounceClick(pressedScale = 0.98f) { onSkipTo(index) },
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 3.dp)
+                                .alpha(if (isPast) 0.55f else 1f)
+                                .bounceClick(pressedScale = 0.98f) { onSkipTo(index) },
                         shape = RoundedCornerShape(22.dp),
-                        color = if (isCurrent) MaterialTheme.colorScheme.primaryContainer
-                        else MaterialTheme.colorScheme.surfaceContainer
+                        color =
+                            if (isCurrent) {
+                                MaterialTheme.colorScheme.primaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.surfaceContainer
+                            },
                     ) {
                         Row(
                             modifier = Modifier.padding(start = 10.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
                                 BeatmapArt(beatmap, Modifier.size(48.dp), shape = RoundedCornerShape(15.dp))
@@ -151,7 +159,7 @@ fun QueueSheet(
                                     EqualizerBars(
                                         isPlaying = isPlaying,
                                         color = Color.White,
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(20.dp),
                                     )
                                 }
                             }
@@ -161,14 +169,14 @@ fun QueueSheet(
                                     beatmap.title,
                                     style = MaterialTheme.typography.titleSmall,
                                     maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    overflow = TextOverflow.Ellipsis,
                                 )
                                 Text(
                                     beatmap.artist,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    overflow = TextOverflow.Ellipsis,
                                 )
                             }
                             if (queue.size > 1) {
@@ -179,13 +187,13 @@ fun QueueSheet(
                                             onMove(index, index - 1)
                                         },
                                         enabled = index > firstShown,
-                                        modifier = Modifier.size(32.dp)
+                                        modifier = Modifier.size(32.dp),
                                     ) {
                                         Icon(
                                             Icons.Rounded.KeyboardArrowUp,
                                             contentDescription = "Move up",
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(22.dp)
+                                            modifier = Modifier.size(22.dp),
                                         )
                                     }
                                     IconButton(
@@ -194,13 +202,13 @@ fun QueueSheet(
                                             onMove(index, index + 1)
                                         },
                                         enabled = index < queue.lastIndex,
-                                        modifier = Modifier.size(32.dp)
+                                        modifier = Modifier.size(32.dp),
                                     ) {
                                         Icon(
                                             Icons.Rounded.KeyboardArrowDown,
                                             contentDescription = "Move down",
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(22.dp)
+                                            modifier = Modifier.size(22.dp),
                                         )
                                     }
                                 }
@@ -210,7 +218,7 @@ fun QueueSheet(
                                     Icon(
                                         Icons.Rounded.Close,
                                         contentDescription = "Remove from queue",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
                             }

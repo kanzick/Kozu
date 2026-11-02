@@ -2,47 +2,66 @@ package vn.kozu.domain.model
 
 import androidx.compose.ui.graphics.Color
 
-enum class ThemeMode(val key: String, val label: String) {
+enum class ThemeMode(
+    val key: String,
+    val label: String,
+) {
     SYSTEM("system", "Follow System"),
     LIGHT("light", "Light Theme"),
-    DARK("dark", "Dark Theme");
+    DARK("dark", "Dark Theme"),
+    ;
 
     companion object {
         fun fromKey(key: String?): ThemeMode = entries.firstOrNull { it.key == key } ?: SYSTEM
     }
 }
 
-enum class AppStyle(val key: String, val label: String) {
+enum class AppStyle(
+    val key: String,
+    val label: String,
+) {
     EXPRESSIVE("expressive", "Expressive"),
-    CLASSIC("classic", "Classic");
+    CLASSIC("classic", "Classic"),
+    ;
 
     companion object {
         fun fromKey(key: String?): AppStyle = entries.firstOrNull { it.key == key } ?: EXPRESSIVE
     }
 }
 
-enum class NavigationStyle(val key: String, val label: String) {
+enum class NavigationStyle(
+    val key: String,
+    val label: String,
+) {
     FLOATING("floating", "Floating"),
-    CLASSIC("classic", "Classic");
+    CLASSIC("classic", "Classic"),
+    ;
 
     companion object {
-        fun fromKey(key: String?): NavigationStyle =
-            entries.firstOrNull { it.key == key } ?: FLOATING
+        fun fromKey(key: String?): NavigationStyle = entries.firstOrNull { it.key == key } ?: FLOATING
     }
 }
 
-enum class StartTab(val key: String, val label: String) {
+enum class StartTab(
+    val key: String,
+    val label: String,
+) {
     HOME("home", "Home"),
     EXPLORE("explore", "Explore"),
     LIBRARY("library", "Library"),
-    GAME("game", "Game");
+    GAME("game", "Game"),
+    ;
 
     companion object {
         fun fromKey(key: String?): StartTab = entries.firstOrNull { it.key == key } ?: HOME
     }
 }
 
-enum class AccentColor(val key: String, val label: String, val color: Color) {
+enum class AccentColor(
+    val key: String,
+    val label: String,
+    val color: Color,
+) {
     PINK("pink", "Pink", Color(0xFFFF66AA)),
     PURPLE("purple", "Purple", Color(0xFF8C66FF)),
     BLUE("blue", "Blue", Color(0xFF3FA9F5)),
@@ -50,124 +69,173 @@ enum class AccentColor(val key: String, val label: String, val color: Color) {
     GREEN("green", "Green", Color(0xFF7ACB3F)),
     YELLOW("yellow", "Yellow", Color(0xFFFFB800)),
     ORANGE("orange", "Orange", Color(0xFFFF8A4C)),
-    RED("red", "Red", Color(0xFFFF5C5C));
+    RED("red", "Red", Color(0xFFFF5C5C)),
+    ;
 
     companion object {
         fun fromKey(key: String?): AccentColor = entries.firstOrNull { it.key == key } ?: PINK
     }
 }
 
-enum class StreamMode(val key: String, val label: String) {
+enum class StreamMode(
+    val key: String,
+    val label: String,
+) {
     FULL("full", "Full song"),
-    PREVIEW("preview", "Preview only");
+    PREVIEW("preview", "Preview only"),
+    ;
 
     companion object {
         fun fromKey(key: String?): StreamMode = entries.firstOrNull { it.key == key } ?: FULL
     }
 }
 
-enum class ModeFilter(val key: String, val label: String, val apiValue: Int?) {
+enum class ModeFilter(
+    val key: String,
+    val label: String,
+    val apiValue: Int?,
+) {
     ANY("any", "Any", null),
     OSU("osu", "osu!", 0),
     TAIKO("taiko", "Taiko", 1),
     CATCH("catch", "Catch", 2),
-    MANIA("mania", "Mania", 3);
+    MANIA("mania", "Mania", 3),
+    ;
 
     companion object {
         fun fromKey(key: String?): ModeFilter = entries.firstOrNull { it.key == key } ?: ANY
     }
 }
 
-enum class StatusFilter(val key: String, val label: String, val apiValue: String?) {
-
+enum class StatusFilter(
+    val key: String,
+    val label: String,
+    val apiValue: String?,
+) {
     DEFAULT("default", "Ranked + Loved", null),
     RANKED("ranked", "Ranked", "ranked"),
     LOVED("loved", "Loved", "loved"),
-    ANY("any", "Everything", "any");
+    ANY("any", "Everything", "any"),
+    ;
 
     companion object {
         fun fromKey(key: String?): StatusFilter = entries.firstOrNull { it.key == key } ?: DEFAULT
     }
 }
 
-enum class AppFont(val key: String, val label: String) {
+enum class AppFont(
+    val key: String,
+    val label: String,
+) {
     KOZU("kozu", "Kozu Default"),
-    SYSTEM("system", "System default");
+    SYSTEM("system", "System default"),
+    ;
 
     companion object {
         fun fromKey(key: String?): AppFont = entries.firstOrNull { it.key == key } ?: KOZU
     }
 }
 
-enum class PaletteStyle(val key: String, val label: String, val description: String) {
+enum class PaletteStyle(
+    val key: String,
+    val label: String,
+    val description: String,
+) {
     TONAL_SPOT("tonal_spot", "Tonal Spot", "Balanced, calm colors"),
     VIBRANT("vibrant", "Vibrant", "Rich and saturated colors"),
     EXPRESSIVE("expressive", "Expressive", "Playful hues with strong contrast"),
     NEUTRAL("neutral", "Neutral", "Muted colors with a hint of tint"),
-    MONOCHROME("monochrome", "Monochrome", "Grayscale with a single accent");
+    MONOCHROME("monochrome", "Monochrome", "Grayscale with a single accent"),
+    ;
 
     companion object {
         fun fromKey(key: String?): PaletteStyle = entries.firstOrNull { it.key == key } ?: TONAL_SPOT
     }
 }
 
-enum class CrossfadeDuration(val key: String, val label: String, val millis: Int) {
+enum class CrossfadeDuration(
+    val key: String,
+    val label: String,
+    val millis: Int,
+) {
     OFF("off", "Disabled", 0),
     SHORT("3", "3 seconds", 3_000),
     MEDIUM("5", "5 seconds", 5_000),
     LONG("8", "8 seconds", 8_000),
-    EXTRA_LONG("12", "12 seconds", 12_000);
+    EXTRA_LONG("12", "12 seconds", 12_000),
+    ;
 
     companion object {
         fun fromKey(key: String?): CrossfadeDuration = entries.firstOrNull { it.key == key } ?: OFF
     }
 }
 
-enum class QuickPicksSource(val key: String, val label: String) {
+enum class QuickPicksSource(
+    val key: String,
+    val label: String,
+) {
     MIX("mix", "Mixed picks"),
     TRENDING("trending", "Trending (Most played)"),
     NEW_RELEASES("new", "New releases"),
-    LOVED("loved", "Loved picks");
+    LOVED("loved", "Loved picks"),
+    ;
 
     companion object {
         fun fromKey(key: String?): QuickPicksSource = entries.firstOrNull { it.key == key } ?: MIX
     }
 }
 
-enum class QuickPicksLayout(val key: String, val label: String) {
+enum class QuickPicksLayout(
+    val key: String,
+    val label: String,
+) {
     CAROUSEL("carousel", "Carousel"),
-    COMPACT("compact", "Compact cards");
+    COMPACT("compact", "Compact cards"),
+    ;
 
     companion object {
         fun fromKey(key: String?): QuickPicksLayout = entries.firstOrNull { it.key == key } ?: CAROUSEL
     }
 }
 
-enum class ArtworkQuality(val key: String, val label: String, val description: String) {
+enum class ArtworkQuality(
+    val key: String,
+    val label: String,
+    val description: String,
+) {
     LOW("low", "Low (150px)", "Saves data"),
     MEDIUM("medium", "Medium (300px)", "Balanced"),
-    HIGH("high", "High (original)", "Sharpest covers");
+    HIGH("high", "High (original)", "Sharpest covers"),
+    ;
 
     companion object {
         fun fromKey(key: String?): ArtworkQuality = entries.firstOrNull { it.key == key } ?: MEDIUM
     }
 }
 
-enum class ProxyType(val key: String, val label: String) {
+enum class ProxyType(
+    val key: String,
+    val label: String,
+) {
     DISABLED("disabled", "Disabled"),
     HTTP("http", "HTTP"),
-    SOCKS5("socks5", "SOCKS5");
+    SOCKS5("socks5", "SOCKS5"),
+    ;
 
     companion object {
         fun fromKey(key: String?): ProxyType = entries.firstOrNull { it.key == key } ?: DISABLED
     }
 }
 
-enum class TopSize(val count: Int, val label: String) {
+enum class TopSize(
+    val count: Int,
+    val label: String,
+) {
     TEN(10, "10 songs"),
     TWENTY_FIVE(25, "25 songs"),
     FIFTY(50, "50 songs"),
-    HUNDRED(100, "100 songs");
+    HUNDRED(100, "100 songs"),
+    ;
 
     companion object {
         fun fromCount(count: Int?): TopSize = entries.firstOrNull { it.count == count } ?: FIFTY
@@ -179,7 +247,7 @@ data class ProxySettings(
     val host: String = "",
     val port: Int = 0,
     val username: String = "",
-    val password: String = ""
+    val password: String = "",
 ) {
     val isActive: Boolean get() = type != ProxyType.DISABLED && host.isNotBlank() && port in 1..65535
 }
@@ -253,7 +321,7 @@ data class AppSettings(
     val downloadLimitMb: Int = 0,
     val autoCleanCache: Boolean = false,
     val autoUpdateCheck: Boolean = true,
-    val lastUpdateCheckAt: Long = 0L
+    val lastUpdateCheckAt: Long = 0L,
 ) {
     val hasCredentials: Boolean get() = osuClientId.isNotBlank() && osuClientSecret.isNotBlank()
     val activeMirrors: List<Mirror> get() = Mirrors.active(customMirrors, disabledMirrors)

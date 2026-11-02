@@ -7,19 +7,20 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
-import org.json.JSONException
 import org.json.JSONArray
+import org.json.JSONException
 import org.json.JSONObject
 import vn.kozu.domain.model.OsuProfile
 
 data class OsuSession(
     val accessToken: String,
     val refreshToken: String,
-    val expiresAtMs: Long
+    val expiresAtMs: Long,
 )
 
-class AccountStore(context: Context) {
-
+class AccountStore(
+    context: Context,
+) {
     private val store = context.applicationContext.accountDataStore
     private val accessKey = stringPreferencesKey("access_token")
     private val refreshKey = stringPreferencesKey("refresh_token")
@@ -28,11 +29,16 @@ class AccountStore(context: Context) {
     private val profileKey = stringPreferencesKey("profile")
     private val stateKey = stringPreferencesKey("pending_state")
 
-    val session: Flow<OsuSession?> = store.data.map { prefs ->
-        val access = prefs[accessKey]
-        if (access.isNullOrBlank()) null
-        else OsuSession(access, prefs[refreshKey].orEmpty(), prefs[expiresKey] ?: 0L)
-    }.distinctUntilChanged()
+    val session: Flow<OsuSession?> =
+        store.data
+            .map { prefs ->
+                val access = prefs[accessKey]
+                if (access.isNullOrBlank()) {
+                    null
+                } else {
+                    OsuSession(access, prefs[refreshKey].orEmpty(), prefs[expiresKey] ?: 0L)
+                }
+            }.distinctUntilChanged()
 
     val profile: Flow<OsuProfile?> = store.data.map { decodeProfile(it[profileKey]) }.distinctUntilChanged()
     val rankHistoryFetchedAt: Flow<Long> =
@@ -137,9 +143,12 @@ class AccountStore(context: Context) {
                 gradeS = o.optInt("s"),
                 gradeSH = o.optInt("sh"),
                 gradeA = o.optInt("a"),
-                rankHistory = o.optJSONArray("rankHistory")?.let { history ->
-                    List(history.length()) { history.optInt(it) }.filter { it > 0 }.takeLast(90)
-                }.orEmpty()
+                rankHistory =
+                    o
+                        .optJSONArray("rankHistory")
+                        ?.let { history ->
+                            List(history.length()) { history.optInt(it) }.filter { it > 0 }.takeLast(90)
+                        }.orEmpty(),
             )
         } catch (e: JSONException) {
             null

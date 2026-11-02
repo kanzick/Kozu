@@ -270,8 +270,10 @@ private fun SearchField(
         value = query,
         onValueChange = onQueryChange,
         modifier = modifier.fillMaxWidth(),
-        singleLine = true,
-        shape = CircleShape,
+        singleLine = false,
+        minLines = 1,
+        maxLines = 2,
+        shape = RoundedCornerShape(24.dp),
         textStyle = MaterialTheme.typography.bodyLarge,
         placeholder = {
             Text(

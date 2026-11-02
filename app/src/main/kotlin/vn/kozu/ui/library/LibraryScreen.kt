@@ -1,7 +1,6 @@
 package vn.kozu.ui.library
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -20,41 +20,44 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
-import androidx.compose.material.icons.automirrored.rounded.Sort
+import androidx.compose.material.icons.rounded.Sort
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.ArrowDropDown
+import androidx.compose.material.icons.rounded.DragHandle
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.DownloadDone
-import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.History
-import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
+import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material.icons.rounded.ViewAgenda
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -65,9 +68,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -83,8 +88,6 @@ import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.Playlist
 import vn.kozu.ui.components.CoverCard
 import vn.kozu.ui.components.EmptyState
-import vn.kozu.ui.components.HeaderAction
-import vn.kozu.ui.components.HeaderTitle
 import vn.kozu.ui.components.LocalTrackActions
 import vn.kozu.ui.components.MosaicCover
 import vn.kozu.ui.components.NamePlaylistDialog
@@ -95,6 +98,10 @@ import vn.kozu.ui.components.TrackRow
 import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.segmentedShape
 import vn.kozu.ui.theme.KozuCookies
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -102,35 +109,84 @@ fun LibraryScreen(
     listState: LazyListState,
     bottomPadding: Dp,
     onOpenSettings: () -> Unit,
-    onRefresh: () -> Unit,
-    isAppRefreshing: Boolean,
+    onSyncError: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: LibraryViewModel = viewModel(factory = LibraryViewModel.Factory)
 ) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
+    val isSyncing by viewModel.syncing.collectAsStateWithLifecycle()
+    val syncError by viewModel.syncError.collectAsStateWithLifecycle()
     val actions = LocalTrackActions.current
     val pullState = rememberPullToRefreshState()
+    val scope = rememberCoroutineScope()
+    var isPullRefreshing by remember { mutableStateOf(false) }
     var showCreate by remember { mutableStateOf(false) }
+    var showTabMenu by remember { mutableStateOf(false) }
+    var showReorderTabs by remember { mutableStateOf(false) }
 
     BackHandler(enabled = ui.openedPlaylist != null) { viewModel.closePlaylist() }
 
+    LaunchedEffect(syncError) {
+        syncError?.let { message ->
+            onSyncError(message)
+            viewModel.clearSyncError()
+        }
+    }
+
+    val refreshLibrary: () -> Unit = {
+        if (!isPullRefreshing && !isSyncing) {
+            isPullRefreshing = true
+            viewModel.syncLibrary()
+            scope.launch {
+                delay(PULL_REFRESH_MIN_VISIBLE_MS)
+                if (viewModel.syncing.value) {
+                    delay(PULL_REFRESH_MAX_VISIBLE_MS - PULL_REFRESH_MIN_VISIBLE_MS)
+                }
+                isPullRefreshing = false
+            }
+        }
+    }
+
     Column(modifier.fillMaxSize()) {
         ScreenHeader(
-            leading = { HeaderTitle("Library") },
+            leading = {
+                Surface(
+                    modifier = Modifier.bounceClick(pressedScale = 0.97f) { showTabMenu = true },
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ) {
+                        Row(
+                            modifier = Modifier.padding(start = 14.dp, end = 10.dp, top = 10.dp, bottom = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(libraryTabIcon(ui.tab), contentDescription = null, modifier = Modifier.size(19.dp))
+                            Text(ui.tab.label, style = MaterialTheme.typography.titleMedium, maxLines = 1)
+                            Icon(Icons.Rounded.ArrowDropDown, contentDescription = "Choose library tab")
+                        }
+                    }
+            },
             actions = {
                 SettingsAction(onOpenSettings)
             }
         )
 
+        if (isSyncing && !isPullRefreshing) {
+            LinearProgressIndicator(
+                modifier = Modifier.fillMaxWidth().height(2.dp)
+            )
+        }
+
         PullToRefreshBox(
-            isRefreshing = isAppRefreshing,
-            onRefresh = { if (!isAppRefreshing) onRefresh() },
+            isRefreshing = isPullRefreshing,
+            onRefresh = refreshLibrary,
             state = pullState,
             modifier = Modifier.weight(1f),
             indicator = {
                 RefreshIndicator(
                     state = pullState,
-                    isRefreshing = isAppRefreshing,
+                    isRefreshing = isPullRefreshing,
                     modifier = Modifier.align(Alignment.TopCenter)
                 )
             }
@@ -147,12 +203,9 @@ fun LibraryScreen(
                 )
             } else {
                 Column(Modifier.fillMaxSize()) {
-                    Spacer(Modifier.height(16.dp))
-                    TabRow(selected = ui.tab, onSelect = viewModel::selectTab)
-                    Spacer(Modifier.height(14.dp))
+                    Spacer(Modifier.height(10.dp))
                     Toolbar(
                         ui = ui,
-                        count = if (ui.tab == LibraryTab.SONGS) ui.songs.size else ui.liked.size,
                         onPlay = {
                             val list = if (ui.tab == LibraryTab.SONGS) ui.songs else ui.liked
                             if (list.isNotEmpty()) actions.play(list, 0)
@@ -207,6 +260,34 @@ fun LibraryScreen(
         }
     }
 
+    if (showTabMenu) {
+        LibraryTabsSheet(
+            selected = ui.tab,
+            order = ui.tabOrder,
+            countFor = { tab -> libraryTabCount(ui, tab) },
+            onSelect = { tab ->
+                showTabMenu = false
+                viewModel.selectTab(tab)
+            },
+            onReorder = {
+                showTabMenu = false
+                showReorderTabs = true
+            },
+            onDismiss = { showTabMenu = false }
+        )
+    }
+
+    if (showReorderTabs) {
+        ReorderLibraryTabsSheet(
+            order = ui.tabOrder,
+            onSave = { newOrder ->
+                viewModel.saveTabOrder(newOrder)
+                showReorderTabs = false
+            },
+            onDismiss = { showReorderTabs = false }
+        )
+    }
+
     if (showCreate) {
         NamePlaylistDialog(
             title = "New playlist",
@@ -220,47 +301,247 @@ fun LibraryScreen(
     }
 }
 
+private const val PULL_REFRESH_MIN_VISIBLE_MS = 900L
+private const val PULL_REFRESH_MAX_VISIBLE_MS = 1_500L
+
 @Composable
-private fun TabRow(selected: LibraryTab, onSelect: (LibraryTab) -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    Surface(
-        modifier = Modifier
-            .padding(horizontal = 20.dp)
-            .fillMaxWidth(),
-        shape = CircleShape,
-        color = colors.surfaceContainer
+private fun libraryTabIcon(tab: LibraryTab): ImageVector = when (tab) {
+    LibraryTab.SONGS -> Icons.Rounded.MusicNote
+    LibraryTab.LIKED -> Icons.Rounded.FavoriteBorder
+    LibraryTab.PLAYLISTS -> Icons.AutoMirrored.Rounded.QueueMusic
+    LibraryTab.DOWNLOADS -> Icons.Rounded.Download
+}
+
+private fun libraryTabCount(ui: LibraryUiState, tab: LibraryTab): Int = when (tab) {
+    LibraryTab.SONGS -> ui.songs.size
+    LibraryTab.LIKED -> ui.liked.size
+    LibraryTab.PLAYLISTS -> ui.playlists.size
+    LibraryTab.DOWNLOADS -> ui.downloads.size
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LibraryTabsSheet(
+    selected: LibraryTab,
+    order: List<LibraryTab>,
+    countFor: (LibraryTab) -> Int,
+    onSelect: (LibraryTab) -> Unit,
+    onReorder: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface
     ) {
-        Row(
-            modifier = Modifier.padding(5.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        Column(
+            modifier = Modifier.fillMaxWidth().navigationBarsPadding()
+                .padding(horizontal = 20.dp).padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            LibraryTab.entries.forEach { tab ->
-                val isSelected = tab == selected
-                val container by animateColorAsState(
-                    targetValue = if (isSelected) colors.secondaryContainer else Color.Transparent,
-                    animationSpec = tween(200),
-                    label = "libTabContainer"
-                )
-                val content by animateColorAsState(
-                    targetValue = if (isSelected) colors.onSecondaryContainer else colors.onSurfaceVariant,
-                    animationSpec = tween(200),
-                    label = "libTabContent"
-                )
+            Text("Library tabs", style = MaterialTheme.typography.headlineSmall)
+            Text(
+                "Jump directly to a collection or change the tab order.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            order.chunked(2).forEach { rowTabs ->
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    rowTabs.forEach { tab ->
+                        val isSelected = tab == selected
+                        Surface(
+                            onClick = { onSelect(tab) },
+                            modifier = Modifier.weight(1f).height(78.dp),
+                            shape = RoundedCornerShape(22.dp),
+                            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                                else MaterialTheme.colorScheme.surfaceContainerHigh,
+                            contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                                else MaterialTheme.colorScheme.onSurface
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxSize().padding(12.dp),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(libraryTabIcon(tab), contentDescription = null)
+                                Spacer(Modifier.height(5.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(tab.label, style = MaterialTheme.typography.labelLarge)
+                                    Spacer(Modifier.width(5.dp))
+                                    Text(countFor(tab).toString(), style = MaterialTheme.typography.labelSmall)
+                                }
+                            }
+                        }
+                    }
+                    if (rowTabs.size == 1) Spacer(Modifier.weight(1f))
+                }
+            }
+            Surface(
+                onClick = onReorder,
+                modifier = Modifier.fillMaxWidth(),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Rounded.DragHandle, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Reorder library tabs", style = MaterialTheme.typography.titleSmall)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReorderLibraryTabsSheet(
+    order: List<LibraryTab>,
+    onSave: (List<LibraryTab>) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val sheetState = rememberBottomSheetState(
+        initialValue = SheetValue.Hidden,
+        enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)
+    )
+    val listState = rememberLazyListState()
+    var orderedTabs by remember(order) { mutableStateOf(order) }
+    val reorderableState = rememberReorderableLazyListState(
+        onMove = { from, to ->
+            orderedTabs = orderedTabs.toMutableList().apply {
+                add(to.index, removeAt(from.index))
+            }
+        },
+        lazyListState = listState
+    )
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        scrimColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.56f),
+        sheetGesturesEnabled = false,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+    ) {
+        Scaffold(
+            topBar = {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Reorder library tabs",
+                            style = MaterialTheme.typography.headlineSmall
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "Hold and drag the handle to arrange your collections.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            },
+            bottomBar = {
                 Box(
                     modifier = Modifier
-                        .weight(1f)
-                        .height(42.dp)
-                        .clip(CircleShape)
-                        .background(container)
-                        .bounceClick(pressedScale = 0.96f) { onSelect(tab) },
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 18.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = tab.label,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = content,
-                        maxLines = 1
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(28.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                        tonalElevation = 3.dp,
+                        shadowElevation = 2.dp
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(
+                                onClick = { orderedTabs = LibraryTab.entries.toList() },
+                                modifier = Modifier.size(48.dp)
+                            ) {
+                                Icon(
+                                    Icons.Rounded.RestartAlt,
+                                    contentDescription = "Reset tab order"
+                                )
+                            }
+                            Button(
+                                onClick = { onSave(orderedTabs.toList()) },
+                                modifier = Modifier.heightIn(min = 52.dp),
+                                shape = CircleShape
+                            ) {
+                                Icon(Icons.Rounded.Check, contentDescription = null)
+                                Spacer(Modifier.width(8.dp))
+                                Text("Done")
+                            }
+                        }
+                    }
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surface
+        ) { paddingValues ->
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = 14.dp),
+                contentPadding = PaddingValues(top = 8.dp, bottom = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(orderedTabs, key = { it.key }) { tab ->
+                    ReorderableItem(reorderableState, key = tab.key) { isDragging ->
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            shape = RoundedCornerShape(22.dp),
+                            shadowElevation = if (isDragging) 6.dp else 0.dp,
+                            color = if (isDragging) {
+                                MaterialTheme.colorScheme.secondaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.surfaceContainerHigh
+                            },
+                            contentColor = if (isDragging) {
+                                MaterialTheme.colorScheme.onSecondaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 17.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Rounded.DragHandle,
+                                    contentDescription = "Drag to reorder ${tab.label}",
+                                    modifier = Modifier.draggableHandle()
+                                )
+                                Spacer(Modifier.width(16.dp))
+                                Icon(
+                                    libraryTabIcon(tab),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(Modifier.width(14.dp))
+                                Text(
+                                    tab.label,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -271,7 +552,6 @@ private fun TabRow(selected: LibraryTab, onSelect: (LibraryTab) -> Unit) {
 @Composable
 private fun Toolbar(
     ui: LibraryUiState,
-    count: Int,
     onPlay: () -> Unit,
     onShuffle: () -> Unit,
     onToggleGrid: () -> Unit,
@@ -282,71 +562,33 @@ private fun Toolbar(
 ) {
     var sortOpen by remember { mutableStateOf(false) }
 
-    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(7.dp)
+    ) {
         when (ui.tab) {
-            LibraryTab.PLAYLISTS -> PillButton(Icons.Rounded.Add, "New playlist", onCreatePlaylist)
+            LibraryTab.PLAYLISTS -> PillButton(Icons.Rounded.Add, "New", onCreatePlaylist)
             LibraryTab.DOWNLOADS -> PillButton(Icons.Rounded.Download, "Download liked", onDownloadLiked)
-            else -> {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            text = if (ui.tab == LibraryTab.LIKED) "Liked songs" else "Played songs",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Text(
-                            text = "$count ${if (count == 1) "song" else "songs"} · ${ui.sort.label}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    SquareButton(
-                        icon = if (ui.grid) Icons.Rounded.ViewAgenda else Icons.Rounded.GridView,
-                        description = if (ui.grid) "Show as list" else "Show as grid",
-                        onClick = onToggleGrid
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    SquareButton(Icons.AutoMirrored.Rounded.Sort, "Sort", onClick = { sortOpen = true })
-                }
-                Spacer(Modifier.height(12.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Surface(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(52.dp)
-                            .bounceClick(onClick = onPlay),
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Rounded.PlayArrow, contentDescription = null)
-                            Spacer(Modifier.width(8.dp))
-                            Text("Play", style = MaterialTheme.typography.titleSmall)
-                        }
-                    }
-                    Surface(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(52.dp)
-                            .bounceClick(onClick = onShuffle),
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Rounded.Shuffle, contentDescription = null)
-                            Spacer(Modifier.width(8.dp))
-                            Text("Shuffle", style = MaterialTheme.typography.titleSmall)
-                        }
-                    }
-                }
+            LibraryTab.SONGS, LibraryTab.LIKED -> PillButton(Icons.Rounded.Shuffle, "Shuffle", onShuffle)
+        }
+        Spacer(Modifier.weight(1f))
+        when (ui.tab) {
+            LibraryTab.SONGS, LibraryTab.LIKED -> {
+                SquareButton(Icons.Rounded.PlayArrow, "Play in order", onPlay)
+                SquareButton(
+                    icon = if (ui.grid) Icons.Rounded.ViewAgenda else Icons.Rounded.GridView,
+                    description = if (ui.grid) "Show as list" else "Show as grid",
+                    onClick = onToggleGrid
+                )
+                SquareButton(Icons.Rounded.Sort, "Sort", onClick = { sortOpen = true })
             }
+            LibraryTab.DOWNLOADS -> SquareButton(
+                Icons.Rounded.Sort,
+                "Sort downloads",
+                onClick = { sortOpen = true }
+            )
+            LibraryTab.PLAYLISTS -> Unit
         }
     }
 
@@ -356,17 +598,10 @@ private fun Toolbar(
             containerColor = MaterialTheme.colorScheme.surface
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(horizontal = 20.dp)
-                    .padding(bottom = 24.dp)
+                modifier = Modifier.fillMaxWidth().navigationBarsPadding()
+                    .padding(horizontal = 20.dp).padding(bottom = 24.dp)
             ) {
-                Text(
-                    "Sort by",
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
+                Text("Sort by", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(vertical = 8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(
                         selected = !ui.ascending,
@@ -381,28 +616,22 @@ private fun Toolbar(
                 }
                 Spacer(Modifier.height(12.dp))
                 LibrarySort.entries.forEachIndexed { index, option ->
-                    val chosen = option == ui.sort
+                    val selected = option == ui.sort
                     Surface(
                         onClick = {
                             onSort(option)
                             sortOpen = false
                         },
                         shape = segmentedShape(index, LibrarySort.entries.size),
-                        color = if (chosen) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 1.dp)
+                        color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                option.label,
-                                modifier = Modifier.weight(1f),
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            if (chosen) Icon(Icons.Rounded.Check, contentDescription = "Selected")
+                            Text(option.label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+                            if (selected) Icon(Icons.Rounded.Check, contentDescription = "Selected")
                         }
                     }
                 }
@@ -420,11 +649,11 @@ private fun PillButton(icon: ImageVector, label: String, onClick: () -> Unit) {
         contentColor = MaterialTheme.colorScheme.onSecondaryContainer
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
+            modifier = Modifier.padding(horizontal = 15.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(icon, contentDescription = null)
-            Spacer(Modifier.width(10.dp))
+            Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(8.dp))
             Text(label, style = MaterialTheme.typography.titleSmall)
         }
     }
@@ -434,7 +663,7 @@ private fun PillButton(icon: ImageVector, label: String, onClick: () -> Unit) {
 private fun SquareButton(icon: ImageVector, description: String, onClick: () -> Unit) {
     Surface(
         modifier = Modifier
-            .size(46.dp)
+            .size(42.dp)
             .bounceClick(onClick = onClick),
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surfaceContainerHigh
@@ -470,7 +699,7 @@ private fun TrackCollection(
 
     if (grid) {
         LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
+            columns = GridCells.Adaptive(minSize = 148.dp),
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = bottomPadding),
             verticalArrangement = Arrangement.spacedBy(18.dp),
@@ -492,12 +721,13 @@ private fun TrackCollection(
             state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = bottomPadding),
-            verticalArrangement = Arrangement.spacedBy(3.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             itemsIndexed(tracks, key = { _, b -> "row-${b.id}" }) { index, beatmap ->
                 TrackRow(
                     beatmap = beatmap,
-                    shape = segmentedShape(index, tracks.size),
+                    compact = true,
+                    shape = RoundedCornerShape(18.dp),
                     onClick = { actions.play(tracks, index) }
                 )
             }
@@ -537,45 +767,45 @@ private fun PlaylistGrid(
         RefreshableEmptyState(
             icon = Icons.AutoMirrored.Rounded.QueueMusic,
             title = "No playlists yet",
-            message = "Create one, then add songs from the ⋮ menu on any track.",
+            message = "Create a playlist, then add beatmaps from the track menu.",
             shape = KozuCookies.Bold6,
             modifier = Modifier.padding(top = 32.dp),
-            action = {
-                PillButton(Icons.Rounded.Add, "Create playlist", onCreate)
-            }
+            action = { PillButton(Icons.Rounded.Add, "New playlist", onCreate) }
         )
         return
     }
 
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
+    LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = bottomPadding),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = bottomPadding),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        itemsIndexed(playlists, key = { _, p -> p.id }) { _, playlist ->
+        itemsIndexed(playlists, key = { _, playlist -> playlist.id }) { _, playlist ->
             Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .bounceClick(pressedScale = 0.96f) { onOpen(playlist.id) },
-                shape = RoundedCornerShape(34.dp),
+                modifier = Modifier.fillMaxWidth().bounceClick(pressedScale = 0.98f) { onOpen(playlist.id) },
+                shape = RoundedCornerShape(22.dp),
                 color = MaterialTheme.colorScheme.surfaceContainer
             ) {
-                Column(Modifier.padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    MosaicCover(playlist.tracks, tileSize = 58.dp)
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        playlist.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        "${playlist.tracks.size} ${if (playlist.tracks.size == 1) "song" else "songs"}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    MosaicCover(playlist.tracks, tileSize = 22.dp)
+                    Spacer(Modifier.width(14.dp))
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text(
+                            playlist.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            "${playlist.tracks.size} ${if (playlist.tracks.size == 1) "beatmap" else "beatmaps"}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, modifier = Modifier.size(20.dp))
                 }
             }
         }
@@ -656,12 +886,13 @@ private fun PlaylistDetail(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = bottomPadding),
-            verticalArrangement = Arrangement.spacedBy(3.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             itemsIndexed(playlist.tracks, key = { _, b -> "pl-${b.id}" }) { index, beatmap ->
                 TrackRow(
                     beatmap = beatmap,
-                    shape = segmentedShape(index, playlist.tracks.size),
+                    compact = true,
+                    shape = RoundedCornerShape(18.dp),
                     onClick = { actions.play(playlist.tracks, index) },
                     trailing = {
                         IconButton(onClick = { onRemoveTrack(beatmap.id) }) {
@@ -808,7 +1039,8 @@ private fun DownloadsPane(
         itemsIndexed(ui.downloads, key = { _, set -> "d-${set.beatmap.id}" }) { index, set ->
             TrackRow(
                 beatmap = set.beatmap,
-                shape = segmentedShape(index, ui.downloads.size),
+                compact = true,
+                shape = RoundedCornerShape(18.dp),
                 onClick = { actions.play(tracks, index) },
                 trailing = {
                     IconButton(onClick = { onDelete(set.beatmap.id) }) {

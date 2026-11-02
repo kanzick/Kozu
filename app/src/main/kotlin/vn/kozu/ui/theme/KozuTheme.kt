@@ -4,9 +4,9 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.material3.ColorScheme
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialExpressiveTheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
@@ -29,11 +29,12 @@ fun KozuTheme(
     appStyle: AppStyle = AppStyle.EXPRESSIVE,
     appFont: AppFont = AppFont.KOZU,
     paletteStyle: PaletteStyle = PaletteStyle.TONAL_SPOT,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
-    val target = remember(seed, darkTheme, amoled, paletteStyle) {
-        kozuColorScheme(seed, darkTheme, amoled, paletteStyle)
-    }
+    val target =
+        remember(seed, darkTheme, amoled, paletteStyle) {
+            kozuColorScheme(seed, darkTheme, amoled, paletteStyle)
+        }
     val animated = rememberAnimatedColorScheme(target)
     val typography = if (appFont == AppFont.SYSTEM) SystemKozuTypography else KozuTypography
 
@@ -42,14 +43,14 @@ fun KozuTheme(
             colorScheme = animated,
             shapes = KozuShapes,
             typography = typography,
-            content = content
+            content = content,
         )
     } else {
         MaterialTheme(
             colorScheme = animated,
             shapes = Shapes(),
             typography = Typography(),
-            content = content
+            content = content,
         )
     }
 }

@@ -11,7 +11,7 @@ import vn.kozu.player.PlaybackService
 class CacheCleaner(
     context: Context,
     private val streams: StreamResolver,
-    private val settings: SettingsStore
+    private val settings: SettingsStore,
 ) {
     private val appContext = context.applicationContext
 
@@ -22,12 +22,13 @@ class CacheCleaner(
         PlaybackService.clearMediaCacheIfUnlocked(appContext)
     }
 
-    suspend fun cleanIfNeeded(): Boolean = withContext(Dispatchers.IO) {
-        val current = settings.settings.first()
-        if (!current.autoCleanCache) return@withContext false
-        val limit = current.streamCacheMb.coerceAtLeast(1) * 1024L * 1024L
-        if (streamBytes() <= limit) return@withContext false
-        clearStreams()
-        true
-    }
+    suspend fun cleanIfNeeded(): Boolean =
+        withContext(Dispatchers.IO) {
+            val current = settings.settings.first()
+            if (!current.autoCleanCache) return@withContext false
+            val limit = current.streamCacheMb.coerceAtLeast(1) * 1024L * 1024L
+            if (streamBytes() <= limit) return@withContext false
+            clearStreams()
+            true
+        }
 }

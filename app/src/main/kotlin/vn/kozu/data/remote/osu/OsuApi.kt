@@ -9,14 +9,13 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface OsuApi {
-
     @FormUrlEncoded
     @POST("/oauth/token")
     suspend fun requestToken(
         @Field("client_id") clientId: String,
         @Field("client_secret") clientSecret: String,
         @Field("grant_type") grantType: String = "client_credentials",
-        @Field("scope") scope: String = "public"
+        @Field("scope") scope: String = "public",
     ): TokenDto
 
     @FormUrlEncoded
@@ -26,7 +25,7 @@ interface OsuApi {
         @Field("client_secret") clientSecret: String,
         @Field("code") code: String,
         @Field("redirect_uri") redirectUri: String,
-        @Field("grant_type") grantType: String = "authorization_code"
+        @Field("grant_type") grantType: String = "authorization_code",
     ): TokenDto
 
     @FormUrlEncoded
@@ -35,23 +34,25 @@ interface OsuApi {
         @Field("client_id") clientId: String,
         @Field("client_secret") clientSecret: String,
         @Field("refresh_token") refreshToken: String,
-        @Field("grant_type") grantType: String = "refresh_token"
+        @Field("grant_type") grantType: String = "refresh_token",
     ): TokenDto
 
     @GET("me")
-    suspend fun me(@Header("Authorization") authorization: String): UserDto
+    suspend fun me(
+        @Header("Authorization") authorization: String,
+    ): UserDto
 
     @GET("users/{user}/{mode}")
     suspend fun user(
         @Header("Authorization") authorization: String,
         @Path("user") user: Long,
-        @Path("mode") mode: String
+        @Path("mode") mode: String,
     ): UserDto
 
     @GET("beatmapsets/{id}")
     suspend fun beatmapset(
         @Header("Authorization") authorization: String,
-        @Path("id") id: Long
+        @Path("id") id: Long,
     ): BeatmapsetDto
 
     @GET("beatmapsets/search")
@@ -68,6 +69,6 @@ interface OsuApi {
         @Query("e") extra: String? = null,
         @Query("c") general: String? = null,
         @Query("r") rank: String? = null,
-        @Query("played") played: String? = null
+        @Query("played") played: String? = null,
     ): BeatmapsetSearchResponse
 }

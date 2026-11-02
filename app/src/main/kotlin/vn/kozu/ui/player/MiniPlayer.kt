@@ -47,13 +47,13 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.displayArtist
 import vn.kozu.domain.model.displayTitle
-import vn.kozu.ui.components.LocalAppSettings
 import vn.kozu.ui.components.BeatmapArt
+import vn.kozu.ui.components.LocalAppSettings
 import vn.kozu.ui.components.LocalPerformanceMode
 import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.rememberKozuHaptics
@@ -69,7 +69,7 @@ fun MiniPlayer(
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val pos by position.collectAsStateWithLifecycle()
     val dur by duration.collectAsStateWithLifecycle()
@@ -102,67 +102,68 @@ fun MiniPlayer(
 
     Surface(
         onClick = onOpen,
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-            .graphicsLayer { translationY = if (isDragging) dragOffset else settleOffset.value }
-            .pointerInput(onDismiss, dragThreshold) {
-                var verticalDrag = 0f
-                detectVerticalDragGestures(
-                    onDragStart = {
-                        verticalDrag = 0f
-                        dragOffset = 0f
-                        isDragging = true
-                    },
-                    onDragEnd = {
-                        isDragging = false
-                        val dragged = dragOffset
-                        if (verticalDrag >= dragThreshold) {
-                            scope.launch {
-                                settleOffset.snapTo(dragged)
-                                settleOffset.animateTo(size.height.toFloat(), tween(180))
-                                onDismiss()
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp)
+                .graphicsLayer { translationY = if (isDragging) dragOffset else settleOffset.value }
+                .pointerInput(onDismiss, dragThreshold) {
+                    var verticalDrag = 0f
+                    detectVerticalDragGestures(
+                        onDragStart = {
+                            verticalDrag = 0f
+                            dragOffset = 0f
+                            isDragging = true
+                        },
+                        onDragEnd = {
+                            isDragging = false
+                            val dragged = dragOffset
+                            if (verticalDrag >= dragThreshold) {
+                                scope.launch {
+                                    settleOffset.snapTo(dragged)
+                                    settleOffset.animateTo(size.height.toFloat(), tween(180))
+                                    onDismiss()
+                                }
+                            } else {
+                                scope.launch {
+                                    settleOffset.snapTo(dragged)
+                                    settleOffset.animateTo(0f, tween(180))
+                                }
                             }
-                        } else {
+                        },
+                        onDragCancel = {
+                            isDragging = false
+                            val dragged = dragOffset
                             scope.launch {
                                 settleOffset.snapTo(dragged)
                                 settleOffset.animateTo(0f, tween(180))
                             }
-                        }
-                    },
-                    onDragCancel = {
-                        isDragging = false
-                        val dragged = dragOffset
-                        scope.launch {
-                            settleOffset.snapTo(dragged)
-                            settleOffset.animateTo(0f, tween(180))
-                        }
-                    },
-                    onVerticalDrag = { change, amount ->
-                        verticalDrag += amount
-                        if (verticalDrag > 0f) {
-                            change.consume()
-                            dragOffset = verticalDrag
-                        }
-                    }
-                )
-            },
+                        },
+                        onVerticalDrag = { change, amount ->
+                            verticalDrag += amount
+                            if (verticalDrag > 0f) {
+                                change.consume()
+                                dragOffset = verticalDrag
+                            }
+                        },
+                    )
+                },
         shape = RoundedCornerShape(32.dp),
         color = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
     ) {
         Row(
-            modifier = Modifier
-                .background(
-                    Brush.horizontalGradient(
-                        listOf(
-                            MaterialTheme.colorScheme.primaryContainer,
-                            MaterialTheme.colorScheme.tertiaryContainer
-                        )
-                    )
-                )
-                .padding(start = 8.dp, end = 10.dp, top = 8.dp, bottom = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier =
+                Modifier
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primaryContainer,
+                                MaterialTheme.colorScheme.tertiaryContainer,
+                            ),
+                        ),
+                    ).padding(start = 8.dp, end = 10.dp, top = 8.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(Modifier.size(50.dp), contentAlignment = Alignment.Center) {
                 Canvas(Modifier.size(50.dp)) {
@@ -176,7 +177,7 @@ fun MiniPlayer(
                         useCenter = false,
                         topLeft = Offset(inset, inset),
                         size = arcSize,
-                        style = Stroke(strokeWidth)
+                        style = Stroke(strokeWidth),
                     )
                     drawArc(
                         color = ringColor,
@@ -185,15 +186,16 @@ fun MiniPlayer(
                         useCenter = false,
                         topLeft = Offset(inset, inset),
                         size = arcSize,
-                        style = Stroke(strokeWidth, cap = StrokeCap.Round)
+                        style = Stroke(strokeWidth, cap = StrokeCap.Round),
                     )
                 }
                 BeatmapArt(
                     beatmap = beatmap,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .graphicsLayer { rotationZ = spin.value },
-                    shape = CircleShape
+                    modifier =
+                        Modifier
+                            .size(40.dp)
+                            .graphicsLayer { rotationZ = spin.value },
+                    shape = CircleShape,
                 )
             }
             Spacer(Modifier.width(10.dp))
@@ -202,64 +204,76 @@ fun MiniPlayer(
                     text = beatmap.displayTitle(LocalAppSettings.current.preferUnicode),
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = beatmap.displayArtist(LocalAppSettings.current.preferUnicode),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.72f),
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
             Spacer(Modifier.width(6.dp))
             Surface(
-                modifier = Modifier
-                    .size(36.dp)
-                    .bounceClick(onClick = { haptics.tick(); onPrevious() }),
+                modifier =
+                    Modifier
+                        .size(36.dp)
+                        .bounceClick(onClick = {
+                            haptics.tick()
+                            onPrevious()
+                        }),
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Rounded.SkipPrevious,
                         contentDescription = "Previous track",
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(20.dp),
                     )
                 }
             }
             Spacer(Modifier.width(5.dp))
             Surface(
-                modifier = Modifier
-                    .size(44.dp)
-                    .bounceClick(onClick = { haptics.press(); onPlayPause() }),
+                modifier =
+                    Modifier
+                        .size(44.dp)
+                        .bounceClick(onClick = {
+                            haptics.press()
+                            onPlayPause()
+                        }),
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
+                contentColor = MaterialTheme.colorScheme.onPrimary,
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                         contentDescription = if (isPlaying) "Pause" else "Play",
-                        modifier = Modifier.size(26.dp)
+                        modifier = Modifier.size(26.dp),
                     )
                 }
             }
             Spacer(Modifier.width(5.dp))
             Surface(
-                modifier = Modifier
-                    .size(36.dp)
-                    .bounceClick(onClick = { haptics.tick(); onNext() }),
+                modifier =
+                    Modifier
+                        .size(36.dp)
+                        .bounceClick(onClick = {
+                            haptics.tick()
+                            onNext()
+                        }),
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Rounded.SkipNext,
                         contentDescription = "Next track",
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(20.dp),
                     )
                 }
             }

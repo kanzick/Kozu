@@ -10,8 +10,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import vn.kozu.domain.model.Beatmap
 
-class FavoritesStore(context: Context) {
-
+class FavoritesStore(
+    context: Context,
+) {
     private val store = context.applicationContext.kozuDataStore
     private val key = stringPreferencesKey("favorites_v2")
 

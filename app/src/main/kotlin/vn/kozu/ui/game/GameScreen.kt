@@ -1,20 +1,20 @@
 package vn.kozu.ui.game
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.togetherWith
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
@@ -27,9 +27,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import vn.kozu.game.mania.gamestage.ui.GameStageHost
 import vn.kozu.game.ui.game.AddMapScreen
 import vn.kozu.game.ui.game.GameViewModel
-import vn.kozu.game.mania.gamestage.ui.GameStageHost
 import vn.kozu.ui.components.HeaderTitle
 import vn.kozu.ui.components.RefreshIndicator
 import vn.kozu.ui.components.ScreenHeader
@@ -44,7 +44,7 @@ fun GameScreen(
     isAppRefreshing: Boolean,
     onGameplayChanged: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: GameViewModel = viewModel(factory = GameViewModel.Factory)
+    viewModel: GameViewModel = viewModel(factory = GameViewModel.Factory),
 ) {
     var addMapsOpen by remember { mutableStateOf(false) }
     var gameplayActive by remember { mutableStateOf(false) }
@@ -61,12 +61,12 @@ fun GameScreen(
                             Icon(
                                 Icons.Rounded.Add,
                                 contentDescription = "Add maps",
-                                tint = MaterialTheme.colorScheme.onSurface
+                                tint = MaterialTheme.colorScheme.onSurface,
                             )
                         }
                     }
                     SettingsAction(onOpenSettings)
-                }
+                },
             )
         }
 
@@ -75,14 +75,14 @@ fun GameScreen(
                 targetState = addMapsOpen,
                 modifier = Modifier.fillMaxSize(),
                 transitionSpec = { fadeIn(tween(160)) togetherWith fadeOut(tween(120)) },
-                label = "game-destination"
+                label = "game-destination",
             ) { showingAddMaps ->
                 if (showingAddMaps) {
                     AddMapScreen(
                         viewModel = viewModel,
                         bottomPadding = if (gameplayActive) 0.dp else bottomPadding,
                         onBack = { addMapsOpen = false },
-                        onOpenSettings = onOpenSettings
+                        onOpenSettings = onOpenSettings,
                     )
                 } else {
                     GameStageHost(
@@ -94,9 +94,10 @@ fun GameScreen(
                             onGameplayChanged(it)
                         },
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(
-                            bottom = if (gameplayActive) 0.dp else bottomPadding
-                        )
+                        contentPadding =
+                            PaddingValues(
+                                bottom = if (gameplayActive) 0.dp else bottomPadding,
+                            ),
                     )
                 }
             }
@@ -113,9 +114,9 @@ fun GameScreen(
                     RefreshIndicator(
                         state = pullState,
                         isRefreshing = isAppRefreshing,
-                        modifier = Modifier.align(Alignment.TopCenter)
+                        modifier = Modifier.align(Alignment.TopCenter),
                     )
-                }
+                },
             ) {
                 gameContent()
             }

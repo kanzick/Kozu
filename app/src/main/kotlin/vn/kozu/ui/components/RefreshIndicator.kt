@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 fun RefreshIndicator(
     state: PullToRefreshState,
     isRefreshing: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val haptics = rememberKozuHaptics()
     LaunchedEffect(state) {
@@ -26,6 +26,6 @@ fun RefreshIndicator(
     PullToRefreshDefaults.LoadingIndicator(
         state = state,
         isRefreshing = isRefreshing,
-        modifier = modifier
+        modifier = modifier,
     )
 }

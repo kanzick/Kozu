@@ -24,7 +24,7 @@ data class OsuProfile(
     val gradeA: Int,
     val rankHistory: List<Int> = emptyList(),
     val gradeSSH: Int = 0,
-    val gradeSH: Int = 0
+    val gradeSH: Int = 0,
 ) {
     val flag: String
         get() {

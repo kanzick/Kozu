@@ -43,6 +43,7 @@ fun TrackRow(
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(24.dp),
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
+    compact: Boolean = false,
     trailing: (@Composable () -> Unit)? = null
 ) {
     val nowPlaying = LocalNowPlaying.current
@@ -51,6 +52,8 @@ fun TrackRow(
     val downloads = LocalDownloads.current
     val isCurrent = nowPlaying.beatmapId == beatmap.id
     val isFavorite = beatmap.id in favorites
+    val artworkSize = if (compact) 44.dp else 56.dp
+    val artworkShape = if (compact) RoundedCornerShape(14.dp) else RoundedCornerShape(18.dp)
 
     Surface(
         modifier = modifier
@@ -60,16 +63,21 @@ fun TrackRow(
         color = if (isCurrent) MaterialTheme.colorScheme.primaryContainer else containerColor
     ) {
         Row(
-            modifier = Modifier.padding(start = 10.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
+            modifier = Modifier.padding(
+                start = if (compact) 8.dp else 10.dp,
+                end = 4.dp,
+                top = if (compact) 6.dp else 10.dp,
+                bottom = if (compact) 6.dp else 10.dp
+            ),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(Modifier.size(56.dp)) {
-                BeatmapArt(beatmap, Modifier.size(56.dp), shape = RoundedCornerShape(18.dp))
+            Box(Modifier.size(artworkSize)) {
+                BeatmapArt(beatmap, Modifier.size(artworkSize), shape = artworkShape)
                 if (isCurrent) {
                     Box(
                         modifier = Modifier
-                            .size(56.dp)
-                            .background(Color.Black.copy(alpha = 0.38f), RoundedCornerShape(18.dp)),
+                            .size(artworkSize)
+                            .background(Color.Black.copy(alpha = 0.38f), artworkShape),
                         contentAlignment = Alignment.Center
                     ) {
                         EqualizerBars(
@@ -80,39 +88,50 @@ fun TrackRow(
                     }
                 }
             }
-            Spacer(Modifier.width(14.dp))
-            Column(Modifier.weight(1f)) {
+            Spacer(Modifier.width(if (compact) 10.dp else 14.dp))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(if (compact) 1.dp else 2.dp)) {
                 Text(
                     text = beatmap.displayTitle(LocalAppSettings.current.preferUnicode),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = if (compact) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
                     color = if (isCurrent) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = beatmap.displayArtist(LocalAppSettings.current.preferUnicode),
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = if (compact) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                DownloadBadge(
-                    isDownloaded = beatmap.id in downloads.downloaded,
-                    isOutdated = beatmap.id in downloads.outdated,
-                    status = downloads.active[beatmap.id],
-                    mapper = if (LocalAppSettings.current.showMapper) beatmap.mapper else ""
-                )
+                if (!compact) {
+                    DownloadBadge(
+                        isDownloaded = beatmap.id in downloads.downloaded,
+                        isOutdated = beatmap.id in downloads.outdated,
+                        status = downloads.active[beatmap.id],
+                        mapper = if (LocalAppSettings.current.showMapper) beatmap.mapper else ""
+                    )
+                } else if (downloads.active[beatmap.id] != null || beatmap.id in downloads.downloaded) {
+                    DownloadBadge(
+                        isDownloaded = beatmap.id in downloads.downloaded,
+                        isOutdated = beatmap.id in downloads.outdated,
+                        status = downloads.active[beatmap.id],
+                        mapper = ""
+                    )
+                }
             }
             if (trailing != null) {
                 trailing()
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End) {
-                    IconButton(onClick = { actions.toggleFavorite(beatmap) }) {
-                        Icon(
-                            imageVector = if (isFavorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                            contentDescription = if (isFavorite) "Remove from liked" else "Add to liked",
-                            tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    if (!compact) {
+                        IconButton(onClick = { actions.toggleFavorite(beatmap) }) {
+                            Icon(
+                                imageVector = if (isFavorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                                contentDescription = if (isFavorite) "Remove from liked" else "Add to liked",
+                                tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                     IconButton(onClick = { actions.openMenu(beatmap) }) {
                         Icon(

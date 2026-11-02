@@ -49,7 +49,7 @@ fun TransportControls(
     onPrevious: () -> Unit,
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val haptics = rememberKozuHaptics()
     val prevSource = remember { MutableInteractionSource() }
@@ -58,18 +58,18 @@ fun TransportControls(
     val prevPressed by prevSource.collectIsPressedAsState()
     val playPressed by playSource.collectIsPressedAsState()
     val nextPressed by nextSource.collectIsPressedAsState()
-
     val prevWeight by animateFloatAsState(if (prevPressed) 1.5f else 1f, KozuMotion.press(), label = "prevW")
     val playWeight by animateFloatAsState(if (playPressed) 2.4f else 1.8f, KozuMotion.press(), label = "playW")
     val nextWeight by animateFloatAsState(if (nextPressed) 1.5f else 1f, KozuMotion.press(), label = "nextW")
     val playRadius by animateDpAsState(if (isPlaying) 30.dp else 44.dp, KozuMotion.spatial(), label = "playRadius")
 
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(88.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .height(88.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         TransportButton(
             icon = Icons.Rounded.SkipPrevious,
@@ -79,7 +79,10 @@ fun TransportControls(
             container = MaterialTheme.colorScheme.secondaryContainer,
             content = MaterialTheme.colorScheme.onSecondaryContainer,
             source = prevSource,
-            onClick = { haptics.tick(); onPrevious() }
+            onClick = {
+                haptics.tick()
+                onPrevious()
+            },
         )
         TransportButton(
             icon = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
@@ -90,7 +93,10 @@ fun TransportControls(
             content = MaterialTheme.colorScheme.onPrimary,
             source = playSource,
             iconSize = 40.dp,
-            onClick = { haptics.press(); onPlayPause() }
+            onClick = {
+                haptics.press()
+                onPlayPause()
+            },
         )
         TransportButton(
             icon = Icons.Rounded.SkipNext,
@@ -100,7 +106,10 @@ fun TransportControls(
             container = MaterialTheme.colorScheme.secondaryContainer,
             content = MaterialTheme.colorScheme.onSecondaryContainer,
             source = nextSource,
-            onClick = { haptics.tick(); onNext() }
+            onClick = {
+                haptics.tick()
+                onNext()
+            },
         )
     }
 }
@@ -115,22 +124,23 @@ private fun RowScope.TransportButton(
     content: Color,
     source: MutableInteractionSource,
     onClick: () -> Unit,
-    iconSize: androidx.compose.ui.unit.Dp = 32.dp
+    iconSize: androidx.compose.ui.unit.Dp = 32.dp,
 ) {
     Box(
-        modifier = Modifier
-            .weight(weight)
-            .height(88.dp)
-            .clip(shape)
-            .background(container)
-            .clickable(interactionSource = source, indication = null, onClick = onClick),
-        contentAlignment = Alignment.Center
+        modifier =
+            Modifier
+                .weight(weight)
+                .height(88.dp)
+                .clip(shape)
+                .background(container)
+                .clickable(interactionSource = source, indication = null, onClick = onClick),
+        contentAlignment = Alignment.Center,
     ) {
         Icon(
             imageVector = icon,
             contentDescription = description,
             tint = content,
-            modifier = Modifier.size(iconSize)
+            modifier = Modifier.size(iconSize),
         )
     }
 }
@@ -143,30 +153,39 @@ fun PlayerToggleRow(
     onShuffle: () -> Unit,
     onRepeat: () -> Unit,
     onFavorite: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val haptics = rememberKozuHaptics()
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainer
+        color = MaterialTheme.colorScheme.surfaceContainer,
     ) {
         Row(
             modifier = Modifier.padding(6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            ToggleSegment(Icons.Rounded.Shuffle, "Shuffle", shuffle) { haptics.tick(); onShuffle() }
+            ToggleSegment(Icons.Rounded.Shuffle, "Shuffle", shuffle) {
+                haptics.tick()
+                onShuffle()
+            }
             ToggleSegment(
                 icon = if (repeat == RepeatState.ONE) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat,
                 description = "Repeat",
                 active = repeat != RepeatState.OFF,
-                onClick = { haptics.tick(); onRepeat() }
+                onClick = {
+                    haptics.tick()
+                    onRepeat()
+                },
             )
             ToggleSegment(
                 icon = if (isFavorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
                 description = "Like",
                 active = isFavorite,
-                onClick = { if (isFavorite) haptics.tick() else haptics.confirm(); onFavorite() }
+                onClick = {
+                    if (isFavorite) haptics.tick() else haptics.confirm()
+                    onFavorite()
+                },
             )
         }
     }
@@ -177,21 +196,22 @@ private fun RowScope.ToggleSegment(
     icon: ImageVector,
     description: String,
     active: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Surface(
-        modifier = Modifier
-            .weight(1f)
-            .height(56.dp)
-            .bounceClick(onClick = onClick),
+        modifier =
+            Modifier
+                .weight(1f)
+                .height(56.dp)
+                .bounceClick(onClick = onClick),
         shape = CircleShape,
-        color = if (active) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest
+        color = if (active) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(
                 imageVector = icon,
                 contentDescription = description,
-                tint = if (active) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                tint = if (active) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

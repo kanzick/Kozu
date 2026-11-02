@@ -10,12 +10,11 @@ import kotlinx.coroutines.flow.Flow
 
 data class PlaylistRow(
     @Embedded val playlist: PlaylistEntity,
-    @Embedded(prefix = "song_") val song: SongEntity?
+    @Embedded(prefix = "song_") val song: SongEntity?,
 )
 
 @Dao
 interface PlaylistDao {
-
     @Query(
         """
         SELECT p.id AS id, p.name AS name, p.createdAt AS createdAt,
@@ -25,7 +24,7 @@ interface PlaylistDao {
         LEFT JOIN song_in_playlist l ON l.playlistId = p.id
         LEFT JOIN songs s ON s.id = l.songId
         ORDER BY p.createdAt ASC, p.id ASC, l.position ASC, l.addedAt ASC
-        """
+        """,
     )
     fun observeRows(): Flow<List<PlaylistRow>>
 
@@ -33,7 +32,10 @@ interface PlaylistDao {
     suspend fun insertPlaylist(playlist: PlaylistEntity)
 
     @Query("UPDATE playlists SET name = :name WHERE id = :id")
-    suspend fun rename(id: String, name: String)
+    suspend fun rename(
+        id: String,
+        name: String,
+    )
 
     @Query("DELETE FROM playlists WHERE id = :id")
     suspend fun deletePlaylist(id: String)
@@ -54,7 +56,10 @@ interface PlaylistDao {
     suspend fun insertLink(link: SongInPlaylistEntity): Long
 
     @Query("DELETE FROM song_in_playlist WHERE playlistId = :playlistId AND songId = :songId")
-    suspend fun removeLink(playlistId: String, songId: Long)
+    suspend fun removeLink(
+        playlistId: String,
+        songId: Long,
+    )
 
     @Query("SELECT COALESCE(MAX(position), -1) + 1 FROM song_in_playlist WHERE playlistId = :playlistId")
     suspend fun nextPosition(playlistId: String): Int

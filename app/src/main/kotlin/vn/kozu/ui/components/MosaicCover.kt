@@ -18,26 +18,27 @@ import vn.kozu.domain.model.Beatmap
 fun MosaicCover(
     tracks: List<Beatmap>,
     modifier: Modifier = Modifier,
-    tileSize: Dp = 54.dp
+    tileSize: Dp = 54.dp,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
         repeat(2) { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                 repeat(2) { col ->
                     val beatmap = tracks.getOrNull(row * 2 + col)
-                    val shape = RoundedCornerShape(
-                        topStart = if (row == 0 && col == 0) 22.dp else 6.dp,
-                        topEnd = if (row == 0 && col == 1) 22.dp else 6.dp,
-                        bottomStart = if (row == 1 && col == 0) 22.dp else 6.dp,
-                        bottomEnd = if (row == 1 && col == 1) 22.dp else 6.dp
-                    )
+                    val shape =
+                        RoundedCornerShape(
+                            topStart = if (row == 0 && col == 0) 22.dp else 6.dp,
+                            topEnd = if (row == 0 && col == 1) 22.dp else 6.dp,
+                            bottomStart = if (row == 1 && col == 0) 22.dp else 6.dp,
+                            bottomEnd = if (row == 1 && col == 1) 22.dp else 6.dp,
+                        )
                     if (beatmap != null) {
                         BeatmapArt(beatmap, Modifier.size(tileSize), shape = shape)
                     } else {
                         Box(
                             Modifier
                                 .size(tileSize)
-                                .background(MaterialTheme.colorScheme.surfaceContainerHighest, shape)
+                                .background(MaterialTheme.colorScheme.surfaceContainerHighest, shape),
                         )
                     }
                 }

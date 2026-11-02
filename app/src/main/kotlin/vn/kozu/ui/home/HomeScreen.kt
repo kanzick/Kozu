@@ -351,39 +351,6 @@ private fun OsuPulseCard(profile: OsuProfile) {
                 OsuStat("Play time", formatOsuPlayTime(profile.playTimeSeconds), Modifier.weight(1.2f))
             }
             Spacer(Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(5.dp)
-            ) {
-                val grades = listOf(
-                    "SS" to (profile.gradeSS - profile.gradeSSH).coerceAtLeast(0),
-                    "SSH" to profile.gradeSSH,
-                    "S" to (profile.gradeS - profile.gradeSH).coerceAtLeast(0),
-                    "SH" to profile.gradeSH,
-                    "A" to profile.gradeA
-                )
-                grades.forEachIndexed { index, (grade, count) ->
-                    Surface(
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        color = when (index) {
-                            0 -> MaterialTheme.colorScheme.primaryContainer
-                            1 -> MaterialTheme.colorScheme.secondaryContainer
-                            2 -> MaterialTheme.colorScheme.tertiaryContainer
-                            3 -> MaterialTheme.colorScheme.surfaceContainerHighest
-                            else -> MaterialTheme.colorScheme.primaryContainer
-                        }
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(vertical = 5.dp, horizontal = 2.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(grade, style = MaterialTheme.typography.labelSmall)
-                            Text(compactOsuCount(count), style = MaterialTheme.typography.labelMedium)
-                        }
-                    }
-                }
-            }
         }
     }
 }

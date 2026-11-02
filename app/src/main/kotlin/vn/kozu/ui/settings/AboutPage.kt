@@ -2,9 +2,10 @@ package vn.kozu.ui.settings
 
 import android.content.Context
 import android.content.Intent
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -16,15 +17,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.CloudDownload
+import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material3.AlertDialog
@@ -57,7 +57,6 @@ import vn.kozu.data.update.UpdateResult
 private const val GITHUB_URL = "https://github.com/kanzick/Kozu"
 private const val OSU_URL = "https://osu.ppy.sh"
 private const val TAGLINE = "Listen to your favorite osu! songs online or offline, with a Material 3 Expressive design."
-
 private const val PRIVACY_TEXT =
     "Kozu does not include ads, analytics or trackers, and it has no Kozu account or server of its own.\n\n" +
         "Your settings, favorites, playlists, listening history and downloaded songs stay on this device. Backups are files you create and store yourself, and they never contain credentials.\n\n" +
@@ -67,7 +66,11 @@ private const val PRIVACY_TEXT =
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
-fun AboutPage(viewModel: SettingsViewModel, onOpenLicenses: () -> Unit, onBack: () -> Unit) {
+fun AboutPage(
+    viewModel: SettingsViewModel,
+    onOpenLicenses: () -> Unit,
+    onBack: () -> Unit,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val container = viewModel.appContainer
@@ -97,7 +100,7 @@ fun AboutPage(viewModel: SettingsViewModel, onOpenLicenses: () -> Unit, onBack: 
                 Setting.CHECK_UPDATES,
                 label = if (checking) "Checking…" else "Check",
                 description = "v$version • Checked $checked",
-                enabled = !checking
+                enabled = !checking,
             ) {
                 scope.launch {
                     checking = true
@@ -107,11 +110,15 @@ fun AboutPage(viewModel: SettingsViewModel, onOpenLicenses: () -> Unit, onBack: 
                             available = result
                             viewModel.save { setLastUpdateCheck(System.currentTimeMillis()) }
                         }
+
                         is UpdateResult.UpToDate -> {
                             message = "You are up to date with v${result.version}."
                             viewModel.save { setLastUpdateCheck(System.currentTimeMillis()) }
                         }
-                        is UpdateResult.Failed -> message = result.message
+
+                        is UpdateResult.Failed -> {
+                            message = result.message
+                        }
                     }
                     checking = false
                 }
@@ -132,9 +139,10 @@ fun AboutPage(viewModel: SettingsViewModel, onOpenLicenses: () -> Unit, onBack: 
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 12.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 12.dp),
         )
     }
 
@@ -145,7 +153,7 @@ fun AboutPage(viewModel: SettingsViewModel, onOpenLicenses: () -> Unit, onBack: 
             text = {
                 Text(
                     if (update.notes.isBlank()) "You are on v$version." else update.notes.take(700),
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
                 )
             },
             confirmButton = {
@@ -154,7 +162,7 @@ fun AboutPage(viewModel: SettingsViewModel, onOpenLicenses: () -> Unit, onBack: 
                     available = null
                 }) { Text("Download") }
             },
-            dismissButton = { TextButton(onClick = { available = null }) { Text("Later") } }
+            dismissButton = { TextButton(onClick = { available = null }) { Text("Later") } },
         )
     }
 
@@ -167,16 +175,17 @@ fun AboutPage(viewModel: SettingsViewModel, onOpenLicenses: () -> Unit, onBack: 
                     Text(PRIVACY_TEXT, style = MaterialTheme.typography.bodyMedium)
                 }
             },
-            confirmButton = { TextButton(onClick = { privacyOpen = false }) { Text("Close") } }
+            confirmButton = { TextButton(onClick = { privacyOpen = false }) { Text("Close") } },
         )
     }
 }
 
 private fun shareApp(context: Context) {
-    val send = Intent(Intent.ACTION_SEND)
-        .setType("text/plain")
-        .putExtra(Intent.EXTRA_SUBJECT, "Kozu")
-        .putExtra(Intent.EXTRA_TEXT, "Kozu: $TAGLINE $GITHUB_URL")
+    val send =
+        Intent(Intent.ACTION_SEND)
+            .setType("text/plain")
+            .putExtra(Intent.EXTRA_SUBJECT, "Kozu")
+            .putExtra(Intent.EXTRA_TEXT, "Kozu: $TAGLINE $GITHUB_URL")
     try {
         context.startActivity(Intent.createChooser(send, "Share Kozu").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     } catch (_: Exception) {
@@ -185,28 +194,37 @@ private fun shareApp(context: Context) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun HeroCard(shape: Shape, version: String) {
+private fun HeroCard(
+    shape: Shape,
+    version: String,
+) {
     val context = LocalContext.current
-    val icon = remember {
-        try {
-            context.packageManager.getApplicationIcon(context.packageName).toBitmap(256, 256).asImageBitmap()
-        } catch (_: Exception) {
-            null
+    val icon =
+        remember {
+            try {
+                context.packageManager
+                    .getApplicationIcon(context.packageName)
+                    .toBitmap(256, 256)
+                    .asImageBitmap()
+            } catch (_: Exception) {
+                null
+            }
         }
-    }
     val colors = MaterialTheme.colorScheme
     SettingCard(setting = null, shape = shape, onClick = null) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Box(
-                modifier = Modifier
-                    .size(96.dp)
-                    .clip(RoundedCornerShape(28.dp)),
-                contentAlignment = Alignment.Center
+                modifier =
+                    Modifier
+                        .size(96.dp)
+                        .clip(RoundedCornerShape(28.dp)),
+                contentAlignment = Alignment.Center,
             ) {
                 if (icon != null) {
                     Image(bitmap = icon, contentDescription = "Kozu", modifier = Modifier.size(96.dp))
@@ -221,7 +239,7 @@ private fun HeroCard(shape: Shape, version: String) {
                 TAGLINE,
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.onSurfaceVariant,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(12.dp))
             ValueChip("v$version")
@@ -229,7 +247,7 @@ private fun HeroCard(shape: Shape, version: String) {
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 FeatureChip(Icons.Rounded.CloudDownload, "Online & offline")
                 FeatureChip(Icons.Rounded.Palette, "Material 3 Expressive")
@@ -240,15 +258,18 @@ private fun HeroCard(shape: Shape, version: String) {
 }
 
 @Composable
-private fun FeatureChip(icon: ImageVector, label: String) {
+private fun FeatureChip(
+    icon: ImageVector,
+    label: String,
+) {
     Surface(
         shape = CircleShape,
         color = MaterialTheme.colorScheme.secondaryContainer,
-        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(6.dp))
@@ -258,11 +279,17 @@ private fun FeatureChip(icon: ImageVector, label: String) {
 }
 
 @Composable
-internal fun LinkItem(shape: Shape, icon: ImageVector, title: String, subtitle: String, onClick: () -> Unit) {
+internal fun LinkItem(
+    shape: Shape,
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+) {
     SettingCard(setting = null, shape = shape, onClick = onClick) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             IconBadge(icon)
             Spacer(Modifier.width(14.dp))
@@ -270,7 +297,7 @@ internal fun LinkItem(shape: Shape, icon: ImageVector, title: String, subtitle: 
             Icon(
                 Icons.AutoMirrored.Rounded.KeyboardArrowRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

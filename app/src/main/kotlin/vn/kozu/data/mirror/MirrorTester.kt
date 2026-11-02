@@ -15,52 +15,64 @@ data class MirrorTestResult(
     val supportsRange: Boolean,
     val previewOk: Boolean?,
     val millis: Long,
-    val note: String
+    val note: String,
 )
 
-class MirrorTester(client: OkHttpClient) {
+class MirrorTester(
+    client: OkHttpClient,
+) {
+    private val probe =
+        client
+            .newBuilder()
+            .connectTimeout(4, TimeUnit.SECONDS)
+            .readTimeout(6, TimeUnit.SECONDS)
+            .callTimeout(8, TimeUnit.SECONDS)
+            .build()
 
-    private val probe = client.newBuilder()
-        .connectTimeout(4, TimeUnit.SECONDS)
-        .readTimeout(6, TimeUnit.SECONDS)
-        .callTimeout(8, TimeUnit.SECONDS)
-        .build()
+    suspend fun test(mirror: Mirror): MirrorTestResult =
+        withContext(Dispatchers.IO) {
+            val started = System.currentTimeMillis()
+            var reachable = false
+            var range = false
+            var note = ""
+            try {
+                val builder =
+                    Request
+                        .Builder()
+                        .url(mirror.downloadFor(Mirrors.PROBE_SET_ID))
+                        .header("Range", "bytes=0-0")
+                        .header("User-Agent", "Kozu/2.1 (Android; https://github.com/kanzick/Kozu)")
+                if (mirror.referer.isNotBlank()) builder.header("Referer", mirror.referer)
+                probe.newCall(builder.build()).execute().use { response ->
+                    when (response.code) {
+                        206 -> {
+                            reachable = true
+                            range = true
+                            note = "Download ok, partial streaming supported"
+                        }
 
-    suspend fun test(mirror: Mirror): MirrorTestResult = withContext(Dispatchers.IO) {
-        val started = System.currentTimeMillis()
-        var reachable = false
-        var range = false
-        var note = ""
-        try {
-            val builder = Request.Builder()
-                .url(mirror.downloadFor(Mirrors.PROBE_SET_ID))
-                .header("Range", "bytes=0-0")
-                .header("User-Agent", "Kozu/2.1 (Android; https://github.com/kanzick/Kozu)")
-            if (mirror.referer.isNotBlank()) builder.header("Referer", mirror.referer)
-            probe.newCall(builder.build()).execute().use { response ->
-                when (response.code) {
-                    206 -> {
-                        reachable = true
-                        range = true
-                        note = "Download ok, partial streaming supported"
+                        200 -> {
+                            reachable = true
+                            note = "Download ok, no partial streaming"
+                        }
+
+                        else -> {
+                            note = "HTTP ${response.code}"
+                        }
                     }
-                    200 -> {
-                        reachable = true
-                        note = "Download ok, no partial streaming"
-                    }
-                    else -> note = "HTTP ${response.code}"
                 }
+            } catch (e: IOException) {
+                note = e.message ?: "Unreachable"
             }
-        } catch (e: IOException) {
-            note = e.message ?: "Unreachable"
+            val previewOk =
+                mirror.previewFor(Mirrors.PROBE_SET_ID)?.let {
+                    StreamResolver.probeAudio(probe, it, mirror.referer)
+                }
+            MirrorTestResult(mirror.id, reachable, range, previewOk, System.currentTimeMillis() - started, note)
         }
-        val previewOk = mirror.previewFor(Mirrors.PROBE_SET_ID)?.let {
-            StreamResolver.probeAudio(probe, it, mirror.referer)
-        }
-        MirrorTestResult(mirror.id, reachable, range, previewOk, System.currentTimeMillis() - started, note)
-    }
 
-    suspend fun testOfficialPreview(): Boolean = withContext(Dispatchers.IO) {
-        StreamResolver.probeAudio(probe, Mirrors.OFFICIAL_PREVIEW.replace("{id}", Mirrors.PROBE_SET_ID.toString()), "")
-    }
+    suspend fun testOfficialPreview(): Boolean =
+        withContext(Dispatchers.IO) {
+            StreamResolver.probeAudio(probe, Mirrors.OFFICIAL_PREVIEW.replace("{id}", Mirrors.PROBE_SET_ID.toString()), "")
+        }
 }
