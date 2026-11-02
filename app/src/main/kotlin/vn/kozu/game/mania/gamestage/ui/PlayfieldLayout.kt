@@ -1,6 +1,9 @@
 package vn.kozu.game.mania.gamestage.ui
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import vn.kozu.game.mania.gamestage.scoring.Judgement
 import kotlin.math.min
 
@@ -21,15 +24,30 @@ class PlayfieldLayout(width: Float, height: Float, val keys: Int) {
 
     fun columnX(c: Int): Float = left + c * columnWidth
 
-    private companion object {
-        const val LANDSCAPE_FIELD_WIDTH_FRACTION = 0.84f
-        val LANDSCAPE_EXPANDED_KEY_RANGE = 4..6
-    }
+    val judgmentXlineY: Float get() = judgeY
 
     private companion object {
         const val LANDSCAPE_FIELD_WIDTH_FRACTION = 0.84f
         val LANDSCAPE_EXPANDED_KEY_RANGE = 4..6
     }
+
+}
+
+internal fun DrawScope.drawJudgmentXLine(
+    left: Float,
+    right: Float,
+    y: Float,
+    color: Color,
+    thickness: Float,
+) {
+    if (right <= left || thickness <= 0f) return
+    drawLine(
+        color = color,
+        start = Offset(left, y),
+        end = Offset(right, y),
+        strokeWidth = thickness,
+        cap = StrokeCap.Round,
+    )
 }
 
 internal object PlayColors {

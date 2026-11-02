@@ -230,6 +230,48 @@ class GameStageCoreTest {
     }
 
     @Test
+    fun osuHitWindowsTruncateOdWindowsAndRoundHitErrorToMilliseconds() {
+        val windows = HitWindows(7.2)
+        assertEquals(42.0, windows.great, 0.0)
+        assertEquals(75.0, windows.good, 0.0)
+        assertEquals(105.0, windows.ok, 0.0)
+        assertEquals(129.0, windows.meh, 0.0)
+        assertEquals(166.0, windows.miss, 0.0)
+
+        assertEquals(Judgement.PERFECT, windows.classify(16.49, late = false))
+        assertEquals(Judgement.GREAT, windows.classify(16.5, late = false))
+        assertEquals(Judgement.GREAT, windows.classify(42.49, late = true))
+        assertEquals(Judgement.GOOD, windows.classify(42.5, late = true))
+        assertEquals(-16, windows.roundedErrorMs(-16.49))
+        assertEquals(-17, windows.roundedErrorMs(-16.5))
+    }
+
+    @Test
+    fun eachChartDifficultyUsesItsOwnOverallDifficultyForHitWindows() {
+        val easyChart = ManiaChartParser.parse(chartText(od = 2.0, objects = listOf(tap(0, 1000))))
+        val hardChart = ManiaChartParser.parse(chartText(od = 8.0, objects = listOf(tap(0, 1000))))
+        val easyWindows = engineFor(easyChart).first.windows
+        val hardWindows = engineFor(hardChart).first.windows
+
+        assertEquals(58.0, easyWindows.great, 0.0)
+        assertEquals(40.0, hardWindows.great, 0.0)
+        assertEquals(182.0, easyWindows.miss, 0.0)
+        assertEquals(164.0, hardWindows.miss, 0.0)
+    }
+
+    @Test
+    fun noteTimingEdgeAndJudgmentLineCoincideAtZeroErrorInAllScrollModes() {
+        val layout = PlayfieldLayout(1920f, 1080f, 4)
+        val travelMs = NoteScroll.travelTimeMs(8.0)
+        val linearNoteY = NoteScroll.yAt(1000.0, 1000.0, travelMs, layout.judgmentXlineY)
+        assertEquals(layout.judgmentXlineY, linearNoteY, 0f)
+
+        val projection = LandscapeProjection(layout, 1920f)
+        val progress = projection.acceleratedProgressAt(1000.0, 1000.0, travelMs)
+        assertEquals(layout.judgmentXlineY, projection.yAt(progress), 0.001f)
+    }
+
+    @Test
     fun allPerfectIsExactlyOneMillionAndSS() {
         val t = ScoreTracker(250)
         repeat(250) { t.apply(Judgement.PERFECT) }

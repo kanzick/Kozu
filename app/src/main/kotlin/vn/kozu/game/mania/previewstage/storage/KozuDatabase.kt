@@ -48,9 +48,6 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
                 put("imported_at", System.currentTimeMillis())
             })
             for (d in difficulties) db.insertOrThrow("kozu_difficulty", null, d.toValues())
-            db.setTransactionSuccessful()
-        } finally {
-            db.endTransaction()
         }
     }
 
@@ -143,7 +140,6 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
         put("overall_difficulty", overallDifficulty); put("approach_rate", approachRate)
         put("slider_multiplier", sliderMultiplier); put("slider_tick_rate", sliderTickRate)
         put("star_rating", starRating)
-        put("star_rating", starRating)
         put("background_filename", backgroundFilename)
         put("audio_path", audioPath); put("audio_exists", if (audioExists) 1 else 0)
         put("background_path", backgroundPath); put("background_exists", if (backgroundExists) 1 else 0)
@@ -171,7 +167,6 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
             overallDifficulty = d("overall_difficulty"), approachRate = d("approach_rate"),
             sliderMultiplier = d("slider_multiplier"), sliderTickRate = d("slider_tick_rate"),
             starRating = d("star_rating"),
-            starRating = d("star_rating"),
             backgroundFilename = sn("background_filename"),
             audioPath = sn("audio_path"), audioExists = i("audio_exists") != 0,
             backgroundPath = sn("background_path"), backgroundExists = i("background_exists") != 0,
@@ -179,7 +174,6 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
     }
 
     companion object {
-        private const val SCHEMA_VERSION = 2
         private const val SCHEMA_VERSION = 2
 
         fun open(file: File): KozuDatabase {
@@ -196,11 +190,6 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
                                 "ALTER TABLE kozu_difficulty ADD COLUMN star_rating REAL NOT NULL DEFAULT 0"
                             )
                         }
-                        if (!hasColumn(db, "kozu_difficulty", "star_rating")) {
-                            db.execSQL(
-                                "ALTER TABLE kozu_difficulty ADD COLUMN star_rating REAL NOT NULL DEFAULT 0"
-                            )
-                        }
                         db.version = SCHEMA_VERSION
                     }
                 }
@@ -208,14 +197,6 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
                 db.close(); throw t
             }
             return KozuDatabase(db)
-        }
-
-        private fun hasColumn(db: SQLiteDatabase, table: String, column: String): Boolean =
-            db.rawQuery("PRAGMA table_info($table)", null).use { cursor ->
-                val nameIndex = cursor.getColumnIndexOrThrow("name")
-                generateSequence { if (cursor.moveToNext()) cursor.getString(nameIndex) else null }
-                    .any { it == column }
-            }
         }
 
         private fun hasColumn(db: SQLiteDatabase, table: String, column: String): Boolean =
@@ -267,7 +248,6 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
                 approach_rate         REAL    NOT NULL,
                 slider_multiplier     REAL    NOT NULL,
                 slider_tick_rate      REAL    NOT NULL,
-                star_rating           REAL    NOT NULL DEFAULT 0,
                 star_rating           REAL    NOT NULL DEFAULT 0,
                 -- [Events] + resolved files (relative paths from songs/<song_id>/)
                 background_filename   TEXT,

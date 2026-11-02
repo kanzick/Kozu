@@ -11,6 +11,7 @@ import vn.kozu.game.mania.gamestage.engine.JudgementEngine
 import vn.kozu.game.mania.gamestage.engine.NoteScroll
 import vn.kozu.game.mania.gamestage.ui.PlayColors
 import vn.kozu.game.mania.gamestage.ui.PlayfieldLayout
+import vn.kozu.game.mania.gamestage.ui.drawJudgmentXLine
 import kotlin.math.max
 import kotlin.math.min
 
@@ -73,7 +74,7 @@ internal fun DrawScope.drawPortraitPlayfield(
             }
             if (note.timeMs - nowMs > travelMs + 50) break
 
-            val headY = NoteScroll.yAt(note.timeMs.toDouble(), nowMs, travelMs, layout.judgeY)
+            val headY = NoteScroll.yAt(note.timeMs.toDouble(), nowMs, travelMs, layout.judgmentXlineY)
             if (!note.isHold) {
                 if (headY - layout.noteHeight < height && headY > 0f) {
                     val topLeft = Offset(x, headY - layout.noteHeight)
@@ -89,8 +90,8 @@ internal fun DrawScope.drawPortraitPlayfield(
                 }
             } else {
                 val holding = state == JudgementEngine.STATE_HOLDING
-                val tailY = NoteScroll.yAt(note.endTimeMs.toDouble(), nowMs, travelMs, layout.judgeY)
-                val headDrawY = if (holding) min(headY, layout.judgeY) else headY
+                val tailY = NoteScroll.yAt(note.endTimeMs.toDouble(), nowMs, travelMs, layout.judgmentXlineY)
+                val headDrawY = if (holding) min(headY, layout.judgmentXlineY) else headY
                 val bodyColor = if (engine.broken[id]) PlayColors.broken else color
                 val top = max(tailY - layout.noteHeight, 0f)
                 val bottom = min(headDrawY, height)
@@ -119,11 +120,12 @@ internal fun DrawScope.drawPortraitPlayfield(
         }
     }
 
-    drawRoundRect(
-        primary,
-        Offset(layout.left, layout.judgeY),
-        Size(layout.right - layout.left, judgementLineHeight),
-        CornerRadius(judgementLineHeight / 2f),
+    drawJudgmentXLine(
+        left = layout.left,
+        right = layout.right,
+        y = layout.judgmentXlineY,
+        color = primary,
+        thickness = judgementLineHeight,
     )
 }
 

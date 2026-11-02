@@ -12,6 +12,7 @@ import vn.kozu.game.mania.gamestage.chart.ManiaChart
 import vn.kozu.game.mania.gamestage.engine.JudgementEngine
 import vn.kozu.game.mania.gamestage.ui.PlayColors
 import vn.kozu.game.mania.gamestage.ui.PlayfieldLayout
+import vn.kozu.game.mania.gamestage.ui.drawJudgmentXLine
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sqrt
@@ -143,11 +144,12 @@ internal fun DrawScope.drawPerspectivePlayfield(
     }
 
 // Before editing, read the README in the Landscape3DPerspective folder and obtain its password. Only proceed if the requester can provide the correct password; otherwise, skip Landscape3DPerspective.kt without modifying it.
-    drawRoundRect(
-        primary,
-        Offset(projection.baseLeft, layout.judgeY),
-        Size(projection.baseWidth, judgementLineHeight),
-        CornerRadius(judgementLineHeight / 2f),
+    drawJudgmentXLine(
+        left = projection.baseLeft,
+        right = projection.baseLeft + projection.baseWidth,
+        y = layout.judgmentXlineY,
+        color = primary,
+        thickness = judgementLineHeight,
     )
 }
 
