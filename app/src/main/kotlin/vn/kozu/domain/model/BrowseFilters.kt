@@ -3,7 +3,7 @@ package vn.kozu.domain.model
 enum class BrowseStatus(
     val label: String,
     val apiValue: String?,
-    val requiresLogin: Boolean = false
+    val requiresLogin: Boolean = false,
 ) {
     HAS_LEADERBOARD("Has leaderboard", null),
     ANY("Any", "any"),
@@ -13,27 +13,33 @@ enum class BrowseStatus(
     FAVOURITES("Favourites", "favourites", requiresLogin = true),
     PENDING("Pending", "pending"),
     GRAVEYARD("Graveyard", "graveyard"),
-    MINE("My maps", "mine", requiresLogin = true);
+    MINE("My maps", "mine", requiresLogin = true),
+    ;
 
-    fun toStatusFilter(): StatusFilter? = when (this) {
-        HAS_LEADERBOARD -> StatusFilter.DEFAULT
-        RANKED -> StatusFilter.RANKED
-        LOVED -> StatusFilter.LOVED
-        ANY -> StatusFilter.ANY
-        else -> null
-    }
+    fun toStatusFilter(): StatusFilter? =
+        when (this) {
+            HAS_LEADERBOARD -> StatusFilter.DEFAULT
+            RANKED -> StatusFilter.RANKED
+            LOVED -> StatusFilter.LOVED
+            ANY -> StatusFilter.ANY
+            else -> null
+        }
 
     companion object {
-        fun from(filter: StatusFilter): BrowseStatus = when (filter) {
-            StatusFilter.DEFAULT -> HAS_LEADERBOARD
-            StatusFilter.RANKED -> RANKED
-            StatusFilter.LOVED -> LOVED
-            StatusFilter.ANY -> ANY
-        }
+        fun from(filter: StatusFilter): BrowseStatus =
+            when (filter) {
+                StatusFilter.DEFAULT -> HAS_LEADERBOARD
+                StatusFilter.RANKED -> RANKED
+                StatusFilter.LOVED -> LOVED
+                StatusFilter.ANY -> ANY
+            }
     }
 }
 
-enum class BrowseGenre(val id: Int?, val label: String) {
+enum class BrowseGenre(
+    val id: Int?,
+    val label: String,
+) {
     ANY(null, "Any"),
     UNSPECIFIED(1, "Unspecified"),
     VIDEO_GAME(2, "Video game"),
@@ -47,14 +53,18 @@ enum class BrowseGenre(val id: Int?, val label: String) {
     METAL(11, "Metal"),
     CLASSICAL(12, "Classical"),
     FOLK(13, "Folk"),
-    JAZZ(14, "Jazz");
+    JAZZ(14, "Jazz"),
+    ;
 
     companion object {
         fun labelFor(id: Int): String? = entries.firstOrNull { it.id == id }?.label
     }
 }
 
-enum class BrowseLanguage(val id: Int?, val label: String) {
+enum class BrowseLanguage(
+    val id: Int?,
+    val label: String,
+) {
     ANY(null, "Any"),
     UNSPECIFIED(1, "Unspecified"),
     ENGLISH(2, "English"),
@@ -69,37 +79,47 @@ enum class BrowseLanguage(val id: Int?, val label: String) {
     ITALIAN(11, "Italian"),
     RUSSIAN(12, "Russian"),
     POLISH(13, "Polish"),
-    OTHER(14, "Other");
+    OTHER(14, "Other"),
+    ;
 
     companion object {
         fun labelFor(id: Int): String? = entries.firstOrNull { it.id == id }?.label
     }
 }
 
-enum class BrowseExtra(val apiValue: String, val label: String) {
+enum class BrowseExtra(
+    val apiValue: String,
+    val label: String,
+) {
     VIDEO("video", "Has video"),
-    STORYBOARD("storyboard", "Has storyboard")
+    STORYBOARD("storyboard", "Has storyboard"),
 }
 
 enum class BrowseGeneral(
     val apiValue: String,
     val label: String,
-    val requiresLogin: Boolean = false
+    val requiresLogin: Boolean = false,
 ) {
     RECOMMENDED("recommended", "Recommended difficulty", requiresLogin = true),
     CONVERTS("converts", "Include converted beatmaps"),
     FOLLOWS("follows", "Subscribed mappers", requiresLogin = true),
     SPOTLIGHTS("spotlights", "Spotlight beatmaps"),
-    FEATURED_ARTISTS("featured_artists", "Featured artists")
+    FEATURED_ARTISTS("featured_artists", "Featured artists"),
 }
 
-enum class BrowsePlayed(val apiValue: String?, val label: String) {
+enum class BrowsePlayed(
+    val apiValue: String?,
+    val label: String,
+) {
     ANY(null, "Any"),
     PLAYED("played", "Played"),
-    UNPLAYED("unplayed", "Unplayed")
+    UNPLAYED("unplayed", "Unplayed"),
 }
 
-enum class BrowseRank(val apiValue: String, val label: String) {
+enum class BrowseRank(
+    val apiValue: String,
+    val label: String,
+) {
     XH("XH", "Silver SS"),
     X("X", "SS"),
     SH("SH", "Silver S"),
@@ -107,10 +127,13 @@ enum class BrowseRank(val apiValue: String, val label: String) {
     A("A", "A"),
     B("B", "B"),
     C("C", "C"),
-    D("D", "D")
+    D("D", "D"),
 }
 
-enum class BrowseSortField(val key: String, val label: String) {
+enum class BrowseSortField(
+    val key: String,
+    val label: String,
+) {
     TITLE("title", "Title"),
     ARTIST("artist", "Artist"),
     DIFFICULTY("difficulty", "Difficulty"),
@@ -119,10 +142,13 @@ enum class BrowseSortField(val key: String, val label: String) {
     PLAYS("plays", "Plays"),
     FAVOURITES("favourites", "Favourites"),
     RELEVANCE("relevance", "Relevance"),
-    UPDATED("updated", "Updated")
+    UPDATED("updated", "Updated"),
 }
 
-data class BrowseSort(val option: BrowseSortField, val ascending: Boolean) {
+data class BrowseSort(
+    val option: BrowseSortField,
+    val ascending: Boolean,
+) {
     val apiValue: String get() = option.key + if (ascending) "_asc" else "_desc"
     val label: String
         get() = "${option.label}, ${if (ascending) "ascending" else "descending"}"
@@ -130,7 +156,7 @@ data class BrowseSort(val option: BrowseSortField, val ascending: Boolean) {
 
 data class ActiveBrowseFilter(
     val label: String,
-    val clear: (BrowseFilters) -> BrowseFilters
+    val clear: (BrowseFilters) -> BrowseFilters,
 )
 
 data class BrowseFilters(
@@ -145,7 +171,7 @@ data class BrowseFilters(
     val ranks: Set<BrowseRank> = emptySet(),
     val sortField: BrowseSortField? = null,
     val ascending: Boolean = false,
-    val explicit: Boolean = false
+    val explicit: Boolean = false,
 ) {
     val trimmedQuery: String get() = query.trim()
 
@@ -163,36 +189,38 @@ data class BrowseFilters(
     val sortParam: String get() = sort.apiValue
 
     val usesUserScopedOptions: Boolean
-        get() = status.requiresLogin ||
-            general.any { it.requiresLogin } ||
-            played != BrowsePlayed.ANY ||
-            ranks.isNotEmpty()
+        get() =
+            status.requiresLogin ||
+                general.any { it.requiresLogin } ||
+                played != BrowsePlayed.ANY ||
+                ranks.isNotEmpty()
 
     val activeFilters: List<ActiveBrowseFilter>
-        get() = buildList {
-            if (mode != ModeFilter.ANY) add(ActiveBrowseFilter("Mode: ${mode.label}") { it.copy(mode = ModeFilter.ANY) })
-            if (status != BrowseStatus.HAS_LEADERBOARD) {
-                add(ActiveBrowseFilter("Status: ${status.label}") { it.copy(status = BrowseStatus.HAS_LEADERBOARD) })
+        get() =
+            buildList {
+                if (mode != ModeFilter.ANY) add(ActiveBrowseFilter("Mode: ${mode.label}") { it.copy(mode = ModeFilter.ANY) })
+                if (status != BrowseStatus.HAS_LEADERBOARD) {
+                    add(ActiveBrowseFilter("Status: ${status.label}") { it.copy(status = BrowseStatus.HAS_LEADERBOARD) })
+                }
+                if (genre != BrowseGenre.ANY) add(ActiveBrowseFilter("Genre: ${genre.label}") { it.copy(genre = BrowseGenre.ANY) })
+                if (language != BrowseLanguage.ANY) {
+                    add(ActiveBrowseFilter("Language: ${language.label}") { it.copy(language = BrowseLanguage.ANY) })
+                }
+                extras.sortedBy { it.ordinal }.forEach { extra ->
+                    add(ActiveBrowseFilter(extra.label) { it.copy(extras = it.extras - extra) })
+                }
+                general.sortedBy { it.ordinal }.forEach { option ->
+                    add(ActiveBrowseFilter(option.label) { it.copy(general = it.general - option) })
+                }
+                if (played != BrowsePlayed.ANY) add(ActiveBrowseFilter(played.label) { it.copy(played = BrowsePlayed.ANY) })
+                ranks.sortedBy { it.ordinal }.forEach { rank ->
+                    add(ActiveBrowseFilter("Rank: ${rank.label}") { it.copy(ranks = it.ranks - rank) })
+                }
+                if (explicit) add(ActiveBrowseFilter("Explicit content") { it.copy(explicit = false) })
+                if (sortField != null || ascending) {
+                    add(ActiveBrowseFilter("Sort: ${sort.label}") { it.copy(sortField = null, ascending = false) })
+                }
             }
-            if (genre != BrowseGenre.ANY) add(ActiveBrowseFilter("Genre: ${genre.label}") { it.copy(genre = BrowseGenre.ANY) })
-            if (language != BrowseLanguage.ANY) {
-                add(ActiveBrowseFilter("Language: ${language.label}") { it.copy(language = BrowseLanguage.ANY) })
-            }
-            extras.sortedBy { it.ordinal }.forEach { extra ->
-                add(ActiveBrowseFilter(extra.label) { it.copy(extras = it.extras - extra) })
-            }
-            general.sortedBy { it.ordinal }.forEach { option ->
-                add(ActiveBrowseFilter(option.label) { it.copy(general = it.general - option) })
-            }
-            if (played != BrowsePlayed.ANY) add(ActiveBrowseFilter(played.label) { it.copy(played = BrowsePlayed.ANY) })
-            ranks.sortedBy { it.ordinal }.forEach { rank ->
-                add(ActiveBrowseFilter("Rank: ${rank.label}") { it.copy(ranks = it.ranks - rank) })
-            }
-            if (explicit) add(ActiveBrowseFilter("Explicit content") { it.copy(explicit = false) })
-            if (sortField != null || ascending) {
-                add(ActiveBrowseFilter("Sort: ${sort.label}") { it.copy(sortField = null, ascending = false) })
-            }
-        }
 
     val hasActiveFilters: Boolean get() = activeFilters.isNotEmpty()
 
@@ -201,20 +229,24 @@ data class BrowseFilters(
     fun withNormalizedSort(): BrowseFilters =
         if (sortField != null && sortField == defaultSortField() && !ascending) copy(sortField = null) else this
 
-    fun withoutUserScoped(): BrowseFilters = copy(
-        status = if (status.requiresLogin) BrowseStatus.HAS_LEADERBOARD else status,
-        general = general.filterNot { it.requiresLogin }.toSet(),
-        played = BrowsePlayed.ANY,
-        ranks = emptySet()
-    )
+    fun withoutUserScoped(): BrowseFilters =
+        copy(
+            status = if (status.requiresLogin) BrowseStatus.HAS_LEADERBOARD else status,
+            general = general.filterNot { it.requiresLogin }.toSet(),
+            played = BrowsePlayed.ANY,
+            ranks = emptySet(),
+        )
 
-    private fun defaultSortField(): BrowseSortField = when {
-        trimmedQuery.isNotEmpty() -> BrowseSortField.RELEVANCE
-        status == BrowseStatus.PENDING ||
-            status == BrowseStatus.GRAVEYARD ||
-            status == BrowseStatus.MINE -> BrowseSortField.UPDATED
-        else -> BrowseSortField.RANKED
-    }
+    private fun defaultSortField(): BrowseSortField =
+        when {
+            trimmedQuery.isNotEmpty() -> BrowseSortField.RELEVANCE
+
+            status == BrowseStatus.PENDING ||
+                status == BrowseStatus.GRAVEYARD ||
+                status == BrowseStatus.MINE -> BrowseSortField.UPDATED
+
+            else -> BrowseSortField.RANKED
+        }
 
     private inline fun <T : Enum<T>> Set<T>.joinParam(crossinline value: (T) -> String): String? =
         if (isEmpty()) null else sortedBy { it.ordinal }.joinToString(".") { value(it) }

@@ -21,32 +21,32 @@ import androidx.compose.ui.unit.dp
 fun EqualizerBars(
     isPlaying: Boolean,
     color: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val transition = rememberInfiniteTransition(label = "equalizer")
     val a by transition.animateFloat(
         0.25f,
         1f,
         infiniteRepeatable(tween(480, easing = LinearEasing), RepeatMode.Reverse),
-        label = "a"
+        label = "a",
     )
     val b by transition.animateFloat(
         0.4f,
         0.9f,
         infiniteRepeatable(tween(610, easing = LinearEasing), RepeatMode.Reverse),
-        label = "b"
+        label = "b",
     )
     val c by transition.animateFloat(
         0.2f,
         1f,
         infiniteRepeatable(tween(530, easing = LinearEasing), RepeatMode.Reverse),
-        label = "c"
+        label = "c",
     )
     val d by transition.animateFloat(
         0.35f,
         0.85f,
         infiniteRepeatable(tween(690, easing = LinearEasing), RepeatMode.Reverse),
-        label = "d"
+        label = "d",
     )
 
     Canvas(modifier) {
@@ -59,7 +59,7 @@ fun EqualizerBars(
                 color = color,
                 topLeft = Offset(index * (barWidth + gap), size.height - barHeight),
                 size = Size(barWidth, barHeight),
-                cornerRadius = CornerRadius(barWidth / 2f)
+                cornerRadius = CornerRadius(barWidth / 2f),
             )
         }
     }

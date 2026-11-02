@@ -4,7 +4,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -12,6 +11,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import vn.kozu.data.local.AccountStore
 import vn.kozu.data.remote.osu.OsuApi
 import vn.kozu.data.remote.osu.OsuAuth
@@ -22,16 +22,17 @@ import java.io.IOException
 class AccountRepository(
     private val auth: OsuAuth,
     private val api: OsuApi,
-    private val store: AccountStore
+    private val store: AccountStore,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     val profile: Flow<OsuProfile?> = store.profile
     val loggedIn: Flow<Boolean> = auth.loggedIn
 
-    val isSupporter: Flow<Boolean> = combine(auth.loggedIn, store.profile) { signedIn, profile ->
-        signedIn && profile?.isSupporter == true
-    }.distinctUntilChanged()
+    val isSupporter: Flow<Boolean> =
+        combine(auth.loggedIn, store.profile) { signedIn, profile ->
+            signedIn && profile?.isSupporter == true
+        }.distinctUntilChanged()
 
     @Volatile private var lastAutoRefresh = 0L
 
@@ -40,11 +41,19 @@ class AccountRepository(
 
     suspend fun beginLogin(): String? = auth.beginLogin()
 
-    fun onCallback(code: String?, state: String?, error: String?) {
+    fun onCallback(
+        code: String?,
+        state: String?,
+        error: String?,
+    ) {
         scope.launch { handleCallback(code, state, error) }
     }
 
-    suspend fun handleCallback(code: String?, state: String?, error: String?) {
+    suspend fun handleCallback(
+        code: String?,
+        state: String?,
+        error: String?,
+    ) {
         if (!error.isNullOrBlank() || code.isNullOrBlank()) {
             _events.tryEmit("osu! sign-in was cancelled")
             return
@@ -53,10 +62,10 @@ class AccountRepository(
             onSuccess = {
                 refreshProfile().fold(
                     onSuccess = { _events.tryEmit("Signed in as ${it.username}") },
-                    onFailure = { _events.tryEmit("Signed in, but the profile could not be loaded") }
+                    onFailure = { _events.tryEmit("Signed in, but the profile could not be loaded") },
                 )
             },
-            onFailure = { _events.tryEmit(it.message ?: "osu! sign-in failed") }
+            onFailure = { _events.tryEmit(it.message ?: "osu! sign-in failed") },
         )
     }
 
@@ -69,27 +78,30 @@ class AccountRepository(
             val cachedProfile = store.profile.first()
             val previousHistory = cachedProfile?.rankHistory.orEmpty()
             val now = System.currentTimeMillis()
-            val historyIsFresh = !forceRankHistory &&
-                now - store.rankHistoryFetchedAt.first() < RANK_HISTORY_REFRESH_INTERVAL_MS
+            val historyIsFresh =
+                !forceRankHistory &&
+                    now - store.rankHistoryFetchedAt.first() < RANK_HISTORY_REFRESH_INTERVAL_MS
             var historyRefreshed = false
-            val rankHistory = if (historyIsFresh) {
-                previousHistory
-            } else {
-                try {
-                    api.user(authorization, basicProfile.id, basicProfile.mode)
-                        .rankHistory
-                        ?.data
-                        .orEmpty()
-                        .filter { it > 0 }
-                        .takeLast(90)
-                        .also { historyRefreshed = true }
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    _events.tryEmit("osu! profile updated, but rank history could not be refreshed")
+            val rankHistory =
+                if (historyIsFresh) {
                     previousHistory
+                } else {
+                    try {
+                        api
+                            .user(authorization, basicProfile.id, basicProfile.mode)
+                            .rankHistory
+                            ?.data
+                            .orEmpty()
+                            .filter { it > 0 }
+                            .takeLast(90)
+                            .also { historyRefreshed = true }
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        _events.tryEmit("osu! profile updated, but rank history could not be refreshed")
+                        previousHistory
+                    }
                 }
-            }
             val profile = basicProfile.copy(rankHistory = rankHistory)
             store.saveProfile(profile)
             if (historyRefreshed) store.markRankHistoryFetched(now)
@@ -110,7 +122,7 @@ class AccountRepository(
             onSuccess = { lastAutoRefresh = System.currentTimeMillis() },
             onFailure = {
                 _events.tryEmit(it.message ?: "osu! profile could not be refreshed")
-            }
+            },
         )
     }
 
@@ -148,7 +160,7 @@ class AccountRepository(
             gradeS = (grades?.s ?: 0) + (grades?.sh ?: 0),
             gradeA = grades?.a ?: 0,
             gradeSSH = grades?.ssh ?: 0,
-            gradeSH = grades?.sh ?: 0
+            gradeSH = grades?.sh ?: 0,
         )
     }
 

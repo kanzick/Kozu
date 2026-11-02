@@ -97,7 +97,7 @@ fun PlayerScreen(
     onCancelSleepTimer: () -> Unit = {},
     onClearQueue: () -> Unit = {},
     onMoveQueueItem: (from: Int, to: Int) -> Unit = { _, _ -> },
-    onSaveAsPlaylist: (List<Beatmap>) -> Unit = {}
+    onSaveAsPlaylist: (List<Beatmap>) -> Unit = {},
 ) {
     var showQueue by remember { mutableStateOf(false) }
     var showSleep by remember { mutableStateOf(false) }
@@ -119,32 +119,39 @@ fun PlayerScreen(
     val coverScale by animateFloatAsState(
         targetValue = if (state.isPlaying) 1f else 0.9f,
         animationSpec = KozuMotion.spatial(),
-        label = "coverScale"
+        label = "coverScale",
     )
     val coverRadius by animateDpAsState(
         targetValue = if (state.isPlaying) 40.dp else 72.dp,
         animationSpec = KozuMotion.spatial(),
-        label = "coverRadius"
+        label = "coverRadius",
     )
 
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-            .pointerInput(Unit) { detectTapGestures { } }
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface)
+                .pointerInput(Unit) { detectTapGestures { } },
     ) {
         if (blurRadius > 0) {
-            val backdropRequest = remember(beatmap.id) {
-                ImageRequest.Builder(context).data(beatmap.thumbUrl).crossfade(400).build()
-            }
+            val backdropRequest =
+                remember(beatmap.id) {
+                    ImageRequest
+                        .Builder(context)
+                        .data(beatmap.thumbUrl)
+                        .crossfade(400)
+                        .build()
+                }
             AsyncImage(
                 model = backdropRequest,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer { alpha = 0.55f }
-                    .blur(blurRadius.dp, BlurredEdgeTreatment.Unbounded)
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .graphicsLayer { alpha = 0.55f }
+                        .blur(blurRadius.dp, BlurredEdgeTreatment.Unbounded),
             )
         } else {
             Box(
@@ -154,10 +161,10 @@ fun PlayerScreen(
                         Brush.verticalGradient(
                             listOf(
                                 MaterialTheme.colorScheme.surfaceContainerHigh,
-                                MaterialTheme.colorScheme.surface
-                            )
-                        )
-                    )
+                                MaterialTheme.colorScheme.surface,
+                            ),
+                        ),
+                    ),
             )
         }
         Box(
@@ -168,78 +175,88 @@ fun PlayerScreen(
                         listOf(
                             MaterialTheme.colorScheme.surface.copy(alpha = 0.35f),
                             MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
-                        )
-                    )
-                )
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                        ),
+                    ),
+                ),
         )
         BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .padding(horizontal = 24.dp, vertical = 12.dp)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 24.dp, vertical = 12.dp),
         ) {
             val artworkSize = minOf(maxWidth, maxHeight * if (maxHeight < 700.dp) 0.3f else 0.4f)
             val compact = maxHeight < 580.dp
             Column(
                 modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.SpaceBetween
+                verticalArrangement = Arrangement.SpaceBetween,
             ) {
                 PlayerTopBar(
                     onClose = onClose,
                     onQueue = { showQueue = true },
                     sleepActive = timer != null,
-                    onSleep = { showSleep = true }
+                    onSleep = { showSleep = true },
                 )
 
                 Box(
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .size(artworkSize)
-                        .then(
-                            if (settings.artworkSwipe) {
-                                Modifier.pointerInput(Unit) {
-                                    var dx = 0f
-                                    var dy = 0f
-                                    detectDragGestures(
-                                        onDragStart = { dx = 0f; dy = 0f },
-                                        onDragEnd = {
-                                            when {
-                                                dy > 160f && abs(dy) > abs(dx) -> onClose()
-                                                dx > 140f && abs(dx) > abs(dy) -> {
-                                                    haptics.tick()
-                                                    onPrevious()
+                    modifier =
+                        Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .size(artworkSize)
+                            .then(
+                                if (settings.artworkSwipe) {
+                                    Modifier.pointerInput(Unit) {
+                                        var dx = 0f
+                                        var dy = 0f
+                                        detectDragGestures(
+                                            onDragStart = {
+                                                dx = 0f
+                                                dy = 0f
+                                            },
+                                            onDragEnd = {
+                                                when {
+                                                    dy > 160f && abs(dy) > abs(dx) -> {
+                                                        onClose()
+                                                    }
+
+                                                    dx > 140f && abs(dx) > abs(dy) -> {
+                                                        haptics.tick()
+                                                        onPrevious()
+                                                    }
+
+                                                    dx < -140f && abs(dx) > abs(dy) -> {
+                                                        haptics.tick()
+                                                        onNext()
+                                                    }
                                                 }
-                                                dx < -140f && abs(dx) > abs(dy) -> {
-                                                    haptics.tick()
-                                                    onNext()
-                                                }
-                                            }
-                                        },
-                                        onDrag = { change, amount ->
-                                            change.consume()
-                                            dx += amount.x
-                                            dy += amount.y
-                                        }
-                                    )
-                                }
-                            } else {
-                                Modifier
-                            }
-                        ),
-                    contentAlignment = Alignment.Center
+                                            },
+                                            onDrag = { change, amount ->
+                                                change.consume()
+                                                dx += amount.x
+                                                dy += amount.y
+                                            },
+                                        )
+                                    }
+                                } else {
+                                    Modifier
+                                },
+                            ),
+                    contentAlignment = Alignment.Center,
                 ) {
                     BeatmapArt(
                         beatmap = beatmap,
                         large = true,
                         shape = RoundedCornerShape(coverRadius),
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer {
-                                scaleX = coverScale
-                                scaleY = coverScale
-                            }
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .graphicsLayer {
+                                    scaleX = coverScale
+                                    scaleY = coverScale
+                                },
                     )
                 }
 
@@ -249,14 +266,14 @@ fun PlayerScreen(
                             text = beatmap.displayTitle(LocalAppSettings.current.preferUnicode),
                             style = MaterialTheme.typography.headlineMedium,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
                         )
                         Text(
                             text = beatmap.displayArtist(LocalAppSettings.current.preferUnicode),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
                         )
                         if (beatmap.mapper.isNotBlank() && !compact) {
                             Text(
@@ -264,23 +281,24 @@ fun PlayerScreen(
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.primary,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                overflow = TextOverflow.Ellipsis,
                             )
                         }
                     }
                     Surface(
-                        modifier = Modifier
-                            .padding(start = 12.dp)
-                            .size(width = 56.dp, height = 56.dp)
-                            .bounceClick(onClick = onMore),
+                        modifier =
+                            Modifier
+                                .padding(start = 12.dp)
+                                .size(width = 56.dp, height = 56.dp)
+                                .bounceClick(onClick = onMore),
                         shape = RoundedCornerShape(20.dp),
-                        color = MaterialTheme.colorScheme.secondaryContainer
+                        color = MaterialTheme.colorScheme.secondaryContainer,
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 Icons.Rounded.MoreVert,
                                 contentDescription = "More options",
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
                             )
                         }
                     }
@@ -292,14 +310,14 @@ fun PlayerScreen(
                     duration = duration,
                     onSeek = onSeek,
                     animated = !performanceMode,
-                    fileInfo = if (settings.showFileInfo) fileInfo else null
+                    fileInfo = if (settings.showFileInfo) fileInfo else null,
                 )
 
                 TransportControls(
                     isPlaying = state.isPlaying,
                     onPrevious = onPrevious,
                     onPlayPause = onPlayPause,
-                    onNext = onNext
+                    onNext = onNext,
                 )
 
                 PlayerToggleRow(
@@ -308,7 +326,7 @@ fun PlayerScreen(
                     isFavorite = isFavorite,
                     onShuffle = onShuffle,
                     onRepeat = onRepeat,
-                    onFavorite = onFavorite
+                    onFavorite = onFavorite,
                 )
             }
         }
@@ -325,7 +343,7 @@ fun PlayerScreen(
             shuffle = state.shuffle,
             onClear = onClearQueue,
             onMove = onMoveQueueItem,
-            onSaveAsPlaylist = onSaveAsPlaylist
+            onSaveAsPlaylist = onSaveAsPlaylist,
         )
     }
 
@@ -335,10 +353,9 @@ fun PlayerScreen(
             onDismiss = { showSleep = false },
             onSetMinutes = onSetSleepTimer,
             onEndOfTrack = onSleepAtEndOfTrack,
-            onCancel = onCancelSleepTimer
+            onCancel = onCancelSleepTimer,
         )
     }
-
 }
 
 private val NoSleepTimer = MutableStateFlow<SleepTimer?>(null)
@@ -349,19 +366,20 @@ private fun PlayerTopBar(
     onClose: () -> Unit,
     onQueue: () -> Unit,
     sleepActive: Boolean,
-    onSleep: () -> Unit
+    onSleep: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Surface(
-            modifier = Modifier
-                .size(52.dp)
-                .bounceClick(onClick = onClose),
+            modifier =
+                Modifier
+                    .size(52.dp)
+                    .bounceClick(onClick = onClose),
             shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceContainerHighest
+            color = MaterialTheme.colorScheme.surfaceContainerHighest,
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "Close player")
@@ -373,22 +391,31 @@ private fun PlayerTopBar(
             style = MaterialTheme.typography.titleLarge,
             textAlign = TextAlign.Center,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis,
         )
         Surface(
-            modifier = Modifier
-                .size(52.dp)
-                .bounceClick(onClick = onSleep),
+            modifier =
+                Modifier
+                    .size(52.dp)
+                    .bounceClick(onClick = onSleep),
             shape = CircleShape,
-            color = if (sleepActive) MaterialTheme.colorScheme.primaryContainer
-            else MaterialTheme.colorScheme.surfaceContainerHighest
+            color =
+                if (sleepActive) {
+                    MaterialTheme.colorScheme.primaryContainer
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainerHighest
+                },
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     Icons.Rounded.Bedtime,
                     contentDescription = if (sleepActive) "Sleep timer active" else "Sleep timer",
-                    tint = if (sleepActive) MaterialTheme.colorScheme.onPrimaryContainer
-                    else MaterialTheme.colorScheme.onSurface
+                    tint =
+                        if (sleepActive) {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
                 )
                 if (sleepActive) {
                     Box(
@@ -396,18 +423,19 @@ private fun PlayerTopBar(
                             .align(Alignment.TopEnd)
                             .padding(top = 11.dp, end = 11.dp)
                             .size(8.dp)
-                            .background(MaterialTheme.colorScheme.primary, CircleShape)
+                            .background(MaterialTheme.colorScheme.primary, CircleShape),
                     )
                 }
             }
         }
         Spacer(Modifier.width(8.dp))
         Surface(
-            modifier = Modifier
-                .size(52.dp)
-                .bounceClick(onClick = onQueue),
+            modifier =
+                Modifier
+                    .size(52.dp)
+                    .bounceClick(onClick = onQueue),
             shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceContainerHighest
+            color = MaterialTheme.colorScheme.surfaceContainerHighest,
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(Icons.AutoMirrored.Rounded.QueueMusic, contentDescription = "Queue")
@@ -423,7 +451,7 @@ private fun PlayerProgress(
     duration: StateFlow<Long>,
     onSeek: (Long) -> Unit,
     animated: Boolean,
-    fileInfo: String?
+    fileInfo: String?,
 ) {
     val pos by position.collectAsStateWithLifecycle()
     val dur by duration.collectAsStateWithLifecycle()
@@ -445,36 +473,37 @@ private fun PlayerProgress(
             },
             activeColor = MaterialTheme.colorScheme.primary,
             inactiveColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-            animated = animated
+            animated = animated,
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
                 text = formatTime(shownMs),
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.weight(1f))
             Text(
                 text = formatTime(dur),
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         if (!fileInfo.isNullOrBlank()) {
             Text(
                 text = fileInfo,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 2.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = 2.dp),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }

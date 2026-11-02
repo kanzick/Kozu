@@ -1,4 +1,4 @@
-﻿package vn.kozu.ui.settings
+package vn.kozu.ui.settings
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
@@ -43,11 +43,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberBottomSheetState
+import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
@@ -74,18 +76,21 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.lerp as lerpDp
 import kotlinx.coroutines.delay
 import vn.kozu.ui.components.LocalPerformanceMode
 import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.rememberKozuHaptics
+import androidx.compose.ui.unit.lerp as lerpDp
 
 val LocalSettingsHighlight = compositionLocalOf<String?> { null }
 
 private val LargeCorner = 26.dp
 private val SmallCorner = 5.dp
 
-fun groupShape(index: Int, count: Int): Shape {
+fun groupShape(
+    index: Int,
+    count: Int,
+): Shape {
     val top = if (index == 0) LargeCorner else SmallCorner
     val bottom = if (index == count - 1) LargeCorner else SmallCorner
     return RoundedCornerShape(topStart = top, topEnd = top, bottomStart = bottom, bottomEnd = bottom)
@@ -96,7 +101,7 @@ fun SettingsPageScaffold(
     title: String,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    content: @Composable ColumnScope.() -> Unit
+    content: @Composable ColumnScope.() -> Unit,
 ) {
     val density = LocalDensity.current
     val statusTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -105,18 +110,22 @@ fun SettingsPageScaffold(
     var headerPx by remember(maxPx) { mutableFloatStateOf(maxPx) }
     val scroll = rememberScrollState()
 
-    val connection = remember(minPx, maxPx) {
-        object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                val dy = available.y
-                if (dy > 0f && scroll.value > 0) return Offset.Zero
-                val old = headerPx
-                val updated = (old + dy).coerceIn(minPx, maxPx)
-                headerPx = updated
-                return Offset(0f, updated - old)
+    val connection =
+        remember(minPx, maxPx) {
+            object : NestedScrollConnection {
+                override fun onPreScroll(
+                    available: Offset,
+                    source: NestedScrollSource,
+                ): Offset {
+                    val dy = available.y
+                    if (dy > 0f && scroll.value > 0) return Offset.Zero
+                    val old = headerPx
+                    val updated = (old + dy).coerceIn(minPx, maxPx)
+                    headerPx = updated
+                    return Offset(0f, updated - old)
+                }
             }
         }
-    }
 
     LaunchedEffect(scroll.isScrollInProgress, minPx, maxPx) {
         if (scroll.isScrollInProgress) return@LaunchedEffect
@@ -126,7 +135,7 @@ fun SettingsPageScaffold(
             animate(
                 initialValue = headerPx,
                 targetValue = target,
-                animationSpec = spring(stiffness = Spring.StiffnessMedium)
+                animationSpec = spring(stiffness = Spring.StiffnessMedium),
             ) { value, _ -> headerPx = value }
         }
     }
@@ -135,20 +144,22 @@ fun SettingsPageScaffold(
     val headerDp = with(density) { headerPx.toDp() }
 
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-            .nestedScroll(connection)
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface)
+                .nestedScroll(connection),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = headerDp)
-                .imePadding()
-                .verticalScroll(scroll)
-                .navigationBarsPadding()
-                .padding(horizontal = 16.dp)
-                .padding(top = 4.dp, bottom = 32.dp)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(top = headerDp)
+                    .imePadding()
+                    .verticalScroll(scroll)
+                    .navigationBarsPadding()
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 4.dp, bottom = 32.dp),
         ) {
             content()
         }
@@ -158,7 +169,7 @@ fun SettingsPageScaffold(
             fraction = fraction,
             height = headerDp,
             statusTop = statusTop,
-            onBack = onBack
+            onBack = onBack,
         )
     }
 }
@@ -169,22 +180,24 @@ private fun CollapsingHeader(
     fraction: Float,
     height: Dp,
     statusTop: Dp,
-    onBack: () -> Unit
+    onBack: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(height)
-            .background(lerp(colors.surface, colors.surfaceContainer, fraction))
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(height)
+                .background(lerp(colors.surface, colors.surfaceContainer, fraction)),
     ) {
         Surface(
-            modifier = Modifier
-                .padding(start = 16.dp, top = statusTop + 8.dp)
-                .size(48.dp)
-                .bounceClick(onClick = onBack),
+            modifier =
+                Modifier
+                    .padding(start = 16.dp, top = statusTop + 8.dp)
+                    .size(48.dp)
+                    .bounceClick(onClick = onBack),
             shape = CircleShape,
-            color = colors.surfaceContainerHighest
+            color = colors.surfaceContainerHighest,
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
@@ -196,19 +209,19 @@ private fun CollapsingHeader(
             color = colors.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(
-                    start = lerpDp(24.dp, 80.dp, fraction),
-                    end = 24.dp,
-                    bottom = lerpDp(20.dp, 17.dp, fraction)
-                )
-                .graphicsLayer {
-                    val scale = 1f - 0.4f * fraction
-                    scaleX = scale
-                    scaleY = scale
-                    transformOrigin = TransformOrigin(0f, 1f)
-                }
+            modifier =
+                Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(
+                        start = lerpDp(24.dp, 80.dp, fraction),
+                        end = 24.dp,
+                        bottom = lerpDp(20.dp, 17.dp, fraction),
+                    ).graphicsLayer {
+                        val scale = 1f - 0.4f * fraction
+                        scaleX = scale
+                        scaleY = scale
+                        transformOrigin = TransformOrigin(0f, 1f)
+                    },
         )
     }
 }
@@ -225,7 +238,7 @@ class SettingsGroupScope {
         checked: Boolean,
         enabled: Boolean = true,
         description: String = setting.description,
-        onChange: (Boolean) -> Unit
+        onChange: (Boolean) -> Unit,
     ) = custom { shape ->
         SwitchItem(setting, checked, enabled, description, shape, onChange)
     }
@@ -237,7 +250,7 @@ class SettingsGroupScope {
         label: (T) -> String,
         description: String = setting.description,
         leading: (@Composable (T) -> Unit)? = null,
-        onSelect: (T) -> Unit
+        onSelect: (T) -> Unit,
     ) = custom { shape ->
         DropdownItem(setting, value, options, label, description, leading, shape, onSelect)
     }
@@ -250,7 +263,7 @@ class SettingsGroupScope {
         steps: Int = 0,
         enabled: Boolean = true,
         description: String = setting.description,
-        onChange: (Float) -> Unit
+        onChange: (Float) -> Unit,
     ) = custom { shape ->
         SliderItem(setting, value, range, steps, valueLabel, enabled, description, shape, onChange)
     }
@@ -259,7 +272,7 @@ class SettingsGroupScope {
         setting: Setting,
         value: String? = null,
         description: String = setting.description,
-        onClick: () -> Unit
+        onClick: () -> Unit,
     ) = custom { shape ->
         NavigationItem(setting, value, description, shape, onClick)
     }
@@ -270,7 +283,7 @@ class SettingsGroupScope {
         description: String = setting.description,
         enabled: Boolean = true,
         destructive: Boolean = false,
-        onClick: () -> Unit
+        onClick: () -> Unit,
     ) = custom { shape ->
         ActionItem(setting, label, description, enabled, destructive, shape, onClick)
     }
@@ -279,7 +292,7 @@ class SettingsGroupScope {
         icon: ImageVector,
         title: String,
         value: String,
-        description: String? = null
+        description: String? = null,
     ) = custom { shape ->
         InfoItem(icon, title, value, description, shape)
     }
@@ -289,7 +302,7 @@ class SettingsGroupScope {
 fun SettingsSection(
     title: String?,
     modifier: Modifier = Modifier,
-    content: SettingsGroupScope.() -> Unit
+    content: SettingsGroupScope.() -> Unit,
 ) {
     val scope = SettingsGroupScope().apply(content)
     Column(modifier.fillMaxWidth()) {
@@ -312,7 +325,7 @@ fun SettingsSectionTitle(title: String) {
         text = title,
         style = MaterialTheme.typography.titleSmall,
         color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(start = 24.dp, top = 18.dp, bottom = 10.dp)
+        modifier = Modifier.padding(start = 24.dp, top = 18.dp, bottom = 10.dp),
     )
 }
 
@@ -323,7 +336,7 @@ internal fun SettingCard(
     shape: Shape,
     onClick: (() -> Unit)?,
     enabled: Boolean = true,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
     val highlight = LocalSettingsHighlight.current
     val isTarget = setting != null && highlight == setting.name
@@ -349,9 +362,10 @@ internal fun SettingCard(
 
     val colors = MaterialTheme.colorScheme
     val container = lerp(colors.surfaceContainer, colors.primaryContainer, flash.value)
-    val modifier = Modifier
-        .fillMaxWidth()
-        .bringIntoViewRequester(bring)
+    val modifier =
+        Modifier
+            .fillMaxWidth()
+            .bringIntoViewRequester(bring)
 
     if (onClick != null) {
         Surface(
@@ -360,25 +374,28 @@ internal fun SettingCard(
             modifier = modifier,
             shape = shape,
             color = container,
-            contentColor = colors.onSurface
+            contentColor = colors.onSurface,
         ) { content() }
     } else {
         Surface(
             modifier = modifier,
             shape = shape,
             color = container,
-            contentColor = colors.onSurface
+            contentColor = colors.onSurface,
         ) { content() }
     }
 }
 
 @Composable
-internal fun IconBadge(icon: ImageVector, enabled: Boolean = true) {
+internal fun IconBadge(
+    icon: ImageVector,
+    enabled: Boolean = true,
+) {
     Surface(
         modifier = Modifier.size(44.dp),
         shape = CircleShape,
         color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = if (enabled) 1f else 0.5f),
-        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(icon, contentDescription = null, modifier = Modifier.size(22.dp))
@@ -392,20 +409,20 @@ internal fun ItemText(
     description: String?,
     enabled: Boolean = true,
     modifier: Modifier = Modifier,
-    extra: (@Composable () -> Unit)? = null
+    extra: (@Composable () -> Unit)? = null,
 ) {
     val alpha = if (enabled) 1f else 0.5f
     Column(modifier) {
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha)
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
         )
         if (!description.isNullOrBlank()) {
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha)
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha),
             )
         }
         extra?.invoke()
@@ -419,7 +436,7 @@ private fun SwitchItem(
     enabled: Boolean,
     description: String,
     shape: Shape,
-    onChange: (Boolean) -> Unit
+    onChange: (Boolean) -> Unit,
 ) {
     val haptics = rememberKozuHaptics()
     SettingCard(
@@ -429,11 +446,11 @@ private fun SwitchItem(
         onClick = {
             haptics.tick()
             onChange(!checked)
-        }
+        },
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             IconBadge(setting.icon, enabled)
             Spacer(Modifier.width(14.dp))
@@ -450,9 +467,9 @@ private fun SwitchItem(
                     Icon(
                         imageVector = if (checked) Icons.Rounded.Check else Icons.Rounded.Close,
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(16.dp),
                     )
-                }
+                },
             )
         }
     }
@@ -467,13 +484,13 @@ private fun <T> DropdownItem(
     description: String,
     leading: (@Composable (T) -> Unit)?,
     shape: Shape,
-    onSelect: (T) -> Unit
+    onSelect: (T) -> Unit,
 ) {
     var open by rememberSaveable { mutableStateOf(false) }
     SettingCard(setting = setting, shape = shape, onClick = { open = true }) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.Top
+            verticalAlignment = Alignment.Top,
         ) {
             IconBadge(setting.icon)
             Spacer(Modifier.width(14.dp))
@@ -494,27 +511,30 @@ private fun <T> DropdownItem(
                 onSelect(it)
                 open = false
             },
-            onDismiss = { open = false }
+            onDismiss = { open = false },
         )
     }
 }
 
 @Composable
-fun ValueChip(text: String, leading: (@Composable () -> Unit)? = null) {
+fun ValueChip(
+    text: String,
+    leading: (@Composable () -> Unit)? = null,
+) {
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLowest
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             leading?.invoke()
             Text(
                 text = text,
                 style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.primary,
             )
         }
     }
@@ -529,25 +549,30 @@ fun <T> OptionSheet(
     label: (T) -> String,
     leading: (@Composable (T) -> Unit)? = null,
     onSelect: (T) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = MaterialTheme.colorScheme.surface
+        sheetState =
+            rememberBottomSheetState(
+                initialValue = SheetValue.Hidden,
+                enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
+            ),
+        containerColor = MaterialTheme.colorScheme.surface,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 24.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 24.dp),
         ) {
             Text(
                 title,
                 style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(vertical = 8.dp)
+                modifier = Modifier.padding(vertical = 8.dp),
             )
             Spacer(Modifier.height(8.dp))
             options.forEachIndexed { index, option ->
@@ -555,18 +580,20 @@ fun <T> OptionSheet(
                 Surface(
                     onClick = { onSelect(option) },
                     shape = groupShape(index, options.size),
-                    color = if (isSelected) {
-                        MaterialTheme.colorScheme.primaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.surfaceContainerHigh
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 62.dp)
+                    color =
+                        if (isSelected) {
+                            MaterialTheme.colorScheme.primaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.surfaceContainerHigh
+                        },
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 62.dp),
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         leading?.let {
                             it(option)
@@ -576,17 +603,18 @@ fun <T> OptionSheet(
                             label(option),
                             modifier = Modifier.weight(1f),
                             style = MaterialTheme.typography.titleMedium,
-                            color = if (isSelected) {
-                                MaterialTheme.colorScheme.onPrimaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            }
+                            color =
+                                if (isSelected) {
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                },
                         )
                         if (isSelected) {
                             Icon(
                                 Icons.Rounded.Check,
                                 contentDescription = "Selected",
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
                             )
                         }
                     }
@@ -607,9 +635,14 @@ private fun SliderItem(
     enabled: Boolean,
     description: String,
     shape: Shape,
-    onChange: (Float) -> Unit
+    onChange: (Float) -> Unit,
 ) {
     var draft by remember(value) { mutableFloatStateOf(value) }
+    val sliderState = rememberSliderState(value = draft, steps = steps, trackRange = range)
+    LaunchedEffect(value, sliderState) {
+        draft = value
+        sliderState.value = value
+    }
     SettingCard(setting = setting, shape = shape, onClick = null) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -620,13 +653,11 @@ private fun SliderItem(
                 ValueChip(valueLabel(draft))
             }
             Slider(
-                value = draft,
+                state = sliderState,
                 onValueChange = { draft = it },
                 onValueChangeFinished = { onChange(draft) },
-                valueRange = range,
-                steps = steps,
                 enabled = enabled,
-                modifier = Modifier.padding(top = 4.dp)
+                modifier = Modifier.padding(top = 4.dp),
             )
         }
     }
@@ -638,12 +669,12 @@ private fun NavigationItem(
     value: String?,
     description: String,
     shape: Shape,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     SettingCard(setting = setting, shape = shape, onClick = onClick) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             IconBadge(setting.icon)
             Spacer(Modifier.width(14.dp))
@@ -656,7 +687,7 @@ private fun NavigationItem(
             Icon(
                 Icons.AutoMirrored.Rounded.KeyboardArrowRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -670,12 +701,12 @@ private fun ActionItem(
     enabled: Boolean,
     destructive: Boolean,
     shape: Shape,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     SettingCard(setting = setting, shape = shape, onClick = null) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.Top
+            verticalAlignment = Alignment.Top,
         ) {
             IconBadge(setting.icon, enabled)
             Spacer(Modifier.width(14.dp))
@@ -699,12 +730,12 @@ private fun InfoItem(
     title: String,
     value: String,
     description: String?,
-    shape: Shape
+    shape: Shape,
 ) {
     SettingCard(setting = null, shape = shape, onClick = null) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             IconBadge(icon)
             Spacer(Modifier.width(14.dp))
@@ -716,7 +747,7 @@ private fun InfoItem(
                 color = MaterialTheme.colorScheme.primary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.widthIn(max = 160.dp)
+                modifier = Modifier.widthIn(max = 160.dp),
             )
         }
     }
@@ -727,7 +758,7 @@ fun SettingsCard(
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(LargeCorner),
     color: Color = MaterialTheme.colorScheme.surfaceContainer,
-    content: @Composable ColumnScope.() -> Unit
+    content: @Composable ColumnScope.() -> Unit,
 ) {
     Surface(modifier = modifier.fillMaxWidth(), shape = shape, color = color) {
         Column(Modifier.padding(horizontal = 18.dp, vertical = 16.dp), content = content)

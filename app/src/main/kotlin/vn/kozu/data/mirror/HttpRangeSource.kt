@@ -10,9 +10,9 @@ class HttpRangeSource(
     private val client: OkHttpClient,
     private val url: String,
     private val referer: String = "",
-    private val authorization: String = ""
-) : RangeSource, TailRangeSource {
-
+    private val authorization: String = "",
+) : RangeSource,
+    TailRangeSource {
     private var total = -1L
 
     override fun length(): Long {
@@ -21,8 +21,9 @@ class HttpRangeSource(
             if (response.code != 206) {
                 throw IOException("Range requests not supported (HTTP ${response.code})")
             }
-            val header = response.header("Content-Range")
-                ?: throw IOException("Missing Content-Range")
+            val header =
+                response.header("Content-Range")
+                    ?: throw IOException("Missing Content-Range")
             total = header.substringAfter('/').trim().toLongOrNull()
                 ?: throw IOException("Unknown archive size")
         }
@@ -52,17 +53,21 @@ class HttpRangeSource(
         }
     }
 
-    override fun open(offset: Long, endInclusive: Long): InputStream {
+    override fun open(
+        offset: Long,
+        endInclusive: Long,
+    ): InputStream {
         val response = client.newCall(build("bytes=$offset-$endInclusive")).execute()
         if (response.code != 206) {
             response.close()
             throw IOException("Range request failed (HTTP ${response.code})")
         }
         val contentRange = response.header("Content-Range")
-        val actualStart = contentRange
-            ?.removePrefix("bytes ")
-            ?.substringBefore('-')
-            ?.toLongOrNull()
+        val actualStart =
+            contentRange
+                ?.removePrefix("bytes ")
+                ?.substringBefore('-')
+                ?.toLongOrNull()
         if (actualStart != offset) {
             response.close()
             throw IOException("Mirror returned an unexpected byte range")
@@ -80,9 +85,11 @@ class HttpRangeSource(
     }
 
     private fun build(range: String): Request {
-        val builder = Request.Builder()
-            .url(url)
-            .header("Range", range)
+        val builder =
+            Request
+                .Builder()
+                .url(url)
+                .header("Range", range)
         if (referer.isNotBlank()) builder.header("Referer", referer)
         if (authorization.isNotBlank()) builder.header("Authorization", authorization)
         return builder.build()

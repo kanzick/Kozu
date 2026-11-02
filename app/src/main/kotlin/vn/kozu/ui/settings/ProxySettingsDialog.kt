@@ -56,7 +56,7 @@ private val hostPattern = Regex("^[A-Za-z0-9._\\-]+$|^\\[[0-9A-Fa-f:.]+]$|^[0-9A
 fun ProxySettingsDialog(
     current: ProxySettings,
     onDismiss: () -> Unit,
-    onSave: (ProxySettings) -> Unit
+    onSave: (ProxySettings) -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -79,13 +79,14 @@ fun ProxySettingsDialog(
     val portError = enabled && port.isNotEmpty() && (portNumber == null || portNumber !in 1..65535)
     val valid = !enabled || (trimmedHost.isNotEmpty() && !hostError && portNumber != null && portNumber in 1..65535)
 
-    fun proposed() = ProxySettings(
-        type = type,
-        host = trimmedHost,
-        port = portNumber ?: 0,
-        username = user.trim(),
-        password = password
-    )
+    fun proposed() =
+        ProxySettings(
+            type = type,
+            host = trimmedHost,
+            port = portNumber ?: 0,
+            username = user.trim(),
+            password = password,
+        )
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -93,7 +94,7 @@ fun ProxySettingsDialog(
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 ExposedDropdownMenuBox(expanded = menuOpen, onExpandedChange = { menuOpen = it }) {
                     OutlinedTextField(
@@ -102,9 +103,10 @@ fun ProxySettingsDialog(
                         readOnly = true,
                         label = { Text("Type") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = menuOpen) },
-                        modifier = Modifier
-                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-                            .fillMaxWidth()
+                        modifier =
+                            Modifier
+                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                                .fillMaxWidth(),
                     )
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                         ProxyType.entries.forEach { option ->
@@ -114,7 +116,7 @@ fun ProxySettingsDialog(
                                     type = option
                                     testResult = null
                                     menuOpen = false
-                                }
+                                },
                             )
                         }
                     }
@@ -122,20 +124,23 @@ fun ProxySettingsDialog(
                 OutlinedTextField(
                     value = host,
                     onValueChange = {
-                        host = it.take(253)
+                        host = it.replace("\n", "").take(253)
                         testResult = null
                     },
                     enabled = enabled,
-                    singleLine = true,
+                    singleLine = false,
+                    minLines = 1,
+                    maxLines = 2,
                     label = { Text("Host") },
                     isError = hostError,
-                    supportingText = if (hostError) {
-                        { Text("Enter a valid host name or IP address") }
-                    } else {
-                        null
-                    },
+                    supportingText =
+                        if (hostError) {
+                            { Text("Enter a valid host name or IP address") }
+                        } else {
+                            null
+                        },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(
                     value = port,
@@ -147,33 +152,38 @@ fun ProxySettingsDialog(
                     singleLine = true,
                     label = { Text("Port") },
                     isError = portError,
-                    supportingText = if (portError) {
-                        { Text("Port must be between 1 and 65535") }
-                    } else {
-                        null
-                    },
+                    supportingText =
+                        if (portError) {
+                            { Text("Port must be between 1 and 65535") }
+                        } else {
+                            null
+                        },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(
                     value = user,
                     onValueChange = {
-                        user = it.take(128)
+                        user = it.replace("\n", "").take(128)
                         testResult = null
                     },
                     enabled = enabled,
-                    singleLine = true,
+                    singleLine = false,
+                    minLines = 1,
+                    maxLines = 2,
                     label = { Text("Username (optional)") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(
                     value = password,
                     onValueChange = {
-                        password = it.take(128)
+                        password = it.replace("\n", "").take(128)
                         testResult = null
                     },
                     enabled = enabled,
-                    singleLine = true,
+                    singleLine = false,
+                    minLines = 1,
+                    maxLines = 2,
                     label = { Text("Password (optional)") },
                     visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -181,11 +191,11 @@ fun ProxySettingsDialog(
                         IconButton(onClick = { showPassword = !showPassword }, enabled = enabled) {
                             Icon(
                                 if (showPassword) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
-                                contentDescription = if (showPassword) "Hide password" else "Show password"
+                                contentDescription = if (showPassword) "Hide password" else "Show password",
                             )
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     OutlinedButton(
@@ -197,25 +207,33 @@ fun ProxySettingsDialog(
                                 testing = false
                             }
                         },
-                        enabled = enabled && valid && !testing
+                        enabled = enabled && valid && !testing,
                     ) { Text("Test connection") }
                     Spacer(Modifier.width(12.dp))
                     if (testing) {
                         CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                     }
                     when (val result = testResult) {
-                        is ProxyTestResult.Success -> Text(
-                            "Connected in ${result.latencyMs} ms",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        is ProxyTestResult.Failure -> Text(
-                            result.message,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.weight(1f)
-                        )
-                        null -> Unit
+                        is ProxyTestResult.Success -> {
+                            Text(
+                                "Connected in ${result.latencyMs} ms",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+
+                        is ProxyTestResult.Failure -> {
+                            Text(
+                                result.message,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+
+                        null -> {
+                            Unit
+                        }
                     }
                 }
                 Text(
@@ -225,7 +243,7 @@ fun ProxySettingsDialog(
                         "Kozu connects directly to the internet."
                     },
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(2.dp))
             }
@@ -233,6 +251,6 @@ fun ProxySettingsDialog(
         confirmButton = {
             TextButton(onClick = { onSave(proposed()) }, enabled = valid && !testing) { Text("Save") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }

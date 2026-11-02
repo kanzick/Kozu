@@ -14,20 +14,25 @@ import androidx.compose.ui.platform.LocalContext
 @Composable
 fun rememberIsMetered(): State<Boolean> {
     val context = LocalContext.current
-    val connectivity = remember {
-        context.applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-    }
+    val connectivity =
+        remember {
+            context.applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        }
     val state = remember { mutableStateOf(connectivity.isActiveNetworkMetered) }
     DisposableEffect(connectivity) {
-        val callback = object : ConnectivityManager.NetworkCallback() {
-            override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
-                state.value = !capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
-            }
+        val callback =
+            object : ConnectivityManager.NetworkCallback() {
+                override fun onCapabilitiesChanged(
+                    network: Network,
+                    capabilities: NetworkCapabilities,
+                ) {
+                    state.value = !capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
+                }
 
-            override fun onLost(network: Network) {
-                state.value = connectivity.isActiveNetworkMetered
+                override fun onLost(network: Network) {
+                    state.value = connectivity.isActiveNetworkMetered
+                }
             }
-        }
         try {
             connectivity.registerDefaultNetworkCallback(callback)
         } catch (_: Exception) {

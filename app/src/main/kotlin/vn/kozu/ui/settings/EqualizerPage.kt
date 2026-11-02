@@ -19,8 +19,10 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.rememberSliderState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -92,13 +94,12 @@ fun EqualizerPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                 valueLabel = { percent(it) },
                 enabled = enabled
             ) { value -> viewModel.save { setBassBoost(value.toInt()) } }
-            slider(
+            switch(
                 Setting.VIRTUALIZER,
-                settings.virtualizer.toFloat(),
-                0f..1000f,
-                valueLabel = { percent(it) },
-                enabled = enabled
-            ) { value -> viewModel.save { setVirtualizer(value.toInt()) } }
+                settings.virtualizer > 0,
+                enabled = enabled,
+                description = Setting.VIRTUALIZER.description
+            ) { checked -> viewModel.save { setVirtualizer(if (checked) 1000 else 0) } }
             slider(
                 Setting.LOUDNESS,
                 settings.loudness.toFloat(),
@@ -188,6 +189,8 @@ private fun Band(
     onCommit: () -> Unit
 ) {
     val alpha = if (enabled) 1f else 0.5f
+    val sliderState = rememberSliderState(value = gain, trackRange = -1f..1f)
+    LaunchedEffect(gain, sliderState) { sliderState.value = gain }
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(56.dp)) {
         Text(
             text = String.format(Locale.US, "%+.1f", gain * EqualizerProfile.MAX_GAIN_DB),
@@ -197,10 +200,9 @@ private fun Band(
         Spacer(Modifier.height(4.dp))
         Box(Modifier.size(width = 48.dp, height = 200.dp)) {
             Slider(
-                value = gain,
+                state = sliderState,
                 onValueChange = onChange,
                 onValueChangeFinished = onCommit,
-                valueRange = -1f..1f,
                 enabled = enabled,
                 modifier = Modifier
                     .size(width = 48.dp, height = 200.dp)

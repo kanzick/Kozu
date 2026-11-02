@@ -94,13 +94,13 @@ fun kozuColorScheme(
             outline = neutralVariant.tone(60),
             outlineVariant = neutralVariant.tone(30),
             scrim = Color.Black,
-            surfaceBright = neutral.tone(if (amoled) 24 else 28),
+            surfaceBright = neutral.tone(if (amoled) 20 else 28),
             surfaceDim = neutral.tone(base),
             surfaceContainerLowest = neutral.tone(if (amoled) 0 else 4),
-            surfaceContainerLow = neutral.tone(if (amoled) 14 else 12),
-            surfaceContainer = neutral.tone(if (amoled) 20 else 16),
-            surfaceContainerHigh = neutral.tone(if (amoled) 26 else 22),
-            surfaceContainerHighest = neutral.tone(if (amoled) 32 else 28)
+            surfaceContainerLow = neutral.tone(if (amoled) 4 else 12),
+            surfaceContainer = neutral.tone(if (amoled) 8 else 16),
+            surfaceContainerHigh = neutral.tone(if (amoled) 12 else 22),
+            surfaceContainerHighest = neutral.tone(if (amoled) 16 else 28)
         )
     } else {
         lightColorScheme(

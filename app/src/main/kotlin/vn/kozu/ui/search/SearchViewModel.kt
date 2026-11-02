@@ -32,19 +32,21 @@ data class SearchUiState(
     val hasMore: Boolean = false,
     val isLoadingMore: Boolean = false,
     val loadMoreError: String? = null,
-    val isLoggedIn: Boolean = false
+    val isLoggedIn: Boolean = false,
 ) {
     val query: String get() = filters.query
     val isIdle: Boolean get() = filters.trimmedQuery.isEmpty() && !filters.hasActiveFilters
 }
 
-class SearchViewModel(private val container: AppContainer) : ViewModel() {
-
+class SearchViewModel(
+    private val container: AppContainer,
+) : ViewModel() {
     private val _ui = MutableStateFlow(SearchUiState())
     val ui: StateFlow<SearchUiState> = _ui.asStateFlow()
 
-    val recentSearches: StateFlow<List<String>> = container.settings.recentSearches
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val recentSearches: StateFlow<List<String>> =
+        container.settings.recentSearches
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private var job: Job? = null
     private var cursor: String? = null
@@ -86,12 +88,17 @@ class SearchViewModel(private val container: AppContainer) : ViewModel() {
 
     fun resetFilters() {
         val explicit = _ui.value.filters.explicit
-        applyFilters(_ui.value.filters.resetFilters().copy(explicit = explicit))
+        applyFilters(
+            _ui.value.filters
+                .resetFilters()
+                .copy(explicit = explicit),
+        )
     }
 
     fun onCategoryChange(value: SearchCategory?) {
-        val genre = value?.let { category -> BrowseGenre.entries.firstOrNull { it.id == category.genreId } }
-            ?: BrowseGenre.ANY
+        val genre =
+            value?.let { category -> BrowseGenre.entries.firstOrNull { it.id == category.genreId } }
+                ?: BrowseGenre.ANY
         updateFilters { it.copy(genre = genre) }
     }
 
@@ -105,6 +112,7 @@ class SearchViewModel(private val container: AppContainer) : ViewModel() {
     }
 
     fun removeRecent(query: String) = viewModelScope.launch { container.settings.removeRecentSearch(query) }
+
     fun clearRecents() = viewModelScope.launch { container.settings.clearRecentSearches() }
 
     fun loadMore() {
@@ -127,7 +135,7 @@ class SearchViewModel(private val container: AppContainer) : ViewModel() {
                 it.copy(
                     results = (it.results + result.items).distinctBy { beatmap -> beatmap.id },
                     isLoadingMore = false,
-                    hasMore = !exhausted
+                    hasMore = !exhausted,
                 )
             }
         }
@@ -143,23 +151,24 @@ class SearchViewModel(private val container: AppContainer) : ViewModel() {
             }
             return
         }
-        job = viewModelScope.launch {
-            if (delayMs > 0) delay(delayMs)
-            _ui.update { it.copy(phase = SearchPhase.LOADING, error = null, hasMore = false, isLoadingMore = false) }
-            val result = container.catalog.browse(_ui.value.filters, null)
-            if (token != generation) return@launch
-            cursor = result.nextCursor
-            _ui.update {
-                it.copy(
-                    phase = SearchPhase.DONE,
-                    results = result.items.distinctBy { beatmap -> beatmap.id },
-                    total = result.total,
-                    source = result.source,
-                    error = result.error,
-                    hasMore = result.nextCursor != null
-                )
+        job =
+            viewModelScope.launch {
+                if (delayMs > 0) delay(delayMs)
+                _ui.update { it.copy(phase = SearchPhase.LOADING, error = null, hasMore = false, isLoadingMore = false) }
+                val result = container.catalog.browse(_ui.value.filters, null)
+                if (token != generation) return@launch
+                cursor = result.nextCursor
+                _ui.update {
+                    it.copy(
+                        phase = SearchPhase.DONE,
+                        results = result.items.distinctBy { beatmap -> beatmap.id },
+                        total = result.total,
+                        source = result.source,
+                        error = result.error,
+                        hasMore = result.nextCursor != null,
+                    )
+                }
             }
-        }
     }
 
     companion object {

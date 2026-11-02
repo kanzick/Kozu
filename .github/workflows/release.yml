@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   release:
-    name: Build APK
+    name: Build release APK
     runs-on: ubuntu-24.04
     timeout-minutes: 45
 
@@ -155,11 +155,11 @@ jobs:
           mkdir -p dist
 
           variants=(
-            "arm64-v8a:app-arm64-v8a-release.apk"
-            "armeabi-v7a:app-armeabi-v7a-release.apk"
-            "universal:app-universal-release.apk"
-            "x86:app-x86-release.apk"
-            "x86_64:app-x86_64-release.apk"
+            "arm64-v8a:app-arm64-v8a-release.apk:kozu-arm64-v8a.apk"
+            "armeabi-v7a:app-armeabi-v7a-release.apk:kozu-armeabi-v7a.apk"
+            "universal:app-universal-release.apk:kozu-universal.apk"
+            "x86:app-x86-release.apk:kozu-x86.apk"
+            "x86_64:app-x86_64-release.apk:kozu-x86_64.apk"
           )
 
           expected_apks=(
@@ -186,9 +186,11 @@ jobs:
 
           for variant in "${variants[@]}"; do
             label="${variant%%:*}"
-            filename="${variant#*:}"
+            remainder="${variant#*:}"
+            filename="${remainder%%:*}"
+            release_filename="${remainder#*:}"
             source="$output/$filename"
-            destination="dist/$filename"
+            destination="dist/$release_filename"
 
             if [[ ! -f "$source" ]]; then
               echo "::error::Missing APK: $source"
@@ -277,7 +279,7 @@ jobs:
 
             cp "$source" "$destination"
 
-            echo "Verified: $filename"
+            echo "Verified: $filename -> $release_filename"
           done
 
           echo "All APKs passed verification."
@@ -290,12 +292,20 @@ jobs:
         run: |
           set -euo pipefail
 
+          while IFS= read -r asset; do
+            case "$asset" in
+              app-arm64-v8a-release.apk|app-armeabi-v7a-release.apk|app-universal-release.apk|app-x86-release.apk|app-x86_64-release.apk)
+                gh release delete-asset "$TAG" "$asset" --yes
+                ;;
+            esac
+          done < <(gh release view "$TAG" --json assets --jq '.assets[].name')
+
           gh release upload "$TAG" \
-            dist/app-arm64-v8a-release.apk \
-            dist/app-armeabi-v7a-release.apk \
-            dist/app-universal-release.apk \
-            dist/app-x86-release.apk \
-            dist/app-x86_64-release.apk \
+            dist/kozu-arm64-v8a.apk \
+            dist/kozu-armeabi-v7a.apk \
+            dist/kozu-universal.apk \
+            dist/kozu-x86.apk \
+            dist/kozu-x86_64.apk \
             --clobber
 
       - name: Verify APK
@@ -312,11 +322,11 @@ jobs:
           import json
 
           expected = {
-              "app-arm64-v8a-release.apk",
-              "app-armeabi-v7a-release.apk",
-              "app-universal-release.apk",
-              "app-x86-release.apk",
-              "app-x86_64-release.apk",
+              "kozu-arm64-v8a.apk",
+              "kozu-armeabi-v7a.apk",
+              "kozu-universal.apk",
+              "kozu-x86.apk",
+              "kozu-x86_64.apk",
           }
 
           with open("release-assets.json", encoding="utf-8") as file:
@@ -372,30 +382,35 @@ jobs:
 
           variants = [
               (
-                  "arm64-v8a",
+                  "kozu-arm64-v8a",
+                  "kozu-arm64-v8a.apk",
                   "**Recommended:** Modern ARM64 phones (Pixel, Samsung, OnePlus, Xiaomi, etc.)",
               ),
               (
-                  "armeabi-v7a",
+                  "kozu-armeabi-v7a",
+                  "kozu-armeabi-v7a.apk",
                   "Older/budget 32-bit ARM phones",
               ),
               (
-                  "universal",
+                  "kozu-universal",
+                  "kozu-universal.apk",
                   "Includes all supported architectures",
               ),
               (
-                  "x86",
+                  "kozu-x86",
+                  "kozu-x86.apk",
                   "32-bit x86 emulators",
               ),
               (
-                  "x86_64",
+                  "kozu-x86_64",
+                  "kozu-x86_64.apk",
                   "64-bit x86 emulators and Chromebooks",
               ),
           ]
 
           missing = [
               filename
-              for filename, _ in variants
+              for _, filename, _ in variants
               if filename not in existing_assets
           ]
 
@@ -417,14 +432,14 @@ jobs:
 
           encoded_tag = quote(tag, safe="")
 
-          for filename, target in variants:
+          for display_name, filename, target in variants:
               download_url = (
                   f"https://github.com/{repository}/releases/download/"
                   f"{encoded_tag}/{quote(filename, safe='')}"
               )
 
               lines.append(
-                  f"| [`{filename}`]({download_url}) | {target} |"
+                  f"| [`{display_name}`]({download_url}) | {target} |"
               )
 
           lines.append(end_marker)

@@ -269,7 +269,7 @@ private fun directorySize(directory: File): Long = try {
 private fun appEntries(context: Context): List<DeviceEntry> {
     val code = try {
         val info = context.packageManager.getPackageInfo(context.packageName, 0)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) info.longVersionCode.toString() else "${info.versionCode}"
+        info.longVersionCode.toString()
     } catch (_: Exception) {
         "?"
     }

@@ -17,7 +17,7 @@ import java.util.UUID
 class OsuAuth(
     private val api: OsuApi,
     private val settings: SettingsStore,
-    private val account: AccountStore
+    private val account: AccountStore,
 ) {
     private val mutex = Mutex()
     private var clientToken: String? = null
@@ -26,9 +26,10 @@ class OsuAuth(
 
     val loggedIn: Flow<Boolean> = account.session.map { it != null }.distinctUntilChanged()
 
-    suspend fun bearer(force: Boolean = false): String? = mutex.withLock {
-        userToken(force) ?: clientCredentials(force)
-    }
+    suspend fun bearer(force: Boolean = false): String? =
+        mutex.withLock {
+            userToken(force) ?: clientCredentials(force)
+        }
 
     suspend fun userBearer(): String? = mutex.withLock { userToken(false) }
 
@@ -39,7 +40,9 @@ class OsuAuth(
         if (!current.hasCredentials) return null
         val state = UUID.randomUUID().toString()
         account.savePendingState(state)
-        return "https://osu.ppy.sh/oauth/authorize".toUri().buildUpon()
+        return "https://osu.ppy.sh/oauth/authorize"
+            .toUri()
+            .buildUpon()
             .appendQueryParameter("client_id", current.osuClientId)
             .appendQueryParameter("redirect_uri", REDIRECT_URI)
             .appendQueryParameter("response_type", "code")
@@ -49,7 +52,10 @@ class OsuAuth(
             .toString()
     }
 
-    suspend fun completeLogin(code: String, state: String?): Result<Unit> {
+    suspend fun completeLogin(
+        code: String,
+        state: String?,
+    ): Result<Unit> {
         val expected = account.consumePendingState()
         if (expected == null || expected != state) {
             return Result.failure(IllegalStateException("Login request expired, please try again"))
@@ -87,14 +93,17 @@ class OsuAuth(
         }
     }
 
-    private suspend fun saveToken(token: TokenDto, fallbackRefresh: String): String {
+    private suspend fun saveToken(
+        token: TokenDto,
+        fallbackRefresh: String,
+    ): String {
         val access = token.accessToken ?: error("osu! did not return a token")
         account.saveSession(
             OsuSession(
                 accessToken = access,
                 refreshToken = token.refreshToken ?: fallbackRefresh,
-                expiresAtMs = System.currentTimeMillis() + token.expiresIn * 1000L
-            )
+                expiresAtMs = System.currentTimeMillis() + token.expiresIn * 1000L,
+            ),
         )
         return access
     }

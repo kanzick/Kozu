@@ -21,11 +21,12 @@ data class DownloadedSet(
     val sizeBytes: Long,
     val downloadedAt: Long,
     val source: String,
-    val outdated: Boolean = false
+    val outdated: Boolean = false,
 )
 
-class DownloadsStore(context: Context) {
-
+class DownloadsStore(
+    context: Context,
+) {
     private val appContext = context.applicationContext
     private val store = appContext.downloadsDataStore
     private val key = stringPreferencesKey("downloads_v1")
@@ -38,31 +39,40 @@ class DownloadsStore(context: Context) {
 
     suspend fun find(id: Long): DownloadedSet? = sets.first().firstOrNull { it.beatmap.id == id }
 
-    suspend fun upsert(set: DownloadedSet) = update { list ->
-        listOf(set) + list.filterNot { it.beatmap.id == set.beatmap.id }
-    }
-
-    suspend fun markOutdated(ids: Set<Long>) = update { list ->
-        list.map { it.copy(outdated = it.beatmap.id in ids) }
-    }
-
-    suspend fun updateMetadata(fresh: Map<Long, Beatmap>) = update { list ->
-        list.map { set ->
-            fresh[set.beatmap.id]?.let { set.copy(beatmap = set.beatmap.copy(
-                title = it.title.ifBlank { set.beatmap.title },
-                artist = it.artist.ifBlank { set.beatmap.artist },
-                mapper = it.mapper.ifBlank { set.beatmap.mapper },
-                status = it.status.ifBlank { set.beatmap.status }
-            )) } ?: set
+    suspend fun upsert(set: DownloadedSet) =
+        update { list ->
+            listOf(set) + list.filterNot { it.beatmap.id == set.beatmap.id }
         }
-    }
 
-    suspend fun updateVersions(versions: Map<Long, Long>) = update { list ->
-        list.map { set ->
-            val version = versions[set.beatmap.id]
-            if (version != null && set.beatmap.updatedAt == 0L) set.copy(beatmap = set.beatmap.copy(updatedAt = version)) else set
+    suspend fun markOutdated(ids: Set<Long>) =
+        update { list ->
+            list.map { it.copy(outdated = it.beatmap.id in ids) }
         }
-    }
+
+    suspend fun updateMetadata(fresh: Map<Long, Beatmap>) =
+        update { list ->
+            list.map { set ->
+                fresh[set.beatmap.id]?.let {
+                    set.copy(
+                        beatmap =
+                            set.beatmap.copy(
+                                title = it.title.ifBlank { set.beatmap.title },
+                                artist = it.artist.ifBlank { set.beatmap.artist },
+                                mapper = it.mapper.ifBlank { set.beatmap.mapper },
+                                status = it.status.ifBlank { set.beatmap.status },
+                            ),
+                    )
+                } ?: set
+            }
+        }
+
+    suspend fun updateVersions(versions: Map<Long, Long>) =
+        update { list ->
+            list.map { set ->
+                val version = versions[set.beatmap.id]
+                if (version != null && set.beatmap.updatedAt == 0L) set.copy(beatmap = set.beatmap.copy(updatedAt = version)) else set
+            }
+        }
 
     suspend fun remove(id: Long) = update { list -> list.filterNot { it.beatmap.id == id } }
 
@@ -83,7 +93,7 @@ class DownloadsStore(context: Context) {
                     .put("size", it.sizeBytes)
                     .put("at", it.downloadedAt)
                     .put("source", it.source)
-                    .put("outdated", it.outdated)
+                    .put("outdated", it.outdated),
             )
         }
         return array.toString()
@@ -102,7 +112,7 @@ class DownloadsStore(context: Context) {
                     sizeBytes = o.optLong("size"),
                     downloadedAt = o.optLong("at"),
                     source = o.optString("source"),
-                    outdated = o.optBoolean("outdated")
+                    outdated = o.optBoolean("outdated"),
                 )
             }
         } catch (e: JSONException) {

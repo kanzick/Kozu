@@ -14,10 +14,11 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun KozuLoading(modifier: Modifier = Modifier) {
     Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 28.dp),
-        contentAlignment = Alignment.Center
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(vertical = 28.dp),
+        contentAlignment = Alignment.Center,
     ) {
         LoadingIndicator()
     }

@@ -23,18 +23,16 @@ data class Beatmap(
     val rankedAt: Long = 0L,
     val submittedAt: Long = 0L,
     val minStars: Double = 0.0,
-    val maxStars: Double = 0.0
+    val maxStars: Double = 0.0,
 ) {
     val thumbUrl: String get() = "https://assets.ppy.sh/beatmaps/$id/covers/list@2x.jpg"
     val artUrl: String get() = "https://assets.ppy.sh/beatmaps/$id/covers/cover@2x.jpg"
     val webUrl: String get() = "https://osu.ppy.sh/beatmapsets/$id"
 }
 
-fun Beatmap.displayTitle(preferUnicode: Boolean): String =
-    if (preferUnicode && titleUnicode.isNotBlank()) titleUnicode else title
+fun Beatmap.displayTitle(preferUnicode: Boolean): String = if (preferUnicode && titleUnicode.isNotBlank()) titleUnicode else title
 
-fun Beatmap.displayArtist(preferUnicode: Boolean): String =
-    if (preferUnicode && artistUnicode.isNotBlank()) artistUnicode else artist
+fun Beatmap.displayArtist(preferUnicode: Boolean): String = if (preferUnicode && artistUnicode.isNotBlank()) artistUnicode else artist
 
 data class BeatmapDifficulty(
     val id: Long,

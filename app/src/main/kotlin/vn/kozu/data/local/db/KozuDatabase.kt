@@ -8,7 +8,7 @@ import androidx.room.RoomDatabase
 @Database(
     entities = [PlaylistEntity::class, SongEntity::class, SongInPlaylistEntity::class],
     version = 1,
-    exportSchema = true
+    exportSchema = true,
 )
 abstract class KozuDatabase : RoomDatabase() {
     abstract fun playlistDao(): PlaylistDao
@@ -16,12 +16,15 @@ abstract class KozuDatabase : RoomDatabase() {
     companion object {
         @Volatile private var instance: KozuDatabase? = null
 
-        fun get(context: Context): KozuDatabase = instance ?: synchronized(this) {
-            instance ?: Room.databaseBuilder(
-                context.applicationContext,
-                KozuDatabase::class.java,
-                "kozu.db"
-            ).build().also { instance = it }
-        }
+        fun get(context: Context): KozuDatabase =
+            instance ?: synchronized(this) {
+                instance ?: Room
+                    .databaseBuilder(
+                        context.applicationContext,
+                        KozuDatabase::class.java,
+                        "kozu.db",
+                    ).build()
+                    .also { instance = it }
+            }
     }
 }

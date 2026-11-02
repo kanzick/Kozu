@@ -15,16 +15,26 @@ import vn.kozu.data.local.SettingsStore
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.Playlist
 
-enum class BackupSection(val key: String, val label: String, val description: String) {
+enum class BackupSection(
+    val key: String,
+    val label: String,
+    val description: String,
+) {
     SETTINGS("settings", "Settings", "Preferences and appearance. Credentials are never included."),
     FAVORITES("favorites", "Favorites", "Songs you have liked."),
     PLAYLISTS("playlists", "Playlists", "Your playlists and their songs."),
-    HISTORY("history", "Listening history", "Plays and daily listening time.")
+    HISTORY("history", "Listening history", "Plays and daily listening time."),
 }
 
-class BackupException(message: String) : Exception(message)
+class BackupException(
+    message: String,
+) : Exception(message)
 
-data class BackupInfo(val version: Int, val createdAt: Long, val counts: Map<BackupSection, Int>) {
+data class BackupInfo(
+    val version: Int,
+    val createdAt: Long,
+    val counts: Map<BackupSection, Int>,
+) {
     val sections: Set<BackupSection> get() = counts.keys
 }
 
@@ -32,25 +42,25 @@ class BackupManager(
     private val settings: SettingsStore,
     private val favorites: FavoritesStore,
     private val playlists: PlaylistStore,
-    private val history: HistoryStore
+    private val history: HistoryStore,
 ) {
-
-    suspend fun create(sections: Set<BackupSection>): String = withContext(Dispatchers.IO) {
-        if (sections.isEmpty()) throw BackupException("Select at least one section")
-        val body = JSONObject()
-        if (BackupSection.SETTINGS in sections) body.put(BackupSection.SETTINGS.key, encodeSettings(settings.exportPreferences()))
-        if (BackupSection.FAVORITES in sections) {
-            body.put(BackupSection.FAVORITES.key, BeatmapJson.encodeList(favorites.snapshot()))
+    suspend fun create(sections: Set<BackupSection>): String =
+        withContext(Dispatchers.IO) {
+            if (sections.isEmpty()) throw BackupException("Select at least one section")
+            val body = JSONObject()
+            if (BackupSection.SETTINGS in sections) body.put(BackupSection.SETTINGS.key, encodeSettings(settings.exportPreferences()))
+            if (BackupSection.FAVORITES in sections) {
+                body.put(BackupSection.FAVORITES.key, BeatmapJson.encodeList(favorites.snapshot()))
+            }
+            if (BackupSection.PLAYLISTS in sections) body.put(BackupSection.PLAYLISTS.key, encodePlaylists(playlists.snapshot()))
+            if (BackupSection.HISTORY in sections) body.put(BackupSection.HISTORY.key, encodeHistory(history.snapshot()))
+            JSONObject()
+                .put("app", "kozu")
+                .put("version", FORMAT_VERSION)
+                .put("createdAt", System.currentTimeMillis())
+                .put("sections", body)
+                .toString(2)
         }
-        if (BackupSection.PLAYLISTS in sections) body.put(BackupSection.PLAYLISTS.key, encodePlaylists(playlists.snapshot()))
-        if (BackupSection.HISTORY in sections) body.put(BackupSection.HISTORY.key, encodeHistory(history.snapshot()))
-        JSONObject()
-            .put("app", "kozu")
-            .put("version", FORMAT_VERSION)
-            .put("createdAt", System.currentTimeMillis())
-            .put("sections", body)
-            .toString(2)
-    }
 
     fun inspect(json: String): BackupInfo {
         val root = parseRoot(json)
@@ -68,45 +78,61 @@ class BackupManager(
         return BackupInfo(root.optInt("version"), root.optLong("createdAt"), counts)
     }
 
-    suspend fun restore(json: String, sections: Set<BackupSection>): String = withContext(Dispatchers.IO) {
-        val root = parseRoot(json)
-        val body = root.optJSONObject("sections") ?: throw BackupException("This file has no backup data")
-        val lines = mutableListOf<String>()
-        sections.forEach { section ->
-            when (section) {
-                BackupSection.SETTINGS -> body.optJSONObject(section.key)?.let {
-                    val values = decodeSettings(it)
-                    settings.importPreferences(values)
-                    lines += "Settings: ${values.size} values restored"
-                }
-                BackupSection.FAVORITES -> body.optJSONArray(section.key)?.let {
-                    val items = decodeBeatmaps(it)
-                    val added = favorites.importAll(items)
-                    lines += "Favorites: $added added, ${items.size - added} already saved"
-                }
-                BackupSection.PLAYLISTS -> body.optJSONArray(section.key)?.let {
-                    val items = decodePlaylists(it)
-                    val changed = playlists.importAll(items)
-                    lines += "Playlists: ${items.size} processed, $changed changes"
-                }
-                BackupSection.HISTORY -> body.optJSONObject(section.key)?.let {
-                    val data = decodeHistory(it)
-                    val added = history.importAll(data)
-                    lines += "History: $added plays added"
+    suspend fun restore(
+        json: String,
+        sections: Set<BackupSection>,
+    ): String =
+        withContext(Dispatchers.IO) {
+            val root = parseRoot(json)
+            val body = root.optJSONObject("sections") ?: throw BackupException("This file has no backup data")
+            val lines = mutableListOf<String>()
+            sections.forEach { section ->
+                when (section) {
+                    BackupSection.SETTINGS -> {
+                        body.optJSONObject(section.key)?.let {
+                            val values = decodeSettings(it)
+                            settings.importPreferences(values)
+                            lines += "Settings: ${values.size} values restored"
+                        }
+                    }
+
+                    BackupSection.FAVORITES -> {
+                        body.optJSONArray(section.key)?.let {
+                            val items = decodeBeatmaps(it)
+                            val added = favorites.importAll(items)
+                            lines += "Favorites: $added added, ${items.size - added} already saved"
+                        }
+                    }
+
+                    BackupSection.PLAYLISTS -> {
+                        body.optJSONArray(section.key)?.let {
+                            val items = decodePlaylists(it)
+                            val changed = playlists.importAll(items)
+                            lines += "Playlists: ${items.size} processed, $changed changes"
+                        }
+                    }
+
+                    BackupSection.HISTORY -> {
+                        body.optJSONObject(section.key)?.let {
+                            val data = decodeHistory(it)
+                            val added = history.importAll(data)
+                            lines += "History: $added plays added"
+                        }
+                    }
                 }
             }
+            if (lines.isEmpty()) throw BackupException("The selected sections are not in this file")
+            lines.joinToString("\n")
         }
-        if (lines.isEmpty()) throw BackupException("The selected sections are not in this file")
-        lines.joinToString("\n")
-    }
 
     private fun parseRoot(json: String): JSONObject {
         if (json.length > MAX_CHARS) throw BackupException("This file is too large to be a Kozu backup")
-        val root = try {
-            JSONObject(json)
-        } catch (e: JSONException) {
-            throw BackupException("This is not a valid Kozu backup file")
-        }
+        val root =
+            try {
+                JSONObject(json)
+            } catch (e: JSONException) {
+                throw BackupException("This is not a valid Kozu backup file")
+            }
         if (root.optString("app") != "kozu") throw BackupException("This file was not created by Kozu")
         val version = root.optInt("version", 0)
         if (version < 1 || version > FORMAT_VERSION) throw BackupException("Unsupported backup version")
@@ -116,13 +142,14 @@ class BackupManager(
     private fun encodeSettings(values: Map<String, Any>): JSONObject {
         val result = JSONObject()
         values.toSortedMap().forEach { (name, value) ->
-            val tag = when (value) {
-                is Boolean -> "b"
-                is Int -> "i"
-                is Long -> "l"
-                is String -> "s"
-                else -> return@forEach
-            }
+            val tag =
+                when (value) {
+                    is Boolean -> "b"
+                    is Int -> "i"
+                    is Long -> "l"
+                    is String -> "s"
+                    else -> return@forEach
+                }
             result.put(name, JSONObject().put("t", tag).put("v", value))
         }
         return result
@@ -136,16 +163,17 @@ class BackupManager(
             val tag = entry.optString("t")
             val expected = TYPED_KEYS[name] ?: "s"
             if (tag != expected || !entry.has("v")) return@forEach
-            val value: Any = try {
-                when (tag) {
-                    "b" -> entry.getBoolean("v")
-                    "i" -> entry.getInt("v")
-                    "l" -> entry.getLong("v")
-                    else -> entry.getString("v").take(MAX_STRING)
+            val value: Any =
+                try {
+                    when (tag) {
+                        "b" -> entry.getBoolean("v")
+                        "i" -> entry.getInt("v")
+                        "l" -> entry.getLong("v")
+                        else -> entry.getString("v").take(MAX_STRING)
+                    }
+                } catch (e: JSONException) {
+                    return@forEach
                 }
-            } catch (e: JSONException) {
-                return@forEach
-            }
             result[name] = value
         }
         return result
@@ -155,11 +183,12 @@ class BackupManager(
         val result = ArrayList<Beatmap>()
         for (index in 0 until array.length()) {
             val obj = array.optJSONObject(index) ?: continue
-            val beatmap = try {
-                BeatmapJson.decode(obj)
-            } catch (e: JSONException) {
-                continue
-            }
+            val beatmap =
+                try {
+                    BeatmapJson.decode(obj)
+                } catch (e: JSONException) {
+                    continue
+                }
             if (beatmap.id > 0L) result += beatmap
             if (result.size >= MAX_ITEMS) break
         }
@@ -174,7 +203,7 @@ class BackupManager(
                     .put("id", playlist.id)
                     .put("name", playlist.name)
                     .put("createdAt", playlist.createdAt)
-                    .put("tracks", BeatmapJson.encodeList(playlist.tracks))
+                    .put("tracks", BeatmapJson.encodeList(playlist.tracks)),
             )
         }
         return array
@@ -186,12 +215,13 @@ class BackupManager(
             val obj = array.optJSONObject(index) ?: continue
             val id = obj.optString("id").trim()
             if (id.isEmpty() || id.length > MAX_STRING) continue
-            result += Playlist(
-                id = id,
-                name = obj.optString("name").take(MAX_STRING),
-                tracks = decodeBeatmaps(obj.optJSONArray("tracks") ?: JSONArray()),
-                createdAt = obj.optLong("createdAt", System.currentTimeMillis())
-            )
+            result +=
+                Playlist(
+                    id = id,
+                    name = obj.optString("name").take(MAX_STRING),
+                    tracks = decodeBeatmaps(obj.optJSONArray("tracks") ?: JSONArray()),
+                    createdAt = obj.optLong("createdAt", System.currentTimeMillis()),
+                )
             if (result.size >= MAX_ITEMS) break
         }
         return result
@@ -237,22 +267,59 @@ class BackupManager(
         val NAME_PATTERN = Regex("[a-z0-9_]{1,64}")
         val DAY_PATTERN = Regex("\\d{4}-\\d{2}-\\d{2}")
 
-        val TYPED_KEYS: Map<String, String> = buildMap {
-            listOf(
-                "amoled", "artwork_colors", "wifi_only_streaming", "skip_silence", "equalizer_enabled",
-                "keep_full_beatmap", "wifi_only_downloads", "auto_update_downloads", "show_explicit",
-                "high_refresh_rate", "performance_mode", "blur_player", "show_file_info", "compact_navigation",
-                "show_mix_card", "keep_playing_after_close", "resume_on_headset", "pause_on_headset_disconnect",
-                "hifi_mode", "hardware_offload", "remember_shuffle", "show_queue_history", "autoplay",
-                "avoid_repeats", "dedupe_queue", "preload_next", "haptic_feedback", "auto_open_player",
-                "artwork_swipe", "keep_screen_on", "double_tap_search", "prefer_unicode", "show_mapper",
-                "auto_sync_library", "auto_clean_cache", "auto_update_check"
-            ).forEach { put(it, "b") }
-            listOf(
-                "stream_cache_mb", "blur_intensity", "nav_corner_radius", "image_cache_mb", "bass_boost",
-                "virtualizer", "loudness", "top_size", "proxy_port", "download_limit_mb"
-            ).forEach { put(it, "i") }
-            listOf("last_sync_at", "last_update_check").forEach { put(it, "l") }
-        }
+        val TYPED_KEYS: Map<String, String> =
+            buildMap {
+                listOf(
+                    "amoled",
+                    "artwork_colors",
+                    "wifi_only_streaming",
+                    "skip_silence",
+                    "equalizer_enabled",
+                    "keep_full_beatmap",
+                    "wifi_only_downloads",
+                    "auto_update_downloads",
+                    "show_explicit",
+                    "high_refresh_rate",
+                    "performance_mode",
+                    "blur_player",
+                    "show_file_info",
+                    "compact_navigation",
+                    "show_mix_card",
+                    "keep_playing_after_close",
+                    "resume_on_headset",
+                    "pause_on_headset_disconnect",
+                    "hifi_mode",
+                    "hardware_offload",
+                    "remember_shuffle",
+                    "show_queue_history",
+                    "autoplay",
+                    "avoid_repeats",
+                    "dedupe_queue",
+                    "preload_next",
+                    "haptic_feedback",
+                    "auto_open_player",
+                    "artwork_swipe",
+                    "keep_screen_on",
+                    "double_tap_search",
+                    "prefer_unicode",
+                    "show_mapper",
+                    "auto_sync_library",
+                    "auto_clean_cache",
+                    "auto_update_check",
+                ).forEach { put(it, "b") }
+                listOf(
+                    "stream_cache_mb",
+                    "blur_intensity",
+                    "nav_corner_radius",
+                    "image_cache_mb",
+                    "bass_boost",
+                    "virtualizer",
+                    "loudness",
+                    "top_size",
+                    "proxy_port",
+                    "download_limit_mb",
+                ).forEach { put(it, "i") }
+                listOf("last_sync_at", "last_update_check").forEach { put(it, "l") }
+            }
     }
 }

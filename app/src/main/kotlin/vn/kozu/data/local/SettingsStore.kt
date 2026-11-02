@@ -6,19 +6,19 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import vn.kozu.domain.model.AccentColor
 import vn.kozu.domain.model.AppFont
-import vn.kozu.domain.model.AppStyle
 import vn.kozu.domain.model.AppSettings
+import vn.kozu.domain.model.AppStyle
 import vn.kozu.domain.model.ArtworkQuality
 import vn.kozu.domain.model.CrossfadeDuration
 import vn.kozu.domain.model.Mirror
@@ -29,14 +29,15 @@ import vn.kozu.domain.model.ProxySettings
 import vn.kozu.domain.model.ProxyType
 import vn.kozu.domain.model.QuickPicksLayout
 import vn.kozu.domain.model.QuickPicksSource
-import vn.kozu.domain.model.StatusFilter
 import vn.kozu.domain.model.StartTab
+import vn.kozu.domain.model.StatusFilter
 import vn.kozu.domain.model.StreamMode
 import vn.kozu.domain.model.ThemeMode
 import vn.kozu.domain.model.TopSize
 
-class SettingsStore(context: Context) {
-
+class SettingsStore(
+    context: Context,
+) {
     private val appContext = context.applicationContext
     private val store = appContext.kozuDataStore
     private val prefsCache = appContext.getSharedPreferences("kozu_theme_sync", Context.MODE_PRIVATE)
@@ -128,91 +129,119 @@ class SettingsStore(context: Context) {
         val autoCleanCache = booleanPreferencesKey("auto_clean_cache")
         val autoUpdateCheck = booleanPreferencesKey("auto_update_check")
         val lastUpdateCheck = longPreferencesKey("last_update_check")
+        val libraryTabOrder = stringPreferencesKey("library_tab_order")
     }
 
-    val settings: Flow<AppSettings> = store.data.map { prefs ->
-        AppSettings(
-            themeMode = ThemeMode.fromKey(prefs[Keys.theme]),
-            appStyle = AppStyle.fromKey(prefs[Keys.appStyle]),
-            navigationStyle = NavigationStyle.fromKey(prefs[Keys.navigationStyle]),
-            startTab = StartTab.fromKey(prefs[Keys.startTab]),
-            amoled = prefs[Keys.amoled] ?: false,
-            artworkColors = prefs[Keys.artworkColors] ?: true,
-            accent = AccentColor.fromKey(prefs[Keys.accent]),
-            displayName = prefs[Keys.displayName].orEmpty(),
-            osuClientId = prefs[Keys.clientId].orEmpty(),
-            osuClientSecret = prefs[Keys.clientSecret].orEmpty(),
-            streamMode = StreamMode.fromKey(prefs[Keys.streamMode]),
-            wifiOnlyStreaming = prefs[Keys.wifiOnlyStreaming] ?: false,
-            streamCacheMb = prefs[Keys.streamCacheMb] ?: 512,
-            skipSilence = prefs[Keys.skipSilence] ?: false,
-            equalizerEnabled = prefs[Keys.equalizerEnabled] ?: false,
-            equalizerGains = decodeEqualizerGains(prefs[Keys.equalizerGains]),
-            disabledMirrors = prefs[Keys.disabledMirrors].orEmpty().split(',').filter { it.isNotBlank() }.toSet(),
-            customMirrors = decodeMirrors(prefs[Keys.customMirrors]),
-            keepFullBeatmap = prefs[Keys.keepFull] ?: true,
-            wifiOnlyDownloads = prefs[Keys.wifiOnlyDownloads] ?: false,
-            autoUpdateDownloads = prefs[Keys.autoUpdate] ?: true,
-            showExplicit = prefs[Keys.explicit] ?: false,
-            modeFilter = ModeFilter.fromKey(prefs[Keys.modeFilter]),
-            statusFilter = StatusFilter.fromKey(prefs[Keys.statusFilter]),
-            lastSyncAt = prefs[Keys.lastSync] ?: 0L,
-            appFont = AppFont.fromKey(prefs[Keys.appFont]),
-            paletteStyle = PaletteStyle.fromKey(prefs[Keys.paletteStyle]),
-            highRefreshRate = prefs[Keys.highRefreshRate] ?: true,
-            performanceMode = prefs[Keys.performanceMode] ?: false,
-            blurPlayer = prefs[Keys.blurPlayer] ?: true,
-            blurIntensity = (prefs[Keys.blurIntensity] ?: 72).coerceIn(0, 120),
-            showFileInfo = prefs[Keys.showFileInfo] ?: false,
-            compactNavigation = prefs[Keys.compactNavigation] ?: false,
-            navCornerRadius = (prefs[Keys.navCornerRadius] ?: 32).coerceIn(0, 32),
-            showMixCard = prefs[Keys.showMixCard] ?: true,
-            artworkQualityWifi = ArtworkQuality.fromKey(prefs[Keys.artworkQualityWifi] ?: ArtworkQuality.HIGH.key),
-            artworkQualityMobile = ArtworkQuality.fromKey(prefs[Keys.artworkQualityMobile]),
-            imageCacheMb = (prefs[Keys.imageCacheMb] ?: 256).coerceIn(32, 1024),
-            keepPlayingAfterClose = prefs[Keys.keepPlayingAfterClose] ?: true,
-            resumeOnHeadset = prefs[Keys.resumeOnHeadset] ?: false,
-            pauseOnHeadsetDisconnect = prefs[Keys.pauseOnHeadsetDisconnect] ?: true,
-            crossfade = CrossfadeDuration.fromKey(prefs[Keys.crossfade]),
-            hiFiMode = prefs[Keys.hiFiMode] ?: false,
-            hardwareOffload = prefs[Keys.hardwareOffload] ?: false,
-            rememberShuffle = prefs[Keys.rememberShuffle] ?: true,
-            showQueueHistory = prefs[Keys.showQueueHistory] ?: false,
-            autoplay = prefs[Keys.autoplay] ?: true,
-            avoidRepeats = prefs[Keys.avoidRepeats] ?: true,
-            dedupeQueue = prefs[Keys.dedupeQueue] ?: true,
-            preloadNext = prefs[Keys.preloadNext] ?: true,
-            bassBoost = (prefs[Keys.bassBoost] ?: 0).coerceIn(0, 1000),
-            virtualizer = (prefs[Keys.virtualizer] ?: 0).coerceIn(0, 1000),
-            loudness = (prefs[Keys.loudness] ?: 0).coerceIn(0, 1000),
-            hapticFeedback = prefs[Keys.hapticFeedback] ?: true,
-            autoOpenPlayer = prefs[Keys.autoOpenPlayer] ?: false,
-            artworkSwipe = prefs[Keys.artworkSwipe] ?: true,
-            keepScreenOn = prefs[Keys.keepScreenOn] ?: false,
-            doubleTapSearch = prefs[Keys.doubleTapSearch] ?: true,
-            preferUnicode = prefs[Keys.preferUnicode] ?: false,
-            showMapper = prefs[Keys.showMapper] ?: true,
-            quickPicksSource = QuickPicksSource.fromKey(prefs[Keys.quickPicksSource]),
-            quickPicksLayout = QuickPicksLayout.fromKey(prefs[Keys.quickPicksLayout]),
-            topSize = TopSize.fromCount(prefs[Keys.topSize]),
-            proxy = ProxySettings(
-                type = ProxyType.fromKey(prefs[Keys.proxyType]),
-                host = prefs[Keys.proxyHost].orEmpty(),
-                port = prefs[Keys.proxyPort] ?: 0,
-                username = prefs[Keys.proxyUser].orEmpty(),
-                password = prefs[Keys.proxyPass].orEmpty()
-            ),
-            autoSyncLibrary = prefs[Keys.autoSyncLibrary] ?: true,
-            downloadLimitMb = prefs[Keys.downloadLimitMb] ?: 0,
-            autoCleanCache = prefs[Keys.autoCleanCache] ?: false,
-            autoUpdateCheck = prefs[Keys.autoUpdateCheck] ?: true,
-            lastUpdateCheckAt = prefs[Keys.lastUpdateCheck] ?: 0L
-        )
-    }.distinctUntilChanged()
+    val libraryTabOrder: Flow<List<String>> =
+        store.data.map { prefs ->
+            val defaults = listOf("songs", "liked", "playlists", "downloads")
+            val saved =
+                prefs[Keys.libraryTabOrder]
+                    .orEmpty()
+                    .split(',')
+                    .filter { it in defaults }
+            (saved + defaults).distinct()
+        }
 
-    val recentSearches: Flow<List<String>> = store.data.map { prefs ->
-        prefs[Keys.recentSearches].orEmpty().split('\n').filter { it.isNotBlank() }
-    }.distinctUntilChanged()
+    suspend fun setLibraryTabOrder(order: List<String>) {
+        val allowed = listOf("songs", "liked", "playlists", "downloads")
+        val normalized = (order.filter { it in allowed } + allowed).distinct()
+        store.edit { it[Keys.libraryTabOrder] = normalized.joinToString(",") }
+    }
+
+    val settings: Flow<AppSettings> =
+        store.data
+            .map { prefs ->
+                AppSettings(
+                    themeMode = ThemeMode.fromKey(prefs[Keys.theme]),
+                    appStyle = AppStyle.fromKey(prefs[Keys.appStyle]),
+                    navigationStyle = NavigationStyle.fromKey(prefs[Keys.navigationStyle]),
+                    startTab = StartTab.fromKey(prefs[Keys.startTab]),
+                    amoled = prefs[Keys.amoled] ?: false,
+                    artworkColors = prefs[Keys.artworkColors] ?: true,
+                    accent = AccentColor.fromKey(prefs[Keys.accent]),
+                    displayName = prefs[Keys.displayName].orEmpty(),
+                    osuClientId = prefs[Keys.clientId].orEmpty(),
+                    osuClientSecret = prefs[Keys.clientSecret].orEmpty(),
+                    streamMode = StreamMode.fromKey(prefs[Keys.streamMode]),
+                    wifiOnlyStreaming = prefs[Keys.wifiOnlyStreaming] ?: false,
+                    streamCacheMb = prefs[Keys.streamCacheMb] ?: 512,
+                    skipSilence = prefs[Keys.skipSilence] ?: false,
+                    equalizerEnabled = prefs[Keys.equalizerEnabled] ?: false,
+                    equalizerGains = decodeEqualizerGains(prefs[Keys.equalizerGains]),
+                    disabledMirrors =
+                        prefs[Keys.disabledMirrors]
+                            .orEmpty()
+                            .split(',')
+                            .filter { it.isNotBlank() }
+                            .toSet(),
+                    customMirrors = decodeMirrors(prefs[Keys.customMirrors]),
+                    keepFullBeatmap = prefs[Keys.keepFull] ?: true,
+                    wifiOnlyDownloads = prefs[Keys.wifiOnlyDownloads] ?: false,
+                    autoUpdateDownloads = prefs[Keys.autoUpdate] ?: true,
+                    showExplicit = prefs[Keys.explicit] ?: false,
+                    modeFilter = ModeFilter.fromKey(prefs[Keys.modeFilter]),
+                    statusFilter = StatusFilter.fromKey(prefs[Keys.statusFilter]),
+                    lastSyncAt = prefs[Keys.lastSync] ?: 0L,
+                    appFont = AppFont.fromKey(prefs[Keys.appFont]),
+                    paletteStyle = PaletteStyle.fromKey(prefs[Keys.paletteStyle]),
+                    highRefreshRate = prefs[Keys.highRefreshRate] ?: true,
+                    performanceMode = prefs[Keys.performanceMode] ?: false,
+                    blurPlayer = prefs[Keys.blurPlayer] ?: true,
+                    blurIntensity = (prefs[Keys.blurIntensity] ?: 72).coerceIn(0, 120),
+                    showFileInfo = prefs[Keys.showFileInfo] ?: false,
+                    compactNavigation = prefs[Keys.compactNavigation] ?: false,
+                    navCornerRadius = (prefs[Keys.navCornerRadius] ?: 32).coerceIn(0, 32),
+                    showMixCard = prefs[Keys.showMixCard] ?: true,
+                    artworkQualityWifi = ArtworkQuality.fromKey(prefs[Keys.artworkQualityWifi] ?: ArtworkQuality.HIGH.key),
+                    artworkQualityMobile = ArtworkQuality.fromKey(prefs[Keys.artworkQualityMobile]),
+                    imageCacheMb = (prefs[Keys.imageCacheMb] ?: 256).coerceIn(32, 1024),
+                    keepPlayingAfterClose = prefs[Keys.keepPlayingAfterClose] ?: true,
+                    resumeOnHeadset = prefs[Keys.resumeOnHeadset] ?: false,
+                    pauseOnHeadsetDisconnect = prefs[Keys.pauseOnHeadsetDisconnect] ?: true,
+                    crossfade = CrossfadeDuration.fromKey(prefs[Keys.crossfade]),
+                    hiFiMode = prefs[Keys.hiFiMode] ?: false,
+                    hardwareOffload = prefs[Keys.hardwareOffload] ?: false,
+                    rememberShuffle = prefs[Keys.rememberShuffle] ?: true,
+                    showQueueHistory = prefs[Keys.showQueueHistory] ?: false,
+                    autoplay = prefs[Keys.autoplay] ?: true,
+                    avoidRepeats = prefs[Keys.avoidRepeats] ?: true,
+                    dedupeQueue = prefs[Keys.dedupeQueue] ?: true,
+                    preloadNext = prefs[Keys.preloadNext] ?: true,
+                    bassBoost = (prefs[Keys.bassBoost] ?: 0).coerceIn(0, 1000),
+                    virtualizer = (prefs[Keys.virtualizer] ?: 0).coerceIn(0, 1000),
+                    loudness = (prefs[Keys.loudness] ?: 0).coerceIn(0, 1000),
+                    hapticFeedback = prefs[Keys.hapticFeedback] ?: true,
+                    autoOpenPlayer = prefs[Keys.autoOpenPlayer] ?: false,
+                    artworkSwipe = prefs[Keys.artworkSwipe] ?: true,
+                    keepScreenOn = prefs[Keys.keepScreenOn] ?: false,
+                    doubleTapSearch = prefs[Keys.doubleTapSearch] ?: true,
+                    preferUnicode = prefs[Keys.preferUnicode] ?: false,
+                    showMapper = prefs[Keys.showMapper] ?: true,
+                    quickPicksSource = QuickPicksSource.fromKey(prefs[Keys.quickPicksSource]),
+                    quickPicksLayout = QuickPicksLayout.fromKey(prefs[Keys.quickPicksLayout]),
+                    topSize = TopSize.fromCount(prefs[Keys.topSize]),
+                    proxy =
+                        ProxySettings(
+                            type = ProxyType.fromKey(prefs[Keys.proxyType]),
+                            host = prefs[Keys.proxyHost].orEmpty(),
+                            port = prefs[Keys.proxyPort] ?: 0,
+                            username = prefs[Keys.proxyUser].orEmpty(),
+                            password = prefs[Keys.proxyPass].orEmpty(),
+                        ),
+                    autoSyncLibrary = prefs[Keys.autoSyncLibrary] ?: true,
+                    downloadLimitMb = prefs[Keys.downloadLimitMb] ?: 0,
+                    autoCleanCache = prefs[Keys.autoCleanCache] ?: false,
+                    autoUpdateCheck = prefs[Keys.autoUpdateCheck] ?: true,
+                    lastUpdateCheckAt = prefs[Keys.lastUpdateCheck] ?: 0L,
+                )
+            }.distinctUntilChanged()
+
+    val recentSearches: Flow<List<String>> =
+        store.data
+            .map { prefs ->
+                prefs[Keys.recentSearches].orEmpty().split('\n').filter { it.isNotBlank() }
+            }.distinctUntilChanged()
 
     suspend fun setThemeMode(mode: ThemeMode) {
         withContext(Dispatchers.IO) {
@@ -222,6 +251,7 @@ class SettingsStore(context: Context) {
         }
         store.edit { it[Keys.theme] = mode.key }
     }
+
     suspend fun setAmoled(enabled: Boolean) {
         withContext(Dispatchers.IO) {
             check(prefsCache.edit().putBoolean("amoled", enabled).commit()) {
@@ -230,9 +260,11 @@ class SettingsStore(context: Context) {
         }
         store.edit { it[Keys.amoled] = enabled }
     }
+
     suspend fun setAppStyle(style: AppStyle) = store.edit { it[Keys.appStyle] = style.key }
-    suspend fun setNavigationStyle(style: NavigationStyle) =
-        store.edit { it[Keys.navigationStyle] = style.key }
+
+    suspend fun setNavigationStyle(style: NavigationStyle) = store.edit { it[Keys.navigationStyle] = style.key }
+
     suspend fun setStartTab(tab: StartTab) {
         withContext(Dispatchers.IO) {
             check(prefsCache.edit().putString("start_tab", tab.key).commit()) {
@@ -241,7 +273,9 @@ class SettingsStore(context: Context) {
         }
         store.edit { it[Keys.startTab] = tab.key }
     }
+
     suspend fun setArtworkColors(enabled: Boolean) = store.edit { it[Keys.artworkColors] = enabled }
+
     suspend fun setAccent(accent: AccentColor) {
         withContext(Dispatchers.IO) {
             check(prefsCache.edit().putString("accent", accent.key).commit()) {
@@ -250,27 +284,42 @@ class SettingsStore(context: Context) {
         }
         store.edit { it[Keys.accent] = accent.key }
     }
+
     suspend fun setDisplayName(name: String) = store.edit { it[Keys.displayName] = name.trim().take(24) }
+
     suspend fun setStreamMode(mode: StreamMode) = store.edit { it[Keys.streamMode] = mode.key }
+
     suspend fun setWifiOnlyStreaming(enabled: Boolean) = store.edit { it[Keys.wifiOnlyStreaming] = enabled }
+
     suspend fun setStreamCacheMb(mb: Int) = store.edit { it[Keys.streamCacheMb] = mb }
+
     suspend fun setSkipSilence(enabled: Boolean) = store.edit { it[Keys.skipSilence] = enabled }
+
     suspend fun setEqualizerEnabled(enabled: Boolean) = store.edit { it[Keys.equalizerEnabled] = enabled }
+
     suspend fun setEqualizerGains(gains: List<Float>) {
         require(gains.size == EQUALIZER_BAND_COUNT)
         require(gains.all(Float::isFinite))
         store.edit {
-            it[Keys.equalizerGains] = gains.joinToString(",") { gain ->
-                gain.coerceIn(-1f, 1f).toString()
-            }
+            it[Keys.equalizerGains] =
+                gains.joinToString(",") { gain ->
+                    gain.coerceIn(-1f, 1f).toString()
+                }
         }
     }
+
     suspend fun setKeepFullBeatmap(enabled: Boolean) = store.edit { it[Keys.keepFull] = enabled }
+
     suspend fun setWifiOnlyDownloads(enabled: Boolean) = store.edit { it[Keys.wifiOnlyDownloads] = enabled }
+
     suspend fun setAutoUpdateDownloads(enabled: Boolean) = store.edit { it[Keys.autoUpdate] = enabled }
+
     suspend fun setShowExplicit(enabled: Boolean) = store.edit { it[Keys.explicit] = enabled }
+
     suspend fun setModeFilter(filter: ModeFilter) = store.edit { it[Keys.modeFilter] = filter.key }
+
     suspend fun setStatusFilter(filter: StatusFilter) = store.edit { it[Keys.statusFilter] = filter.key }
+
     suspend fun setLastSync(timeMillis: Long) = store.edit { it[Keys.lastSync] = timeMillis }
 
     suspend fun setAppFont(font: AppFont) {
@@ -294,80 +343,128 @@ class SettingsStore(context: Context) {
     }
 
     suspend fun setBlurPlayer(enabled: Boolean) = store.edit { it[Keys.blurPlayer] = enabled }
+
     suspend fun setBlurIntensity(value: Int) = store.edit { it[Keys.blurIntensity] = value.coerceIn(0, 120) }
+
     suspend fun setShowFileInfo(enabled: Boolean) = store.edit { it[Keys.showFileInfo] = enabled }
+
     suspend fun setCompactNavigation(enabled: Boolean) = store.edit { it[Keys.compactNavigation] = enabled }
+
     suspend fun setNavCornerRadius(value: Int) = store.edit { it[Keys.navCornerRadius] = value.coerceIn(0, 32) }
+
     suspend fun setShowMixCard(enabled: Boolean) = store.edit { it[Keys.showMixCard] = enabled }
+
     suspend fun setArtworkQualityWifi(quality: ArtworkQuality) = store.edit { it[Keys.artworkQualityWifi] = quality.key }
+
     suspend fun setArtworkQualityMobile(quality: ArtworkQuality) = store.edit { it[Keys.artworkQualityMobile] = quality.key }
+
     suspend fun setImageCacheMb(value: Int) = store.edit { it[Keys.imageCacheMb] = value.coerceIn(32, 1024) }
+
     suspend fun setKeepPlayingAfterClose(enabled: Boolean) = store.edit { it[Keys.keepPlayingAfterClose] = enabled }
+
     suspend fun setResumeOnHeadset(enabled: Boolean) = store.edit { it[Keys.resumeOnHeadset] = enabled }
+
     suspend fun setPauseOnHeadsetDisconnect(enabled: Boolean) = store.edit { it[Keys.pauseOnHeadsetDisconnect] = enabled }
+
     suspend fun setCrossfade(duration: CrossfadeDuration) = store.edit { it[Keys.crossfade] = duration.key }
+
     suspend fun setHiFiMode(enabled: Boolean) = store.edit { it[Keys.hiFiMode] = enabled }
+
     suspend fun setHardwareOffload(enabled: Boolean) = store.edit { it[Keys.hardwareOffload] = enabled }
+
     suspend fun setRememberShuffle(enabled: Boolean) = store.edit { it[Keys.rememberShuffle] = enabled }
+
     suspend fun setShowQueueHistory(enabled: Boolean) = store.edit { it[Keys.showQueueHistory] = enabled }
+
     suspend fun setAutoplay(enabled: Boolean) = store.edit { it[Keys.autoplay] = enabled }
+
     suspend fun setAvoidRepeats(enabled: Boolean) = store.edit { it[Keys.avoidRepeats] = enabled }
+
     suspend fun setDedupeQueue(enabled: Boolean) = store.edit { it[Keys.dedupeQueue] = enabled }
+
     suspend fun setPreloadNext(enabled: Boolean) = store.edit { it[Keys.preloadNext] = enabled }
+
     suspend fun setBassBoost(value: Int) = store.edit { it[Keys.bassBoost] = value.coerceIn(0, 1000) }
+
     suspend fun setVirtualizer(value: Int) = store.edit { it[Keys.virtualizer] = value.coerceIn(0, 1000) }
+
     suspend fun setLoudness(value: Int) = store.edit { it[Keys.loudness] = value.coerceIn(0, 1000) }
+
     suspend fun setHapticFeedback(enabled: Boolean) = store.edit { it[Keys.hapticFeedback] = enabled }
+
     suspend fun setAutoOpenPlayer(enabled: Boolean) = store.edit { it[Keys.autoOpenPlayer] = enabled }
+
     suspend fun setArtworkSwipe(enabled: Boolean) = store.edit { it[Keys.artworkSwipe] = enabled }
+
     suspend fun setKeepScreenOn(enabled: Boolean) = store.edit { it[Keys.keepScreenOn] = enabled }
+
     suspend fun setDoubleTapSearch(enabled: Boolean) = store.edit { it[Keys.doubleTapSearch] = enabled }
+
     suspend fun setPreferUnicode(enabled: Boolean) = store.edit { it[Keys.preferUnicode] = enabled }
+
     suspend fun setShowMapper(enabled: Boolean) = store.edit { it[Keys.showMapper] = enabled }
+
     suspend fun setQuickPicksSource(source: QuickPicksSource) = store.edit { it[Keys.quickPicksSource] = source.key }
+
     suspend fun setQuickPicksLayout(layout: QuickPicksLayout) = store.edit { it[Keys.quickPicksLayout] = layout.key }
+
     suspend fun setTopSize(size: TopSize) = store.edit { it[Keys.topSize] = size.count }
+
     suspend fun setAutoSyncLibrary(enabled: Boolean) = store.edit { it[Keys.autoSyncLibrary] = enabled }
+
     suspend fun setDownloadLimitMb(value: Int) = store.edit { it[Keys.downloadLimitMb] = value.coerceAtLeast(0) }
+
     suspend fun setAutoCleanCache(enabled: Boolean) = store.edit { it[Keys.autoCleanCache] = enabled }
+
     suspend fun setAutoUpdateCheck(enabled: Boolean) = store.edit { it[Keys.autoUpdateCheck] = enabled }
+
     suspend fun setLastUpdateCheck(timeMillis: Long) = store.edit { it[Keys.lastUpdateCheck] = timeMillis }
 
-    suspend fun setProxy(proxy: ProxySettings) = store.edit {
-        it[Keys.proxyType] = proxy.type.key
-        it[Keys.proxyHost] = proxy.host.trim()
-        it[Keys.proxyPort] = proxy.port
-        it[Keys.proxyUser] = proxy.username
-        it[Keys.proxyPass] = proxy.password
-    }
+    suspend fun setProxy(proxy: ProxySettings) =
+        store.edit {
+            it[Keys.proxyType] = proxy.type.key
+            it[Keys.proxyHost] = proxy.host.trim()
+            it[Keys.proxyPort] = proxy.port
+            it[Keys.proxyUser] = proxy.username
+            it[Keys.proxyPass] = proxy.password
+        }
 
     suspend fun resetAll() {
         withContext(Dispatchers.IO) { prefsCache.edit().clear().commit() }
         store.edit { prefs ->
             val keep = setOf(Keys.clientId.name, Keys.clientSecret.name)
-            prefs.asMap().keys.filter { it.name !in keep }.forEach { prefs.remove(it) }
+            prefs
+                .asMap()
+                .keys
+                .filter { it.name !in keep }
+                .forEach { prefs.remove(it) }
         }
     }
 
     suspend fun exportPreferences(): Map<String, Any> =
-        store.data.first().asMap().mapKeys { it.key.name }
+        store.data
+            .first()
+            .asMap()
+            .mapKeys { it.key.name }
             .filterKeys { it !in SENSITIVE_KEYS }
             .mapValues { it.value }
 
-    suspend fun importPreferences(values: Map<String, Any?>) = store.edit { prefs ->
-        values.forEach { (name, value) ->
-            if (name in SENSITIVE_KEYS) return@forEach
-            when (value) {
-                is Boolean -> prefs[booleanPreferencesKey(name)] = value
-                is Int -> prefs[intPreferencesKey(name)] = value
-                is Long -> prefs[longPreferencesKey(name)] = value
-                is String -> prefs[stringPreferencesKey(name)] = value
+    suspend fun importPreferences(values: Map<String, Any?>) =
+        store.edit { prefs ->
+            values.forEach { (name, value) ->
+                if (name in SENSITIVE_KEYS) return@forEach
+                when (value) {
+                    is Boolean -> prefs[booleanPreferencesKey(name)] = value
+                    is Int -> prefs[intPreferencesKey(name)] = value
+                    is Long -> prefs[longPreferencesKey(name)] = value
+                    is String -> prefs[stringPreferencesKey(name)] = value
+                }
             }
         }
-    }
 
     fun syncStartupCache(settings: AppSettings) {
-        prefsCache.edit()
+        prefsCache
+            .edit()
             .putString("theme_mode", settings.themeMode.key)
             .putBoolean("amoled", settings.amoled)
             .putString("accent", settings.accent.key)
@@ -379,25 +476,38 @@ class SettingsStore(context: Context) {
             .apply()
     }
 
-    suspend fun setOsuCredentials(clientId: String, clientSecret: String) = store.edit {
+    suspend fun setOsuCredentials(
+        clientId: String,
+        clientSecret: String,
+    ) = store.edit {
         it[Keys.clientId] = clientId.trim()
         it[Keys.clientSecret] = clientSecret.trim()
     }
 
-    suspend fun setMirrorEnabled(id: String, enabled: Boolean) = store.edit { prefs ->
-        val current = prefs[Keys.disabledMirrors].orEmpty().split(',').filter { it.isNotBlank() }.toMutableSet()
+    suspend fun setMirrorEnabled(
+        id: String,
+        enabled: Boolean,
+    ) = store.edit { prefs ->
+        val current =
+            prefs[Keys.disabledMirrors]
+                .orEmpty()
+                .split(',')
+                .filter { it.isNotBlank() }
+                .toMutableSet()
         if (enabled) current.remove(id) else current.add(id)
         prefs[Keys.disabledMirrors] = current.joinToString(",")
     }
 
-    suspend fun addCustomMirror(mirror: Mirror) = store.edit { prefs ->
-        val current = decodeMirrors(prefs[Keys.customMirrors]).filterNot { it.id == mirror.id }
-        prefs[Keys.customMirrors] = encodeMirrors(current + mirror)
-    }
+    suspend fun addCustomMirror(mirror: Mirror) =
+        store.edit { prefs ->
+            val current = decodeMirrors(prefs[Keys.customMirrors]).filterNot { it.id == mirror.id }
+            prefs[Keys.customMirrors] = encodeMirrors(current + mirror)
+        }
 
-    suspend fun removeCustomMirror(id: String) = store.edit { prefs ->
-        prefs[Keys.customMirrors] = encodeMirrors(decodeMirrors(prefs[Keys.customMirrors]).filterNot { it.id == id })
-    }
+    suspend fun removeCustomMirror(id: String) =
+        store.edit { prefs ->
+            prefs[Keys.customMirrors] = encodeMirrors(decodeMirrors(prefs[Keys.customMirrors]).filterNot { it.id == id })
+        }
 
     suspend fun addRecentSearch(query: String) {
         val value = query.trim().replace('\n', ' ')
@@ -409,10 +519,11 @@ class SettingsStore(context: Context) {
         }
     }
 
-    suspend fun removeRecentSearch(query: String) = store.edit { prefs ->
-        val updated = prefs[Keys.recentSearches].orEmpty().split('\n').filter { it.isNotBlank() && it != query }
-        prefs[Keys.recentSearches] = updated.joinToString("\n")
-    }
+    suspend fun removeRecentSearch(query: String) =
+        store.edit { prefs ->
+            val updated = prefs[Keys.recentSearches].orEmpty().split('\n').filter { it.isNotBlank() && it != query }
+            prefs[Keys.recentSearches] = updated.joinToString("\n")
+        }
 
     suspend fun clearRecentSearches() = store.edit { it.remove(Keys.recentSearches) }
 
@@ -434,7 +545,7 @@ class SettingsStore(context: Context) {
                     .put("name", it.name)
                     .put("download", it.downloadUrl)
                     .put("preview", it.previewUrl)
-                    .put("referer", it.referer)
+                    .put("referer", it.referer),
             )
         }
         return array.toString()
@@ -452,7 +563,7 @@ class SettingsStore(context: Context) {
                     downloadUrl = obj.optString("download"),
                     previewUrl = obj.optString("preview"),
                     referer = obj.optString("referer"),
-                    builtIn = false
+                    builtIn = false,
                 )
             }
         } catch (e: JSONException) {
@@ -468,7 +579,7 @@ class SettingsStore(context: Context) {
             ThemeMode.fromKey(
                 context.applicationContext
                     .getSharedPreferences("kozu_theme_sync", Context.MODE_PRIVATE)
-                    .getString("theme_mode", "system")
+                    .getString("theme_mode", "system"),
             )
     }
 }

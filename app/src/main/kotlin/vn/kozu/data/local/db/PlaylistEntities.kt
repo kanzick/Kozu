@@ -9,7 +9,7 @@ import androidx.room.PrimaryKey
 data class PlaylistEntity(
     @PrimaryKey val id: String,
     val name: String,
-    val createdAt: Long
+    val createdAt: Long,
 )
 
 @Entity(tableName = "songs")
@@ -19,7 +19,7 @@ data class SongEntity(
     val artist: String,
     val mapper: String,
     val status: String,
-    val updatedAt: Long
+    val updatedAt: Long,
 )
 
 @Entity(
@@ -30,20 +30,20 @@ data class SongEntity(
             entity = PlaylistEntity::class,
             parentColumns = ["id"],
             childColumns = ["playlistId"],
-            onDelete = ForeignKey.CASCADE
+            onDelete = ForeignKey.CASCADE,
         ),
         ForeignKey(
             entity = SongEntity::class,
             parentColumns = ["id"],
             childColumns = ["songId"],
-            onDelete = ForeignKey.CASCADE
-        )
+            onDelete = ForeignKey.CASCADE,
+        ),
     ],
-    indices = [Index("songId")]
+    indices = [Index("songId")],
 )
 data class SongInPlaylistEntity(
     val playlistId: String,
     val songId: Long,
     val position: Int,
-    val addedAt: Long
+    val addedAt: Long,
 )

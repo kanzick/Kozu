@@ -56,33 +56,35 @@ fun BrowseFilterSheet(
     initial: BrowseFilters,
     isLoggedIn: Boolean,
     onDismiss: () -> Unit,
-    onApply: (BrowseFilters) -> Unit
+    onApply: (BrowseFilters) -> Unit,
 ) {
     var draft by remember { mutableStateOf(initial) }
     val isSupporter = LocalIsSupporter.current
-    val sheetState = rememberBottomSheetState(
-        initialValue = SheetValue.Hidden,
-        enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)
-    )
+    val sheetState =
+        rememberBottomSheetState(
+            initialValue = SheetValue.Hidden,
+            enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
+        )
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
         Column(Modifier.fillMaxWidth().navigationBarsPadding()) {
             Text(
                 text = "Filters",
                 style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
             )
             Spacer(Modifier.height(8.dp))
             Column(
-                modifier = Modifier
-                    .weight(1f, fill = false)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                modifier =
+                    Modifier
+                        .weight(1f, fill = false)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 FilterSection("Mode") {
                     SingleChoiceChips(ModeFilter.entries, draft.mode, { it.label }) {
@@ -93,7 +95,7 @@ fun BrowseFilterSheet(
                     SingleChoiceChips(
                         options = BrowseStatus.entries.filter { isLoggedIn || !it.requiresLogin },
                         selected = draft.status,
-                        label = { it.label }
+                        label = { it.label },
                     ) { draft = draft.copy(status = it) }
                 }
                 FilterSection("Genre") {
@@ -115,13 +117,13 @@ fun BrowseFilterSheet(
                     MultiChoiceChips(
                         options = BrowseGeneral.entries.filter { isLoggedIn || !it.requiresLogin },
                         selected = draft.general,
-                        label = { it.label }
+                        label = { it.label },
                     ) { draft = draft.copy(general = draft.general.toggle(it)) }
                 }
                 if (isLoggedIn) {
                     FilterSection(
                         title = "Played",
-                        hint = if (isSupporter) null else "osu!supporter feature"
+                        hint = if (isSupporter) null else "osu!supporter feature",
                     ) {
                         SingleChoiceChips(BrowsePlayed.entries, draft.played, { it.label }) {
                             draft = draft.copy(played = it)
@@ -129,7 +131,7 @@ fun BrowseFilterSheet(
                     }
                     FilterSection(
                         title = "Rank achieved",
-                        hint = if (isSupporter) null else "osu!supporter feature"
+                        hint = if (isSupporter) null else "osu!supporter feature",
                     ) {
                         MultiChoiceChips(BrowseRank.entries, draft.ranks, { it.label }) {
                             draft = draft.copy(ranks = draft.ranks.toggle(it))
@@ -150,12 +152,12 @@ fun BrowseFilterSheet(
                         DirectionChip(
                             label = "Descending",
                             selected = !draft.ascending,
-                            ascending = false
+                            ascending = false,
                         ) { draft = draft.copy(ascending = false) }
                         DirectionChip(
                             label = "Ascending",
                             selected = draft.ascending,
-                            ascending = true
+                            ascending = true,
                         ) { draft = draft.copy(ascending = true) }
                     }
                 }
@@ -163,19 +165,20 @@ fun BrowseFilterSheet(
             }
             Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     TextButton(
                         onClick = { draft = draft.resetFilters() },
-                        enabled = draft.hasActiveFilters
+                        enabled = draft.hasActiveFilters,
                     ) { Text("Reset") }
                     Button(
                         onClick = { onApply(draft) },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     ) { Text("Apply") }
                 }
             }
@@ -187,12 +190,12 @@ fun BrowseFilterSheet(
 private fun FilterSection(
     title: String,
     hint: String? = null,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer
+        color = MaterialTheme.colorScheme.surfaceContainer,
     ) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
             Text(text = title, style = MaterialTheme.typography.titleMedium)
@@ -200,7 +203,7 @@ private fun FilterSection(
                 Text(
                     text = hint,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Spacer(Modifier.height(8.dp))
@@ -215,11 +218,11 @@ private fun <T> SingleChoiceChips(
     options: List<T>,
     selected: T,
     label: (T) -> String,
-    onSelect: (T) -> Unit
+    onSelect: (T) -> Unit,
 ) {
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp)
+        verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         options.forEach { option ->
             ChoiceChip(label(option), option == selected) { onSelect(option) }
@@ -233,11 +236,11 @@ private fun <T> MultiChoiceChips(
     options: List<T>,
     selected: Set<T>,
     label: (T) -> String,
-    onToggle: (T) -> Unit
+    onToggle: (T) -> Unit,
 ) {
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp)
+        verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         options.forEach { option ->
             ChoiceChip(label(option), option in selected) { onToggle(option) }
@@ -246,27 +249,37 @@ private fun <T> MultiChoiceChips(
 }
 
 @Composable
-private fun ChoiceChip(label: String, selected: Boolean, onClick: () -> Unit) {
+private fun ChoiceChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
     FilterChip(
         selected = selected,
         onClick = onClick,
         label = { Text(label) },
-        leadingIcon = if (selected) {
-            {
-                Icon(
-                    Icons.Rounded.Check,
-                    contentDescription = null,
-                    modifier = Modifier.size(FilterChipDefaults.IconSize)
-                )
-            }
-        } else {
-            null
-        }
+        leadingIcon =
+            if (selected) {
+                {
+                    Icon(
+                        Icons.Rounded.Check,
+                        contentDescription = null,
+                        modifier = Modifier.size(FilterChipDefaults.IconSize),
+                    )
+                }
+            } else {
+                null
+            },
     )
 }
 
 @Composable
-private fun DirectionChip(label: String, selected: Boolean, ascending: Boolean, onClick: () -> Unit) {
+private fun DirectionChip(
+    label: String,
+    selected: Boolean,
+    ascending: Boolean,
+    onClick: () -> Unit,
+) {
     FilterChip(
         selected = selected,
         onClick = onClick,
@@ -275,9 +288,9 @@ private fun DirectionChip(label: String, selected: Boolean, ascending: Boolean, 
             Icon(
                 imageVector = if (ascending) Icons.Rounded.ArrowUpward else Icons.Rounded.ArrowDownward,
                 contentDescription = null,
-                modifier = Modifier.size(FilterChipDefaults.IconSize)
+                modifier = Modifier.size(FilterChipDefaults.IconSize),
             )
-        }
+        },
     )
 }
 

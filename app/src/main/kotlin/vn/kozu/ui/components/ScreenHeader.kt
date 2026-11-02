@@ -31,6 +31,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -67,6 +69,7 @@ fun CenteredHeader(
     trailing: @Composable () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val compactWidth = LocalConfiguration.current.screenWidthDp < 360
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface,
@@ -83,9 +86,10 @@ fun CenteredHeader(
             Text(
                 text = title,
                 modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.headlineMedium,
+                style = if (compactWidth) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineMedium,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                maxLines = 1
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
             Box(Modifier.size(46.dp), contentAlignment = Alignment.Center) { trailing() }
         }

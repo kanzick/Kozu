@@ -13,21 +13,25 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
-val KozuShapes = Shapes(
-    extraSmall = RoundedCornerShape(10.dp),
-    small = RoundedCornerShape(16.dp),
-    medium = RoundedCornerShape(22.dp),
-    large = RoundedCornerShape(30.dp),
-    extraLarge = RoundedCornerShape(40.dp)
-)
+val KozuShapes =
+    Shapes(
+        extraSmall = RoundedCornerShape(10.dp),
+        small = RoundedCornerShape(16.dp),
+        medium = RoundedCornerShape(22.dp),
+        large = RoundedCornerShape(30.dp),
+        extraLarge = RoundedCornerShape(40.dp),
+    )
 
 class CookieShape(
     private val sides: Int,
     private val depth: Float = 0.06f,
-    private val rotationDegrees: Float = 0f
+    private val rotationDegrees: Float = 0f,
 ) : Shape {
-
-    override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
+    override fun createOutline(
+        size: Size,
+        layoutDirection: LayoutDirection,
+        density: Density,
+    ): Outline {
         val path = Path()
         val cx = size.width / 2f
         val cy = size.height / 2f

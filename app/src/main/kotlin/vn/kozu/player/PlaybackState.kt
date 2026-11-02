@@ -12,6 +12,5 @@ data class PlaybackState(
     val repeat: RepeatState = RepeatState.OFF,
     val queue: List<Beatmap> = emptyList(),
     val queueIndex: Int = -1,
-
-    val audioInfo: String? = null
+    val audioInfo: String? = null,
 )

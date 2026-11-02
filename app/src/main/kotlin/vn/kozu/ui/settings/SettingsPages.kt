@@ -8,11 +8,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -25,7 +25,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import vn.kozu.util.AppIcon
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -47,11 +46,15 @@ import vn.kozu.domain.model.StatusFilter
 import vn.kozu.domain.model.StreamMode
 import vn.kozu.domain.model.ThemeMode
 import vn.kozu.domain.model.TopSize
+import vn.kozu.util.AppIcon
 import java.text.DateFormat
 import java.util.Date
 
 @Composable
-fun AppearancePage(viewModel: SettingsViewModel, onBack: () -> Unit) {
+fun AppearancePage(
+    viewModel: SettingsViewModel,
+    onBack: () -> Unit,
+) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var appIcon by remember { mutableStateOf(AppIcon.current(context)) }
@@ -64,14 +67,24 @@ fun AppearancePage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                 settings.themeMode,
                 ThemeMode.entries.toList(),
                 { it.label },
-                onSelect = viewModel::setThemeMode
+                onSelect = viewModel::setThemeMode,
             )
-            switch(Setting.PURE_BLACK, settings.amoled, onChange = viewModel::setAmoled)
+            switch(
+                Setting.PURE_BLACK,
+                settings.amoled,
+                description =
+                    if (settings.amoled) {
+                        "On · true black background with darker cards. Applies in Dark Theme."
+                    } else {
+                        "Off · standard dark surfaces. Turn on for a true black OLED-friendly background."
+                    },
+                onChange = viewModel::setAmoled,
+            )
             dropdown(
                 Setting.APP_FONT,
                 settings.appFont,
                 AppFont.entries.toList(),
-                { it.label }
+                { it.label },
             ) { font -> viewModel.save { setAppFont(font) } }
             dropdown(
                 Setting.APP_ICON,
@@ -82,14 +95,15 @@ fun AppearancePage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                     Surface(
                         Modifier.size(22.dp),
                         shape = CircleShape,
-                        color = when (icon) {
-                            AppIcon.DEFAULT -> Color(0xFFFF66AA)
-                            AppIcon.MIDNIGHT -> Color(0xFF3B2F6B)
-                            AppIcon.MINT -> Color(0xFF2BC4A8)
-                            AppIcon.VIOLET -> Color(0xFF8C66FF)
-                        }
+                        color =
+                            when (icon) {
+                                AppIcon.DEFAULT -> Color(0xFFFF66AA)
+                                AppIcon.MIDNIGHT -> Color(0xFF3B2F6B)
+                                AppIcon.MINT -> Color(0xFF2BC4A8)
+                                AppIcon.VIOLET -> Color(0xFF8C66FF)
+                            },
                     ) {}
-                }
+                },
             ) { chosen ->
                 AppIcon.apply(context, chosen)
                 appIcon = chosen
@@ -99,7 +113,7 @@ fun AppearancePage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                 settings.appStyle,
                 AppStyle.entries.toList(),
                 { it.label },
-                onSelect = viewModel::setAppStyle
+                onSelect = viewModel::setAppStyle,
             )
         }
         SettingsSection("Colors") {
@@ -111,7 +125,7 @@ fun AppearancePage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                 leading = { accent ->
                     Surface(Modifier.size(22.dp), shape = CircleShape, color = accent.color) {}
                 },
-                onSelect = viewModel::setAccent
+                onSelect = viewModel::setAccent,
             )
             switch(Setting.ARTWORK_COLORS, settings.artworkColors, onChange = viewModel::setArtworkColors)
             dropdown(
@@ -119,7 +133,7 @@ fun AppearancePage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                 settings.paletteStyle,
                 PaletteStyle.entries.toList(),
                 { it.label },
-                description = "Current: ${settings.paletteStyle.label}. ${settings.paletteStyle.description}."
+                description = "Current: ${settings.paletteStyle.label}. ${settings.paletteStyle.description}.",
             ) { style -> viewModel.save { setPaletteStyle(style) } }
         }
         SettingsSection("Display & performance") {
@@ -140,7 +154,7 @@ fun AppearancePage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                 0f..120f,
                 valueLabel = { "${it.toInt()} dp" },
                 steps = 23,
-                enabled = settings.blurPlayer && !settings.performanceMode
+                enabled = settings.blurPlayer && !settings.performanceMode,
             ) { value -> viewModel.save { setBlurIntensity(value.toInt()) } }
             switch(Setting.SHOW_FILE_INFO, settings.showFileInfo) { enabled ->
                 viewModel.save { setShowFileInfo(enabled) }
@@ -152,7 +166,7 @@ fun AppearancePage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                 settings.navigationStyle,
                 NavigationStyle.entries.toList(),
                 { if (it == NavigationStyle.FLOATING) "Expressive pill" else "Classic" },
-                onSelect = viewModel::setNavigationStyle
+                onSelect = viewModel::setNavigationStyle,
             )
             switch(Setting.COMPACT_NAV, settings.compactNavigation, enabled = floating) { enabled ->
                 viewModel.save { setCompactNavigation(enabled) }
@@ -163,7 +177,7 @@ fun AppearancePage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                 0f..32f,
                 valueLabel = { "${it.toInt()} dp" },
                 steps = 15,
-                enabled = floating
+                enabled = floating,
             ) { value -> viewModel.save { setNavCornerRadius(value.toInt()) } }
         }
         SettingsSection("App navigation") {
@@ -172,14 +186,18 @@ fun AppearancePage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                 settings.startTab,
                 StartTab.entries.toList(),
                 { it.label },
-                onSelect = viewModel::setStartTab
+                onSelect = viewModel::setStartTab,
             )
         }
     }
 }
 
 @Composable
-fun PlaybackPage(viewModel: SettingsViewModel, onOpenEqualizer: () -> Unit, onBack: () -> Unit) {
+fun PlaybackPage(
+    viewModel: SettingsViewModel,
+    onOpenEqualizer: () -> Unit,
+    onBack: () -> Unit,
+) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
@@ -206,7 +224,7 @@ fun PlaybackPage(viewModel: SettingsViewModel, onOpenEqualizer: () -> Unit, onBa
                 settings.streamMode,
                 StreamMode.entries.toList(),
                 { it.label },
-                onSelect = viewModel::setStreamMode
+                onSelect = viewModel::setStreamMode,
             )
             switch(Setting.WIFI_ONLY_STREAM, settings.wifiOnlyStreaming, onChange = viewModel::setWifiOnlyStreaming)
             switch(Setting.SKIP_SILENCE, settings.skipSilence, onChange = viewModel::setSkipSilence)
@@ -216,7 +234,7 @@ fun PlaybackPage(viewModel: SettingsViewModel, onOpenEqualizer: () -> Unit, onBa
                 Setting.CROSSFADE,
                 settings.crossfade,
                 CrossfadeDuration.entries.toList(),
-                { it.label }
+                { it.label },
             ) { value -> viewModel.save { setCrossfade(value) } }
             switch(Setting.HIFI, settings.hiFiMode) { enabled -> viewModel.save { setHiFiMode(enabled) } }
             switch(Setting.OFFLOAD, settings.hardwareOffload) { enabled ->
@@ -243,14 +261,17 @@ fun PlaybackPage(viewModel: SettingsViewModel, onOpenEqualizer: () -> Unit, onBa
             navigation(
                 Setting.EQUALIZER_BANDS,
                 value = if (settings.equalizerEnabled) "On" else "Off",
-                onClick = onOpenEqualizer
+                onClick = onOpenEqualizer,
             )
         }
     }
 }
 
 @Composable
-fun BehaviorPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
+fun BehaviorPage(
+    viewModel: SettingsViewModel,
+    onBack: () -> Unit,
+) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
@@ -283,21 +304,26 @@ fun BehaviorPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
 }
 
 @Composable
-fun MusicPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
+fun MusicPage(
+    viewModel: SettingsViewModel,
+    onBack: () -> Unit,
+) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val catalog by viewModel.catalog.collectAsStateWithLifecycle()
     val syncing by viewModel.syncing.collectAsStateWithLifecycle()
-    val lastSync = if (settings.lastSyncAt > 0L) {
-        DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(settings.lastSyncAt))
-    } else {
-        "Never"
-    }
-    val source = when (catalog.mixSource) {
-        CatalogSource.OFFICIAL_OSU -> "Official osu!"
-        CatalogSource.PUBLIC_MIRROR -> "Public fallback"
-        CatalogSource.MIXED -> "Official + fallback"
-        CatalogSource.NONE -> "Connecting"
-    }
+    val lastSync =
+        if (settings.lastSyncAt > 0L) {
+            DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(settings.lastSyncAt))
+        } else {
+            "Never"
+        }
+    val source =
+        when (catalog.mixSource) {
+            CatalogSource.OFFICIAL_OSU -> "Official osu!"
+            CatalogSource.PUBLIC_MIRROR -> "Public fallback"
+            CatalogSource.MIXED -> "Official + fallback"
+            CatalogSource.NONE -> "Connecting"
+        }
 
     SettingsScaffold(title = "Music", onBack = onBack) {
         SettingsSection("Default filters") {
@@ -306,14 +332,14 @@ fun MusicPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                 settings.statusFilter,
                 listOf(StatusFilter.DEFAULT, StatusFilter.RANKED, StatusFilter.LOVED),
                 { it.label },
-                onSelect = viewModel::setStatusFilter
+                onSelect = viewModel::setStatusFilter,
             )
             dropdown(
                 Setting.DEFAULT_MODE,
                 settings.modeFilter,
                 ModeFilter.entries.toList(),
                 { it.label },
-                onSelect = viewModel::setModeFilter
+                onSelect = viewModel::setModeFilter,
             )
         }
         SettingsSection("Sync and library") {
@@ -321,7 +347,7 @@ fun MusicPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                 Setting.SYNC_NOW,
                 label = if (syncing) "Syncing…" else "Sync now",
                 description = "Refresh favourites, playlists and downloads. Last sync: $lastSync",
-                enabled = !syncing
+                enabled = !syncing,
             ) { viewModel.syncNow() }
             switch(Setting.AUTO_SYNC, settings.autoSyncLibrary) { enabled ->
                 viewModel.save { setAutoSyncLibrary(enabled) }
@@ -332,12 +358,12 @@ fun MusicPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                 icon = Setting.DEFAULT_MODE.icon,
                 title = "Catalog source",
                 value = source,
-                description = catalog.error ?: "Beatmap listings and updates come from osu!."
+                description = catalog.error ?: "Beatmap listings and updates come from osu!.",
             )
             action(
                 Setting.REFRESH_CATALOG,
                 label = if (catalog.isRefreshing) "Refreshing…" else "Refresh catalog",
-                enabled = !catalog.isRefreshing
+                enabled = !catalog.isRefreshing,
             ) { viewModel.refreshCatalog() }
         }
         SettingsSection("Visual quality") {
@@ -345,27 +371,31 @@ fun MusicPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                 Setting.ARTWORK_WIFI,
                 settings.artworkQualityWifi,
                 ArtworkQuality.entries.toList(),
-                { "${it.label} · ${it.description}" }
+                { "${it.label} · ${it.description}" },
             ) { value -> viewModel.save { setArtworkQualityWifi(value) } }
             dropdown(
                 Setting.ARTWORK_MOBILE,
                 settings.artworkQualityMobile,
                 ArtworkQuality.entries.toList(),
-                { "${it.label} · ${it.description}" }
+                { "${it.label} · ${it.description}" },
             ) { value -> viewModel.save { setArtworkQualityMobile(value) } }
             slider(
                 Setting.IMAGE_CACHE,
                 settings.imageCacheMb.toFloat(),
                 32f..1024f,
                 valueLabel = { "${it.toInt()} MB" },
-                steps = 30
+                steps = 30,
             ) { value -> viewModel.save { setImageCacheMb(value.toInt()) } }
         }
     }
 }
 
 @Composable
-fun ContentPage(viewModel: SettingsViewModel, onOpenProxy: () -> Unit, onBack: () -> Unit) {
+fun ContentPage(
+    viewModel: SettingsViewModel,
+    onOpenProxy: () -> Unit,
+    onBack: () -> Unit,
+) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
 
     SettingsScaffold(title = "Content", onBack = onBack) {
@@ -385,7 +415,7 @@ fun ContentPage(viewModel: SettingsViewModel, onOpenProxy: () -> Unit, onBack: (
                 Setting.TOP_SIZE,
                 settings.topSize,
                 TopSize.entries.toList(),
-                { it.label }
+                { it.label },
             ) { size -> viewModel.save { setTopSize(size) } }
         }
         SettingsSection("Home") {
@@ -396,7 +426,7 @@ fun ContentPage(viewModel: SettingsViewModel, onOpenProxy: () -> Unit, onBack: (
                 DisplayNameItem(
                     shape = shape,
                     name = settings.displayName,
-                    onCommit = viewModel::setDisplayName
+                    onCommit = viewModel::setDisplayName,
                 )
             }
         }
@@ -404,7 +434,7 @@ fun ContentPage(viewModel: SettingsViewModel, onOpenProxy: () -> Unit, onBack: (
             navigation(
                 Setting.PROXY,
                 value = proxySummary(settings.proxy),
-                onClick = onOpenProxy
+                onClick = onOpenProxy,
             )
         }
         SettingsSection("Privacy") {
@@ -418,7 +448,7 @@ fun ContentPage(viewModel: SettingsViewModel, onOpenProxy: () -> Unit, onBack: (
 private fun DisplayNameItem(
     shape: androidx.compose.ui.graphics.Shape,
     name: String,
-    onCommit: (String) -> Unit
+    onCommit: (String) -> Unit,
 ) {
     var draft by remember(name) { mutableStateOf(name) }
     SettingCard(setting = Setting.DISPLAY_NAME, shape = shape, onClick = null) {
@@ -428,48 +458,55 @@ private fun DisplayNameItem(
             OutlinedTextField(
                 value = draft,
                 onValueChange = { draft = it.take(24) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .onFocusChanged { focus ->
-                        if (!focus.isFocused && draft != name) onCommit(draft)
-                    },
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .onFocusChanged { focus ->
+                            if (!focus.isFocused && draft != name) onCommit(draft)
+                        },
                 singleLine = true,
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
+                shape =
+                    androidx.compose.foundation.shape
+                        .RoundedCornerShape(20.dp),
                 placeholder = { Text("Leave blank to use your osu! username") },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { onCommit(draft) })
+                keyboardActions = KeyboardActions(onDone = { onCommit(draft) }),
             )
         }
     }
 }
 
-fun proxySummary(proxy: ProxySettings): String =
-    if (proxy.isActive) "${proxy.type.label} · ${proxy.host}:${proxy.port}" else "Disabled"
+fun proxySummary(proxy: ProxySettings): String = if (proxy.isActive) "${proxy.type.label} · ${proxy.host}:${proxy.port}" else "Disabled"
 
 private fun openBatterySettings(context: android.content.Context) {
-    val intents = listOf(
-        Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS),
-        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}"))
-    )
+    val intents =
+        listOf(
+            Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS),
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")),
+        )
     startFirst(context, intents)
 }
 
 private fun openDefaultLinkSettings(context: android.content.Context) {
-    val intents = buildList {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            add(
-                Intent(
-                    Settings.ACTION_APP_OPEN_BY_DEFAULT_SETTINGS,
-                    Uri.parse("package:${context.packageName}")
+    val intents =
+        buildList {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                add(
+                    Intent(
+                        Settings.ACTION_APP_OPEN_BY_DEFAULT_SETTINGS,
+                        Uri.parse("package:${context.packageName}"),
+                    ),
                 )
-            )
+            }
+            add(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")))
         }
-        add(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")))
-    }
     startFirst(context, intents)
 }
 
-private fun startFirst(context: android.content.Context, intents: List<Intent>) {
+private fun startFirst(
+    context: android.content.Context,
+    intents: List<Intent>,
+) {
     for (intent in intents) {
         try {
             context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))

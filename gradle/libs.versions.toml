@@ -17,6 +17,7 @@ palette = "1.1.0"
 coil = "3.6.3"
 profileinstaller = "1.4.1"
 room = "2.8.5"
+reorderables = "3.1.0"
 ksp = "2.3.13"
 junit = "4.13.2"
 
@@ -51,6 +52,7 @@ coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" 
 coil-network = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
 junit = { module = "junit:junit", version.ref = "junit" }
 androidx-profileinstaller = { module = "androidx.profileinstaller:profileinstaller", version.ref = "profileinstaller" }
+reorderables = { group = "sh.calvin.reorderable", name = "reorderable", version.ref = "reorderables" }
 
 [plugins]
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

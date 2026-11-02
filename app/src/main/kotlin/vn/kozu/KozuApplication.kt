@@ -13,25 +13,31 @@ import kotlinx.coroutines.withTimeoutOrNull
 import okio.Path.Companion.toOkioPath
 import vn.kozu.di.AppContainer
 
-class KozuApplication : Application(), SingletonImageLoader.Factory {
-
+class KozuApplication :
+    Application(),
+    SingletonImageLoader.Factory {
     val container: AppContainer by lazy { AppContainer(this) }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader {
-        val limitMb = runBlocking(Dispatchers.IO) {
-            withTimeoutOrNull(1_000L) { container.settings.settings.first().imageCacheMb }
-        } ?: DEFAULT_IMAGE_CACHE_MB
-        return ImageLoader.Builder(context)
+        val limitMb =
+            runBlocking(Dispatchers.IO) {
+                withTimeoutOrNull(1_000L) {
+                    container.settings.settings
+                        .first()
+                        .imageCacheMb
+                }
+            } ?: DEFAULT_IMAGE_CACHE_MB
+        return ImageLoader
+            .Builder(context)
             .components {
                 add(OkHttpNetworkFetcherFactory(callFactory = { container.httpClient }))
-            }
-            .diskCache {
-                DiskCache.Builder()
+            }.diskCache {
+                DiskCache
+                    .Builder()
                     .directory(cacheDir.resolve("image_cache").toOkioPath())
                     .maxSizeBytes(limitMb.coerceIn(32, 1024) * 1024L * 1024L)
                     .build()
-            }
-            .build()
+            }.build()
     }
 
     private companion object {

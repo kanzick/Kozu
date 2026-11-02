@@ -13,12 +13,15 @@ data class PlaybackSessionSnapshot(
     val queueIndex: Int,
     val positionMs: Long,
     val shuffleEnabled: Boolean,
-    val repeatMode: Int
+    val repeatMode: Int,
 )
 
-class PlaybackSessionStore(context: Context) {
-    private val preferences = context.applicationContext
-        .getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+class PlaybackSessionStore(
+    context: Context,
+) {
+    private val preferences =
+        context.applicationContext
+            .getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
 
     fun save(snapshot: PlaybackSessionSnapshot) {
         if (snapshot.queue.isEmpty()) {
@@ -26,12 +29,13 @@ class PlaybackSessionStore(context: Context) {
             return
         }
 
-        val json = JSONObject()
-            .put("queue", BeatmapJson.encodeList(snapshot.queue))
-            .put("index", snapshot.queueIndex.coerceIn(snapshot.queue.indices))
-            .put("position", snapshot.positionMs.coerceAtLeast(0L))
-            .put("shuffle", snapshot.shuffleEnabled)
-            .put("repeat", snapshot.repeatMode)
+        val json =
+            JSONObject()
+                .put("queue", BeatmapJson.encodeList(snapshot.queue))
+                .put("index", snapshot.queueIndex.coerceIn(snapshot.queue.indices))
+                .put("position", snapshot.positionMs.coerceAtLeast(0L))
+                .put("shuffle", snapshot.shuffleEnabled)
+                .put("repeat", snapshot.repeatMode)
         preferences.edit { putString(SESSION_KEY, json.toString()) }
     }
 
@@ -39,15 +43,17 @@ class PlaybackSessionStore(context: Context) {
         val encoded = preferences.getString(SESSION_KEY, null) ?: return null
         return try {
             val json = JSONObject(encoded)
-            val queue = BeatmapJson.decodeList(json.getJSONArray("queue"))
-                .filter { it.id > 0L }
+            val queue =
+                BeatmapJson
+                    .decodeList(json.getJSONArray("queue"))
+                    .filter { it.id > 0L }
             if (queue.isEmpty()) return null
             PlaybackSessionSnapshot(
                 queue = queue,
                 queueIndex = json.optInt("index", 0).coerceIn(queue.indices),
                 positionMs = json.optLong("position", 0L).coerceAtLeast(0L),
                 shuffleEnabled = json.optBoolean("shuffle", false),
-                repeatMode = json.optInt("repeat", 0).coerceIn(0, 2)
+                repeatMode = json.optInt("repeat", 0).coerceIn(0, 2),
             )
         } catch (error: JSONException) {
             Log.e(TAG, "Could not restore the saved playback queue", error)

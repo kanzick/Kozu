@@ -13,7 +13,6 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 object ArtworkPalette {
-
     private const val TAG = "ArtworkPalette"
     private val cache = LruCache<String, Int>(64)
 
@@ -33,16 +32,17 @@ object ArtworkPalette {
             connection.readTimeout = 8_000
             try {
                 connection.connect()
-                val bitmap = connection.inputStream.use { stream ->
-                    BitmapFactory.decodeStream(
-                        stream,
-                        null,
-                        BitmapFactory.Options().apply {
-                            inSampleSize = 2
-                            inPreferredConfig = Bitmap.Config.RGB_565
-                        }
-                    )
-                } ?: return null
+                val bitmap =
+                    connection.inputStream.use { stream ->
+                        BitmapFactory.decodeStream(
+                            stream,
+                            null,
+                            BitmapFactory.Options().apply {
+                                inSampleSize = 2
+                                inPreferredConfig = Bitmap.Config.RGB_565
+                            },
+                        )
+                    } ?: return null
                 try {
                     val palette = Palette.from(bitmap).resizeBitmapArea(24_000).generate()
                     palette.vibrantSwatch?.rgb

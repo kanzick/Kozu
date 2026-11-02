@@ -17,31 +17,41 @@ import androidx.compose.ui.unit.dp
 import java.text.DateFormat
 import java.util.Date
 
-internal fun Context.openLink(url: String): Boolean = try {
-    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-    true
-} catch (_: Exception) {
-    false
-}
+internal fun Context.openLink(url: String): Boolean =
+    try {
+        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        true
+    } catch (_: Exception) {
+        false
+    }
 
-internal fun Context.copyToClipboard(label: String, text: String): Boolean = try {
-    val manager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-    manager.setPrimaryClip(ClipData.newPlainText(label, text))
-    true
-} catch (_: Exception) {
-    false
-}
+internal fun Context.copyToClipboard(
+    label: String,
+    text: String,
+): Boolean =
+    try {
+        val manager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        manager.setPrimaryClip(ClipData.newPlainText(label, text))
+        true
+    } catch (_: Exception) {
+        false
+    }
 
 internal fun formatDateTime(timeMillis: Long): String =
     DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(timeMillis))
 
 @Composable
-internal fun NoteCard(shape: Shape, title: String?, text: String) {
+internal fun NoteCard(
+    shape: Shape,
+    title: String?,
+    text: String,
+) {
     SettingCard(setting = null, shape = shape, onClick = null) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 16.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp, vertical = 16.dp),
         ) {
             if (title != null) {
                 Text(title, style = MaterialTheme.typography.titleMedium)
@@ -49,7 +59,7 @@ internal fun NoteCard(shape: Shape, title: String?, text: String) {
             Text(
                 text,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

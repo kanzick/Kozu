@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -15,9 +16,9 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.FilterList
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,22 +43,24 @@ import java.text.NumberFormat
 import java.util.Locale
 
 @Composable
-fun FilterAction(active: Boolean, onClick: () -> Unit) {
+fun FilterAction(
+    active: Boolean,
+    onClick: () -> Unit,
+) {
     Box {
         HeaderAction(
-            icon = Icons.Rounded.FilterList,
+            icon = Icons.Rounded.Tune,
             contentDescription = if (active) "Filters, some active" else "Filters",
             onClick = onClick,
-            startPadding = 0.dp
+            startPadding = 0.dp,
         )
         if (active) {
             Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .size(16.dp)
-                    .background(MaterialTheme.colorScheme.surface, CircleShape)
-                    .padding(3.dp)
-                    .background(MaterialTheme.colorScheme.tertiary, CircleShape)
+                modifier =
+                    Modifier
+                        .align(Alignment.TopEnd)
+                        .size(10.dp)
+                        .background(MaterialTheme.colorScheme.tertiary, CircleShape),
             )
         }
     }
@@ -68,20 +71,25 @@ internal fun BrowseSearchField(
     query: String,
     onQueryChange: (String) -> Unit,
     onSearch: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     TextField(
         value = query,
         onValueChange = onQueryChange,
-        modifier = modifier.fillMaxWidth(),
-        singleLine = true,
-        shape = CircleShape,
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .heightIn(min = 56.dp, max = 88.dp),
+        singleLine = false,
+        minLines = 1,
+        maxLines = 2,
+        shape = RoundedCornerShape(24.dp),
         textStyle = MaterialTheme.typography.bodyLarge,
         placeholder = {
             Text(
                 text = "Search title, artist or mapper",
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
             )
         },
         leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
@@ -94,35 +102,40 @@ internal fun BrowseSearchField(
         },
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         keyboardActions = KeyboardActions(onSearch = { onSearch() }),
-        colors = TextFieldDefaults.colors(
-            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            focusedIndicatorColor = Color.Transparent,
-            unfocusedIndicatorColor = Color.Transparent,
-            disabledIndicatorColor = Color.Transparent
-        )
+        colors =
+            TextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                disabledIndicatorColor = Color.Transparent,
+            ),
     )
 }
 
 @Composable
-internal fun BrowseSummary(ui: BrowseUiState, modifier: Modifier = Modifier) {
+internal fun BrowseSummary(
+    ui: BrowseUiState,
+    modifier: Modifier = Modifier,
+) {
     val total = ui.total
-    val count = when {
-        ui.isLoading -> "Searching..."
-        total != null -> "${NumberFormat.getIntegerInstance(Locale.US).format(total)} ${if (total == 1) "result" else "results"}"
-        ui.items.isNotEmpty() -> "${ui.items.size}${if (ui.hasMore) "+" else ""} results"
-        else -> "No results"
-    }
+    val count =
+        when {
+            ui.isLoading -> "Searching..."
+            total != null -> "${NumberFormat.getIntegerInstance(Locale.US).format(total)} ${if (total == 1) "result" else "results"}"
+            ui.items.isNotEmpty() -> "${ui.items.size}${if (ui.hasMore) "+" else ""} results"
+            else -> "No results"
+        }
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = count,
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.primary,
-            maxLines = 1
+            maxLines = 1,
         )
         Text(
             text = "Sorted by ${ui.filters.sort.label}",
@@ -131,39 +144,43 @@ internal fun BrowseSummary(ui: BrowseUiState, modifier: Modifier = Modifier) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.End
+            textAlign = TextAlign.End,
         )
     }
 }
 
 @Composable
-internal fun BrowseSourceNote(ui: BrowseUiState, modifier: Modifier = Modifier) {
+internal fun BrowseSourceNote(
+    ui: BrowseUiState,
+    modifier: Modifier = Modifier,
+) {
     if (ui.isLoading || ui.source != CatalogSource.PUBLIC_MIRROR) return
-    val text = if (ui.ignoredFilters.isEmpty()) {
-        "Public mirror in use. Add osu! API credentials for official results."
-    } else {
-        "Public mirror in use. Not applied: ${ui.ignoredFilters.joinToString(", ")}."
-    }
+    val text =
+        if (ui.ignoredFilters.isEmpty()) {
+            "Public mirror in use. Add osu! API credentials for official results."
+        } else {
+            "Public mirror in use. Not applied: ${ui.ignoredFilters.joinToString(", ")}."
+        }
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.secondaryContainer
+        color = MaterialTheme.colorScheme.secondaryContainer,
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Icon(
                 Icons.Rounded.Info,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(18.dp),
             )
             Text(
                 text = text,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
         }
     }
@@ -174,15 +191,16 @@ fun ActiveFilterChips(
     filters: List<ActiveBrowseFilter>,
     onRemove: (ActiveBrowseFilter) -> Unit,
     onReset: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         filters.forEach { filter ->
             FilterChip(
@@ -193,9 +211,9 @@ fun ActiveFilterChips(
                     Icon(
                         Icons.Rounded.Close,
                         contentDescription = "Remove ${filter.label}",
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(16.dp),
                     )
-                }
+                },
             )
         }
         TextButton(onClick = onReset) { Text("Reset") }

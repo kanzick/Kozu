@@ -25,7 +25,10 @@ import java.util.Locale
 private enum class DeveloperConfirm { RESET, CACHES }
 
 @Composable
-fun DeveloperPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
+fun DeveloperPage(
+    viewModel: SettingsViewModel,
+    onBack: () -> Unit,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val container = viewModel.appContainer
@@ -44,7 +47,7 @@ fun DeveloperPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
             action(
                 Setting.REFRESH_CATALOG,
                 label = if (catalog.isRefreshing) "Refreshingâ€¦" else "Force refresh",
-                enabled = !catalog.isRefreshing
+                enabled = !catalog.isRefreshing,
             ) {
                 container.catalog.clearMixCache()
                 viewModel.refreshCatalog()
@@ -53,32 +56,40 @@ fun DeveloperPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
             action(
                 Setting.REBUILD_LIBRARY,
                 label = if (syncing) "Rebuildingâ€¦" else "Rebuild",
-                enabled = !syncing && !working
+                enabled = !syncing && !working,
             ) {
                 scope.launch {
                     working = true
-                    status = try {
-                        val report = container.sync.run()
-                        "Library rebuilt: ${report.checked} songs checked, ${report.refreshed} refreshed, ${report.outdated} outdated downloads."
-                    } catch (e: kotlinx.coroutines.CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        "Library rebuild failed: ${e.message ?: "unknown error"}"
-                    }
+                    status =
+                        try {
+                            val report = container.sync.run()
+                            "Library rebuilt: ${report.checked} songs checked, ${report.refreshed} refreshed, ${report.outdated} outdated downloads."
+                        } catch (e: kotlinx.coroutines.CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            "Library rebuild failed: ${e.message ?: "unknown error"}"
+                        }
                     working = false
                 }
             }
             action(Setting.REGENERATE_STATS, label = "Regenerate", enabled = !working) {
                 scope.launch {
                     working = true
-                    status = try {
-                        val fixed = container.history.normalize()
-                        if (fixed == 0) "Stats recomputed. Everything was already consistent." else "Stats recomputed. $fixed inconsistent entries were cleaned up."
-                    } catch (e: kotlinx.coroutines.CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        "Could not regenerate stats: ${e.message ?: "unknown error"}"
-                    }
+                    status =
+                        try {
+                            val fixed = container.history.normalize()
+                            if (fixed ==
+                                0
+                            ) {
+                                "Stats recomputed. Everything was already consistent."
+                            } else {
+                                "Stats recomputed. $fixed inconsistent entries were cleaned up."
+                            }
+                        } catch (e: kotlinx.coroutines.CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            "Could not regenerate stats: ${e.message ?: "unknown error"}"
+                        }
                     working = false
                 }
             }
@@ -96,7 +107,7 @@ fun DeveloperPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                 Icons.Rounded.Memory,
                 "CPU architecture",
                 Build.SUPPORTED_ABIS.firstOrNull() ?: "Unknown",
-                Build.SUPPORTED_ABIS.joinToString(", ")
+                Build.SUPPORTED_ABIS.joinToString(", "),
             )
             action(Setting.COPY_DEBUG, label = "Copy") {
                 val copied = context.copyToClipboard("Kozu debug info", debugReport(context, version, build, settings))
@@ -106,67 +117,77 @@ fun DeveloperPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
     }
 
     when (confirm) {
-        DeveloperConfirm.RESET -> ConfirmDialog(
-            title = "Reset all settings?",
-            text = "Every preference returns to its default value. Your osu! API credentials, favourites, playlists and downloads are kept.",
-            action = "Reset",
-            onConfirm = {
-                confirm = null
-                viewModel.save { resetAll() }
-                status = "All settings were reset to their defaults."
-            },
-            onDismiss = { confirm = null }
-        )
-        DeveloperConfirm.CACHES -> ConfirmDialog(
-            title = "Clear all caches?",
-            text = "Cached streams, artwork and catalog pages will be deleted. Downloads are not affected.",
-            action = "Clear",
-            onConfirm = {
-                confirm = null
-                scope.launch {
-                    working = true
-                    viewModel.clearStreamCache()
-                    container.catalog.clearMixCache()
-                    withContext(Dispatchers.IO) {
-                        val loader = SingletonImageLoader.get(context)
-                        loader.memoryCache?.clear()
-                        loader.diskCache?.clear()
+        DeveloperConfirm.RESET -> {
+            ConfirmDialog(
+                title = "Reset all settings?",
+                text = "Every preference returns to its default value. Your osu! API credentials, favourites, playlists and downloads are kept.",
+                action = "Reset",
+                onConfirm = {
+                    confirm = null
+                    viewModel.save { resetAll() }
+                    status = "All settings were reset to their defaults."
+                },
+                onDismiss = { confirm = null },
+            )
+        }
+
+        DeveloperConfirm.CACHES -> {
+            ConfirmDialog(
+                title = "Clear all caches?",
+                text = "Cached streams, artwork and catalog pages will be deleted. Downloads are not affected.",
+                action = "Clear",
+                onConfirm = {
+                    confirm = null
+                    scope.launch {
+                        working = true
+                        viewModel.clearStreamCache()
+                        container.catalog.clearMixCache()
+                        withContext(Dispatchers.IO) {
+                            val loader = SingletonImageLoader.get(context)
+                            loader.memoryCache?.clear()
+                            loader.diskCache?.clear()
+                        }
+                        status = "Stream, artwork and catalog caches were cleared."
+                        working = false
                     }
-                    status = "Stream, artwork and catalog caches were cleared."
-                    working = false
-                }
-            },
-            onDismiss = { confirm = null }
-        )
-        null -> Unit
+                },
+                onDismiss = { confirm = null },
+            )
+        }
+
+        null -> {
+            Unit
+        }
     }
 }
 
-private fun buildNumber(context: android.content.Context): String = try {
-    val info = context.packageManager.getPackageInfo(context.packageName, 0)
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) info.longVersionCode.toString() else "${info.versionCode}"
-} catch (_: Exception) {
-    "?"
-}
+private fun buildNumber(context: android.content.Context): String =
+    try {
+        val info = context.packageManager.getPackageInfo(context.packageName, 0)
+        info.longVersionCode.toString()
+    } catch (_: Exception) {
+        "?"
+    }
 
 private fun debugReport(
     context: android.content.Context,
     version: String,
     build: String,
-    settings: AppSettings
-): String = buildString {
-    appendLine("Kozu $version (build $build)")
-    appendLine("Package: ${context.packageName}")
-    appendLine("Device: ${Build.MANUFACTURER} ${Build.MODEL}")
-    appendLine("Android: ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
-    appendLine("ABI: ${Build.SUPPORTED_ABIS.joinToString(", ")}")
-    appendLine("Locale: ${Locale.getDefault().toLanguageTag()}")
-    appendLine("Stream mode: ${settings.streamMode.label}")
-    appendLine("Stream cache limit: ${settings.streamCacheMb} MB")
-    appendLine("Download limit: ${if (settings.downloadLimitMb == 0) "unlimited" else "${settings.downloadLimitMb} MB"}")
-    appendLine("Proxy: ${if (settings.proxy.isActive) settings.proxy.type.label else "disabled"}")
-    appendLine("Active mirrors: ${settings.activeMirrors.size}")
-    appendLine("osu! API credentials configured: ${if (settings.hasCredentials) "yes" else "no"}")
-    appendLine("Equalizer: ${if (settings.equalizerEnabled) "on" else "off"}")
-    append("Last library sync: ${if (settings.lastSyncAt > 0L) formatDateTime(settings.lastSyncAt) else "never"}")
-}
+    settings: AppSettings,
+): String =
+    buildString {
+        appendLine("Kozu $version (build $build)")
+        appendLine("Package: ${context.packageName}")
+        appendLine("Device: ${Build.MANUFACTURER} ${Build.MODEL}")
+        appendLine("Android: ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
+        appendLine("ABI: ${Build.SUPPORTED_ABIS.joinToString(", ")}")
+        appendLine("Locale: ${Locale.getDefault().toLanguageTag()}")
+        appendLine("Stream mode: ${settings.streamMode.label}")
+        appendLine("Stream cache limit: ${settings.streamCacheMb} MB")
+        appendLine("Download limit: ${if (settings.downloadLimitMb == 0) "unlimited" else "${settings.downloadLimitMb} MB"}")
+        appendLine("Proxy: ${if (settings.proxy.isActive) settings.proxy.type.label else "disabled"}")
+        appendLine("Active mirrors: ${settings.activeMirrors.size}")
+        appendLine("osu! API credentials configured: ${if (settings.hasCredentials) "yes" else "no"}")
+        appendLine("Equalizer: ${if (settings.equalizerEnabled) "on" else "off"}")
+        append("Last library sync: ${if (settings.lastSyncAt > 0L) formatDateTime(settings.lastSyncAt) else "never"}")
+    }

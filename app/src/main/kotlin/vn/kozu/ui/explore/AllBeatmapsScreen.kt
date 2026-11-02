@@ -194,18 +194,24 @@ fun AllBeatmapsScreen(
                     }
 
                     ui.items.isEmpty() -> item(key = "browse-empty") {
-                        EmptyState(
-                            icon = Icons.Rounded.SearchOff,
-                            title = "No beatmaps found",
-                            message = "Try a different search or loosen the filters.",
-                            action = if (ui.filters.hasActiveFilters) {
-                                {
-                                    TextButton(onClick = viewModel::resetFilters) { Text("Reset filters") }
+                        if (ui.filters.hasActiveFilters) {
+                            EmptyState(
+                                icon = Icons.Rounded.SearchOff,
+                                title = "No beatmaps found",
+                                message = "Try a different search or loosen the filters.",
+                                action = {
+                                    TextButton(onClick = viewModel::resetFilters) {
+                                        Text(text = "Reset filters")
+                                    }
                                 }
-                            } else {
-                                null
-                            }
-                        )
+                            )
+                        } else {
+                            EmptyState(
+                                icon = Icons.Rounded.SearchOff,
+                                title = "No beatmaps found",
+                                message = "Try a different search or loosen the filters."
+                            )
+                        }
                     }
 
                     else -> {

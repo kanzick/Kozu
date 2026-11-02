@@ -17,7 +17,7 @@ data class BeatmapDifficultyInfo(
     val spinners: Int = 0,
     val maxCombo: Int = 0,
     val status: String = "",
-    val isConvert: Boolean = false
+    val isConvert: Boolean = false,
 )
 
 data class BeatmapSetInfo(
@@ -25,15 +25,16 @@ data class BeatmapSetInfo(
     val ratingAverage: Double = 0.0,
     val ratingCount: Int = 0,
     val difficulties: List<BeatmapDifficultyInfo> = emptyList(),
-    val isReduced: Boolean = false
+    val isReduced: Boolean = false,
 )
 
 object GameModes {
-    fun label(modeInt: Int): String = when (modeInt) {
-        0 -> "osu!"
-        1 -> "osu!taiko"
-        2 -> "osu!catch"
-        3 -> "osu!mania"
-        else -> "Other"
-    }
+    fun label(modeInt: Int): String =
+        when (modeInt) {
+            0 -> "osu!"
+            1 -> "osu!taiko"
+            2 -> "osu!catch"
+            3 -> "osu!mania"
+            else -> "Other"
+        }
 }

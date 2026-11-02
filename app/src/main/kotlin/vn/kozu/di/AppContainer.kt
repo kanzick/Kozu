@@ -8,9 +8,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import vn.kozu.data.backup.BackupManager
-import vn.kozu.data.storage.CacheCleaner
-import vn.kozu.data.update.UpdateChecker
-import vn.kozu.data.remote.ProxyController
 import vn.kozu.data.download.DownloadManager
 import vn.kozu.data.local.AccountStore
 import vn.kozu.data.local.DownloadsStore
@@ -20,15 +17,20 @@ import vn.kozu.data.local.PlaylistStore
 import vn.kozu.data.local.SettingsStore
 import vn.kozu.data.mirror.MirrorTester
 import vn.kozu.data.mirror.StreamResolver
+import vn.kozu.data.remote.ProxyController
 import vn.kozu.data.remote.osu.OsuApiFactory
 import vn.kozu.data.remote.osu.OsuAuth
 import vn.kozu.data.repository.AccountRepository
 import vn.kozu.data.repository.BeatmapRepository
 import vn.kozu.data.repository.DiscoverFeed
 import vn.kozu.data.repository.LibrarySync
+import vn.kozu.data.storage.CacheCleaner
+import vn.kozu.data.update.UpdateChecker
 import vn.kozu.player.PlaybackController
 
-class AppContainer(context: Context) {
+class AppContainer(
+    context: Context,
+) {
     val appContext = context.applicationContext
 
     val settings = SettingsStore(appContext)
@@ -47,25 +49,27 @@ class AppContainer(context: Context) {
     val discover = DiscoverFeed(catalog, settings, auth)
 
     val streams = StreamResolver(appContext, httpClient, downloadsStore, settings)
-    val downloads = DownloadManager(
-        context = appContext,
-        client = httpClient,
-        settings = settings,
-        store = downloadsStore,
-        auth = auth,
-        history = history
-    )
+    val downloads =
+        DownloadManager(
+            context = appContext,
+            client = httpClient,
+            settings = settings,
+            store = downloadsStore,
+            auth = auth,
+            history = history,
+        )
     val mirrorTester = MirrorTester(httpClient)
 
-    val sync = LibrarySync(
-        catalog,
-        favorites,
-        playlists,
-        history,
-        downloadsStore,
-        downloads,
-        settings
-    )
+    val sync =
+        LibrarySync(
+            catalog,
+            favorites,
+            playlists,
+            history,
+            downloadsStore,
+            downloads,
+            settings,
+        )
 
     val playback: PlaybackController by lazy {
         PlaybackController(appContext, history, streams, catalog, settings.settings)
@@ -79,7 +83,10 @@ class AppContainer(context: Context) {
 
     init {
         scope.launch {
-            settings.settings.map { it.proxy }.distinctUntilChanged().collect { ProxyController.update(it) }
+            settings.settings
+                .map { it.proxy }
+                .distinctUntilChanged()
+                .collect { ProxyController.update(it) }
         }
         scope.launch { runCatching { cacheCleaner.cleanIfNeeded() } }
     }

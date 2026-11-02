@@ -17,11 +17,11 @@ enum class KozuTab(
     val title: String,
     val icon: ImageVector,
     val outlinedIcon: ImageVector,
-    val inPill: Boolean = true
+    val inPill: Boolean = true,
 ) {
     HOME("Home", Icons.Rounded.Home, Icons.Outlined.Home),
     EXPLORE("Explore", Icons.Rounded.Explore, Icons.Outlined.Explore),
     LIBRARY("Library", Icons.Rounded.LibraryMusic, Icons.Outlined.LibraryMusic),
     GAME("Game", Icons.Rounded.SportsEsports, Icons.Outlined.SportsEsports),
-    SEARCH("Search", Icons.Rounded.Search, Icons.Outlined.Search, inPill = false)
+    SEARCH("Search", Icons.Rounded.Search, Icons.Outlined.Search, inPill = false),
 }
