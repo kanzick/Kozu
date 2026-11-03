@@ -2,7 +2,10 @@ package vn.kozu.ui.navigation
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
@@ -45,6 +48,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import vn.kozu.domain.model.NavigationStyle
+import vn.kozu.ui.components.FitText
 import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.theme.KozuMotion
 
@@ -79,8 +83,22 @@ private fun PillNavBar(
     modifier: Modifier,
 ) {
     val tabs = KozuTab.entries.filter { it.inPill }
-    val barHeight = if (compact) 56.dp else 64.dp
-    val radius = cornerRadius.coerceIn(0, 32)
+    val barHeight by animateDpAsState(
+        targetValue = if (compact) 56.dp else 64.dp,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "navBarHeight",
+    )
+    // The radius is animated so dragging the slider (or tapping a value) morphs the bar instead of snapping.
+    val radius by animateFloatAsState(
+        targetValue = cornerRadius.coerceIn(0, 32).toFloat(),
+        animationSpec = spring(dampingRatio = 0.75f, stiffness = Spring.StiffnessMedium),
+        label = "navBarRadius",
+    )
+    val searchSize by animateDpAsState(
+        targetValue = if (compact) 48.dp else 56.dp,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "navSearchSize",
+    )
     val barShape = RoundedCornerShape((barHeight.value * radius / 64f).dp)
     val itemShape = RoundedCornerShape(((barHeight.value - 18f) * radius / 64f).dp)
     Row(
@@ -121,8 +139,8 @@ private fun PillNavBar(
         Spacer(Modifier.width(12.dp))
         SearchButton(
             isSelected = selected == KozuTab.SEARCH,
-            size = if (compact) 48.dp else 56.dp,
-            shape = RoundedCornerShape(((if (compact) 48f else 56f) * radius / 64f).dp),
+            size = searchSize,
+            shape = RoundedCornerShape((searchSize.value * radius / 64f).dp),
             onClick = { onSelect(KozuTab.SEARCH) },
         )
     }
@@ -181,13 +199,12 @@ private fun RowScope.PillItem(
                 enter = fadeIn(tween(160)) + expandHorizontally(KozuMotion.spatial()),
                 exit = fadeOut(tween(90)) + shrinkHorizontally(tween(160)),
             ) {
-                Text(
+                FitText(
                     text = tab.title,
                     modifier = Modifier.padding(start = 8.dp),
                     style = MaterialTheme.typography.labelLarge,
                     color = content,
-                    maxLines = 1,
-                    overflow = TextOverflow.Clip,
+                    minScale = 0.7f,
                 )
             }
         }
@@ -296,11 +313,11 @@ private fun ClassicItem(
             tint = tint,
             modifier = Modifier.size(22.dp),
         )
-        Text(
+        FitText(
             text = tab.title,
             style = MaterialTheme.typography.labelSmall,
             color = tint,
-            maxLines = 1,
+            minScale = 0.7f,
         )
     }
 }

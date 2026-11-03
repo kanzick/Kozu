@@ -60,6 +60,15 @@ import androidx.compose.material.icons.rounded.TouchApp
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Upload
 import androidx.compose.material.icons.rounded.Vibration
+import androidx.compose.material.icons.rounded.Autorenew
+import androidx.compose.material.icons.rounded.Category
+import androidx.compose.material.icons.rounded.FormatBold
+import androidx.compose.material.icons.rounded.LinearScale
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.SkipNext
+import androidx.compose.material.icons.rounded.SwapHoriz
+import androidx.compose.material.icons.rounded.ViewCompact
+import androidx.compose.material.icons.rounded.Widgets
 import androidx.compose.material.icons.rounded.ViewAgenda
 import androidx.compose.material.icons.rounded.ViewCarousel
 import androidx.compose.material.icons.rounded.WbSunny
@@ -75,7 +84,9 @@ enum class SettingsPage(
     ACCOUNT("Accounts", "Manage osu! sign-in and API credentials", Icons.Rounded.AccountCircle),
     MUSIC("Music", "Browse defaults, library sync and artwork", Icons.Rounded.LibraryMusic),
     CONTENT("Content", "Catalog, titles, privacy and network", Icons.Rounded.Language),
-    APPEARANCE("Appearance", "Themes, layout, and visual styles", Icons.Rounded.Palette),
+    APPEARANCE("Appearance", "Themes, density, shapes and sliders", Icons.Rounded.Palette),
+    TYPOGRAPHY("Typography", "Font, text size, weight and width", Icons.Rounded.TextFields),
+    PLAYER_STYLE("Player & mini player", "Customize the player bar and full player", Icons.Rounded.PlayCircle),
     PLAYBACK("Playback", "Audio behavior, crossfade, and background play", Icons.Rounded.MusicNote),
     BEHAVIOR("Behavior", "Gestures, haptics, and navigation behavior", Icons.Rounded.TouchApp),
     BACKUP("Backup & Restore", "Export and recover your personal app data", Icons.Rounded.Upload),
@@ -217,14 +228,196 @@ enum class Setting(
         "amoled oled dark",
     ),
     APP_FONT(
-        SettingsPage.APPEARANCE,
+        SettingsPage.TYPOGRAPHY,
         Icons.Rounded.FormatSize,
         "App font",
-        "Choose Quicksand, Roboto, Google Sans, or Google Sans Flex.",
+        "Google Sans Flex, Google Sans, Quicksand, Roboto or the system font.",
         "typeface quicksand roboto google sans flex",
     ),
-    PLAYBACK_ICON(
+    TEXT_SIZE(
+        SettingsPage.TYPOGRAPHY,
+        Icons.Rounded.FormatSize,
+        "Text size",
+        "Scale all text in the app. Layouts adapt so nothing overflows.",
+        "font scale bigger smaller large",
+    ),
+    FONT_WEIGHT(
+        SettingsPage.TYPOGRAPHY,
+        Icons.Rounded.FormatBold,
+        "Text weight",
+        "Make text lighter or bolder across the app.",
+        "bold thin heavy light font",
+    ),
+    FONT_WIDTH(
+        SettingsPage.TYPOGRAPHY,
+        Icons.Rounded.SwapHoriz,
+        "Letter width",
+        "Narrow or widen letters. Available for Google Sans Flex.",
+        "condensed expanded stretch font width",
+    ),
+    FONT_ROUNDNESS(
+        SettingsPage.TYPOGRAPHY,
+        Icons.Rounded.RoundedCorner,
+        "Letter roundness",
+        "Soften letter ends from sharp to fully rounded. Available for Google Sans Flex.",
+        "rounded soft font",
+    ),
+    RESET_TYPOGRAPHY(
+        SettingsPage.TYPOGRAPHY,
+        Icons.Rounded.RestartAlt,
+        "Reset typography",
+        "Back to the default font, size, weight and width.",
+        "default font reset",
+    ),
+    UI_DENSITY(
         SettingsPage.APPEARANCE,
+        Icons.Rounded.ViewCompact,
+        "Layout density",
+        "Comfortable, compact or dense spacing. Applies to every screen in the app.",
+        "compact spacing size ui scale padding",
+    ),
+    COMPACT_MODE(
+        SettingsPage.APPEARANCE,
+        Icons.Rounded.Compress,
+        "Compact mode",
+        "Tighter spacing and smaller controls across the whole app.",
+        "dense small spacing",
+    ),
+    ARTWORK_SHAPE(
+        SettingsPage.APPEARANCE,
+        Icons.Rounded.Category,
+        "Album art shape",
+        "Shape of covers everywhere: lists, cards, player and mini player.",
+        "cover circle cookie square rounded",
+    ),
+    SLIDER_STYLE(
+        SettingsPage.APPEARANCE,
+        Icons.Rounded.LinearScale,
+        "Slider style",
+        "Look of every slider in settings, equalizer and game options.",
+        "seek bar wavy expressive thumb",
+    ),
+    ICON_STYLE(
+        SettingsPage.PLAYER_STYLE,
+        Icons.Rounded.Widgets,
+        "Player icon style",
+        "Rounded, outlined or sharp playback icons.",
+        "icons skip shuffle repeat",
+    ),
+    PLAYER_PAGE_ENTRY(
+        SettingsPage.APPEARANCE,
+        Icons.Rounded.PlayCircle,
+        "Player & mini player",
+        "Style, colors, progress, artwork and gestures of the player bar.",
+        "mini player bar now playing",
+    ),
+    TYPOGRAPHY_ENTRY(
+        SettingsPage.APPEARANCE,
+        Icons.Rounded.TextFields,
+        "Typography",
+        "Font family, text size, weight, width and roundness.",
+        "font text size",
+    ),
+    MINI_STYLE(
+        SettingsPage.PLAYER_STYLE,
+        Icons.Rounded.ViewCarousel,
+        "Mini player style",
+        "Floating pill, docked bar, expressive card or minimal.",
+        "player bar layout",
+    ),
+    MINI_COLORS(
+        SettingsPage.PLAYER_STYLE,
+        Icons.Rounded.Palette,
+        "Mini player colors",
+        "Accent gradient, tonal, solid accent or neutral.",
+        "player bar color theme",
+    ),
+    MINI_PROGRESS(
+        SettingsPage.PLAYER_STYLE,
+        Icons.Rounded.LinearScale,
+        "Mini player progress",
+        "Ring around the artwork, thin line, wavy line or hidden.",
+        "progress bar ring wavy",
+    ),
+    MINI_ART_SHAPE(
+        SettingsPage.PLAYER_STYLE,
+        Icons.Rounded.Image,
+        "Mini player artwork",
+        "Shape of the cover in the player bar.",
+        "cover circle cookie",
+    ),
+    MINI_CORNER(
+        SettingsPage.PLAYER_STYLE,
+        Icons.Rounded.RoundedCorner,
+        "Mini player corner radius",
+        "Adjust how round the player bar is.",
+        "rounded shape corner",
+    ),
+    MINI_CONTROLS(
+        SettingsPage.PLAYER_STYLE,
+        Icons.Rounded.SkipNext,
+        "Skip buttons",
+        "Show previous and next buttons in the player bar.",
+        "previous next controls",
+    ),
+    MINI_ARTIST(
+        SettingsPage.PLAYER_STYLE,
+        Icons.Rounded.Person,
+        "Show artist",
+        "Show the artist under the title in the player bar.",
+        "subtitle",
+    ),
+    MINI_SPIN(
+        SettingsPage.PLAYER_STYLE,
+        Icons.Rounded.Autorenew,
+        "Spinning artwork",
+        "Rotate round artwork while a song plays.",
+        "rotate vinyl",
+    ),
+    MINI_SWIPE(
+        SettingsPage.PLAYER_STYLE,
+        Icons.Rounded.Swipe,
+        "Swipe to skip",
+        "Swipe the player bar sideways to change track. Swipe down to dismiss.",
+        "gesture next previous",
+    ),
+    SEEK_STYLE(
+        SettingsPage.PLAYER_STYLE,
+        Icons.Rounded.GraphicEq,
+        "Seek bar style",
+        "Wavy, flat, thick pill or thin line in the full player.",
+        "progress slider wavy",
+    ),
+    PLAYER_ART_SHAPE(
+        SettingsPage.PLAYER_STYLE,
+        Icons.Rounded.Image,
+        "Player artwork shape",
+        "Shape of the large cover in the full player.",
+        "cover circle cookie",
+    ),
+    TRANSPORT_SHAPE(
+        SettingsPage.PLAYER_STYLE,
+        Icons.Rounded.PlayCircle,
+        "Control buttons",
+        "Shape of play, previous and next buttons.",
+        "transport pill round square",
+    ),
+    TOGGLE_ROW(
+        SettingsPage.PLAYER_STYLE,
+        Icons.Rounded.Shuffle,
+        "Shuffle, repeat and like row",
+        "Show the row of toggles below the playback controls.",
+        "shuffle repeat favorite",
+    ),
+    RESET_PLAYER_STYLE(
+        SettingsPage.PLAYER_STYLE,
+        Icons.Rounded.RestartAlt,
+        "Reset player style",
+        "Restore the default player bar and full player look.",
+        "default reset",
+    ),
+    PLAYBACK_ICON(
+        SettingsPage.PLAYER_STYLE,
         Icons.Rounded.PlayCircle,
         "Playback icon",
         "Choose the play symbol used across player and library controls.",
@@ -240,8 +433,8 @@ enum class Setting(
     LIBRARY_DENSITY(
         SettingsPage.APPEARANCE,
         Icons.Rounded.ViewAgenda,
-        "Library density",
-        "Choose compact rows or more spacious track listings.",
+        "Library rows",
+        "Show denser track rows in library lists. Compact mode already applies this everywhere.",
         "library compact dense spacing",
     ),
     APP_ICON(SettingsPage.APPEARANCE, Icons.Rounded.AutoAwesome, "App icon", "Select your preferred app icon.", "launcher logo"),
@@ -282,15 +475,15 @@ enum class Setting(
         "low end battery saver",
     ),
     BLUR_PLAYER(
-        SettingsPage.APPEARANCE,
+        SettingsPage.PLAYER_STYLE,
         Icons.Rounded.BlurOn,
         "Blurred player background",
         "Blend the album art behind the full player.",
         "backdrop",
     ),
-    BLUR_INTENSITY(SettingsPage.APPEARANCE, Icons.Rounded.BlurOn, "Blur intensity", "How soft the player backdrop looks.", "radius"),
+    BLUR_INTENSITY(SettingsPage.PLAYER_STYLE, Icons.Rounded.BlurOn, "Blur intensity", "How soft the player backdrop looks.", "radius"),
     SHOW_FILE_INFO(
-        SettingsPage.APPEARANCE,
+        SettingsPage.PLAYER_STYLE,
         Icons.Rounded.Info,
         "Show player file info",
         "Show codec, bitrate, and sample rate in the player.",
@@ -306,9 +499,9 @@ enum class Setting(
     COMPACT_NAV(
         SettingsPage.APPEARANCE,
         Icons.Rounded.Compress,
-        "Compact mode",
-        "Show only icons and reduce the navigation bar height.",
-        "labels",
+        "Icons-only navigation",
+        "Hide navigation labels and reduce the navigation bar height.",
+        "labels compact nav",
     ),
     NAV_RADIUS(
         SettingsPage.APPEARANCE,

@@ -189,6 +189,9 @@ class SettingsViewModel(
 
     fun refreshCatalog() = container.discover.refresh()
 
+    fun updateAppearance(transform: vn.kozu.domain.model.AppearancePrefs.() -> vn.kozu.domain.model.AppearancePrefs) =
+        viewModelScope.launch { container.settings.updateAppearance(transform) }
+
     fun save(block: suspend vn.kozu.data.local.SettingsStore.() -> Unit) = viewModelScope.launch { container.settings.block() }
 
     val appContainer: AppContainer get() = container

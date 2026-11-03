@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -32,7 +31,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import vn.kozu.data.repository.CatalogSource
 import vn.kozu.domain.model.AccentColor
-import vn.kozu.domain.model.AppFont
+import vn.kozu.domain.model.ArtworkShape
+import vn.kozu.domain.model.SliderStyle
+import vn.kozu.domain.model.UiDensity
 import vn.kozu.domain.model.AppStyle
 import vn.kozu.domain.model.ArtworkQuality
 import vn.kozu.domain.model.CrossfadeDuration
@@ -50,7 +51,6 @@ import vn.kozu.domain.model.StatusFilter
 import vn.kozu.domain.model.StreamMode
 import vn.kozu.domain.model.ThemeMode
 import vn.kozu.domain.model.TopSize
-import vn.kozu.ui.components.playbackIconVector
 import vn.kozu.util.AppIcon
 import java.text.DateFormat
 import java.util.Date
@@ -58,9 +58,12 @@ import java.util.Date
 @Composable
 fun AppearancePage(
     viewModel: SettingsViewModel,
+    onOpenTypography: () -> Unit,
+    onOpenPlayerStyle: () -> Unit,
     onBack: () -> Unit,
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val appearance = settings.appearance
     val context = LocalContext.current
     var appIcon by remember { mutableStateOf(AppIcon.current(context)) }
     val floating = settings.navigationStyle == NavigationStyle.FLOATING
@@ -79,18 +82,12 @@ fun AppearancePage(
                 settings.amoled,
                 description =
                     if (settings.amoled) {
-                        "On · true black background with darker cards. Applies in Dark Theme."
+                        "On \u00b7 true black background with darker cards. Applies in Dark Theme."
                     } else {
-                        "Off · standard dark surfaces. Turn on for a true black OLED-friendly background."
+                        "Off \u00b7 standard dark surfaces. Turn on for a true black OLED-friendly background."
                     },
                 onChange = viewModel::setAmoled,
             )
-            dropdown(
-                Setting.APP_FONT,
-                settings.appFont,
-                AppFont.entries.toList(),
-                { it.label },
-            ) { font -> viewModel.save { setAppFont(font) } }
             dropdown(
                 Setting.APP_ICON,
                 appIcon,
@@ -121,6 +118,46 @@ fun AppearancePage(
                 onSelect = viewModel::setAppStyle,
             )
         }
+        SettingsSection("Layout & density") {
+            dropdown(
+                Setting.UI_DENSITY,
+                appearance.density,
+                UiDensity.entries.toList(),
+                { it.label },
+                description = "Current: ${appearance.density.label}. ${appearance.density.description}.",
+            ) { value -> viewModel.updateAppearance { copy(density = value) } }
+            switch(Setting.COMPACT_MODE, appearance.density != UiDensity.COMFORTABLE) { enabled ->
+                viewModel.updateAppearance { copy(density = if (enabled) UiDensity.COMPACT else UiDensity.COMFORTABLE) }
+            }
+        }
+        SettingsSection("Shapes & sliders") {
+            dropdown(
+                Setting.ARTWORK_SHAPE,
+                appearance.artworkShape,
+                ArtworkShape.entries.toList(),
+                { if (it == ArtworkShape.DEFAULT) "Default (per screen)" else it.label },
+                leading = { value -> ShapeSwatch(value) },
+            ) { value -> viewModel.updateAppearance { copy(artworkShape = value) } }
+            dropdown(
+                Setting.SLIDER_STYLE,
+                appearance.sliderStyle,
+                SliderStyle.entries.toList(),
+                { it.label },
+            ) { value -> viewModel.updateAppearance { copy(sliderStyle = value) } }
+            custom { shape -> SliderPreviewCard(shape = shape, style = appearance.sliderStyle) }
+        }
+        SettingsSection("Customize") {
+            navigation(
+                Setting.TYPOGRAPHY_ENTRY,
+                value = settings.appFont.label,
+                onClick = onOpenTypography,
+            )
+            navigation(
+                Setting.PLAYER_PAGE_ENTRY,
+                value = appearance.miniStyle.label,
+                onClick = onOpenPlayerStyle,
+            )
+        }
         SettingsSection("Colors") {
             dropdown(
                 Setting.ACCENT_COLOR,
@@ -149,34 +186,6 @@ fun AppearancePage(
                 viewModel.save { setPerformanceMode(enabled) }
             }
         }
-        SettingsSection("Now playing") {
-            switch(Setting.BLUR_PLAYER, settings.blurPlayer, enabled = !settings.performanceMode) { enabled ->
-                viewModel.save { setBlurPlayer(enabled) }
-            }
-            slider(
-                Setting.BLUR_INTENSITY,
-                settings.blurIntensity.toFloat(),
-                0f..120f,
-                valueLabel = { "${it.toInt()} dp" },
-                enabled = settings.blurPlayer && !settings.performanceMode,
-            ) { value -> viewModel.save { setBlurIntensity(value.toInt()) } }
-            switch(Setting.SHOW_FILE_INFO, settings.showFileInfo) { enabled ->
-                viewModel.save { setShowFileInfo(enabled) }
-            }
-            dropdown(
-                Setting.PLAYBACK_ICON,
-                settings.playbackIcon,
-                PlaybackIcon.entries.toList(),
-                { it.label },
-                leading = { icon ->
-                    Icon(
-                        imageVector = playbackIconVector(icon, isPlaying = false),
-                        contentDescription = null,
-                        modifier = Modifier.size(22.dp),
-                    )
-                },
-            ) { icon -> viewModel.save { setPlaybackIcon(icon) } }
-        }
         SettingsSection("Navigation bar") {
             dropdown(
                 Setting.NAV_STYLE,
@@ -194,6 +203,7 @@ fun AppearancePage(
                 0f..32f,
                 valueLabel = { "${it.toInt()} dp" },
                 enabled = floating,
+                unit = 1f,
             ) { value -> viewModel.save { setNavCornerRadius(value.toInt()) } }
         }
         SettingsSection("App navigation") {

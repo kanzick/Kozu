@@ -35,6 +35,7 @@ import vn.kozu.data.download.DownloadStatus
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.displayArtist
 import vn.kozu.domain.model.displayTitle
+import vn.kozu.ui.theme.isCompactLayout
 
 @Composable
 fun TrackRow(
@@ -43,7 +44,7 @@ fun TrackRow(
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(24.dp),
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
-    compact: Boolean = false,
+    compact: Boolean = isCompactLayout,
     trailing: (@Composable () -> Unit)? = null
 ) {
     val nowPlaying = LocalNowPlaying.current

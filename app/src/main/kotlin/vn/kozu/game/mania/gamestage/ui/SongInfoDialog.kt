@@ -20,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
+import vn.kozu.ui.components.KozuSlider
 import androidx.compose.material3.rememberSliderState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -267,10 +268,6 @@ private fun SettingSlider(
     onFinished: () -> Unit,
     onStep: ((Int) -> Unit)? = null,
 ) {
-    val sliderState = rememberSliderState(value = value, steps = steps, trackRange = range)
-    LaunchedEffect(value) {
-        sliderState.value = value
-    }
     Column(Modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
@@ -278,10 +275,13 @@ private fun SettingSlider(
             Text(valueText, fontWeight = FontWeight.Bold, modifier = Modifier.width(72.dp), maxLines = 1)
             if (onStep != null) TextButton(onClick = { onStep(1) }) { Text("+") }
         }
-        Slider(
-            state = sliderState,
+        KozuSlider(
+            value = value,
             onValueChange = onChange,
-            onValueChangeFinished = onFinished
+            onValueChangeFinished = onFinished,
+            valueRange = range,
+            steps = steps,
+            contentDescription = label,
         )
     }
 }

@@ -16,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import vn.kozu.domain.model.AppFont
+import vn.kozu.domain.model.AppearancePrefs
 import vn.kozu.domain.model.AppStyle
 import vn.kozu.domain.model.PaletteStyle
 
@@ -26,7 +27,8 @@ fun KozuTheme(
     darkTheme: Boolean,
     amoled: Boolean,
     appStyle: AppStyle = AppStyle.EXPRESSIVE,
-    appFont: AppFont = AppFont.KOZU,
+    appFont: AppFont = AppFont.GOOGLE_SANS_FLEX,
+    appearance: AppearancePrefs = AppearancePrefs(),
     paletteStyle: PaletteStyle = PaletteStyle.TONAL_SPOT,
     content: @Composable () -> Unit,
 ) {
@@ -35,22 +37,27 @@ fun KozuTheme(
             kozuColorScheme(seed, darkTheme, amoled, paletteStyle)
         }
     val animated = rememberAnimatedColorScheme(target)
-    val typography = typographyFor(appFont)
+    val typography =
+        remember(appFont, appearance.fontWeightShift, appearance.fontWidth, appearance.fontRoundness) {
+            typographyFor(appFont, appearance)
+        }
 
     if (appStyle == AppStyle.EXPRESSIVE) {
         MaterialExpressiveTheme(
             colorScheme = animated,
             shapes = KozuShapes,
             typography = typography,
-            content = content,
-        )
+        ) {
+            ProvideKozuDensity(appearance, content)
+        }
     } else {
         MaterialTheme(
             colorScheme = animated,
             shapes = Shapes(),
             typography = typography,
-            content = content,
-        )
+        ) {
+            ProvideKozuDensity(appearance, content)
+        }
     }
 }
 

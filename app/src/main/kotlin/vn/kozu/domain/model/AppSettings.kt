@@ -127,15 +127,18 @@ enum class AppFont(
     val key: String,
     val label: String,
 ) {
-    KOZU("kozu", "Kozu Default"),
-    SYSTEM("system", "System default"),
-    ROBOTO("roboto", "Roboto"),
+    GOOGLE_SANS_FLEX("google_sans_flex", "Google Sans Flex (Rounded)"),
     GOOGLE_SANS("google_sans", "Google Sans"),
-    GOOGLE_SANS_FLEX("google_sans_flex", "Google Sans Flex"),
+    KOZU("kozu", "Quicksand"),
+    ROBOTO("roboto", "Roboto / Sans Serif"),
+    SYSTEM("system", "System default"),
     ;
 
+    /** Only the Flex family exposes the width and roundness axes. */
+    val hasWidthAxis: Boolean get() = this == GOOGLE_SANS_FLEX
+
     companion object {
-        fun fromKey(key: String?): AppFont = entries.firstOrNull { it.key == key } ?: KOZU
+        fun fromKey(key: String?): AppFont = entries.firstOrNull { it.key == key } ?: GOOGLE_SANS_FLEX
     }
 }
 
@@ -322,7 +325,8 @@ data class AppSettings(
     val modeFilter: ModeFilter = ModeFilter.ANY,
     val statusFilter: StatusFilter = StatusFilter.DEFAULT,
     val lastSyncAt: Long = 0L,
-    val appFont: AppFont = AppFont.KOZU,
+    val appFont: AppFont = AppFont.GOOGLE_SANS_FLEX,
+    val appearance: AppearancePrefs = AppearancePrefs(),
     val libraryNavigationMode: LibraryNavigationMode = LibraryNavigationMode.COMPACT,
     val libraryDensity: LibraryDensity = LibraryDensity.COMPACT,
     val libraryGrid: Boolean = false,

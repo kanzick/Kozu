@@ -17,6 +17,7 @@ import org.json.JSONException
 import org.json.JSONObject
 import vn.kozu.domain.model.AccentColor
 import vn.kozu.domain.model.AppFont
+import vn.kozu.domain.model.AppearancePrefs
 import vn.kozu.domain.model.AppSettings
 import vn.kozu.domain.model.AppStyle
 import vn.kozu.domain.model.ArtworkQuality
@@ -51,7 +52,8 @@ class SettingsStore(
     val cachedAmoled: Boolean get() = prefsCache.getBoolean("amoled", false)
     val cachedStartTab: StartTab get() =
         StartTab.fromKey(prefsCache.getString("start_tab", StartTab.HOME.key))
-    val cachedAppFont: AppFont get() = AppFont.fromKey(prefsCache.getString("app_font", AppFont.KOZU.key))
+    val cachedAppFont: AppFont get() = AppFont.fromKey(prefsCache.getString("app_font", AppFont.GOOGLE_SANS_FLEX.key))
+    val cachedAppearance: AppearancePrefs get() = AppearancePrefs.fromJson(prefsCache.getString("appearance_json", null))
     val cachedPaletteStyle: PaletteStyle get() =
         PaletteStyle.fromKey(prefsCache.getString("palette_style", PaletteStyle.TONAL_SPOT.key))
     val cachedHighRefreshRate: Boolean get() = prefsCache.getBoolean("high_refresh_rate", true)
@@ -137,6 +139,7 @@ class SettingsStore(
         val autoUpdateCheck = booleanPreferencesKey("auto_update_check")
         val lastUpdateCheck = longPreferencesKey("last_update_check")
         val libraryTabOrder = stringPreferencesKey("library_tab_order")
+        val appearance = stringPreferencesKey("appearance_json")
     }
 
     val libraryTabOrder: Flow<List<String>> =
@@ -191,6 +194,7 @@ class SettingsStore(
                     statusFilter = StatusFilter.fromKey(prefs[Keys.statusFilter]),
                     lastSyncAt = prefs[Keys.lastSync] ?: 0L,
                     appFont = AppFont.fromKey(prefs[Keys.appFont]),
+                    appearance = AppearancePrefs.fromJson(prefs[Keys.appearance]),
                     libraryNavigationMode = LibraryNavigationMode.fromKey(prefs[Keys.libraryNavigationMode]),
                     libraryDensity = LibraryDensity.fromKey(prefs[Keys.libraryDensity]),
                     libraryGrid = prefs[Keys.libraryGrid] ?: false,
@@ -336,6 +340,17 @@ class SettingsStore(
     suspend fun setAppFont(font: AppFont) {
         withContext(Dispatchers.IO) { prefsCache.edit().putString("app_font", font.key).commit() }
         store.edit { it[Keys.appFont] = font.key }
+    }
+
+    /** Reads the current [AppearancePrefs], applies [transform] and persists the result. */
+    suspend fun updateAppearance(transform: AppearancePrefs.() -> AppearancePrefs) {
+        var json = ""
+        store.edit { prefs ->
+            val updated = AppearancePrefs.fromJson(prefs[Keys.appearance]).transform()
+            json = updated.toJson()
+            prefs[Keys.appearance] = json
+        }
+        withContext(Dispatchers.IO) { prefsCache.edit().putString("appearance_json", json).commit() }
     }
 
     suspend fun setLibraryNavigationMode(mode: LibraryNavigationMode) = store.edit { it[Keys.libraryNavigationMode] = mode.key }
@@ -490,6 +505,7 @@ class SettingsStore(
             .putString("start_tab", settings.startTab.key)
             .putString("app_font", settings.appFont.key)
             .putString("palette_style", settings.paletteStyle.key)
+            .putString("appearance_json", settings.appearance.toJson())
             .putBoolean("high_refresh_rate", settings.highRefreshRate)
             .putBoolean("performance_mode", settings.performanceMode)
             .apply()

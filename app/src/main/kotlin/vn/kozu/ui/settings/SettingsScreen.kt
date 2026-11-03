@@ -91,6 +91,7 @@ private val rootGroups = listOf(
 
 private fun parentOf(page: SettingsPage): SettingsPage = when (page) {
     SettingsPage.LICENSES -> SettingsPage.ABOUT
+    SettingsPage.TYPOGRAPHY, SettingsPage.PLAYER_STYLE -> SettingsPage.APPEARANCE
     else -> SettingsPage.ROOT
 }
 
@@ -136,7 +137,9 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxSize(),
                 transitionSpec = {
                     val forward = (initialState == SettingsPage.ROOT && targetState != SettingsPage.ROOT) ||
-                        targetState == SettingsPage.LICENSES
+                        targetState == SettingsPage.LICENSES ||
+                        targetState == SettingsPage.TYPOGRAPHY ||
+                        targetState == SettingsPage.PLAYER_STYLE
                     if (forward) {
                         (slideInHorizontally(tween(220, easing = FastOutSlowInEasing)) { it / 10 } +
                             fadeIn(tween(180))) togetherWith
@@ -163,7 +166,14 @@ fun SettingsScreen(
                         SettingsPage.ACCOUNT -> AccountPage(viewModel, close)
                         SettingsPage.MUSIC -> MusicPage(viewModel, close)
                         SettingsPage.CONTENT -> ContentPage(viewModel, { proxyOpen = true }, close)
-                        SettingsPage.APPEARANCE -> AppearancePage(viewModel, close)
+                        SettingsPage.APPEARANCE -> AppearancePage(
+                            viewModel,
+                            onOpenTypography = { page = SettingsPage.TYPOGRAPHY },
+                            onOpenPlayerStyle = { page = SettingsPage.PLAYER_STYLE },
+                            onBack = close
+                        )
+                        SettingsPage.TYPOGRAPHY -> TypographyPage(viewModel, close)
+                        SettingsPage.PLAYER_STYLE -> PlayerStylePage(viewModel, close)
                         SettingsPage.PLAYBACK -> PlaybackPage(viewModel, { page = SettingsPage.EQUALIZER }, close)
                         SettingsPage.BEHAVIOR -> BehaviorPage(viewModel, close)
                         SettingsPage.BACKUP -> BackupPage(viewModel, close)

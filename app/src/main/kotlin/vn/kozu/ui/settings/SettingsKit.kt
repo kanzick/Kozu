@@ -77,6 +77,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import vn.kozu.ui.components.KozuSlider
 import vn.kozu.ui.components.LocalPerformanceMode
 import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.rememberKozuHaptics
@@ -263,9 +264,17 @@ class SettingsGroupScope {
         steps: Int = 0,
         enabled: Boolean = true,
         description: String = setting.description,
+        /** Snap size. When set, the slider moves in whole steps of this size and shows tick marks. */
+        unit: Float = 0f,
         onChange: (Float) -> Unit,
     ) = custom { shape ->
-        SliderItem(setting, value, range, steps, valueLabel, enabled, description, shape, onChange)
+        val resolvedSteps =
+            if (unit > 0f) {
+                (((range.endInclusive - range.start) / unit).let { Math.round(it) } - 1).coerceAtLeast(0)
+            } else {
+                steps
+            }
+        SliderItem(setting, value, range, resolvedSteps, valueLabel, enabled, description, shape, onChange)
     }
 
     fun navigation(
@@ -637,12 +646,10 @@ private fun SliderItem(
     shape: Shape,
     onChange: (Float) -> Unit,
 ) {
-    var draft by remember(value) { mutableFloatStateOf(value) }
-    val sliderState = rememberSliderState(value = draft, steps = steps, trackRange = range)
-    LaunchedEffect(value, sliderState) {
-        draft = value
-        sliderState.value = value
-    }
+    var draft by remember { mutableFloatStateOf(value) }
+    var interacting by remember { mutableStateOf(false) }
+    // Saved values flow back in after a change; follow them unless the user is mid-drag.
+    LaunchedEffect(value) { if (!interacting) draft = value }
     SettingCard(setting = setting, shape = shape, onClick = null) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -652,12 +659,22 @@ private fun SliderItem(
                 Spacer(Modifier.width(12.dp))
                 ValueChip(valueLabel(draft))
             }
-            Slider(
-                state = sliderState,
-                onValueChange = { draft = it },
-                onValueChangeFinished = { onChange(draft) },
+            KozuSlider(
+                value = draft,
+                onValueChange = {
+                    interacting = true
+                    draft = it
+                },
+                onValueChangeFinished = {
+                    interacting = false
+                    onChange(draft)
+                },
+                valueRange = range,
+                steps = steps,
                 enabled = enabled,
-                modifier = Modifier.padding(top = 4.dp),
+                bubbleLabel = valueLabel,
+                contentDescription = setting.title,
+                modifier = Modifier.padding(top = 10.dp),
             )
         }
     }
