@@ -31,8 +31,11 @@ fun BeatmapArt(
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(20.dp),
     large: Boolean = false,
+    /** When false the caller's [shape] is used as-is instead of the global album-art shape. */
+    followGlobalShape: Boolean = true,
 ) {
     val appSettings = LocalAppSettings.current
+    val artShape = if (followGlobalShape) resolveArtworkShape(shape) else shape
     val metered = LocalMetered.current
     val quality = if (metered) appSettings.artworkQualityMobile else appSettings.artworkQualityWifi
     val url =
@@ -47,7 +50,7 @@ fun BeatmapArt(
     Box(
         modifier =
             modifier
-                .clip(shape)
+                .clip(artShape)
                 .background(Brush.linearGradient(listOf(colors.primaryContainer, colors.tertiaryContainer))),
         contentAlignment = Alignment.Center,
     ) {

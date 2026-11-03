@@ -118,6 +118,7 @@ fun KozuApp() {
                 amoled = cachedAmoled,
                 startTab = container.settings.cachedStartTab,
                 appFont = container.settings.cachedAppFont,
+                appearance = container.settings.cachedAppearance,
                 paletteStyle = container.settings.cachedPaletteStyle,
                 highRefreshRate = container.settings.cachedHighRefreshRate,
                 performanceMode = container.settings.cachedPerformanceMode,
@@ -147,6 +148,7 @@ fun KozuApp() {
         amoled = settings.amoled,
         appStyle = settings.appStyle,
         appFont = settings.appFont,
+        appearance = settings.appearance,
         paletteStyle = settings.paletteStyle,
     ) {
         val view = LocalView.current

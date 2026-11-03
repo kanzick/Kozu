@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import vn.kozu.player.EqualizerProfile
+import vn.kozu.ui.components.KozuSlider
 import java.util.Locale
 import kotlin.math.abs
 
@@ -189,8 +190,6 @@ private fun Band(
     onCommit: () -> Unit
 ) {
     val alpha = if (enabled) 1f else 0.5f
-    val sliderState = rememberSliderState(value = gain, trackRange = -1f..1f)
-    LaunchedEffect(gain, sliderState) { sliderState.value = gain }
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(56.dp)) {
         Text(
             text = String.format(Locale.US, "%+.1f", gain * EqualizerProfile.MAX_GAIN_DB),
@@ -199,30 +198,16 @@ private fun Band(
         )
         Spacer(Modifier.height(4.dp))
         Box(Modifier.size(width = 48.dp, height = 200.dp)) {
-            Slider(
-                state = sliderState,
+            KozuSlider(
+                value = gain,
                 onValueChange = onChange,
                 onValueChangeFinished = onCommit,
+                valueRange = -1f..1f,
+                origin = 0f,
+                vertical = true,
                 enabled = enabled,
-                modifier = Modifier
-                    .size(width = 48.dp, height = 200.dp)
-                    .graphicsLayer {
-                        rotationZ = 270f
-                        transformOrigin = TransformOrigin(0f, 0f)
-                    }
-                    .layout { measurable, constraints ->
-                        val placeable = measurable.measure(
-                            Constraints(
-                                minWidth = constraints.minHeight,
-                                maxWidth = constraints.maxHeight,
-                                minHeight = constraints.minWidth,
-                                maxHeight = constraints.maxWidth
-                            )
-                        )
-                        layout(placeable.height, placeable.width) {
-                            placeable.place(-placeable.width, 0)
-                        }
-                    }
+                contentDescription = frequencyLabel(frequency),
+                modifier = Modifier.height(200.dp)
             )
         }
         Spacer(Modifier.height(4.dp))

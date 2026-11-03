@@ -31,13 +31,18 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import vn.kozu.data.repository.CatalogSource
 import vn.kozu.domain.model.AccentColor
-import vn.kozu.domain.model.AppFont
+import vn.kozu.domain.model.ArtworkShape
+import vn.kozu.domain.model.SliderStyle
+import vn.kozu.domain.model.UiDensity
 import vn.kozu.domain.model.AppStyle
 import vn.kozu.domain.model.ArtworkQuality
 import vn.kozu.domain.model.CrossfadeDuration
+import vn.kozu.domain.model.LibraryDensity
+import vn.kozu.domain.model.LibraryNavigationMode
 import vn.kozu.domain.model.ModeFilter
 import vn.kozu.domain.model.NavigationStyle
 import vn.kozu.domain.model.PaletteStyle
+import vn.kozu.domain.model.PlaybackIcon
 import vn.kozu.domain.model.ProxySettings
 import vn.kozu.domain.model.QuickPicksLayout
 import vn.kozu.domain.model.QuickPicksSource
@@ -53,9 +58,12 @@ import java.util.Date
 @Composable
 fun AppearancePage(
     viewModel: SettingsViewModel,
+    onOpenTypography: () -> Unit,
+    onOpenPlayerStyle: () -> Unit,
     onBack: () -> Unit,
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val appearance = settings.appearance
     val context = LocalContext.current
     var appIcon by remember { mutableStateOf(AppIcon.current(context)) }
     val floating = settings.navigationStyle == NavigationStyle.FLOATING
@@ -74,18 +82,12 @@ fun AppearancePage(
                 settings.amoled,
                 description =
                     if (settings.amoled) {
-                        "On · true black background with darker cards. Applies in Dark Theme."
+                        "On \u00b7 true black background with darker cards. Applies in Dark Theme."
                     } else {
-                        "Off · standard dark surfaces. Turn on for a true black OLED-friendly background."
+                        "Off \u00b7 standard dark surfaces. Turn on for a true black OLED-friendly background."
                     },
                 onChange = viewModel::setAmoled,
             )
-            dropdown(
-                Setting.APP_FONT,
-                settings.appFont,
-                AppFont.entries.toList(),
-                { it.label },
-            ) { font -> viewModel.save { setAppFont(font) } }
             dropdown(
                 Setting.APP_ICON,
                 appIcon,
@@ -116,6 +118,46 @@ fun AppearancePage(
                 onSelect = viewModel::setAppStyle,
             )
         }
+        SettingsSection("Layout & density") {
+            dropdown(
+                Setting.UI_DENSITY,
+                appearance.density,
+                UiDensity.entries.toList(),
+                { it.label },
+                description = "Current: ${appearance.density.label}. ${appearance.density.description}.",
+            ) { value -> viewModel.updateAppearance { copy(density = value) } }
+            switch(Setting.COMPACT_MODE, appearance.density != UiDensity.COMFORTABLE) { enabled ->
+                viewModel.updateAppearance { copy(density = if (enabled) UiDensity.COMPACT else UiDensity.COMFORTABLE) }
+            }
+        }
+        SettingsSection("Shapes & sliders") {
+            dropdown(
+                Setting.ARTWORK_SHAPE,
+                appearance.artworkShape,
+                ArtworkShape.entries.toList(),
+                { if (it == ArtworkShape.DEFAULT) "Default (per screen)" else it.label },
+                leading = { value -> ShapeSwatch(value) },
+            ) { value -> viewModel.updateAppearance { copy(artworkShape = value) } }
+            dropdown(
+                Setting.SLIDER_STYLE,
+                appearance.sliderStyle,
+                SliderStyle.entries.toList(),
+                { it.label },
+            ) { value -> viewModel.updateAppearance { copy(sliderStyle = value) } }
+            custom { shape -> SliderPreviewCard(shape = shape, style = appearance.sliderStyle) }
+        }
+        SettingsSection("Customize") {
+            navigation(
+                Setting.TYPOGRAPHY_ENTRY,
+                value = settings.appFont.label,
+                onClick = onOpenTypography,
+            )
+            navigation(
+                Setting.PLAYER_PAGE_ENTRY,
+                value = appearance.miniStyle.label,
+                onClick = onOpenPlayerStyle,
+            )
+        }
         SettingsSection("Colors") {
             dropdown(
                 Setting.ACCENT_COLOR,
@@ -144,22 +186,6 @@ fun AppearancePage(
                 viewModel.save { setPerformanceMode(enabled) }
             }
         }
-        SettingsSection("Now playing") {
-            switch(Setting.BLUR_PLAYER, settings.blurPlayer, enabled = !settings.performanceMode) { enabled ->
-                viewModel.save { setBlurPlayer(enabled) }
-            }
-            slider(
-                Setting.BLUR_INTENSITY,
-                settings.blurIntensity.toFloat(),
-                0f..120f,
-                valueLabel = { "${it.toInt()} dp" },
-                steps = 23,
-                enabled = settings.blurPlayer && !settings.performanceMode,
-            ) { value -> viewModel.save { setBlurIntensity(value.toInt()) } }
-            switch(Setting.SHOW_FILE_INFO, settings.showFileInfo) { enabled ->
-                viewModel.save { setShowFileInfo(enabled) }
-            }
-        }
         SettingsSection("Navigation bar") {
             dropdown(
                 Setting.NAV_STYLE,
@@ -176,8 +202,8 @@ fun AppearancePage(
                 settings.navCornerRadius.toFloat(),
                 0f..32f,
                 valueLabel = { "${it.toInt()} dp" },
-                steps = 15,
                 enabled = floating,
+                unit = 1f,
             ) { value -> viewModel.save { setNavCornerRadius(value.toInt()) } }
         }
         SettingsSection("App navigation") {
@@ -188,6 +214,20 @@ fun AppearancePage(
                 { it.label },
                 onSelect = viewModel::setStartTab,
             )
+        }
+        SettingsSection("Library") {
+            dropdown(
+                Setting.LIBRARY_LAYOUT,
+                settings.libraryNavigationMode,
+                LibraryNavigationMode.entries.toList(),
+                { it.label },
+            ) { mode -> viewModel.save { setLibraryNavigationMode(mode) } }
+            dropdown(
+                Setting.LIBRARY_DENSITY,
+                settings.libraryDensity,
+                LibraryDensity.entries.toList(),
+                { it.label },
+            ) { density -> viewModel.save { setLibraryDensity(density) } }
         }
     }
 }
@@ -384,7 +424,6 @@ fun MusicPage(
                 settings.imageCacheMb.toFloat(),
                 32f..1024f,
                 valueLabel = { "${it.toInt()} MB" },
-                steps = 30,
             ) { value -> viewModel.save { setImageCacheMb(value.toInt()) } }
         }
     }

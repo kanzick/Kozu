@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -61,7 +62,10 @@ class LibraryViewModel(
 ) : ViewModel() {
     private val tab = MutableStateFlow(LibraryTab.SONGS)
     private val sort = MutableStateFlow(LibrarySort.RECENT)
-    private val grid = MutableStateFlow(false)
+    private val grid =
+        container.settings.settings
+            .map { it.libraryGrid }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
     private val ascending = MutableStateFlow(false)
     private val openedId = MutableStateFlow<String?>(null)
     private val tabOrder = MutableStateFlow<List<LibraryTab>>(LibraryTab.entries.toList())
@@ -147,7 +151,7 @@ class LibraryViewModel(
 
     fun selectSort(value: LibrarySort) = sort.update { value }
 
-    fun toggleGrid() = grid.update { !it }
+    fun toggleGrid() = viewModelScope.launch { container.settings.setLibraryGrid(!grid.value) }
 
     fun toggleDirection() = ascending.update { !it }
 

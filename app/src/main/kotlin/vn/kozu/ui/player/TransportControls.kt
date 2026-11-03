@@ -19,8 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
-import androidx.compose.material.icons.rounded.Pause
-import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.RepeatOne
 import androidx.compose.material.icons.rounded.Shuffle
@@ -36,10 +34,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import vn.kozu.domain.model.TransportShape
 import vn.kozu.player.RepeatState
+import vn.kozu.ui.components.KozuIcons
+import vn.kozu.ui.components.LocalAppSettings
 import vn.kozu.ui.components.bounceClick
+import vn.kozu.ui.components.playbackIconVector
 import vn.kozu.ui.components.rememberKozuHaptics
 import vn.kozu.ui.theme.KozuMotion
 
@@ -52,6 +55,8 @@ fun TransportControls(
     modifier: Modifier = Modifier,
 ) {
     val haptics = rememberKozuHaptics()
+    val prefs = LocalAppSettings.current.appearance
+    val iconStyle = prefs.iconStyle
     val prevSource = remember { MutableInteractionSource() }
     val playSource = remember { MutableInteractionSource() }
     val nextSource = remember { MutableInteractionSource() }
@@ -61,7 +66,22 @@ fun TransportControls(
     val prevWeight by animateFloatAsState(if (prevPressed) 1.5f else 1f, KozuMotion.press(), label = "prevW")
     val playWeight by animateFloatAsState(if (playPressed) 2.4f else 1.8f, KozuMotion.press(), label = "playW")
     val nextWeight by animateFloatAsState(if (nextPressed) 1.5f else 1f, KozuMotion.press(), label = "nextW")
-    val playRadius by animateDpAsState(if (isPlaying) 30.dp else 44.dp, KozuMotion.spatial(), label = "playRadius")
+    val playRadius by animateDpAsState(
+        targetValue =
+            when (prefs.transportShape) {
+                TransportShape.PILL -> if (isPlaying) 30.dp else 44.dp
+                TransportShape.ROUND -> 44.dp
+                TransportShape.SQUARE -> if (isPlaying) 18.dp else 26.dp
+            },
+        animationSpec = KozuMotion.spatial(),
+        label = "playRadius",
+    )
+    val sideShape: Shape =
+        when (prefs.transportShape) {
+            TransportShape.PILL -> RoundedCornerShape(44.dp)
+            TransportShape.ROUND -> CircleShape
+            TransportShape.SQUARE -> RoundedCornerShape(22.dp)
+        }
 
     Row(
         modifier =
@@ -72,10 +92,10 @@ fun TransportControls(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         TransportButton(
-            icon = Icons.Rounded.SkipPrevious,
+            icon = KozuIcons.skipPrevious(iconStyle),
             description = "Previous",
             weight = prevWeight,
-            shape = RoundedCornerShape(44.dp),
+            shape = sideShape,
             container = MaterialTheme.colorScheme.secondaryContainer,
             content = MaterialTheme.colorScheme.onSecondaryContainer,
             source = prevSource,
@@ -85,7 +105,7 @@ fun TransportControls(
             },
         )
         TransportButton(
-            icon = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+            icon = playbackIconVector(LocalAppSettings.current.playbackIcon, isPlaying),
             description = if (isPlaying) "Pause" else "Play",
             weight = playWeight,
             shape = RoundedCornerShape(playRadius),
@@ -99,10 +119,10 @@ fun TransportControls(
             },
         )
         TransportButton(
-            icon = Icons.Rounded.SkipNext,
+            icon = KozuIcons.skipNext(iconStyle),
             description = "Next",
             weight = nextWeight,
-            shape = RoundedCornerShape(44.dp),
+            shape = sideShape,
             container = MaterialTheme.colorScheme.secondaryContainer,
             content = MaterialTheme.colorScheme.onSecondaryContainer,
             source = nextSource,
@@ -156,21 +176,27 @@ fun PlayerToggleRow(
     modifier: Modifier = Modifier,
 ) {
     val haptics = rememberKozuHaptics()
+    val prefs = LocalAppSettings.current.appearance
+    val iconStyle = prefs.iconStyle
+    val square = prefs.transportShape == TransportShape.SQUARE
+    val outer: Shape = if (square) RoundedCornerShape(26.dp) else CircleShape
+    val segmentShape: Shape = if (square) RoundedCornerShape(20.dp) else CircleShape
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = CircleShape,
+        shape = outer,
         color = MaterialTheme.colorScheme.surfaceContainer,
     ) {
         Row(
             modifier = Modifier.padding(6.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            ToggleSegment(Icons.Rounded.Shuffle, "Shuffle", shuffle) {
+            ToggleSegment(KozuIcons.shuffle(iconStyle), "Shuffle", shuffle, segmentShape) {
                 haptics.tick()
                 onShuffle()
             }
             ToggleSegment(
-                icon = if (repeat == RepeatState.ONE) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat,
+                icon = KozuIcons.repeat(iconStyle, repeat == RepeatState.ONE),
+                shape = segmentShape,
                 description = "Repeat",
                 active = repeat != RepeatState.OFF,
                 onClick = {
@@ -179,7 +205,8 @@ fun PlayerToggleRow(
                 },
             )
             ToggleSegment(
-                icon = if (isFavorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                icon = KozuIcons.favorite(iconStyle, isFavorite),
+                shape = segmentShape,
                 description = "Like",
                 active = isFavorite,
                 onClick = {
@@ -196,6 +223,7 @@ private fun RowScope.ToggleSegment(
     icon: ImageVector,
     description: String,
     active: Boolean,
+    shape: Shape,
     onClick: () -> Unit,
 ) {
     Surface(
@@ -204,7 +232,7 @@ private fun RowScope.ToggleSegment(
                 .weight(1f)
                 .height(56.dp)
                 .bounceClick(onClick = onClick),
-        shape = CircleShape,
+        shape = shape,
         color = if (active) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
     ) {
         Box(contentAlignment = Alignment.Center) {

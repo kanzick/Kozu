@@ -56,6 +56,7 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import vn.kozu.domain.model.ArtworkShape
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.displayArtist
 import vn.kozu.domain.model.displayTitle
@@ -67,6 +68,7 @@ import vn.kozu.ui.components.LocalPerformanceMode
 import vn.kozu.ui.components.WavySlider
 import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.rememberKozuHaptics
+import vn.kozu.ui.components.toShape
 import vn.kozu.ui.theme.KozuMotion
 import vn.kozu.util.formatTime
 import kotlin.math.abs
@@ -249,7 +251,8 @@ fun PlayerScreen(
                     BeatmapArt(
                         beatmap = beatmap,
                         large = true,
-                        shape = RoundedCornerShape(coverRadius),
+                        shape = settings.appearance.playerArtShape.toShape(RoundedCornerShape(coverRadius)),
+                        followGlobalShape = settings.appearance.playerArtShape == ArtworkShape.DEFAULT,
                         modifier =
                             Modifier
                                 .fillMaxSize()
@@ -320,14 +323,16 @@ fun PlayerScreen(
                     onNext = onNext,
                 )
 
-                PlayerToggleRow(
-                    shuffle = state.shuffle,
-                    repeat = state.repeat,
-                    isFavorite = isFavorite,
-                    onShuffle = onShuffle,
-                    onRepeat = onRepeat,
-                    onFavorite = onFavorite,
-                )
+                if (settings.appearance.showToggleRow) {
+                    PlayerToggleRow(
+                        shuffle = state.shuffle,
+                        repeat = state.repeat,
+                        isFavorite = isFavorite,
+                        onShuffle = onShuffle,
+                        onRepeat = onRepeat,
+                        onFavorite = onFavorite,
+                    )
+                }
             }
         }
     }

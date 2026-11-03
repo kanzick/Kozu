@@ -11,8 +11,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -39,15 +37,16 @@ fun CoverCard(
     large: Boolean = false,
     badge: String? = null,
     rank: Int? = null,
-    showPlay: Boolean = false
+    showPlay: Boolean = false,
 ) {
     val nowPlaying = LocalNowPlaying.current
     val isCurrent = nowPlaying.beatmapId == beatmap.id
 
     Column(
-        modifier = modifier
-            .width(size)
-            .bounceClick(onClick = onClick)
+        modifier =
+            modifier
+                .width(size)
+                .bounceClick(onClick = onClick),
     ) {
         Box {
             BeatmapArt(beatmap, Modifier.size(size), shape = shape, large = large)
@@ -56,51 +55,54 @@ fun CoverCard(
             }
             if (!badge.isNullOrBlank()) {
                 Surface(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(10.dp),
+                    modifier =
+                        Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(10.dp),
                     shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
                 ) {
                     Text(
                         text = badge.uppercase(),
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
             }
             if (isCurrent) {
                 Surface(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(10.dp)
-                        .size(34.dp),
+                    modifier =
+                        Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(10.dp)
+                            .size(34.dp),
                     shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         EqualizerBars(
                             isPlaying = nowPlaying.isPlaying,
                             color = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(16.dp),
                         )
                     }
                 }
             } else if (showPlay) {
                 Surface(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(10.dp)
-                        .size(38.dp),
+                    modifier =
+                        Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(10.dp)
+                            .size(38.dp),
                     shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            imageVector = Icons.Rounded.PlayArrow,
+                            imageVector = playbackIconVector(LocalAppSettings.current.playbackIcon, false),
                             contentDescription = "Play ${beatmap.title}",
-                            tint = MaterialTheme.colorScheme.onPrimary
+                            tint = MaterialTheme.colorScheme.onPrimary,
                         )
                     }
                 }
@@ -113,7 +115,7 @@ fun CoverCard(
             color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 4.dp)
+            modifier = Modifier.padding(horizontal = 4.dp),
         )
         Text(
             text = beatmap.displayArtist(LocalAppSettings.current.preferUnicode),
@@ -121,7 +123,7 @@ fun CoverCard(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 4.dp)
+            modifier = Modifier.padding(horizontal = 4.dp),
         )
     }
 }
@@ -132,19 +134,20 @@ fun TrackPill(
     containerColor: Color,
     contentColor: Color,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier
-            .height(56.dp)
-            .bounceClick(onClick = onClick),
+        modifier =
+            modifier
+                .height(56.dp)
+                .bounceClick(onClick = onClick),
         shape = CircleShape,
         color = containerColor,
-        contentColor = contentColor
+        contentColor = contentColor,
     ) {
         Row(
             modifier = Modifier.padding(start = 6.dp, end = 20.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             BeatmapArt(beatmap, Modifier.size(44.dp), shape = CircleShape)
             Spacer(Modifier.width(12.dp))
@@ -153,14 +156,14 @@ fun TrackPill(
                     text = beatmap.displayTitle(LocalAppSettings.current.preferUnicode),
                     style = MaterialTheme.typography.titleSmall,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = beatmap.displayArtist(LocalAppSettings.current.preferUnicode),
                     style = MaterialTheme.typography.bodySmall,
                     color = contentColor.copy(alpha = 0.7f),
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }

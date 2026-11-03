@@ -22,7 +22,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -48,6 +47,7 @@ import vn.kozu.ui.components.EmptyState
 import vn.kozu.ui.components.HeaderAction
 import vn.kozu.ui.components.HeaderTitle
 import vn.kozu.ui.components.KozuLoading
+import vn.kozu.ui.components.LocalAppSettings
 import vn.kozu.ui.components.LocalTrackActions
 import vn.kozu.ui.components.MosaicCover
 import vn.kozu.ui.components.RefreshIndicator
@@ -56,6 +56,7 @@ import vn.kozu.ui.components.SectionHeader
 import vn.kozu.ui.components.SettingsAction
 import vn.kozu.ui.components.TrackRow
 import vn.kozu.ui.components.bounceClick
+import vn.kozu.ui.components.playbackIconVector
 import vn.kozu.ui.components.rememberKozuHaptics
 import vn.kozu.ui.components.segmentedShape
 import vn.kozu.ui.theme.KozuCookies
@@ -363,7 +364,7 @@ private fun CollectionCard(
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
-                                Icons.Rounded.PlayArrow,
+                                playbackIconVector(LocalAppSettings.current.playbackIcon, false),
                                 contentDescription = "Play ${collection.title}",
                                 tint = MaterialTheme.colorScheme.onPrimary,
                             )
