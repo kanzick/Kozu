@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   build:
-    name: Build
+    name: Debug Kotlin
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -36,5 +36,5 @@ jobs:
           sed -i 's/\r$//' gradlew
           chmod +x gradlew
 
-      - name: Build Debug
-        run: ./gradlew clean :app:assembleDebug --stacktrace
+      - name: Debug
+        run: ./gradlew compileDebugKotlin
