@@ -658,11 +658,11 @@ class GameStageCoreTest {
     // ------------------------------------------------------------------ core end to end (60fps, offset)
 
     @Test
-    fun coreEndToEndWithOffset() {
+    fun coreEndToEndWithNodeOffset() {
         val chart = ManiaChartParser.parse(chartText(objects = listOf(tap(0, 1000), hold(1, 1500, 2200), tap(2, 3000))))
         val f = FakeNano()
         val rec = Recorder()
-        val core = GameCore(chart, GameSettings(offsetMs = 50), { f.ns }, rec)
+        val core = GameCore(chart, GameSettings(nodeOffsetMs = 50), { f.ns }, rec)
         core.begin(withAudio = false)
         // nốt tới muộn 50ms so với nhạc => bấm tại thời gian nhạc = note + 50 là hoàn hảo
         val presses = ArrayList<Triple<Double, Boolean, Int>>()
@@ -692,6 +692,28 @@ class GameStageCoreTest {
         assertNotNull(rec)
     }
 
+    @Test
+    fun nodeAndJudgmentOffsetsHaveIndependentTimingEffects() {
+        val chart = ManiaChartParser.parse(chartText(objects = listOf(tap(0, 1000))))
+        val f = FakeNano()
+        val recorder = Recorder()
+        val core = GameCore(
+            chart,
+            GameSettings(nodeOffsetMs = 80, judgmentOffsetMs = 25),
+            { f.ns },
+            recorder,
+        )
+        core.begin(withAudio = false)
+
+        assertEquals(-core.prerollMs - 80.0, core.chartTimeNow(), 0.0)
+        assertEquals(-core.prerollMs - 80.0, core.chartTimeAt(f.ns), 0.0)
+        assertEquals(-core.prerollMs - 105.0, core.judgmentTimeAt(f.ns), 0.0)
+
+        val eventNano = f.ns + ((core.prerollMs + 1000.0 + 80.0 + 25.0) * 1_000_000.0).toLong()
+        core.press(0, eventNano)
+        assertEquals(Judgement.PERFECT, recorder.last())
+    }
+
     // ------------------------------------------------------------------ settings
 
     @Test
@@ -705,20 +727,22 @@ class GameStageCoreTest {
             hitsoundVolume = 12,
             speed = 12.3,
             backgroundDim = 100,
-            offsetMs = -42,
+            nodeOffsetMs = -42,
+            judgmentOffsetMs = 17,
             playerName = "Hoàng Anh",
             playType = Landscape3DPerspective,
         )
         store.save(s)
         assertEquals(s, store.load())
 
-        store.save(GameSettings(musicVolume = 500, hitsoundVolume = -5, speed = 99.0, backgroundDim = 250, offsetMs = 9999, playerName = "   "))
+        store.save(GameSettings(musicVolume = 500, hitsoundVolume = -5, speed = 99.0, backgroundDim = 250, nodeOffsetMs = 9999, judgmentOffsetMs = -9999, playerName = "   "))
         val c = store.load()
         assertEquals(100, c.musicVolume)
         assertEquals(0, c.hitsoundVolume)
         assertEquals(15.0, c.speed, 0.0)
         assertEquals(100, c.backgroundDim)
-        assertEquals(GameSettings.OFFSET_MAX, c.offsetMs)
+        assertEquals(GameSettings.OFFSET_MAX, c.nodeOffsetMs)
+        assertEquals(GameSettings.OFFSET_MIN, c.judgmentOffsetMs)
         assertEquals(GameSettings.DEFAULT_PLAYER_NAME, c.playerName)
         assertEquals(Portrait, c.playType)
 
@@ -726,12 +750,26 @@ class GameStageCoreTest {
         assertEquals(0.1, GameSettings(speed = 0.04).coerced().speed, 0.0)
 
         // file hỏng / giá trị rác -> dùng mặc định từng trường
-        File(dir, "sub/settings.properties").writeText("speed=abc\naudio.music=77\noffset.ms=\n\u0000junk")
+        File(dir, "sub/settings.properties").writeText("speed=abc\naudio.music=77\nnode.offset.ms=\n\u0000junk")
         val d = store.load()
         assertEquals(77, d.musicVolume)
         assertEquals(GameSettings().speed, d.speed, 0.0)
-        assertEquals(GameSettings().offsetMs, d.offsetMs)
+        assertEquals(GameSettings().nodeOffsetMs, d.nodeOffsetMs)
+        assertEquals(GameSettings().judgmentOffsetMs, d.judgmentOffsetMs)
         assertEquals(GameSettings().playType, d.playType)
+        dir.deleteRecursively()
+    }
+
+    @Test
+    fun settingsStoreMigratesLegacyOffsetToNodeOffset() {
+        val dir = createTempDirectory().toFile()
+        val file = File(dir, "settings.properties")
+        file.writeText("offset.ms=35\n")
+
+        val loaded = SettingsStore(file).load()
+
+        assertEquals(35, loaded.nodeOffsetMs)
+        assertEquals(0, loaded.judgmentOffsetMs)
         dir.deleteRecursively()
     }
 

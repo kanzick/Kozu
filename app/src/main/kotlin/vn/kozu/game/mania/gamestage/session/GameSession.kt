@@ -186,7 +186,7 @@ class GameSession(
         ) core.clock.giveUpOnAudio()
 
         val t = core.frame()
-        if (core.isFinished(t)) finish()
+        if (core.isFinished()) finish()
         return t
     }
 

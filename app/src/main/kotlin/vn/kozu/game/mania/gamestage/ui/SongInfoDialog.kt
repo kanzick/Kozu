@@ -249,12 +249,18 @@ private fun SettingsPanel(
     SettingSlider("Background dim (0 = clear, 100 = dark)", "${s.backgroundDim}", s.backgroundDim.toFloat(), 0f..100f, 99,
         onChange = { onChange(s.copy(backgroundDim = it.roundToInt()).coerced()) }, onFinished = { onCommit(s) })
 
-    Text("Offset", fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
+    Text("Timing offsets", fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
     SettingSlider(
-        "Timing offset (+ = notes arrive later)", "${s.offsetMs} ms", s.offsetMs.toFloat(),
+        "Node offset (+ = notes arrive later)", "${s.nodeOffsetMs} ms", s.nodeOffsetMs.toFloat(),
         GameSettings.OFFSET_MIN.toFloat()..GameSettings.OFFSET_MAX.toFloat(), GameSettings.OFFSET_MAX - GameSettings.OFFSET_MIN - 1,
-        onChange = { onChange(s.copy(offsetMs = it.roundToInt()).coerced()) }, onFinished = { onCommit(s) },
-        onStep = { dir -> onCommit(s.copy(offsetMs = s.offsetMs + dir).coerced().also(onChange)) },
+        onChange = { onChange(s.copy(nodeOffsetMs = it.roundToInt()).coerced()) }, onFinished = { onCommit(s) },
+        onStep = { dir -> onCommit(s.copy(nodeOffsetMs = s.nodeOffsetMs + dir).coerced().also(onChange)) },
+    )
+    SettingSlider(
+        "Judgment offset (+ = judge later; line stays fixed)", "${s.judgmentOffsetMs} ms", s.judgmentOffsetMs.toFloat(),
+        GameSettings.OFFSET_MIN.toFloat()..GameSettings.OFFSET_MAX.toFloat(), GameSettings.OFFSET_MAX - GameSettings.OFFSET_MIN - 1,
+        onChange = { onChange(s.copy(judgmentOffsetMs = it.roundToInt()).coerced()) }, onFinished = { onCommit(s) },
+        onStep = { dir -> onCommit(s.copy(judgmentOffsetMs = s.judgmentOffsetMs + dir).coerced().also(onChange)) },
     )
 
     var name by remember(s.playerName) { mutableStateOf(s.playerName) }

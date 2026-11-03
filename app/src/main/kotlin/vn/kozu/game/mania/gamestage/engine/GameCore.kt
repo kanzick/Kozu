@@ -20,25 +20,29 @@ class GameCore(
 
     val prerollMs: Double = (max(chart.audioLeadInMs, 0) + BASE_PREROLL_MS).toDouble()
 
-    private val offsetMs = settings.offsetMs.toDouble()
+    private val nodeOffsetMs = settings.nodeOffsetMs.toDouble()
+    private val judgmentOffsetMs = settings.judgmentOffsetMs.toDouble()
 
     fun begin(withAudio: Boolean = true) = clock.start(-prerollMs, withAudio)
 
-    fun chartTimeNow(): Double = clock.now() - offsetMs
+    fun chartTimeNow(): Double = clock.now() - nodeOffsetMs
 
-    fun chartTimeAt(nano: Long): Double = clock.timeAt(nano) - offsetMs
+    fun chartTimeAt(nano: Long): Double = clock.timeAt(nano) - nodeOffsetMs
+
+    fun judgmentTimeAt(nano: Long): Double =
+        clock.timeAt(nano) - nodeOffsetMs - judgmentOffsetMs
 
     fun frame(): Double {
-        val t = chartTimeNow()
-        engine.advance(t - EVENT_GRACE_MS)
-        return t
+        val judgmentTime = clock.now() - nodeOffsetMs - judgmentOffsetMs
+        engine.advance(judgmentTime - EVENT_GRACE_MS)
+        return chartTimeNow()
     }
 
-    fun press(column: Int, eventNano: Long) = engine.press(column, chartTimeAt(eventNano))
+    fun press(column: Int, eventNano: Long) = engine.press(column, judgmentTimeAt(eventNano))
 
-    fun release(column: Int, eventNano: Long) = engine.release(column, chartTimeAt(eventNano))
+    fun release(column: Int, eventNano: Long) = engine.release(column, judgmentTimeAt(eventNano))
 
-    fun isFinished(chartTimeMs: Double = chartTimeNow()): Boolean {
+    fun isFinished(chartTimeMs: Double = clock.now() - nodeOffsetMs - judgmentOffsetMs): Boolean {
         if (engine.isFinished) return chartTimeMs > chart.lastEventTimeMs + END_HOLD_MS
         if (chartTimeMs > chart.lastEventTimeMs + engine.windows.ok + END_HOLD_MS) {
             engine.finish()

@@ -383,14 +383,6 @@ private fun AddMapCard(
                                 maxLines = 1
                             )
                         }
-                        maxStarRating?.let {
-                            Text(
-                                "Up to ${String.format(Locale.US, "%.2f★", it)}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                maxLines = 1
-                            )
-                        }
                         download?.error?.let {
                             Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                         }
@@ -402,12 +394,22 @@ private fun AddMapCard(
                         }
                         if (download != null && download.error == null && !isAdded) {
                             val progress = download.progress
+                            Text(
+                                if (progress == null || progress < 0f) {
+                                    "Downloading…"
+                                } else {
+                                    "Downloading ${(progress.coerceIn(0f, 1f) * 100).toInt()}%"
+                                },
+                                modifier = Modifier.padding(top = 6.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                             if (progress == null || progress < 0f) {
-                                LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 6.dp))
+                                LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 4.dp))
                             } else {
                                 LinearProgressIndicator(
                                     progress = { progress.coerceIn(0f, 1f) },
-                                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp)
+                                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
                                 )
                             }
                         }
