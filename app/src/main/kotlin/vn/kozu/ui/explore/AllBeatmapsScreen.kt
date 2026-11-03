@@ -1,6 +1,7 @@
 package vn.kozu.ui.explore
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -13,11 +14,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -32,10 +36,9 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -43,34 +46,41 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.flow.StateFlow
 import vn.kozu.domain.model.Beatmap
-import vn.kozu.ui.components.EmptyState
 import vn.kozu.ui.components.CenteredHeader
+import vn.kozu.ui.components.EmptyState
 import vn.kozu.ui.components.HeaderAction
-import vn.kozu.ui.components.HeaderTitle
 import vn.kozu.ui.components.KozuLoading
 import vn.kozu.ui.components.LocalTrackActions
 import vn.kozu.ui.components.RefreshIndicator
-import vn.kozu.ui.components.ScreenHeader
 import vn.kozu.ui.components.TrackRow
 import vn.kozu.ui.components.segmentedShape
+import vn.kozu.ui.player.MiniPlayer
 import java.util.Locale
 
-private const val PREFETCH_DISTANCE = 6
+private const val BEATMAPS_PER_PAGE = 30
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AllBeatmapsScreen(
-    bottomPadding: Dp,
     onBack: () -> Unit,
     onRetry: () -> Unit,
     isAppRefreshing: Boolean,
+    currentBeatmap: Beatmap?,
+    isPlaying: Boolean,
+    position: StateFlow<Long>,
+    duration: StateFlow<Long>,
+    onOpenPlayer: () -> Unit,
+    onTogglePlayPause: () -> Unit,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    onDismissPlayer: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: BrowseViewModel = viewModel(factory = BrowseViewModel.Factory)
+    viewModel: BrowseViewModel = viewModel(factory = BrowseViewModel.Factory),
 ) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val actions = LocalTrackActions.current
@@ -79,21 +89,31 @@ fun AllBeatmapsScreen(
     val pullState = rememberPullToRefreshState()
     val listState = rememberLazyListState()
     var showFilters by rememberSaveable { mutableStateOf(false) }
-    val listBottom = if (WindowInsets.isImeVisible) 16.dp else bottomPadding
+    var currentPage by rememberSaveable { mutableIntStateOf(0) }
     val refreshing = ui.isRefreshing || isAppRefreshing
+    val listBottom = if (WindowInsets.isImeVisible) 16.dp else 12.dp
+    val pageStart = currentPage * BEATMAPS_PER_PAGE
+    val pageItems = ui.items.drop(pageStart).take(BEATMAPS_PER_PAGE)
+    val loadedPages = ((ui.items.size + BEATMAPS_PER_PAGE - 1) / BEATMAPS_PER_PAGE).coerceAtLeast(1)
+    val estimatedPages = ui.total?.let { ((it + BEATMAPS_PER_PAGE - 1) / BEATMAPS_PER_PAGE).coerceAtLeast(1) }
+    val pageCount = if (ui.hasMore) {
+        maxOf(loadedPages + 1, estimatedPages ?: 0)
+    } else {
+        loadedPages
+    }
 
     LaunchedEffect(viewModel) { viewModel.onEnter() }
-
-    val nearEnd by remember {
-        derivedStateOf {
-            val info = listState.layoutInfo
-            val last = info.visibleItemsInfo.lastOrNull()?.index ?: -1
-            info.totalItemsCount > 0 && last >= info.totalItemsCount - PREFETCH_DISTANCE
-        }
+    LaunchedEffect(ui.filters) {
+        currentPage = 0
+        listState.scrollToItem(0)
     }
-    LaunchedEffect(nearEnd, ui.items.size, ui.hasMore, ui.isLoadingMore, ui.loadMoreError) {
-        if (nearEnd && ui.hasMore && !ui.isLoadingMore && ui.loadMoreError == null) {
+    LaunchedEffect(currentPage) { listState.scrollToItem(0) }
+    LaunchedEffect(currentPage, ui.items.size, ui.hasMore, ui.isLoadingMore, ui.loadMoreError) {
+        val requiredItems = (currentPage + 1) * BEATMAPS_PER_PAGE
+        if (ui.items.size < requiredItems && ui.hasMore && !ui.isLoadingMore && ui.loadMoreError == null) {
             viewModel.loadMore()
+        } else if (ui.items.size < requiredItems && !ui.hasMore && !ui.isLoadingMore && currentPage > 0) {
+            currentPage = ((ui.items.size - 1).coerceAtLeast(0) / BEATMAPS_PER_PAGE)
         }
     }
 
@@ -102,6 +122,7 @@ fun AllBeatmapsScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surface)
             .imePadding()
+            .navigationBarsPadding(),
     ) {
         CenteredHeader(
             title = "All beatmaps",
@@ -110,7 +131,7 @@ fun AllBeatmapsScreen(
                     icon = Icons.AutoMirrored.Rounded.ArrowBack,
                     contentDescription = "Back",
                     onClick = onBack,
-                    startPadding = 0.dp
+                    startPadding = 0.dp,
                 )
             },
             trailing = {
@@ -120,9 +141,9 @@ fun AllBeatmapsScreen(
                         keyboard?.hide()
                         focus.clearFocus()
                         showFilters = true
-                    }
+                    },
                 )
-            }
+            },
         )
 
         BrowseSearchField(
@@ -133,7 +154,7 @@ fun AllBeatmapsScreen(
                 keyboard?.hide()
                 focus.clearFocus()
             },
-            modifier = Modifier.padding(horizontal = 20.dp)
+            modifier = Modifier.padding(horizontal = 20.dp),
         )
         Spacer(Modifier.height(10.dp))
         BrowseSummary(ui, Modifier.padding(horizontal = 24.dp))
@@ -142,7 +163,7 @@ fun AllBeatmapsScreen(
             ActiveFilterChips(
                 filters = ui.filters.activeFilters,
                 onRemove = { filter -> viewModel.updateFilters(filter.clear) },
-                onReset = viewModel::resetFilters
+                onReset = viewModel::resetFilters,
             )
         }
         BrowseSourceNote(ui, Modifier.padding(horizontal = 20.dp, vertical = 6.dp))
@@ -152,6 +173,7 @@ fun AllBeatmapsScreen(
             isRefreshing = refreshing,
             onRefresh = {
                 if (!isAppRefreshing && !ui.isRefreshing) {
+                    currentPage = 0
                     viewModel.refresh()
                     onRetry()
                 }
@@ -162,9 +184,9 @@ fun AllBeatmapsScreen(
                 RefreshIndicator(
                     state = pullState,
                     isRefreshing = refreshing,
-                    modifier = Modifier.align(Alignment.TopCenter)
+                    modifier = Modifier.align(Alignment.TopCenter),
                 )
-            }
+            },
         ) {
             LazyColumn(
                 state = listState,
@@ -173,9 +195,9 @@ fun AllBeatmapsScreen(
                     start = 20.dp,
                     end = 20.dp,
                     top = 4.dp,
-                    bottom = listBottom + 24.dp
+                    bottom = listBottom + 18.dp,
                 ),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 when {
                     ui.isLoading && ui.items.isEmpty() -> item(key = "browse-loading") {
@@ -187,31 +209,21 @@ fun AllBeatmapsScreen(
                             icon = Icons.Rounded.CloudOff,
                             title = "Catalog unavailable",
                             message = ui.error.orEmpty(),
-                            action = {
-                                TextButton(onClick = viewModel::retry) { Text("Retry") }
-                            }
+                            action = { TextButton(onClick = viewModel::retry) { Text("Retry") } },
                         )
                     }
 
                     ui.items.isEmpty() -> item(key = "browse-empty") {
-                        if (ui.filters.hasActiveFilters) {
-                            EmptyState(
-                                icon = Icons.Rounded.SearchOff,
-                                title = "No beatmaps found",
-                                message = "Try a different search or loosen the filters.",
-                                action = {
-                                    TextButton(onClick = viewModel::resetFilters) {
-                                        Text(text = "Reset filters")
-                                    }
-                                }
-                            )
-                        } else {
-                            EmptyState(
-                                icon = Icons.Rounded.SearchOff,
-                                title = "No beatmaps found",
-                                message = "Try a different search or loosen the filters."
-                            )
-                        }
+                        EmptyState(
+                            icon = Icons.Rounded.SearchOff,
+                            title = "No beatmaps found",
+                            message = "Try another search or filter.",
+                            action = if (ui.filters.hasActiveFilters) {
+                                { TextButton(onClick = viewModel::resetFilters) { Text("Reset filters") } }
+                            } else {
+                                null
+                            },
+                        )
                     }
 
                     else -> {
@@ -220,17 +232,17 @@ fun AllBeatmapsScreen(
                                 Surface(
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(18.dp),
-                                    color = MaterialTheme.colorScheme.errorContainer
+                                    color = MaterialTheme.colorScheme.errorContainer,
                                 ) {
                                     Row(
                                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                                        verticalAlignment = Alignment.CenterVertically
+                                        verticalAlignment = Alignment.CenterVertically,
                                     ) {
                                         Text(
                                             text = ui.error.orEmpty(),
                                             modifier = Modifier.weight(1f),
                                             style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.onErrorContainer
+                                            color = MaterialTheme.colorScheme.onErrorContainer,
                                         )
                                         TextButton(onClick = viewModel::retry) { Text("Retry") }
                                     }
@@ -238,22 +250,45 @@ fun AllBeatmapsScreen(
                             }
                         }
                         itemsIndexed(
-                            items = ui.items,
-                            key = { _, beatmap -> "browse-${beatmap.id}" }
+                            items = pageItems,
+                            key = { _, beatmap -> "browse-${beatmap.id}" },
                         ) { index, beatmap ->
                             BrowseRow(
                                 beatmap = beatmap,
                                 index = index,
-                                count = ui.items.size,
-                                onClick = { actions.play(ui.items, index) }
+                                count = pageItems.size,
+                                onClick = { actions.play(ui.items, pageStart + index) },
                             )
                         }
-                        item(key = "browse-footer") {
-                            BrowseFooter(ui = ui, onRetry = viewModel::loadMore)
+                        item(key = "browse-pagination") {
+                            BrowsePagination(
+                                currentPage = currentPage,
+                                pageCount = pageCount,
+                                hasMore = ui.hasMore,
+                                loadingMore = ui.isLoadingMore,
+                                loadMoreError = ui.loadMoreError,
+                                onSelect = { page -> currentPage = page },
+                                onRetry = viewModel::loadMore,
+                            )
                         }
                     }
                 }
             }
+        }
+
+        currentBeatmap?.let { beatmap ->
+            MiniPlayer(
+                beatmap = beatmap,
+                isPlaying = isPlaying,
+                position = position,
+                duration = duration,
+                onOpen = onOpenPlayer,
+                onPlayPause = onTogglePlayPause,
+                onPrevious = onPrevious,
+                onNext = onNext,
+                onDismiss = onDismissPlayer,
+                modifier = Modifier.padding(bottom = 6.dp),
+            )
         }
     }
 
@@ -263,9 +298,10 @@ fun AllBeatmapsScreen(
             isLoggedIn = ui.isLoggedIn,
             onDismiss = { showFilters = false },
             onApply = {
+                currentPage = 0
                 viewModel.applyFilters(it)
                 showFilters = false
-            }
+            },
         )
     }
 }
@@ -275,11 +311,11 @@ private fun BrowseRow(
     beatmap: Beatmap,
     index: Int,
     count: Int,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.width(78.dp)) {
             Text(
@@ -287,7 +323,7 @@ private fun BrowseRow(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
             )
             starRange(beatmap)?.let { range ->
                 Text(
@@ -295,7 +331,7 @@ private fun BrowseRow(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
@@ -303,37 +339,85 @@ private fun BrowseRow(
             beatmap = beatmap,
             shape = segmentedShape(index, count, large = 22.dp),
             modifier = Modifier.weight(1f),
-            onClick = onClick
+            onClick = onClick,
         )
     }
 }
 
 @Composable
-private fun BrowseFooter(ui: BrowseUiState, onRetry: () -> Unit) {
+private fun BrowsePagination(
+    currentPage: Int,
+    pageCount: Int,
+    hasMore: Boolean,
+    loadingMore: Boolean,
+    loadMoreError: String?,
+    onSelect: (Int) -> Unit,
+    onRetry: () -> Unit,
+) {
+    val pages = visiblePages(currentPage + 1, pageCount).map { it?.minus(1) }
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier = Modifier.fillMaxWidth().padding(top = 18.dp, bottom = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        when {
-            ui.isLoadingMore -> KozuLoading()
-            ui.loadMoreError != null -> {
-                Text(
-                    text = ui.loadMoreError,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error
-                )
-                TextButton(onClick = onRetry) { Text("Retry loading more") }
+        if (loadingMore) {
+            KozuLoading()
+        } else if (loadMoreError != null) {
+            Text(loadMoreError, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            TextButton(onClick = onRetry) { Text("Retry") }
+        } else if (!hasMore && currentPage + 1 >= pageCount) {
+            Text("End of results", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (pageCount > 1 || currentPage > 0 || hasMore) {
+            Row(
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(onClick = { onSelect(currentPage - 1) }, enabled = currentPage > 0 && !loadingMore) {
+                    Text("‹")
+                }
+                pages.forEach { page ->
+                    if (page == null) {
+                        Text("…", modifier = Modifier.padding(horizontal = 3.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    } else {
+                        Surface(
+                            onClick = { onSelect(page) },
+                            enabled = page != currentPage && !loadingMore,
+                            shape = CircleShape,
+                            color = if (page == currentPage) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+                            contentColor = if (page == currentPage) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+                        ) {
+                            Text(
+                                text = (page + 1).toString(),
+                                modifier = Modifier.padding(horizontal = 13.dp, vertical = 8.dp),
+                                style = MaterialTheme.typography.labelLarge,
+                            )
+                        }
+                    }
+                }
+                TextButton(onClick = { onSelect(currentPage + 1) }, enabled = hasMore && !loadingMore) {
+                    Text("›")
+                }
             }
-
-            !ui.hasMore -> Text(
-                text = "You've reached the end",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        }
+        if (pageCount > 1) {
+            Text("Page ${currentPage + 1}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
+}
+
+private fun visiblePages(current: Int, total: Int): List<Int?> {
+    if (total <= 7) return (1..total).map { it }
+    val pages = linkedSetOf<Int?>()
+    pages.add(1)
+    val start = (current - 1).coerceAtLeast(2)
+    val end = (current + 1).coerceAtMost(total - 1)
+    if (start > 2) pages.add(null)
+    (start..end).forEach { pages.add(it) }
+    if (end < total - 1) pages.add(null)
+    pages.add(total)
+    return pages.toList()
 }
 
 private fun starRange(beatmap: Beatmap): String? {

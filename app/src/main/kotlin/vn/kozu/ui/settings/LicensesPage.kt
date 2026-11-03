@@ -154,7 +154,7 @@ fun LicensesPage(onBack: () -> Unit) {
         }
     }
 
-    SettingsScaffold(title = "Licenses & attribution", onBack = onBack) {
+    SettingsScaffold(title = "Licenses", onBack = onBack) {
         SettingsSection("Open-source dependencies · ${dependencies.size}") {
             if (loading) {
                 custom { shape ->

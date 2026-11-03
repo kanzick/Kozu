@@ -252,7 +252,9 @@ fun PlayerScreen(
                 ) {
                     BeatmapArt(
                         beatmap = beatmap,
-                        large = true,
+                        // Match the square, fully-visible artwork used by the mini-player.
+                        // The large cover endpoint is a wide banner and looks zoomed in this square slot.
+                        large = false,
                         shape = settings.appearance.playerArtShape.toShape(RoundedCornerShape(coverRadius)),
                         followGlobalShape = settings.appearance.playerArtShape == ArtworkShape.DEFAULT,
                         modifier =

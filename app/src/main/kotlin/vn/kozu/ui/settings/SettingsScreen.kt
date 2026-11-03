@@ -37,12 +37,14 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.SearchOff
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -62,7 +64,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
@@ -75,24 +76,30 @@ import coil3.compose.AsyncImage
 import kotlinx.coroutines.delay
 import vn.kozu.domain.model.OsuProfile
 import vn.kozu.data.update.UpdateChecker
+import vn.kozu.domain.model.UpdateChannel
 import vn.kozu.ui.components.bounceClick
 
-private val rootPages = listOf(
-    SettingsPage.APPEARANCE,
-    SettingsPage.BEHAVIOR,
-    SettingsPage.CONTENT,
-    SettingsPage.MUSIC,
-    SettingsPage.PLAYBACK,
-    SettingsPage.EQUALIZER,
-    SettingsPage.SOURCES,
-    SettingsPage.DOWNLOADS,
-    SettingsPage.STORAGE,
-    SettingsPage.STATS,
-    SettingsPage.BACKUP,
-    SettingsPage.DEVICE,
-    SettingsPage.DEVELOPER,
-    SettingsPage.UPDATES,
-    SettingsPage.ABOUT,
+private data class SettingsGroup(
+    val title: String,
+    val pages: List<SettingsPage>,
+)
+
+private val rootGroups = listOf(
+    SettingsGroup("Personalize", listOf(SettingsPage.APPEARANCE, SettingsPage.BEHAVIOR)),
+    SettingsGroup(
+        "Music",
+        listOf(
+            SettingsPage.MUSIC,
+            SettingsPage.CONTENT,
+            SettingsPage.PLAYBACK,
+            SettingsPage.EQUALIZER,
+            SettingsPage.SOURCES,
+            SettingsPage.DOWNLOADS,
+        ),
+    ),
+    SettingsGroup("Library & data", listOf(SettingsPage.STATS, SettingsPage.STORAGE, SettingsPage.BACKUP)),
+    SettingsGroup("System", listOf(SettingsPage.DEVICE, SettingsPage.DEVELOPER)),
+    SettingsGroup("App", listOf(SettingsPage.UPDATES, SettingsPage.ABOUT)),
 )
 
 private fun parentOf(page: SettingsPage): SettingsPage = when (page) {
@@ -166,6 +173,7 @@ fun SettingsScreen(
                         SettingsPage.ROOT -> SettingsRoot(
                             profile = profile,
                             loggedIn = loggedIn,
+                            updateChannel = settings.updateChannel,
                             onBack = onBack,
                             onOpen = { page = it },
                             onSearch = { searchOpen = true }
@@ -234,9 +242,10 @@ fun SettingsScreen(
 private fun SettingsRoot(
     profile: OsuProfile?,
     loggedIn: Boolean,
+    updateChannel: UpdateChannel,
     onBack: () -> Unit,
     onOpen: (SettingsPage) -> Unit,
-    onSearch: () -> Unit
+    onSearch: () -> Unit,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val version = remember { UpdateChecker.installedVersion(context) }
@@ -246,163 +255,101 @@ private fun SettingsRoot(
         SearchEntryBar(onClick = onSearch)
         Spacer(Modifier.height(12.dp))
         AccountSummaryCard(profile = profile, loggedIn = loggedIn, onClick = { onOpen(SettingsPage.ACCOUNT) })
-        Spacer(Modifier.height(4.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            rootPages.forEachIndexed { index, category ->
-                CategoryRow(
-                    page = category,
-                    subtitle = if (category == SettingsPage.UPDATES) "Version $version" else category.subtitle,
-                    tone = index,
-                    shape = RoundedCornerShape(28.dp),
-                    onClick = { onOpen(category) },
-                )
-            }
+        Spacer(Modifier.height(16.dp))
+        rootGroups.forEachIndexed { index, group ->
+            SettingsGroupCard(
+                group = group,
+                installedVersion = version,
+                updateChannel = updateChannel,
+                groupIndex = index,
+                onOpen = onOpen,
+            )
+            Spacer(Modifier.height(14.dp))
         }
     }
 }
 
 @Composable
-private fun SearchEntryBar(onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(30.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(58.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 20.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                Icons.Rounded.Search,
-                contentDescription = "Search settings",
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(Modifier.width(16.dp))
-            Text(
-                "Search settings",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-private fun AccountSummaryCard(profile: OsuProfile?, loggedIn: Boolean, onClick: () -> Unit) {
+private fun SettingsGroupCard(
+    group: SettingsGroup,
+    installedVersion: String,
+    updateChannel: UpdateChannel,
+    groupIndex: Int,
+    onOpen: (SettingsPage) -> Unit,
+) {
     val colors = MaterialTheme.colorScheme
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .bounceClick(pressedScale = 0.985f, onClick = onClick),
-        shape = RoundedCornerShape(30.dp),
-        color = colors.surfaceContainer
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+    val (iconContainer, iconContent) = when (groupIndex % 4) {
+        0 -> colors.primaryContainer to colors.onPrimaryContainer
+        1 -> colors.secondaryContainer to colors.onSecondaryContainer
+        2 -> colors.tertiaryContainer to colors.onTertiaryContainer
+        else -> colors.surfaceContainerHighest to colors.onSurface
+    }
+
+    Column {
+        Text(
+            text = group.title,
+            style = MaterialTheme.typography.titleSmall,
+            color = colors.primary,
+            modifier = Modifier.padding(start = 16.dp, bottom = 8.dp),
+        )
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(26.dp),
+            color = colors.surfaceContainer,
         ) {
-            Surface(
-                modifier = Modifier.size(64.dp),
-                shape = CircleShape,
-                color = colors.primaryContainer,
-                contentColor = colors.onPrimaryContainer
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    val avatar = profile?.avatarUrl?.takeIf { loggedIn && it.isNotBlank() }
-                    if (avatar != null) {
-                        AsyncImage(
-                            model = avatar,
-                            contentDescription = "Avatar",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
+            Column {
+                group.pages.forEachIndexed { index, page ->
+                    val subtitle = when (page) {
+                        SettingsPage.UPDATES -> "v$installedVersion · ${updateChannel.label}"
+                        else -> page.subtitle
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .bounceClick(pressedScale = 0.99f) { onOpen(page) }
+                            .padding(horizontal = 16.dp, vertical = 13.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Surface(
+                            modifier = Modifier.size(48.dp),
+                            shape = CircleShape,
+                            color = iconContainer,
+                            contentColor = iconContent,
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(page.icon, contentDescription = null, modifier = Modifier.size(24.dp))
+                            }
+                        }
+                        Spacer(Modifier.width(14.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                text = page.title,
+                                style = MaterialTheme.typography.titleMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                text = subtitle,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = colors.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        Icon(
+                            Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                            contentDescription = null,
+                            tint = colors.onSurfaceVariant,
                         )
-                    } else {
-                        Text(
-                            text = (profile?.username?.firstOrNull() ?: 'G').uppercase(),
-                            style = MaterialTheme.typography.headlineMedium
+                    }
+                    if (index < group.pages.lastIndex) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(start = 78.dp, end = 16.dp),
+                            color = colors.outlineVariant.copy(alpha = 0.35f),
+                            thickness = 0.5.dp,
                         )
                     }
                 }
-            }
-            Spacer(Modifier.width(16.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = if (loggedIn && profile != null) profile.username else "Guest",
-                    style = MaterialTheme.typography.titleLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = if (loggedIn) "osu! profile · manage account" else "Sign in to sync with osu!",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colors.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-            Surface(
-                modifier = Modifier.size(44.dp),
-                shape = CircleShape,
-                color = colors.secondaryContainer,
-                contentColor = colors.onSecondaryContainer
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(Icons.Rounded.Person, contentDescription = null, modifier = Modifier.size(22.dp))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun CategoryRow(
-    page: SettingsPage,
-    subtitle: String = page.subtitle,
-    tone: Int,
-    shape: Shape,
-    onClick: () -> Unit
-) {
-    val colors = MaterialTheme.colorScheme
-    val (container, content) = when (tone % 4) {
-        0 -> colors.primaryContainer to colors.onPrimaryContainer
-        1 -> colors.tertiaryContainer to colors.onTertiaryContainer
-        2 -> colors.secondaryContainer to colors.onSecondaryContainer
-        else -> colors.surfaceContainerHighest to colors.onSurface
-    }
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .bounceClick(pressedScale = 0.985f, onClick = onClick),
-        shape = shape,
-        color = colors.surfaceContainer
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(modifier = Modifier.size(54.dp), shape = CircleShape, color = container) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(page.icon, contentDescription = null, tint = content, modifier = Modifier.size(26.dp))
-                }
-            }
-            Spacer(Modifier.width(16.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    page.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colors.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
             }
         }
     }
@@ -565,6 +512,102 @@ private fun SearchHint() {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(vertical = 4.dp)
             )
+        }
+    }
+}
+
+@Composable
+private fun SearchEntryBar(onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(30.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(58.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 20.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Rounded.Search,
+                contentDescription = "Search settings",
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(Modifier.width(16.dp))
+            Text(
+                "Search settings",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun AccountSummaryCard(profile: OsuProfile?, loggedIn: Boolean, onClick: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .bounceClick(pressedScale = 0.985f, onClick = onClick),
+        shape = RoundedCornerShape(30.dp),
+        color = colors.surfaceContainer
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                modifier = Modifier.size(64.dp),
+                shape = CircleShape,
+                color = colors.primaryContainer,
+                contentColor = colors.onPrimaryContainer
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    val avatar = profile?.avatarUrl?.takeIf { loggedIn && it.isNotBlank() }
+                    if (avatar != null) {
+                        AsyncImage(
+                            model = avatar,
+                            contentDescription = "Avatar",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        Text(
+                            text = (profile?.username?.firstOrNull() ?: 'G').uppercase(),
+                            style = MaterialTheme.typography.headlineMedium
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.width(16.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = if (loggedIn && profile != null) profile.username else "Guest",
+                    style = MaterialTheme.typography.titleLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = if (loggedIn) "osu! profile · manage account" else "Sign in to sync with osu!",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Surface(
+                modifier = Modifier.size(44.dp),
+                shape = CircleShape,
+                color = colors.secondaryContainer,
+                contentColor = colors.onSecondaryContainer
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.Rounded.Person, contentDescription = null, modifier = Modifier.size(22.dp))
+                }
+            }
         }
     }
 }

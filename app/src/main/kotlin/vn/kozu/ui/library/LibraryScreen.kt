@@ -904,101 +904,112 @@ private fun LibraryTabsSheet(
     onReorder: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val sheetState =
+        rememberBottomSheetState(
+            initialValue = SheetValue.Hidden,
+            enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
+        )
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface,
+        scrimColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.56f),
+        dragHandle = { BottomSheetDefaults.DragHandle() },
     ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp)
-                    .padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text("Library tabs", style = MaterialTheme.typography.headlineSmall)
-            Text(
-                "Jump directly to any tab or reorder them.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            order.chunked(2).forEach { rowTabs ->
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    rowTabs.forEach { tab ->
-                        val isSelected = tab == selected
-                        val container by animateColorAsState(
-                            if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-                            label = "tabTile",
-                        )
+        Scaffold(
+            topBar = {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 12.dp),
+                ) {
+                    Text("Library tabs", style = MaterialTheme.typography.headlineSmall)
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Choose a tab or change its order.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+            bottomBar = {
+                Surface(color = MaterialTheme.colorScheme.surface) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
+                            .padding(horizontal = 20.dp, vertical = 12.dp),
+                    ) {
                         Surface(
-                            onClick = { onSelect(tab) },
-                            modifier = Modifier.weight(1f).heightIn(min = 112.dp),
-                            shape = RoundedCornerShape(26.dp),
-                            color = container,
-                            contentColor =
-                                if (isSelected) {
-                                    MaterialTheme.colorScheme.onPrimaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.onSurface
-                                },
+                            onClick = onReorder,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(24.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                         ) {
-                            Column(
-                                modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp, vertical = 14.dp),
-                                verticalArrangement = Arrangement.Center,
-                                horizontalAlignment = Alignment.CenterHorizontally,
+                            Row(
+                                modifier = Modifier.heightIn(min = 52.dp).padding(horizontal = 18.dp, vertical = 12.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Surface(
-                                    modifier = Modifier.size(44.dp),
-                                    shape = CircleShape,
-                                    color =
-                                        if (isSelected) {
-                                            MaterialTheme.colorScheme.primary
-                                        } else {
-                                            MaterialTheme.colorScheme.surfaceContainerHighest
-                                        },
-                                    contentColor =
-                                        if (isSelected) {
-                                            MaterialTheme.colorScheme.onPrimary
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurfaceVariant
-                                        },
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(libraryTabIcon(tab), contentDescription = null, modifier = Modifier.size(22.dp))
-                                    }
-                                }
-                                Spacer(Modifier.height(8.dp))
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    FitText(tab.label, style = MaterialTheme.typography.titleSmall, minScale = 0.75f)
-                                    Spacer(Modifier.width(6.dp))
-                                    Text(
-                                        countFor(tab).toString(),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = LocalContentColor.current.copy(alpha = 0.7f),
-                                    )
-                                }
+                                Icon(Icons.Rounded.Edit, contentDescription = null, modifier = Modifier.size(20.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("Reorder tabs", style = MaterialTheme.typography.titleSmall)
                             }
                         }
                     }
-                    if (rowTabs.size == 1) Spacer(Modifier.weight(1f))
                 }
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                Surface(
-                    onClick = onReorder,
-                    shape = RoundedCornerShape(24.dp),
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                ) {
-                    Row(
-                        modifier = Modifier.heightIn(min = 48.dp).padding(horizontal = 18.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(Icons.Rounded.Edit, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Reorder tabs", style = MaterialTheme.typography.titleSmall)
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+        ) { contentPadding ->
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth().padding(contentPadding).padding(horizontal = 20.dp),
+                contentPadding = PaddingValues(top = 4.dp, bottom = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                items(order.chunked(2)) { rowTabs ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        rowTabs.forEach { tab ->
+                            val isSelected = tab == selected
+                            val container by animateColorAsState(
+                                if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                label = "tabTile",
+                            )
+                            Surface(
+                                onClick = { onSelect(tab) },
+                                modifier = Modifier.weight(1f).heightIn(min = 112.dp),
+                                shape = RoundedCornerShape(26.dp),
+                                color = container,
+                                contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+                            ) {
+                                Column(
+                                    modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp, vertical = 14.dp),
+                                    verticalArrangement = Arrangement.Center,
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                ) {
+                                    Surface(
+                                        modifier = Modifier.size(44.dp),
+                                        shape = CircleShape,
+                                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
+                                        contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(libraryTabIcon(tab), contentDescription = null, modifier = Modifier.size(22.dp))
+                                        }
+                                    }
+                                    Spacer(Modifier.height(8.dp))
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        FitText(tab.label, style = MaterialTheme.typography.titleSmall, minScale = 0.75f)
+                                        Spacer(Modifier.width(6.dp))
+                                        Text(
+                                            countFor(tab).toString(),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = LocalContentColor.current.copy(alpha = 0.7f),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        if (rowTabs.size == 1) Spacer(Modifier.weight(1f))
                     }
                 }
             }

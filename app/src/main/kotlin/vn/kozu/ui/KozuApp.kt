@@ -485,10 +485,18 @@ private fun KozuShell(
                 exit = slideOutHorizontally(tween(240)) { it } + fadeOut(),
             ) {
                 AllBeatmapsScreen(
-                    bottomPadding = bottomPadding,
                     onBack = { allBeatmapsOpen = false },
                     onRetry = ::refreshApp,
                     isAppRefreshing = isAppRefreshing,
+                    currentBeatmap = state.current,
+                    isPlaying = state.isPlaying,
+                    position = playback.position,
+                    duration = playback.duration,
+                    onOpenPlayer = { playerOpen = true },
+                    onTogglePlayPause = playback::togglePlayPause,
+                    onPrevious = playback::previous,
+                    onNext = playback::next,
+                    onDismissPlayer = playback::clearQueue,
                 )
             }
             if (allBeatmapsOpen && !settingsOpen) BackHandler { allBeatmapsOpen = false }

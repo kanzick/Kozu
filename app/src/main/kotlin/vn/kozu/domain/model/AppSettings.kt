@@ -306,8 +306,8 @@ enum class UpdateChannel(
     val isPrerelease: Boolean,
     val branch: String,
 ) {
-    STABLE("stable", "Stable", "Tested public releases", false, "main"),
-    DEV("dev", "Dev", "Development and prerelease builds", true, "dev"),
+    STABLE("stable", "Stable", "Public releases", false, "main"),
+    DEV("dev", "Dev", "Prerelease builds", true, "dev"),
     ;
 
     companion object {

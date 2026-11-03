@@ -102,7 +102,7 @@ fun AboutPage(
                 }
             }
             custom { shape ->
-                LinkItem(shape, Icons.Rounded.Layers, "Licenses & attribution", "Libraries, fonts and services", Setting.LICENSES_ENTRY) {
+                LinkItem(shape, Icons.Rounded.Layers, "Licenses", "Libraries and fonts", Setting.LICENSES_ENTRY) {
                     onOpenLicenses()
                 }
             }
