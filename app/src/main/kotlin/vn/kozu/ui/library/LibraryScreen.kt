@@ -59,7 +59,6 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
@@ -74,7 +73,6 @@ import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.MyLocation
-import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material.icons.rounded.Sort
@@ -120,7 +118,6 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -138,7 +135,6 @@ import vn.kozu.domain.model.Playlist
 import vn.kozu.ui.components.CoverCard
 import vn.kozu.ui.components.EmptyState
 import vn.kozu.ui.components.FitText
-import vn.kozu.ui.components.HeaderAction
 import vn.kozu.ui.components.LocalAppSettings
 import vn.kozu.ui.components.LocalNowPlaying
 import vn.kozu.ui.components.LocalPerformanceMode
@@ -259,9 +255,7 @@ fun LibraryScreen(
             compact = compactNavigation,
             tab = shownTab,
             sheetOpen = showTabMenu,
-            isSyncing = isSyncing,
             onOpenTabs = { showTabMenu = true },
-            onRefresh = refreshLibrary,
             onOpenSettings = onOpenSettings,
         )
 
@@ -310,6 +304,7 @@ fun LibraryScreen(
                         )
                     } else {
                         Column(Modifier.fillMaxSize()) {
+                            Spacer(Modifier.height(8.dp))
                             if (!compactNavigation) {
                                 LibraryTabRow(
                                     selected = ui.tab,
@@ -495,9 +490,7 @@ private fun LibraryHeader(
     compact: Boolean,
     tab: LibraryTab,
     sheetOpen: Boolean,
-    isSyncing: Boolean,
     onOpenTabs: () -> Unit,
-    onRefresh: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     Row(
@@ -519,14 +512,6 @@ private fun LibraryHeader(
                 )
             }
         }
-        HeaderAction(
-            icon = Icons.Rounded.Refresh,
-            contentDescription = "Sync library",
-            onClick = onRefresh,
-            container = MaterialTheme.colorScheme.surfaceContainerHigh,
-            content = MaterialTheme.colorScheme.onSurface,
-            rotating = isSyncing,
-        )
         SettingsAction(onOpenSettings)
     }
 }

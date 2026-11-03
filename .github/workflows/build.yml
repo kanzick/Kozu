@@ -1,8 +1,7 @@
-﻿name: Build
+name: Build
 
 on:
   push:
-    branches:
   workflow_dispatch:
 
 permissions:
@@ -30,5 +29,12 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
+      - name: Normalize wrapper permissions and line endings
+        shell: bash
+        run: |
+          set -euo pipefail
+          sed -i 's/\r$//' gradlew
+          chmod +x gradlew
+
       - name: Build Debug
-        run: ./gradlew :app:assembleDebug --stacktrace
+        run: ./gradlew clean :app:assembleDebug --stacktrace

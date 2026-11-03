@@ -8,9 +8,24 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import org.json.JSONObject
+import org.json.JSONArray
 import vn.kozu.data.local.SettingsStore
+import vn.kozu.domain.model.UpdateChannel
 import java.io.IOException
+
+data class RecentCommit(
+    val sha: String,
+    val title: String,
+    val author: String,
+    val date: String,
+    val url: String,
+)
+
+data class RecentCommitsResult(
+    val branch: String,
+    val commits: List<RecentCommit>,
+    val note: String? = null,
+)
 
 sealed interface UpdateResult {
     data class Available(
@@ -33,25 +48,20 @@ class UpdateChecker(
     private val client: OkHttpClient,
 ) {
     private val appContext = context.applicationContext
+    private val currentVersion: String get() = installedVersion(appContext)
 
-    val currentVersion: String
-        get() = installedVersion(appContext)
-
-    suspend fun check(): UpdateResult =
+    suspend fun check(channel: UpdateChannel = UpdateChannel.STABLE): UpdateResult =
         withContext(Dispatchers.IO) {
             val request =
                 Request
                     .Builder()
-                    .url(LATEST_RELEASE_URL)
+                    .url(RELEASES_URL_API)
                     .header("Accept", "application/vnd.github+json")
+                    .header("X-GitHub-Api-Version", "2022-11-28")
                     .build()
             try {
                 client.newCall(request).execute().use { response ->
                     when {
-                        response.code == 404 -> {
-                            UpdateResult.UpToDate(currentVersion)
-                        }
-
                         response.code == 403 || response.code == 429 -> {
                             UpdateResult.Failed("GitHub is rate limiting requests. Try again later.")
                         }
@@ -60,9 +70,7 @@ class UpdateChecker(
                             UpdateResult.Failed("GitHub returned HTTP ${response.code}")
                         }
 
-                        else -> {
-                            parse(response.body.string())
-                        }
+                        else -> parseReleases(response.body?.string().orEmpty(), channel)
                     }
                 }
             } catch (e: CancellationException) {
@@ -74,29 +82,108 @@ class UpdateChecker(
             }
         }
 
-    private fun parse(body: String): UpdateResult {
-        val root =
+    suspend fun recentCommits(channel: UpdateChannel): RecentCommitsResult =
+        withContext(Dispatchers.IO) {
+            val requestedBranch = channel.branch
+            val requested = fetchCommits(requestedBranch)
+            if (requested != null) return@withContext RecentCommitsResult(requestedBranch, requested)
+
+            if (requestedBranch == DEFAULT_BRANCH) {
+                return@withContext RecentCommitsResult(
+                    branch = DEFAULT_BRANCH,
+                    commits = emptyList(),
+                    note = "GitHub did not return the recent commit history. Please try again later.",
+                )
+            }
+
+            val fallback = fetchCommits(DEFAULT_BRANCH)
+            if (fallback != null) {
+                RecentCommitsResult(
+                    branch = DEFAULT_BRANCH,
+                    commits = fallback,
+                    note = "The '$requestedBranch' branch is not published. Showing the available '$DEFAULT_BRANCH' history; Dev updates still use prerelease releases.",
+                )
+            } else {
+                RecentCommitsResult(
+                    branch = requestedBranch,
+                    commits = emptyList(),
+                    note = "GitHub did not return recent commits. Check your connection and try again.",
+                )
+            }
+        }
+
+    private fun fetchCommits(branch: String): List<RecentCommit>? {
+        val request =
+            Request
+                .Builder()
+                .url("$COMMITS_URL_API?sha=$branch&per_page=30")
+                .header("Accept", "application/vnd.github+json")
+                .header("X-GitHub-Api-Version", "2022-11-28")
+                .build()
+        return try {
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return null
+                val items = JSONArray(response.body?.string().orEmpty())
+                buildList {
+                    for (index in 0 until items.length()) {
+                        val item = items.optJSONObject(index) ?: continue
+                        val commit = item.optJSONObject("commit") ?: continue
+                        val metadata = commit.optJSONObject("author")
+                        val title = commit.optString("message").substringBefore('\n').trim()
+                        val sha = item.optString("sha").take(7)
+                        if (title.isBlank() || sha.isBlank()) continue
+                        add(
+                            RecentCommit(
+                                sha = sha,
+                                title = title,
+                                author = metadata?.optString("name")?.takeIf(String::isNotBlank) ?: "Unknown author",
+                                date = metadata?.optString("date").orEmpty(),
+                                url = item.optString("html_url").ifBlank { REPOSITORY_URL },
+                            ),
+                        )
+                    }
+                }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun parseReleases(body: String, channel: UpdateChannel): UpdateResult {
+        val releases =
             try {
-                JSONObject(body)
-            } catch (e: Exception) {
+                JSONArray(body)
+            } catch (_: Exception) {
                 return UpdateResult.Failed("Unexpected response from GitHub")
             }
-        if (root.optBoolean("draft") || root.optBoolean("prerelease")) return UpdateResult.UpToDate(currentVersion)
-        val tag = root.optString("tag_name").trim()
-        if (tag.isEmpty()) return UpdateResult.UpToDate(currentVersion)
-        val url = root.optString("html_url").ifBlank { RELEASES_URL }
+        val release =
+            (0 until releases.length())
+                .mapNotNull { releases.optJSONObject(it) }
+                .firstOrNull { candidate ->
+                    !candidate.optBoolean("draft") && candidate.optBoolean("prerelease") == channel.isPrerelease
+                }
+                ?: return UpdateResult.UpToDate(currentVersion)
+
+        val tag = release.optString("tag_name").trim()
+        if (tag.isEmpty()) return UpdateResult.Failed("GitHub returned a release without a version tag")
         val latest = tag.removePrefix("v").removePrefix("V")
+        val url = release.optString("html_url").ifBlank { RELEASES_URL }
         return if (compareVersions(latest, currentVersion) > 0) {
-            UpdateResult.Available(latest, url, root.optString("body").trim())
+            UpdateResult.Available(latest, url, release.optString("body").trim())
         } else {
             UpdateResult.UpToDate(currentVersion)
         }
     }
 
     companion object {
-        const val LATEST_RELEASE_URL = "https://api.github.com/repos/kanzick/Kozu/releases/latest"
-        const val RELEASES_URL = "https://github.com/kanzick/Kozu/releases/latest"
+        const val RELEASES_URL_API = "https://api.github.com/repos/kanzick/Kozu/releases?per_page=50"
+        const val COMMITS_URL_API = "https://api.github.com/repos/kanzick/Kozu/commits"
+        const val REPOSITORY_URL = "https://github.com/kanzick/Kozu"
+        const val RELEASES_URL = "https://github.com/kanzick/Kozu/releases"
         const val DAY_MS = 24L * 60L * 60L * 1000L
+        const val DEFAULT_BRANCH = "main"
 
         fun installedVersion(context: Context): String =
             try {
@@ -181,7 +268,7 @@ suspend fun UpdateChecker.checkIfDue(settings: SettingsStore): UpdateResult? {
     val now = System.currentTimeMillis()
     if (!current.autoUpdateCheck) return null
     if (now - current.lastUpdateCheckAt in 0 until UpdateChecker.DAY_MS) return null
-    val result = check()
+    val result = check(current.updateChannel)
     if (result is UpdateResult.Failed) return null
     settings.setLastUpdateCheck(now)
     return result

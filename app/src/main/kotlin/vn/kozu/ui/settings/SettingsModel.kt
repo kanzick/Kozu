@@ -97,7 +97,8 @@ enum class SettingsPage(
     DOWNLOADS("Downloads", "Manage offline beatmaps and storage", Icons.Rounded.CloudDownload),
     SOURCES("Audio sources", "Stream mirrors and full-song access", Icons.Rounded.Dns),
     STATS("Listening history", "Plays, favorites and top artists", Icons.Rounded.BarChart),
-    ABOUT("About", "App info, version, and credits", Icons.Rounded.Info),
+    UPDATES("Updates", "Version and release channel", Icons.Rounded.SystemUpdate),
+    ABOUT("About", "App info and project links", Icons.Rounded.Info),
     LICENSES("Licenses & attribution", "Open source libraries and services", Icons.Rounded.Layers),
 }
 
@@ -806,14 +807,14 @@ enum class Setting(
     ),
 
     CHECK_UPDATES(
-        SettingsPage.ABOUT,
+        SettingsPage.UPDATES,
         Icons.Rounded.SystemUpdate,
         "Check for updates",
         "Look for a newer Kozu release on GitHub.",
         "version release",
     ),
     AUTO_UPDATE_CHECK(
-        SettingsPage.ABOUT,
+        SettingsPage.UPDATES,
         Icons.Rounded.Sync,
         "Automatic update check",
         "Check for a new release when the app starts.",

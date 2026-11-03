@@ -71,7 +71,7 @@ fun BeatmapArt(
         AsyncImage(
             model = request,
             contentDescription = "${beatmap.title} cover",
-            contentScale = ContentScale.Crop,
+            contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxSize(),
         )
     }

@@ -74,19 +74,25 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.delay
 import vn.kozu.domain.model.OsuProfile
+import vn.kozu.data.update.UpdateChecker
 import vn.kozu.ui.components.bounceClick
 
-private val rootGroups = listOf(
-    "Personalize" to listOf(SettingsPage.APPEARANCE, SettingsPage.BEHAVIOR, SettingsPage.CONTENT),
-    "Music" to listOf(
-        SettingsPage.PLAYBACK,
-        SettingsPage.EQUALIZER,
-        SettingsPage.MUSIC,
-        SettingsPage.SOURCES,
-        SettingsPage.DOWNLOADS
-    ),
-    "Data & storage" to listOf(SettingsPage.STORAGE, SettingsPage.STATS, SettingsPage.BACKUP),
-    "System" to listOf(SettingsPage.DEVICE, SettingsPage.DEVELOPER, SettingsPage.ABOUT)
+private val rootPages = listOf(
+    SettingsPage.APPEARANCE,
+    SettingsPage.BEHAVIOR,
+    SettingsPage.CONTENT,
+    SettingsPage.MUSIC,
+    SettingsPage.PLAYBACK,
+    SettingsPage.EQUALIZER,
+    SettingsPage.SOURCES,
+    SettingsPage.DOWNLOADS,
+    SettingsPage.STORAGE,
+    SettingsPage.STATS,
+    SettingsPage.BACKUP,
+    SettingsPage.DEVICE,
+    SettingsPage.DEVELOPER,
+    SettingsPage.UPDATES,
+    SettingsPage.ABOUT,
 )
 
 private fun parentOf(page: SettingsPage): SettingsPage = when (page) {
@@ -99,9 +105,10 @@ private fun parentOf(page: SettingsPage): SettingsPage = when (page) {
 fun SettingsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    initialPage: SettingsPage = SettingsPage.ROOT,
     viewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory)
 ) {
-    var page by rememberSaveable { mutableStateOf(SettingsPage.ROOT) }
+    var page by rememberSaveable(initialPage) { mutableStateOf(initialPage) }
     val pageStateHolder = rememberSaveableStateHolder()
     var highlight by rememberSaveable { mutableStateOf<String?>(null) }
     var searchOpen by rememberSaveable { mutableStateOf(false) }
@@ -184,7 +191,8 @@ fun SettingsScreen(
                         SettingsPage.DOWNLOADS -> OfflinePage(viewModel, close)
                         SettingsPage.SOURCES -> SourcesPage(viewModel, close)
                         SettingsPage.STATS -> StatsPage(viewModel, close)
-                        SettingsPage.ABOUT -> AboutPage(viewModel, { page = SettingsPage.LICENSES }, close)
+                        SettingsPage.UPDATES -> UpdatesPage(viewModel, close)
+                        SettingsPage.ABOUT -> AboutPage({ page = SettingsPage.LICENSES }, close)
                         SettingsPage.LICENSES -> LicensesPage(close)
                     }
                 }
@@ -230,23 +238,24 @@ private fun SettingsRoot(
     onOpen: (SettingsPage) -> Unit,
     onSearch: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val version = remember { UpdateChecker.installedVersion(context) }
+
     SettingsPageScaffold(title = "Settings", onBack = onBack) {
         Spacer(Modifier.height(4.dp))
         SearchEntryBar(onClick = onSearch)
         Spacer(Modifier.height(12.dp))
         AccountSummaryCard(profile = profile, loggedIn = loggedIn, onClick = { onOpen(SettingsPage.ACCOUNT) })
         Spacer(Modifier.height(4.dp))
-        rootGroups.forEachIndexed { groupIndex, (title, pages) ->
-            SettingsSectionTitle(title)
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                pages.forEachIndexed { index, category ->
-                    CategoryRow(
-                        page = category,
-                        tone = groupIndex + index,
-                        shape = groupShape(index, pages.size),
-                        onClick = { onOpen(category) }
-                    )
-                }
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            rootPages.forEachIndexed { index, category ->
+                CategoryRow(
+                    page = category,
+                    subtitle = if (category == SettingsPage.UPDATES) "Version $version" else category.subtitle,
+                    tone = index,
+                    shape = RoundedCornerShape(28.dp),
+                    onClick = { onOpen(category) },
+                )
             }
         }
     }
@@ -351,6 +360,7 @@ private fun AccountSummaryCard(profile: OsuProfile?, loggedIn: Boolean, onClick:
 @Composable
 private fun CategoryRow(
     page: SettingsPage,
+    subtitle: String = page.subtitle,
     tone: Int,
     shape: Shape,
     onClick: () -> Unit
@@ -387,7 +397,7 @@ private fun CategoryRow(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    page.subtitle,
+                    subtitle,
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant,
                     maxLines = 1,

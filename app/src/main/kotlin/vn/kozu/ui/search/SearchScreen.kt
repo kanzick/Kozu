@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -64,7 +63,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import vn.kozu.data.repository.CatalogSource
 import vn.kozu.domain.model.SearchCategory
 import vn.kozu.domain.model.SearchSort
 import vn.kozu.ui.components.EmptyState
@@ -86,9 +84,19 @@ fun SearchScreen(
     isAppRefreshing: Boolean,
     modifier: Modifier = Modifier,
     focusSignal: Int = 0,
+    initialQuery: String? = null,
+    onInitialQueryConsumed: () -> Unit = {},
     viewModel: SearchViewModel = viewModel(factory = SearchViewModel.Factory)
 ) {
     val searchFocus = remember { FocusRequester() }
+    LaunchedEffect(initialQuery) {
+        val query = initialQuery?.trim()?.takeIf(String::isNotEmpty) ?: return@LaunchedEffect
+        viewModel.onQueryChange(query)
+        viewModel.remember()
+        delay(180)
+        searchFocus.requestFocus()
+        onInitialQueryConsumed()
+    }
     LaunchedEffect(focusSignal) {
         if (focusSignal > 0) {
             delay(180)

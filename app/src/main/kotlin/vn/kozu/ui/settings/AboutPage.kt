@@ -2,7 +2,6 @@ package vn.kozu.ui.settings
 
 import android.content.Context
 import android.content.Intent
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,6 +26,10 @@ import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.Security
+import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -37,7 +40,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,10 +51,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.launch
 import vn.kozu.data.update.UpdateChecker
-import vn.kozu.data.update.UpdateResult
 
 private const val GITHUB_URL = "https://github.com/kanzick/Kozu"
 private const val OSU_URL = "https://osu.ppy.sh"
@@ -64,24 +63,15 @@ private const val PRIVACY_TEXT =
         "If you sign in with osu!, the access tokens are stored only on this device. If you configure a proxy, your network traffic goes through it.\n\n" +
         "Uninstalling Kozu removes all of its local data."
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AboutPage(
-    viewModel: SettingsViewModel,
     onOpenLicenses: () -> Unit,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val container = viewModel.appContainer
-    val settings by viewModel.settings.collectAsStateWithLifecycle()
     val version = remember { UpdateChecker.installedVersion(context) }
-    var checking by remember { mutableStateOf(false) }
-    var available by remember { mutableStateOf<UpdateResult.Available?>(null) }
-    var message by remember { mutableStateOf<String?>(null) }
     var privacyOpen by remember { mutableStateOf(false) }
-
-    val checked = if (settings.lastUpdateCheckAt > 0L) formatDateTime(settings.lastUpdateCheckAt) else "never"
 
     SettingsScaffold(title = "About", onBack = onBack) {
         SettingsSection(null) {
@@ -95,44 +85,27 @@ fun AboutPage(
                 LinkItem(shape, Icons.Rounded.Language, "osu!", "osu.ppy.sh") { context.openLink(OSU_URL) }
             }
         }
-        SettingsSection("Updates") {
-            action(
-                Setting.CHECK_UPDATES,
-                label = if (checking) "Checking…" else "Check",
-                description = "v$version • Checked $checked",
-                enabled = !checking,
-            ) {
-                scope.launch {
-                    checking = true
-                    message = null
-                    when (val result = container.updates.check()) {
-                        is UpdateResult.Available -> {
-                            available = result
-                            viewModel.save { setLastUpdateCheck(System.currentTimeMillis()) }
-                        }
-
-                        is UpdateResult.UpToDate -> {
-                            message = "You are up to date with v${result.version}."
-                            viewModel.save { setLastUpdateCheck(System.currentTimeMillis()) }
-                        }
-
-                        is UpdateResult.Failed -> {
-                            message = result.message
-                        }
-                    }
-                    checking = false
+        SettingsSection("App information") {
+            custom { shape ->
+                LinkItem(shape, Icons.Rounded.Star, "Rate Kozu", "Star us on GitHub", Setting.RATE_APP) {
+                    context.openLink(GITHUB_URL)
                 }
             }
-            switch(Setting.AUTO_UPDATE_CHECK, settings.autoUpdateCheck) { value ->
-                viewModel.save { setAutoUpdateCheck(value) }
+            custom { shape ->
+                LinkItem(shape, Icons.Rounded.Share, "Share app", "Recommend Kozu to others", Setting.SHARE_APP) {
+                    shareApp(context)
+                }
             }
-            message?.let { text -> custom { shape -> NoteCard(shape, null, text) } }
-        }
-        SettingsSection("App information") {
-            action(Setting.RATE_APP, label = "Open GitHub") { context.openLink(GITHUB_URL) }
-            action(Setting.SHARE_APP, label = "Share") { shareApp(context) }
-            navigation(Setting.PRIVACY_ENTRY) { privacyOpen = true }
-            navigation(Setting.LICENSES_ENTRY, onClick = onOpenLicenses)
+            custom { shape ->
+                LinkItem(shape, Icons.Rounded.Security, "Privacy policy", "How Kozu handles your data", Setting.PRIVACY_ENTRY) {
+                    privacyOpen = true
+                }
+            }
+            custom { shape ->
+                LinkItem(shape, Icons.Rounded.Layers, "Licenses & attribution", "Libraries, fonts and services", Setting.LICENSES_ENTRY) {
+                    onOpenLicenses()
+                }
+            }
         }
         Text(
             text = "Kozu is an unofficial fan project and is not affiliated with or endorsed by ppy Pty Ltd. osu! is a trademark of ppy Pty Ltd.",
@@ -143,26 +116,6 @@ fun AboutPage(
                 Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp, vertical = 12.dp),
-        )
-    }
-
-    available?.let { update ->
-        AlertDialog(
-            onDismissRequest = { available = null },
-            title = { Text("Kozu v${update.version} is available") },
-            text = {
-                Text(
-                    if (update.notes.isBlank()) "You are on v$version." else update.notes.take(700),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    context.openLink(update.url)
-                    available = null
-                }) { Text("Download") }
-            },
-            dismissButton = { TextButton(onClick = { available = null }) { Text("Later") } },
         )
     }
 
@@ -284,9 +237,10 @@ internal fun LinkItem(
     icon: ImageVector,
     title: String,
     subtitle: String,
+    setting: Setting? = null,
     onClick: () -> Unit,
 ) {
-    SettingCard(setting = null, shape = shape, onClick = onClick) {
+    SettingCard(setting = setting, shape = shape, onClick = onClick) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,

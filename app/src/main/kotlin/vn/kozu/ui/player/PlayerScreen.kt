@@ -89,6 +89,7 @@ fun PlayerScreen(
     onRepeat: () -> Unit,
     onFavorite: () -> Unit,
     onMore: () -> Unit,
+    onArtistClick: (String) -> Unit = {},
     onSkipToQueueItem: (Int) -> Unit,
     onRemoveFromQueue: (Int) -> Unit,
     modifier: Modifier = Modifier,
@@ -110,6 +111,7 @@ fun PlayerScreen(
     val timer by (sleepTimer ?: NoSleepTimer).collectAsStateWithLifecycle()
     val fileInfo by (audioInfo ?: NoAudioInfo).collectAsStateWithLifecycle()
     val blurRadius = if (settings.blurPlayer && !performanceMode) settings.blurIntensity else 0
+    val artistName = beatmap.displayArtist(settings.preferUnicode)
 
     val view = LocalView.current
     DisposableEffect(view, settings.keepScreenOn) {
@@ -266,17 +268,20 @@ fun PlayerScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(
-                            text = beatmap.displayTitle(LocalAppSettings.current.preferUnicode),
+                            text = beatmap.displayTitle(settings.preferUnicode),
                             style = MaterialTheme.typography.headlineMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
-                            text = beatmap.displayArtist(LocalAppSettings.current.preferUnicode),
+                            text = artistName,
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.bounceClick {
+                                onArtistClick(artistName)
+                            },
                         )
                         if (beatmap.mapper.isNotBlank() && !compact) {
                             Text(

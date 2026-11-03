@@ -2,14 +2,11 @@ package vn.kozu.player
 
 import android.content.ComponentName
 import android.content.Context
-import android.os.Bundle
 import android.os.SystemClock
 import android.util.Log
 import androidx.core.content.ContextCompat
-import androidx.core.net.toUri
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
-import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
@@ -200,6 +197,13 @@ class PlaybackController(
         } else {
             if (c.playbackState == Player.STATE_ENDED) c.seekTo(0)
             c.play()
+        }
+    }
+
+    /** Pauses the current soundtrack without toggling a paused player back into playback. */
+    fun pause() = withController { controller ->
+        if (controller.mediaItemCount > 0 && controller.isPlaying) {
+            controller.pause()
         }
     }
 

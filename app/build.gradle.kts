@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.aboutlibraries.android)
 }
 
 val releaseKeystorePath = providers.environmentVariable("ANDROID_KEYSTORE_PATH").orNull
@@ -14,6 +15,12 @@ val hasReleaseSigning = listOf(
     releaseKeyAlias,
     releaseKeyPassword
 ).all { !it.isNullOrBlank() }
+val defaultAppVersionName = "0.1.2"
+val appVersionName = providers.gradleProperty("appVersion")
+    .orElse(defaultAppVersionName)
+    .get()
+    .removePrefix("v")
+    .removePrefix("V")
 
 android {
     namespace = "vn.kozu"
@@ -41,7 +48,7 @@ android {
         minSdk = 28
         targetSdk = 37
         versionCode = (System.currentTimeMillis() / 1000L).toInt()
-        versionName = "0.1.2"
+        versionName = appVersionName
     }
 
     buildTypes {
@@ -121,7 +128,6 @@ ksp {
 
 dependencies {
     ksp(libs.androidx.room.compiler)
-    implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.animation)
@@ -149,6 +155,8 @@ dependencies {
     implementation(libs.coil.network)
     implementation(libs.androidx.profileinstaller)
     implementation(libs.reorderables)
+    implementation(libs.aboutlibraries.core)
+    implementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.junit)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

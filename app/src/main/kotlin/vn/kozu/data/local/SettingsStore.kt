@@ -37,6 +37,7 @@ import vn.kozu.domain.model.StartTab
 import vn.kozu.domain.model.StatusFilter
 import vn.kozu.domain.model.StreamMode
 import vn.kozu.domain.model.ThemeMode
+import vn.kozu.domain.model.UpdateChannel
 import vn.kozu.domain.model.TopSize
 
 class SettingsStore(
@@ -138,6 +139,7 @@ class SettingsStore(
         val autoCleanCache = booleanPreferencesKey("auto_clean_cache")
         val autoUpdateCheck = booleanPreferencesKey("auto_update_check")
         val lastUpdateCheck = longPreferencesKey("last_update_check")
+        val updateChannel = stringPreferencesKey("update_channel")
         val libraryTabOrder = stringPreferencesKey("library_tab_order")
         val appearance = stringPreferencesKey("appearance_json")
     }
@@ -249,6 +251,7 @@ class SettingsStore(
                     autoCleanCache = prefs[Keys.autoCleanCache] ?: false,
                     autoUpdateCheck = prefs[Keys.autoUpdateCheck] ?: true,
                     lastUpdateCheckAt = prefs[Keys.lastUpdateCheck] ?: 0L,
+                    updateChannel = UpdateChannel.fromKey(prefs[Keys.updateChannel]),
                 )
             }.distinctUntilChanged()
 
@@ -453,6 +456,13 @@ class SettingsStore(
     suspend fun setAutoUpdateCheck(enabled: Boolean) = store.edit { it[Keys.autoUpdateCheck] = enabled }
 
     suspend fun setLastUpdateCheck(timeMillis: Long) = store.edit { it[Keys.lastUpdateCheck] = timeMillis }
+
+    suspend fun setUpdateChannel(channel: UpdateChannel) = store.edit {
+        if (it[Keys.updateChannel] != channel.key) {
+            it[Keys.updateChannel] = channel.key
+            it[Keys.lastUpdateCheck] = 0L
+        }
+    }
 
     suspend fun setProxy(proxy: ProxySettings) =
         store.edit {

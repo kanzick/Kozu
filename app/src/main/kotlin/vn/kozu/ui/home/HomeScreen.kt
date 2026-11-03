@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -53,7 +52,6 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,8 +59,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
@@ -70,11 +66,8 @@ import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.ListeningStats
 import vn.kozu.domain.model.OsuProfile
 import vn.kozu.ui.components.BeatmapArt
-import vn.kozu.ui.components.CoverCard
-import vn.kozu.domain.model.QuickPicksLayout
 import vn.kozu.ui.components.rememberKozuHaptics
 import vn.kozu.ui.components.LocalAppSettings
-import vn.kozu.ui.components.KozuLoading
 import vn.kozu.ui.components.RefreshIndicator
 import vn.kozu.ui.components.LocalTrackActions
 import vn.kozu.ui.components.ScreenHeader
@@ -98,6 +91,7 @@ fun HomeScreen(
     onOpenSettings: () -> Unit,
     onOpenExplore: () -> Unit,
     onOpenLibrary: () -> Unit,
+    onOpenStats: () -> Unit,
     onRefresh: () -> Unit,
     isAppRefreshing: Boolean,
     modifier: Modifier = Modifier,
@@ -236,7 +230,7 @@ fun HomeScreen(
                         Spacer(Modifier.height(32.dp))
                         ListeningStatsCard(
                             stats = ui.stats,
-                            onOpenHistory = onOpenLibrary,
+                            onOpenHistory = onOpenStats,
                             onPlayTop = { top -> actions.play(listOf(top), 0) }
                         )
                     }

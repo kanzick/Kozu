@@ -200,6 +200,8 @@ private fun KozuShell(
     LaunchedEffect(tab) { if (tab != KozuTab.SEARCH) lastMainTab = tab }
     var playerOpen by rememberSaveable { mutableStateOf(false) }
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
+    var settingsInitialPage by rememberSaveable { mutableStateOf(vn.kozu.ui.settings.SettingsPage.ROOT) }
+    var artistSearchRequest by rememberSaveable { mutableStateOf<String?>(null) }
     var allBeatmapsOpen by rememberSaveable { mutableStateOf(false) }
     var gamePlayActive by remember { mutableStateOf(false) }
     var menuTarget by remember { mutableStateOf<Beatmap?>(null) }
@@ -349,6 +351,10 @@ private fun KozuShell(
                             onOpenSettings = { settingsOpen = true },
                             onOpenExplore = { tab = KozuTab.EXPLORE },
                             onOpenLibrary = { tab = KozuTab.LIBRARY },
+                            onOpenStats = {
+                                settingsInitialPage = vn.kozu.ui.settings.SettingsPage.STATS
+                                settingsOpen = true
+                            },
                             onRefresh = ::refreshApp,
                             isAppRefreshing = isAppRefreshing,
                         )
@@ -383,6 +389,8 @@ private fun KozuShell(
                             onOpenSettings = { settingsOpen = true },
                             onRefresh = ::refreshApp,
                             isAppRefreshing = isAppRefreshing,
+                            initialQuery = artistSearchRequest,
+                            onInitialQueryConsumed = { artistSearchRequest = null },
                         )
                     }
 
@@ -396,7 +404,7 @@ private fun KozuShell(
                             onGameplayChanged = { active ->
                                 if (active != gamePlayActive) {
                                     gamePlayActive = active
-                                    if (active && state.isPlaying) playback.togglePlayPause()
+                                    if (active) playback.pause()
                                 }
                             },
                         )
@@ -463,7 +471,11 @@ private fun KozuShell(
                 exit = slideOutHorizontally(tween(180, easing = FastOutSlowInEasing)) { it / 6 } + fadeOut(tween(150)),
             ) {
                 SettingsScreen(
-                    onBack = { settingsOpen = false },
+                    initialPage = settingsInitialPage,
+                    onBack = {
+                        settingsOpen = false
+                        settingsInitialPage = vn.kozu.ui.settings.SettingsPage.ROOT
+                    },
                 )
             }
 
@@ -502,6 +514,11 @@ private fun KozuShell(
                         onRepeat = playback::cycleRepeat,
                         onFavorite = { actions.toggleFavorite(beatmap) },
                         onMore = { menuTarget = beatmap },
+                        onArtistClick = { artist ->
+                            artistSearchRequest = artist
+                            tab = KozuTab.SEARCH
+                            playerOpen = false
+                        },
                         onSkipToQueueItem = playback::skipToQueueItem,
                         onRemoveFromQueue = playback::removeFromQueue,
                         audioInfo = playback.audioInfo,
