@@ -318,7 +318,15 @@ fun KozuSlider(
             val cross = if (vertical) size.width else size.height
             val usable = (length - 2f * insetPx).coerceAtLeast(1f)
             val handleAlong = insetPx + position.value * usable
-            val originAlong = insetPx + (origin?.let { math.fraction(it) } ?: 0f) * usable
+            // A fill that starts at an end of the track must start at the very edge. Only the thumb is
+            // inset, otherwise the first few dp would be drawn as a stray "inactive" blob.
+            val originFraction = origin?.let { math.fraction(it) } ?: 0f
+            val originAlong =
+                when {
+                    originFraction <= 0.001f -> 0f
+                    originFraction >= 0.999f -> length
+                    else -> insetPx + originFraction * usable
+                }
 
             when (effectiveStyle) {
                 SliderStyle.CLASSIC -> {
