@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import vn.kozu.game.mania.gamestage.audio.GameAudio
@@ -39,6 +40,7 @@ class GameSession(
 ) : JudgementEngine.Listener {
 
     enum class Phase { LOADING, READY, PLAYING, PAUSED, FINISHED, FAILED }
+    data class HitErrorSample(val errorMs: Double, val judgement: Judgement)
 
     val core = GameCore(chart, settings, listener = this)
     private val audio = GameAudio()
@@ -54,6 +56,7 @@ class GameSession(
     var accuracy by mutableDoubleStateOf(1.0); private set
     var lastJudgement by mutableStateOf<Judgement?>(null); private set
     var judgementSeq by mutableIntStateOf(0); private set
+    val hitErrorSamples = mutableStateListOf<HitErrorSample>()
 
     var result: GameResult? = null; private set
 
@@ -156,6 +159,8 @@ class GameSession(
         combo = core.tracker.combo
         accuracy = core.tracker.accuracy
         lastJudgement = judgement
+        hitErrorSamples.add(HitErrorSample(errorMs, judgement))
+        if (hitErrorSamples.size > MAX_HIT_ERROR_SAMPLES) hitErrorSamples.removeAt(0)
         judgementSeq++
     }
 
@@ -181,7 +186,7 @@ class GameSession(
         ) core.clock.giveUpOnAudio()
 
         val t = core.frame()
-        if (core.isFinished(t)) finish()
+        if (core.isFinished()) finish()
         return t
     }
 
@@ -219,6 +224,7 @@ class GameSession(
 
     private companion object {
         const val TAG = "GameSession"
+        const val MAX_HIT_ERROR_SAMPLES = 40
         @Volatile var learnedLatencyMs = 0.0
     }
 }

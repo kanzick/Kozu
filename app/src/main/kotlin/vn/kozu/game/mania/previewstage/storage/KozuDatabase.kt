@@ -54,7 +54,8 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
     fun updateStarRatings(songId: Long, ratings: Map<Long, Double>): Int {
         if (ratings.isEmpty()) return 0
         var updated = 0
-        db.transaction {
+        db.beginTransaction()
+        try {
             for ((beatmapId, rating) in ratings) {
                 if (beatmapId <= 0L || !rating.isFinite() || rating <= 0.0) continue
                 updated += db.update(
@@ -64,6 +65,9 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
                     arrayOf(songId.toString(), beatmapId.toString()),
                 )
             }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
         }
         return updated
     }

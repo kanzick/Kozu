@@ -43,8 +43,10 @@ import androidx.compose.ui.window.DialogProperties
 import vn.kozu.game.mania.gamestage.GameStageModule
 import vn.kozu.game.mania.gamestage.chart.ManiaChart
 import vn.kozu.game.mania.gamestage.engine.NoteScroll
+import vn.kozu.game.mania.gamestage.playtype.LandscapePlayTypeOptions
+import vn.kozu.game.mania.gamestage.playtype.LandscapeVerticalScrolling
 import vn.kozu.game.mania.gamestage.media.BackgroundLoader
-import vn.kozu.game.mania.gamestage.settings.GameOrientation
+import vn.kozu.game.mania.gamestage.playtype.Portrait
 import vn.kozu.game.mania.gamestage.settings.GameSettings
 import vn.kozu.game.mania.previewstage.model.DifficultyRecord
 import vn.kozu.game.mania.previewstage.model.ScoreRecord
@@ -142,7 +144,13 @@ fun SongInfoDialog(
                                 !bestLoaded -> "Personal best: …"
                                 bestError != null -> "Personal best unavailable: $bestError"
                                 b == null -> "Personal best: not played yet"
-                                else -> "Personal best: %,d  ·  %.2f%%  ·  %s".format(b.score, b.accuracy, b.rank)
+                                else -> "Personal best: %,d  ·  %.2f%%  ·  %s  ·  %s/%s combo".format(
+                                    b.score,
+                                    b.accuracy,
+                                    b.rank,
+                                    b.trueCombo?.toString() ?: "—",
+                                    b.maxCombo?.toString() ?: "—",
+                                )
                             },
                             fontWeight = FontWeight.SemiBold,
                             color = b?.let { PlayColors.rank(it.rank) } ?: MaterialTheme.colorScheme.onSurface,
@@ -191,7 +199,7 @@ private fun SettingsPanel(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        if (s.orientation == GameOrientation.PORTRAIT) {
+        if (s.playType == Portrait) {
             Button(
                 onClick = {},
                 modifier = Modifier.weight(1f),
@@ -199,14 +207,14 @@ private fun SettingsPanel(
         } else {
             OutlinedButton(
                 onClick = {
-                    val updated = s.copy(orientation = GameOrientation.PORTRAIT)
+                    val updated = s.copy(playType = Portrait)
                     onChange(updated)
                     onCommit(updated)
                 },
                 modifier = Modifier.weight(1f),
             ) { Text("Portrait") }
         }
-        if (s.orientation == GameOrientation.LANDSCAPE) {
+        if (s.playType.isLandscape) {
             Button(
                 onClick = {},
                 modifier = Modifier.weight(1f),
@@ -214,13 +222,16 @@ private fun SettingsPanel(
         } else {
             OutlinedButton(
                 onClick = {
-                    val updated = s.copy(orientation = GameOrientation.LANDSCAPE)
+                    val updated = s.copy(playType = LandscapeVerticalScrolling)
                     onChange(updated)
                     onCommit(updated)
                 },
                 modifier = Modifier.weight(1f),
             ) { Text("Landscape") }
         }
+    }
+    if (s.playType.isLandscape) {
+        LandscapePlayTypeOptions(s, onChange, onCommit)
     }
 
     Text("Audio", fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
@@ -238,12 +249,18 @@ private fun SettingsPanel(
     SettingSlider("Background dim (0 = clear, 100 = dark)", "${s.backgroundDim}", s.backgroundDim.toFloat(), 0f..100f, 99,
         onChange = { onChange(s.copy(backgroundDim = it.roundToInt()).coerced()) }, onFinished = { onCommit(s) })
 
-    Text("Offset", fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
+    Text("Timing offsets", fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
     SettingSlider(
-        "Timing offset (+ = notes arrive later)", "${s.offsetMs} ms", s.offsetMs.toFloat(),
+        "Node offset (+ = notes arrive later)", "${s.nodeOffsetMs} ms", s.nodeOffsetMs.toFloat(),
         GameSettings.OFFSET_MIN.toFloat()..GameSettings.OFFSET_MAX.toFloat(), GameSettings.OFFSET_MAX - GameSettings.OFFSET_MIN - 1,
-        onChange = { onChange(s.copy(offsetMs = it.roundToInt()).coerced()) }, onFinished = { onCommit(s) },
-        onStep = { dir -> onCommit(s.copy(offsetMs = s.offsetMs + dir).coerced().also(onChange)) },
+        onChange = { onChange(s.copy(nodeOffsetMs = it.roundToInt()).coerced()) }, onFinished = { onCommit(s) },
+        onStep = { dir -> onCommit(s.copy(nodeOffsetMs = s.nodeOffsetMs + dir).coerced().also(onChange)) },
+    )
+    SettingSlider(
+        "Judgment offset (+ = judge later; line stays fixed)", "${s.judgmentOffsetMs} ms", s.judgmentOffsetMs.toFloat(),
+        GameSettings.OFFSET_MIN.toFloat()..GameSettings.OFFSET_MAX.toFloat(), GameSettings.OFFSET_MAX - GameSettings.OFFSET_MIN - 1,
+        onChange = { onChange(s.copy(judgmentOffsetMs = it.roundToInt()).coerced()) }, onFinished = { onCommit(s) },
+        onStep = { dir -> onCommit(s.copy(judgmentOffsetMs = s.judgmentOffsetMs + dir).coerced().also(onChange)) },
     )
 
     var name by remember(s.playerName) { mutableStateOf(s.playerName) }

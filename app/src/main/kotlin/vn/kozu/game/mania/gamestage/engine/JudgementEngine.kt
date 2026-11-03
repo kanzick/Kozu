@@ -25,6 +25,8 @@ class JudgementEngine(
 
     val state = IntArray(notes.size)
     val broken = BooleanArray(notes.size)
+    /** True after a note's head was successfully pressed. */
+    val hit = BooleanArray(notes.size)
     private val headError = DoubleArray(notes.size)
 
     private val pointer = IntArray(keys)
@@ -48,14 +50,17 @@ class JudgementEngine(
             if (state[id] != STATE_PENDING) { k++; continue }
             val n = notes[id]
             val err = timeMs - n.timeMs
+            val roundedErr = windows.roundedErrorMs(err)
 
-            if (err < -windows.miss) return
+            if (roundedErr < -windows.miss) return
 
-            if (err > windows.ok) {
+            if (roundedErr > windows.ok) {
 
                 if (!n.isHold) { resolve(n, Judgement.MISS, err); k++; continue }
                 val next = nextPending(ids, k + 1)
-                if (next != null && timeMs >= notes[next].timeMs - windows.miss) {
+                if (next != null &&
+                    windows.roundedErrorMs(timeMs - notes[next].timeMs) >= -windows.miss
+                ) {
 
                     resolve(n, Judgement.MISS, err)
                     k++
@@ -63,22 +68,27 @@ class JudgementEngine(
                 }
                 headError[id] = windows.ok + 1.0
                 state[id] = STATE_HOLDING
+                hit[id] = true
                 listener.onHit(n)
                 return
             }
 
-            val judgement = windows.classify(abs(err), late = err > 0)
+            val judgement = windows.classify(abs(roundedErr).toDouble(), late = roundedErr > 0)
             if (n.isHold) {
                 if (judgement == Judgement.MISS) {
                     resolve(n, Judgement.MISS, err)
                 } else {
-                    headError[id] = abs(err)
+                    headError[id] = abs(roundedErr).toDouble()
                     state[id] = STATE_HOLDING
+                    hit[id] = true
                     listener.onHit(n)
                 }
             } else {
                 resolve(n, judgement, err)
-                if (judgement != Judgement.MISS) listener.onHit(n)
+                if (judgement != Judgement.MISS) {
+                    hit[id] = true
+                    listener.onHit(n)
+                }
             }
             return
         }
@@ -92,12 +102,14 @@ class JudgementEngine(
 
         val id = holdingNote(column) ?: return
         val n = notes[id]
-        if (timeMs < n.endTimeMs - windows.meh) {
+        val err = timeMs - n.endTimeMs
+        val roundedErr = windows.roundedErrorMs(err)
+        if (roundedErr < -windows.meh) {
             broken[id] = true
             return
         }
-        val tailError = abs(timeMs - n.endTimeMs)
-        resolve(n, holdJudgement(id, tailError), timeMs - n.endTimeMs)
+        val tailError = abs(roundedErr).toDouble()
+        resolve(n, holdJudgement(id, tailError), err)
     }
 
     fun advance(timeMs: Double) {
@@ -112,12 +124,12 @@ class JudgementEngine(
             when (state[id]) {
                 STATE_DONE -> pointer[c]++
                 STATE_PENDING -> {
-                    if (t <= n.timeMs + windows.ok) return
-                    if (n.isHold && t <= n.endTimeMs - windows.meh) return
+                    if (windows.roundedErrorMs(t - n.timeMs) <= windows.ok) return
+                    if (n.isHold && windows.roundedErrorMs(t - n.endTimeMs) <= -windows.meh) return
                     resolve(n, Judgement.MISS, t - n.timeMs)
                 }
                 else -> {
-                    if (t <= n.endTimeMs + windows.ok) return
+                    if (windows.roundedErrorMs(t - n.endTimeMs) <= windows.ok) return
                     val j = if (keyDown[c]) holdJudgement(id, windows.ok) else Judgement.MISS
                     resolve(n, j, t - n.endTimeMs)
                 }

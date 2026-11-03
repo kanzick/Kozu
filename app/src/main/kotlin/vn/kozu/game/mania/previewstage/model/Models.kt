@@ -70,6 +70,8 @@ data class ScoreRecord(
     val score: Long,
     val accuracy: Double,
     val rank: String,
+    val trueCombo: Int? = null,
+    val maxCombo: Int? = null,
     val playedAt: Long = 0L,
 )
 

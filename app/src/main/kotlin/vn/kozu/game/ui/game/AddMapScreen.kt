@@ -137,6 +137,7 @@ fun AddMapScreen(
         loadingMore = false
         error = null
         fetchedDifficulties = emptyMap()
+        fetchedDifficulties = emptyMap()
         try {
             val result = viewModel.searchMania(query, 0)
             maps = result.items
@@ -162,29 +163,29 @@ fun AddMapScreen(
                 loadingMore = loadingMore,
             )
         }.collect { paging ->
-            if (
-                paging.lastVisibleIndex >= paging.resultCount - 2 &&
-                paging.resultCount > 0 &&
-                paging.hasMore &&
-                !paging.loading &&
-                !paging.loadingMore
-            ) {
-                loadingMore = true
-                try {
-                    val result = viewModel.searchMania(query, nextPage)
-                    val existing = maps.mapTo(HashSet()) { it.id }
-                    maps = maps + result.items.filter { existing.add(it.id) }
-                    hasMore = result.nextCursor != null
-                    nextPage++
-                    if (result.error != null && result.items.isEmpty()) error = result.error
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    error = e.message ?: "Could not load more beatmaps"
-                } finally {
-                    loadingMore = false
+                if (
+                    paging.lastVisibleIndex >= paging.resultCount - 2 &&
+                    paging.resultCount > 0 &&
+                    paging.hasMore &&
+                    !paging.loading &&
+                    !paging.loadingMore
+                ) {
+                    loadingMore = true
+                    try {
+                        val result = viewModel.searchMania(query, nextPage)
+                        val existing = maps.mapTo(HashSet()) { it.id }
+                        maps = maps + result.items.filter { existing.add(it.id) }
+                        hasMore = result.nextCursor != null
+                        nextPage++
+                        if (result.error != null && result.items.isEmpty()) error = result.error
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        error = e.message ?: "Could not load more beatmaps"
+                    } finally {
+                        loadingMore = false
+                    }
                 }
-            }
         }
     }
 
@@ -388,14 +389,27 @@ private fun AddMapCard(
                         download?.ratingWarning?.let {
                             Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                         }
+                        download?.ratingWarning?.let {
+                            Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                        }
                         if (download != null && download.error == null && !isAdded) {
                             val progress = download.progress
+                            Text(
+                                if (progress == null || progress < 0f) {
+                                    "Downloading…"
+                                } else {
+                                    "Downloading ${(progress.coerceIn(0f, 1f) * 100).toInt()}%"
+                                },
+                                modifier = Modifier.padding(top = 6.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                             if (progress == null || progress < 0f) {
-                                LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 6.dp))
+                                LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 4.dp))
                             } else {
                                 LinearProgressIndicator(
                                     progress = { progress.coerceIn(0f, 1f) },
-                                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp)
+                                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
                                 )
                             }
                         }

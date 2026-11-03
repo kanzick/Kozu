@@ -38,6 +38,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,6 +57,7 @@ import vn.kozu.ui.components.SectionHeader
 import vn.kozu.ui.components.bounceClick
 import vn.kozu.game.mania.previewstage.PreviewStageModule
 import vn.kozu.game.mania.previewstage.model.DifficultyRecord
+import vn.kozu.game.mania.previewstage.model.ScoreRecord
 import vn.kozu.game.mania.previewstage.model.SongEntry
 import vn.kozu.game.mania.previewstage.model.StartupReport
 import java.util.Locale
@@ -67,6 +69,8 @@ fun PreviewStageScreen(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
     onDifficultyClick: ((SongEntry, DifficultyRecord) -> Unit)? = null,
+    loadBestScores: (suspend (SongEntry) -> Map<String, ScoreRecord>)? = null,
+    scoresRefreshKey: Int = 0,
 ) {
     var report by remember { mutableStateOf<StartupReport?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -77,6 +81,9 @@ fun PreviewStageScreen(
     var searchQuery by remember { mutableStateOf("") }
     val songs by module.catalog.entries.collectAsState()
     var expandedId by remember { mutableStateOf<Long?>(null) }
+    var bestScoresBySong by remember { mutableStateOf<Map<Long, Map<String, ScoreRecord>>>(emptyMap()) }
+    var scoreErrors by remember { mutableStateOf<Map<Long, String>>(emptyMap()) }
+    var loadingScoresFor by remember { mutableStateOf<Long?>(null) }
     val scope = rememberCoroutineScope()
     val playPreview: (SongEntry, DifficultyRecord) -> Unit = { song, difficulty ->
         previewError = null
@@ -106,6 +113,22 @@ fun PreviewStageScreen(
             throw e
         } catch (e: Exception) {
             error = e.message ?: "Could not load Mania charts"
+        }
+    }
+    LaunchedEffect(expandedId, scoresRefreshKey, songs, loadBestScores) {
+        val songId = expandedId ?: return@LaunchedEffect
+        val loader = loadBestScores ?: return@LaunchedEffect
+        val song = songs.firstOrNull { it.songId == songId } ?: return@LaunchedEffect
+        loadingScoresFor = songId
+        try {
+            bestScoresBySong = bestScoresBySong + (songId to loader(song))
+            scoreErrors = scoreErrors - songId
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            scoreErrors = scoreErrors + (songId to (e.message ?: "Could not load scores"))
+        } finally {
+            if (loadingScoresFor == songId) loadingScoresFor = null
         }
     }
     DisposableEffect(module) { onDispose { module.stopPreview() } }
@@ -299,6 +322,9 @@ fun PreviewStageScreen(
                     },
                     onPreview = { song.defaultPreview?.let { playPreview(song, it) } },
                     previewError = previewError?.takeIf { it.first == song.songId }?.second,
+                    bestScores = bestScoresBySong[song.songId],
+                    scoreError = scoreErrors[song.songId],
+                    scoresLoading = loadingScoresFor == song.songId,
                     onDifficultyClick = { difficulty ->
                         playPreview(song, difficulty)
                         onDifficultyClick?.invoke(song, difficulty)
@@ -363,6 +389,9 @@ private fun ChartSetCard(
     onToggle: () -> Unit,
     onPreview: () -> Unit,
     previewError: String?,
+    bestScores: Map<String, ScoreRecord>?,
+    scoreError: String?,
+    scoresLoading: Boolean,
     onDifficultyClick: (DifficultyRecord) -> Unit,
     onDelete: () -> Unit,
     deleting: Boolean,
@@ -408,10 +437,12 @@ private fun ChartSetCard(
                     song.difficulties
                         .map { it.starRating }
                         .filter { it > 0.0 }
-                        .maxOrNull()
-                        ?.let { rating ->
+                        .takeIf { it.isNotEmpty() }
+                        ?.let { ratings ->
+                            val minimum = ratings.minOrNull() ?: return@let
+                            val maximum = ratings.maxOrNull() ?: return@let
                             Text(
-                                "Up to ${String.format(Locale.US, "%.2f★", rating)}",
+                                "${String.format(Locale.US, "%.2f★", minimum)} – ${String.format(Locale.US, "%.2f★", maximum)}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.primary,
                                 maxLines = 1
@@ -462,8 +493,28 @@ private fun ChartSetCard(
                     modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 14.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
+                    if (scoresLoading && bestScores == null) {
+                        Text(
+                            "Loading personal scores…",
+                            modifier = Modifier.padding(horizontal = 8.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    scoreError?.let {
+                        Text(
+                            "Could not load personal scores: $it",
+                            modifier = Modifier.padding(horizontal = 8.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
                     song.difficulties.forEach { difficulty ->
-                        DifficultyRow(difficulty, onClick = { onDifficultyClick(difficulty) })
+                        DifficultyRow(
+                            difficulty = difficulty,
+                            score = bestScores?.get(difficulty.version),
+                            onClick = { onDifficultyClick(difficulty) },
+                        )
                     }
                 }
             }
@@ -472,7 +523,11 @@ private fun ChartSetCard(
 }
 
 @Composable
-private fun DifficultyRow(difficulty: DifficultyRecord, onClick: () -> Unit) {
+private fun DifficultyRow(
+    difficulty: DifficultyRecord,
+    score: ScoreRecord?,
+    onClick: () -> Unit,
+) {
     Surface(
         modifier = Modifier.bounceClick(pressedScale = 0.98f, onClick = onClick),
         shape = RoundedCornerShape(20.dp),
@@ -503,6 +558,21 @@ private fun DifficultyRow(difficulty: DifficultyRecord, onClick: () -> Unit) {
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                score?.let {
+                    Text(
+                        "${it.rank}  ·  %.2f%%  ·  %,d pts  ·  %s/%s combo".format(
+                            java.util.Locale.ROOT,
+                            it.accuracy,
+                            it.score,
+                            it.trueCombo?.toString() ?: "—",
+                            it.maxCombo?.toString() ?: "—",
+                        ),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(

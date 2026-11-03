@@ -17,7 +17,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
-data class SubmitOutcome(val isNewBest: Boolean, val previousBest: ScoreRecord?)
+/** Outcome of saving a score after a play session. */
+data class SubmitOutcome(
+    val isNewBest: Boolean,
+    val previousBest: ScoreRecord?,
+    /** False when the score did not make the difficulty's top 50 and was not stored. */
+    val recorded: Boolean = true,
+)
 
 class GameStageModule private constructor(
     @Suppress("unused") context: Context,
@@ -64,6 +70,13 @@ class GameStageModule private constructor(
     suspend fun bestScore(song: SongEntry, difficulty: DifficultyRecord): ScoreRecord? =
         withContext(Dispatchers.IO) { scoreDb().bestScore(song.songId, difficulty.version, settings.playerName) }
 
+    /** Current player's best score for every difficulty in this song. */
+    suspend fun bestScores(song: SongEntry): Map<String, ScoreRecord> =
+        withContext(Dispatchers.IO) {
+            scoreDb().bestScores(song.songId, settings.playerName).associateBy { it.difficulty }
+        }
+
+    /** Leaderboard for this song and difficulty. */
     suspend fun leaderboard(song: SongEntry, difficulty: DifficultyRecord, limit: Int = 50): List<ScoreRecord> =
         withContext(Dispatchers.IO) { scoreDb().topScores(song.songId, difficulty.version, limit) }
 
@@ -72,7 +85,7 @@ class GameStageModule private constructor(
             val db = scoreDb()
             val name = settings.playerName
             val previous = db.bestScore(song.songId, difficulty.version, name)
-            db.insert(
+            val recorded = db.insert(
                 ScoreRecord(
                     playerName = name,
                     songId = song.songId,
@@ -80,9 +93,11 @@ class GameStageModule private constructor(
                     score = result.score,
                     accuracy = result.accuracyPercent,
                     rank = result.rank,
+                    trueCombo = result.trueCombo,
+                    maxCombo = result.maxCombo,
                 )
             )
-            SubmitOutcome(previous == null || result.score > previous.score, previous)
+            SubmitOutcome(recorded && (previous == null || result.score > previous.score), previous, recorded)
         }
 
     companion object {

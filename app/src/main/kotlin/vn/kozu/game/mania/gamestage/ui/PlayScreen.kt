@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -30,6 +31,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -44,16 +47,17 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -61,9 +65,15 @@ import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import vn.kozu.game.mania.gamestage.engine.JudgementEngine
-import vn.kozu.game.mania.gamestage.engine.NoteScroll
+import vn.kozu.game.mania.gamestage.playtype.Landscape3DPerspective
+import vn.kozu.game.mania.gamestage.playtype.LandscapeProjection
+import vn.kozu.game.mania.gamestage.playtype.LandscapeVerticalScrolling
+import vn.kozu.game.mania.gamestage.playtype.Portrait
+import vn.kozu.game.mania.gamestage.playtype.drawLandscapeVerticalScrolling
+import vn.kozu.game.mania.gamestage.playtype.drawPortraitPlayfield
+import vn.kozu.game.mania.gamestage.playtype.drawPerspectivePlayfield
 import vn.kozu.game.mania.gamestage.scoring.GameResult
+import vn.kozu.game.mania.gamestage.scoring.Judgement
 import vn.kozu.game.mania.gamestage.session.GameSession
 import kotlinx.coroutines.isActive
 import kotlin.math.max
@@ -74,6 +84,12 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
     else -> null
 }
 
+/**
+ * Gameplay motion is derived from chart time without accumulating across frames. Perspective mode
+ * changes visual position and size, not chart timing or judgement.
+ * Time comes from the current frame's vsync timestamp, so a delayed
+ * frame does not cause stuttering. Touches are judged by their event time, not their processing time.
+ */
 @Composable
 fun PlayScreen(
     session: GameSession,
@@ -129,6 +145,7 @@ fun PlayScreen(
     val chart = session.chart
     val engine = session.core.engine
     val travelMs = session.core.travelMs
+    val playType = session.settings.playType
     val dimAlpha = session.settings.backgroundDim / 100f
     val colors = MaterialTheme.colorScheme
     val firstVisible = remember(session) { IntArray(chart.keys) }
@@ -145,10 +162,15 @@ fun PlayScreen(
                         session.release(column, timestamp)
                     }
                     val layout = PlayfieldLayout(size.width.toFloat(), size.height.toFloat(), chart.keys)
+                    val projection = if (playType == Landscape3DPerspective) {
+                        LandscapeProjection(layout, size.width.toFloat())
+                    } else {
+                        null
+                    }
                     touchRouter[0] = TouchInputRouter(
                         keys = chart.keys,
-                        left = layout.left,
-                        columnWidth = layout.columnWidth,
+                        left = projection?.baseLeft ?: layout.left,
+                        columnWidth = projection?.baseColumnWidth ?: layout.columnWidth,
                         touchRadius = touchRadiusPx,
                     )
                 }
@@ -208,100 +230,29 @@ fun PlayScreen(
             }
             drawRect(Color.Black.copy(alpha = if (bg == null) 0.82f else dimAlpha))
 
-            drawRoundRect(
-                color = colors.surface.copy(alpha = 0.78f),
-                topLeft = Offset(layout.left, 0f),
-                size = Size(layout.right - layout.left, h),
-                cornerRadius = CornerRadius(layout.columnWidth * 0.12f)
-            )
-            for (c in 0..chart.keys) {
-                val x = layout.left + c * layout.columnWidth
-                drawRect(colors.onSurface.copy(alpha = 0.16f), Offset(x - 1f, 0f), Size(2f, h))
+            when (playType) {
+                Portrait -> drawPortraitPlayfield(
+                    chart = chart,
+                    engine = engine,
+                    layout = layout,
+                    nowMs = t,
+                    travelMs = travelMs,
+                    firstVisible = firstVisible,
+                    primary = colors.primary,
+                    tertiary = colors.tertiary,
+                    onSurface = colors.onSurface,
+                    surface = colors.surface,
+                    judgementLineHeight = 4.dp.toPx(),
+                )
+                LandscapeVerticalScrolling -> drawLandscapeVerticalScrolling(
+                    chart, engine, layout, t, travelMs, firstVisible,
+                    colors.primary, colors.tertiary, colors.onSurface, colors.surface, 4.dp.toPx(),
+                )
+                Landscape3DPerspective -> drawPerspectivePlayfield(
+                    chart, engine, layout, t, travelMs, firstVisible,
+                    colors.primary, colors.tertiary, colors.onSurface, colors.surface, 4.dp.toPx(),
+                )
             }
-
-            for (c in 0 until chart.keys) {
-                if (engine.keyDown[c]) {
-                    drawRect(
-                        colors.primary.copy(alpha = 0.22f),
-                        Offset(layout.columnX(c), layout.judgeY - h * 0.2f),
-                        Size(layout.columnWidth, h * 0.2f),
-                    )
-                }
-            }
-
-            val pad = layout.columnWidth * 0.06f
-            val noteW = layout.columnWidth - pad * 2
-            for (c in 0 until chart.keys) {
-                val ids = chart.columns[c]
-                val x = layout.columnX(c) + pad
-                val color = PlayColors.noteColor(c, chart.keys, colors.primary, colors.tertiary)
-                var i = firstVisible[c]
-                while (i < ids.size) {
-                    val id = ids[i]
-                    val n = chart.notes[id]
-                    val st = engine.state[id]
-                    val radius = CornerRadius(minOf(noteW * 0.28f, layout.noteHeight * 0.45f))
-                    if (st == JudgementEngine.STATE_DONE) {
-                        if (i == firstVisible[c]) firstVisible[c]++
-                        i++
-                        continue
-                    }
-                    if (n.timeMs - t > travelMs + 50) break
-                    val headY = NoteScroll.yAt(n.timeMs.toDouble(), t, travelMs, layout.judgeY)
-                    if (!n.isHold) {
-                        if (headY - layout.noteHeight < h && headY > 0f) {
-                            drawRoundRect(
-                                color = color,
-                                topLeft = Offset(x, headY - layout.noteHeight),
-                                size = Size(noteW, layout.noteHeight),
-                                cornerRadius = radius
-                            )
-                            drawRoundRect(
-                                color = Color.White.copy(alpha = 0.32f),
-                                topLeft = Offset(x, headY - layout.noteHeight),
-                                size = Size(noteW, layout.noteHeight),
-                                cornerRadius = radius,
-                                style = Stroke(width = (layout.columnWidth * 0.035f).coerceAtLeast(1f))
-                            )
-                        }
-                    } else {
-                        val holding = st == JudgementEngine.STATE_HOLDING
-                        val tailY = NoteScroll.yAt(n.endTimeMs.toDouble(), t, travelMs, layout.judgeY)
-                        val headDrawY = if (holding) minOf(headY, layout.judgeY) else headY
-                        val bodyColor = if (engine.broken[id]) PlayColors.broken else color
-                        val top = max(tailY - layout.noteHeight, 0f)
-                        val bottom = minOf(headDrawY, h)
-                        if (bottom > top) {
-                            drawRoundRect(
-                                color = bodyColor.copy(alpha = if (holding) 0.85f else 0.55f),
-                                topLeft = Offset(x + noteW * 0.15f, top),
-                                size = Size(noteW * 0.7f, bottom - top),
-                                cornerRadius = CornerRadius(noteW * 0.18f)
-                            )
-                        }
-                        drawRoundRect(
-                            color = bodyColor,
-                            topLeft = Offset(x, headDrawY - layout.noteHeight),
-                            size = Size(noteW, layout.noteHeight),
-                            cornerRadius = radius
-                        )
-                        drawRoundRect(
-                            color = bodyColor.copy(alpha = 0.92f),
-                            topLeft = Offset(x, tailY - layout.noteHeight),
-                            size = Size(noteW, layout.noteHeight * 0.7f),
-                            cornerRadius = radius
-                        )
-                    }
-                    i++
-                }
-            }
-
-            drawRoundRect(
-                colors.primary,
-                Offset(layout.left, layout.judgeY),
-                Size(layout.right - layout.left, 4.dp.toPx()),
-                CornerRadius(2.dp.toPx())
-            )
 
             val progress = (t / max(1.0, chart.lastEventTimeMs.toDouble())).coerceIn(0.0, 1.0).toFloat()
             drawRect(colors.onSurface.copy(alpha = 0.28f), Offset(0f, 0f), Size(w, 4.dp.toPx()))
@@ -468,8 +419,8 @@ private fun PreparationPanel(
 
 @Composable
 private fun Hud(session: GameSession) {
-    Box(Modifier.fillMaxSize().padding(12.dp)) {
-        Column(Modifier.align(Alignment.TopEnd), horizontalAlignment = Alignment.End) {
+    Box(Modifier.fillMaxSize()) {
+        Column(Modifier.align(Alignment.TopEnd).padding(12.dp), horizontalAlignment = Alignment.End) {
             Text("%07d".format(session.score), color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.Bold)
             Text("%.2f%%".format(session.accuracy * 100), color = Color(0xFFDDDDDD), fontSize = 18.sp)
         }
@@ -496,6 +447,87 @@ private fun Hud(session: GameSession) {
                 fontSize = 44.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.align(Alignment.Center).padding(top = 120.dp),
+            )
+        }
+
+        ErrorHitMeter(
+            session = session,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth(0.5f)
+                .padding(bottom = 18.dp),
+        )
+    }
+}
+
+@Composable
+private fun ErrorHitMeter(session: GameSession, modifier: Modifier = Modifier) {
+    val windows = session.core.engine.windows
+    val labelsColor = Color.White.copy(alpha = 0.8f)
+    Column(modifier) {
+        Row(
+            Modifier.fillMaxWidth().padding(bottom = 3.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("EARLY", color = labelsColor, fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
+            Text("0 ms", color = labelsColor, fontSize = 9.sp, textAlign = TextAlign.Center)
+            Text("LATE", color = labelsColor, fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
+        }
+        Canvas(
+            Modifier
+                .fillMaxWidth()
+                .height(12.dp)
+                .clip(RoundedCornerShape(6.dp)),
+        ) {
+            val miss = windows.miss.coerceAtLeast(1.0)
+            fun xAt(errorMs: Double) =
+                ((errorMs.coerceIn(-miss, miss) + miss) / (miss * 2.0) * size.width).toFloat()
+
+            drawRect(Color.Black.copy(alpha = 0.52f))
+            val zones = listOf(
+                Triple(-miss, -windows.meh, Judgement.MISS),
+                Triple(-windows.meh, -windows.ok, Judgement.MEH),
+                Triple(-windows.ok, -windows.good, Judgement.OK),
+                Triple(-windows.good, -windows.great, Judgement.GOOD),
+                Triple(-windows.great, -windows.perfect, Judgement.GREAT),
+                Triple(-windows.perfect, 0.0, Judgement.PERFECT),
+                Triple(0.0, windows.perfect, Judgement.PERFECT),
+                Triple(windows.perfect, windows.great, Judgement.GREAT),
+                Triple(windows.great, windows.good, Judgement.GOOD),
+                Triple(windows.good, windows.ok, Judgement.OK),
+                Triple(windows.ok, miss, Judgement.MISS),
+            )
+            zones.forEach { (start, end, judgement) ->
+                val left = xAt(start)
+                val right = xAt(end)
+                if (right > left) {
+                    drawRect(
+                        color = PlayColors.judgement(judgement).copy(alpha = 0.3f),
+                        topLeft = Offset(left, 0f),
+                        size = Size(right - left, size.height),
+                    )
+                }
+            }
+
+            session.hitErrorSamples.forEachIndexed { index, sample ->
+                val ageAlpha = (0.25f + 0.75f * (index + 1f) / session.hitErrorSamples.size)
+                    .coerceIn(0.25f, 1f)
+                val x = xAt(sample.errorMs)
+                drawLine(
+                    color = PlayColors.judgement(sample.judgement).copy(alpha = ageAlpha),
+                    start = Offset(x, 1.dp.toPx()),
+                    end = Offset(x, size.height - 1.dp.toPx()),
+                    strokeWidth = if (index == session.hitErrorSamples.lastIndex) 3.dp.toPx() else 1.5.dp.toPx(),
+                    cap = StrokeCap.Round,
+                )
+            }
+            val centerX = xAt(0.0)
+            drawLine(
+                color = Color.White.copy(alpha = 0.9f),
+                start = Offset(centerX, 0f),
+                end = Offset(centerX, size.height),
+                strokeWidth = 1.dp.toPx(),
             )
         }
     }

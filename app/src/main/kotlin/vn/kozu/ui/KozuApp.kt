@@ -340,64 +340,54 @@ private fun KozuShell(
         ) {
             TabHost(selected = tab) { current ->
                 when (current) {
-                    KozuTab.HOME -> {
-                        HomeScreen(
-                            listState = homeList,
-                            bottomPadding = bottomPadding,
-                            onOpenSettings = { settingsOpen = true },
-                            onOpenExplore = { tab = KozuTab.EXPLORE },
-                            onOpenLibrary = { tab = KozuTab.LIBRARY },
-                            onRefresh = ::refreshApp,
-                            isAppRefreshing = isAppRefreshing,
-                        )
-                    }
-
-                    KozuTab.EXPLORE -> {
-                        ExploreScreen(
-                            listState = exploreList,
-                            bottomPadding = bottomPadding,
-                            onOpenSettings = { settingsOpen = true },
-                            onOpenLibrary = { tab = KozuTab.LIBRARY },
-                            onOpenSearch = { tab = KozuTab.SEARCH },
-                            onOpenAllBeatmaps = { allBeatmapsOpen = true },
-                            onRefresh = ::refreshApp,
-                            isAppRefreshing = isAppRefreshing,
-                        )
-                    }
-
-                    KozuTab.LIBRARY -> {
-                        LibraryScreen(
-                            listState = libraryList,
-                            bottomPadding = bottomPadding,
-                            onOpenSettings = { settingsOpen = true },
-                            onSyncError = ::notify,
-                        )
-                    }
-
-                    KozuTab.SEARCH -> {
-                        SearchScreen(
-                            focusSignal = searchFocusSignal,
-                            bottomPadding = bottomPadding,
-                            onOpenSettings = { settingsOpen = true },
-                            onRefresh = ::refreshApp,
-                            isAppRefreshing = isAppRefreshing,
-                        )
-                    }
-
-                    KozuTab.GAME -> {
-                        GameScreen(
-                            bottomPadding = bottomPadding,
-                            onOpenSettings = { settingsOpen = true },
-                            onRefresh = ::refreshApp,
-                            isAppRefreshing = isAppRefreshing,
-                            onGameplayChanged = { active ->
-                                if (active != gamePlayActive) {
-                                    gamePlayActive = active
-                                    if (active && state.isPlaying) playback.togglePlayPause()
-                                }
-                            },
-                        )
-                    }
+                    KozuTab.HOME -> HomeScreen(
+                        listState = homeList,
+                        bottomPadding = bottomPadding,
+                        onOpenSettings = { settingsOpen = true },
+                        onOpenExplore = { tab = KozuTab.EXPLORE },
+                        onOpenLibrary = { tab = KozuTab.LIBRARY },
+                        onRefresh = ::refreshApp,
+                        isAppRefreshing = isAppRefreshing,
+                    )
+                    KozuTab.EXPLORE -> ExploreScreen(
+                        listState = exploreList,
+                        bottomPadding = bottomPadding,
+                        onOpenSettings = { settingsOpen = true },
+                        onOpenLibrary = { tab = KozuTab.LIBRARY },
+                        onOpenSearch = {
+                            tab = KozuTab.SEARCH
+                            searchFocusSignal++
+                        },
+                        onOpenAllBeatmaps = { allBeatmapsOpen = true },
+                        onRefresh = ::refreshApp,
+                        isAppRefreshing = isAppRefreshing,
+                    )
+                    KozuTab.LIBRARY -> LibraryScreen(
+                        listState = libraryList,
+                        bottomPadding = bottomPadding,
+                        onOpenSettings = { settingsOpen = true },
+                        onSyncError = ::notify,
+                    )
+                    KozuTab.GAME -> GameScreen(
+                        isSelected = tab == KozuTab.GAME,
+                        bottomPadding = bottomPadding,
+                        onOpenSettings = { settingsOpen = true },
+                        onRefresh = ::refreshApp,
+                        isAppRefreshing = isAppRefreshing,
+                        onGameplayChanged = { active ->
+                            if (active != gamePlayActive) {
+                                gamePlayActive = active
+                                if (active && state.isPlaying) playback.togglePlayPause()
+                            }
+                        }
+                    )
+                    KozuTab.SEARCH -> SearchScreen(
+                        bottomPadding = bottomPadding,
+                        onOpenSettings = { settingsOpen = true },
+                        onRefresh = ::refreshApp,
+                        isAppRefreshing = isAppRefreshing,
+                        focusSignal = searchFocusSignal,
+                    )
                 }
             }
 

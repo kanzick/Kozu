@@ -1,6 +1,10 @@
 package vn.kozu.game.mania.gamestage.settings
 
 import vn.kozu.game.mania.gamestage.engine.NoteScroll
+import vn.kozu.game.mania.gamestage.playtype.Landscape3DPerspective
+import vn.kozu.game.mania.gamestage.playtype.LandscapeVerticalScrolling
+import vn.kozu.game.mania.gamestage.playtype.PlayType
+import vn.kozu.game.mania.gamestage.playtype.Portrait
 import java.io.File
 import java.io.IOException
 import java.util.Properties
@@ -16,9 +20,10 @@ data class GameSettings(
     val hitsoundVolume: Int = 70,
     val speed: Double = 8.0,
     val backgroundDim: Int = 60,
-    val offsetMs: Int = 0,
+    val nodeOffsetMs: Int = 0,
+    val judgmentOffsetMs: Int = 0,
     val playerName: String = DEFAULT_PLAYER_NAME,
-    val orientation: GameOrientation = GameOrientation.PORTRAIT,
+    val playType: PlayType = Portrait,
 ) {
 
     fun coerced(): GameSettings = copy(
@@ -26,7 +31,8 @@ data class GameSettings(
         hitsoundVolume = hitsoundVolume.coerceIn(0, 100),
         speed = (NoteScroll.clampSpeed(speed) * 10.0).roundToInt() / 10.0,
         backgroundDim = backgroundDim.coerceIn(0, 100),
-        offsetMs = offsetMs.coerceIn(OFFSET_MIN, OFFSET_MAX),
+        nodeOffsetMs = nodeOffsetMs.coerceIn(OFFSET_MIN, OFFSET_MAX),
+        judgmentOffsetMs = judgmentOffsetMs.coerceIn(OFFSET_MIN, OFFSET_MAX),
         playerName = playerName.trim().take(PLAYER_NAME_MAX).ifEmpty { DEFAULT_PLAYER_NAME },
     )
 
@@ -51,16 +57,26 @@ class SettingsStore(val file: File) {
             return GameSettings()
         }
         val d = GameSettings()
+        val savedPlayType = PlayType.fromStorageKey(p.getProperty(K_PLAY_TYPE))
+            ?: when (p.getProperty(K_ORIENTATION)) {
+                "LANDSCAPE" -> when (p.getProperty(K_SCROLL_STYLE)) {
+                    "PERSPECTIVE_3D" -> Landscape3DPerspective
+                    else -> LandscapeVerticalScrolling
+                }
+                else -> Portrait
+            }
         return GameSettings(
             musicVolume = p.getProperty(K_MUSIC)?.trim()?.toIntOrNull() ?: d.musicVolume,
             hitsoundVolume = p.getProperty(K_HITSOUND)?.trim()?.toIntOrNull() ?: d.hitsoundVolume,
             speed = p.getProperty(K_SPEED)?.trim()?.toDoubleOrNull()?.takeIf { it.isFinite() } ?: d.speed,
             backgroundDim = p.getProperty(K_DIM)?.trim()?.toIntOrNull() ?: d.backgroundDim,
-            offsetMs = p.getProperty(K_OFFSET)?.trim()?.toIntOrNull() ?: d.offsetMs,
+            nodeOffsetMs = p.getProperty(K_NODE_OFFSET)?.trim()?.toIntOrNull()
+                ?: p.getProperty(K_LEGACY_OFFSET)?.trim()?.toIntOrNull()
+                ?: d.nodeOffsetMs,
+            judgmentOffsetMs = p.getProperty(K_JUDGMENT_OFFSET)?.trim()?.toIntOrNull()
+                ?: d.judgmentOffsetMs,
             playerName = p.getProperty(K_PLAYER) ?: d.playerName,
-            orientation = p.getProperty(K_ORIENTATION)
-                ?.let { value -> GameOrientation.values().firstOrNull { it.name == value } }
-                ?: d.orientation,
+            playType = savedPlayType,
         ).coerced()
     }
 
@@ -71,9 +87,10 @@ class SettingsStore(val file: File) {
         p.setProperty(K_HITSOUND, s.hitsoundVolume.toString())
         p.setProperty(K_SPEED, "%.1f".format(java.util.Locale.ROOT, s.speed))
         p.setProperty(K_DIM, s.backgroundDim.toString())
-        p.setProperty(K_OFFSET, s.offsetMs.toString())
+        p.setProperty(K_NODE_OFFSET, s.nodeOffsetMs.toString())
+        p.setProperty(K_JUDGMENT_OFFSET, s.judgmentOffsetMs.toString())
         p.setProperty(K_PLAYER, s.playerName)
-        p.setProperty(K_ORIENTATION, s.orientation.name)
+        p.setProperty(K_PLAY_TYPE, s.playType.storageKey)
 
         file.parentFile?.let { if (!it.isDirectory && !it.mkdirs() && !it.isDirectory) throw IOException("Could not create settings folder ${it.path}") }
         val tmp = File(file.parentFile, file.name + ".tmp")
@@ -93,8 +110,12 @@ class SettingsStore(val file: File) {
         const val K_HITSOUND = "audio.hitsound"
         const val K_SPEED = "speed"
         const val K_DIM = "background.dim"
-        const val K_OFFSET = "offset.ms"
+        const val K_NODE_OFFSET = "node.offset.ms"
+        const val K_JUDGMENT_OFFSET = "judgment.offset.ms"
+        const val K_LEGACY_OFFSET = "offset.ms"
         const val K_PLAYER = "player.name"
         const val K_ORIENTATION = "screen.orientation"
+        const val K_SCROLL_STYLE = "scroll.style"
+        const val K_PLAY_TYPE = "play.type"
     }
 }

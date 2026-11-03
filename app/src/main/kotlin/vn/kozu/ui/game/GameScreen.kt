@@ -38,6 +38,7 @@ import vn.kozu.ui.components.SettingsAction
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GameScreen(
+    isSelected: Boolean,
     bottomPadding: Dp,
     onOpenSettings: () -> Unit,
     onRefresh: () -> Unit,
@@ -70,55 +71,34 @@ fun GameScreen(
             )
         }
 
-        val gameContent: @Composable () -> Unit = {
-            AnimatedContent(
-                targetState = addMapsOpen,
-                modifier = Modifier.fillMaxSize(),
-                transitionSpec = { fadeIn(tween(160)) togetherWith fadeOut(tween(120)) },
-                label = "game-destination",
-            ) { showingAddMaps ->
-                if (showingAddMaps) {
-                    AddMapScreen(
-                        viewModel = viewModel,
-                        bottomPadding = if (gameplayActive) 0.dp else bottomPadding,
-                        onBack = { addMapsOpen = false },
-                        onOpenSettings = onOpenSettings,
+        AnimatedContent(
+            targetState = addMapsOpen,
+            modifier = Modifier.fillMaxSize(),
+            transitionSpec = { fadeIn(tween(160)) togetherWith fadeOut(tween(120)) },
+            label = "game-destination"
+        ) { showingAddMaps ->
+            if (showingAddMaps) {
+                AddMapScreen(
+                    viewModel = viewModel,
+                    bottomPadding = if (gameplayActive) 0.dp else bottomPadding,
+                    onBack = { addMapsOpen = false },
+                    onOpenSettings = onOpenSettings
+                )
+            } else {
+                GameStageHost(
+                    preview = viewModel.previewModule,
+                    game = viewModel.gameModule,
+                    isActive = isSelected,
+                    onAddMaps = { addMapsOpen = true },
+                    onGameplayChanged = {
+                        gameplayActive = it
+                        onGameplayChanged(it)
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        bottom = if (gameplayActive) 0.dp else bottomPadding
                     )
-                } else {
-                    GameStageHost(
-                        preview = viewModel.previewModule,
-                        game = viewModel.gameModule,
-                        onAddMaps = { addMapsOpen = true },
-                        onGameplayChanged = {
-                            gameplayActive = it
-                            onGameplayChanged(it)
-                        },
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding =
-                            PaddingValues(
-                                bottom = if (gameplayActive) 0.dp else bottomPadding,
-                            ),
-                    )
-                }
-            }
-        }
-        if (gameplayActive) {
-            gameContent()
-        } else {
-            PullToRefreshBox(
-                isRefreshing = isAppRefreshing,
-                onRefresh = { if (!isAppRefreshing) onRefresh() },
-                state = pullState,
-                modifier = Modifier.fillMaxSize(),
-                indicator = {
-                    RefreshIndicator(
-                        state = pullState,
-                        isRefreshing = isAppRefreshing,
-                        modifier = Modifier.align(Alignment.TopCenter),
-                    )
-                },
-            ) {
-                gameContent()
+                )
             }
         }
     }

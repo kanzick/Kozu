@@ -1,5 +1,8 @@
 package vn.kozu.game.mania.gamestage.scoring
 
+import kotlin.math.abs
+import kotlin.math.roundToInt
+
 enum class Judgement(
     val label: String,
     val hitValue: Int,
@@ -23,18 +26,26 @@ class HitWindows(overallDifficulty: Double) {
     private val od = overallDifficulty.coerceIn(0.0, 10.0)
 
     val perfect: Double = 16.0
-    val great: Double = 64.0 - 3.0 * od
-    val good: Double = 97.0 - 3.0 * od
-    val ok: Double = 127.0 - 3.0 * od
-    val meh: Double = 151.0 - 3.0 * od
-    val miss: Double = 188.0 - 3.0 * od
+    val great: Double = (64.0 - 3.0 * od).toInt().toDouble()
+    val good: Double = (97.0 - 3.0 * od).toInt().toDouble()
+    val ok: Double = (127.0 - 3.0 * od).toInt().toDouble()
+    val meh: Double = (151.0 - 3.0 * od).toInt().toDouble()
+    val miss: Double = (188.0 - 3.0 * od).toInt().toDouble()
 
-    fun classify(absError: Double, late: Boolean): Judgement = when {
-        absError <= perfect -> Judgement.PERFECT
-        absError <= great -> Judgement.GREAT
-        absError <= good -> Judgement.GOOD
-        absError <= ok -> Judgement.OK
-        !late && absError <= meh -> Judgement.MEH
-        else -> Judgement.MISS
+    fun roundedErrorMs(errorMs: Double): Int {
+        val roundedMagnitude = abs(errorMs).roundToInt()
+        return if (errorMs < 0.0) -roundedMagnitude else roundedMagnitude
+    }
+
+    fun classify(absError: Double, late: Boolean): Judgement {
+        val roundedError = abs(absError).roundToInt().toDouble()
+        return when {
+            roundedError <= perfect -> Judgement.PERFECT
+            roundedError <= great -> Judgement.GREAT
+            roundedError <= good -> Judgement.GOOD
+            roundedError <= ok -> Judgement.OK
+            !late && roundedError <= meh -> Judgement.MEH
+            else -> Judgement.MISS
+        }
     }
 }

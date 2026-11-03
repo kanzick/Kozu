@@ -63,6 +63,7 @@ fun ResultScreen(
             when {
                 data.saveError != null -> Text("Could not save score: ${data.saveError}", color = Color(0xFFFFB4B4))
                 data.outcome == null -> Text("Saving score…", color = Color(0xFFBBBBBB))
+                !data.outcome.recorded -> Text("Not in this difficulty's top 50, score not saved", color = Color(0xFFBBBBBB))
                 data.outcome.isNewBest -> Text("New personal best!", color = Color(0xFFFFE066), fontWeight = FontWeight.Bold)
                 else -> data.outcome.previousBest?.let {
                     Text("Personal best: %,d".format(it.score), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -78,8 +79,8 @@ fun ResultScreen(
                 Line(Judgement.MEH, r.meh)
                 Line(Judgement.MISS, r.miss)
                 Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Max combo", color = MaterialTheme.colorScheme.onSurface)
-                    Text("${r.maxCombo} / ${r.totalNotes}", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                    Text("True combo / Max combo", color = MaterialTheme.colorScheme.onSurface)
+                    Text("${r.trueCombo} / ${r.maxCombo}", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                 }
             }
             Spacer(Modifier.height(24.dp))

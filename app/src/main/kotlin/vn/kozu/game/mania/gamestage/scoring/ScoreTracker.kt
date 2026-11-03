@@ -9,6 +9,9 @@ data class GameResult(
 
     val accuracy: Double,
     val rank: String,
+    /** Highest combo streak achieved by the player during this play. */
+    val trueCombo: Int,
+    /** Maximum combo possible for this chart, equal to its number of notes. */
     val maxCombo: Int,
     val totalNotes: Int,
     val perfect: Int,
@@ -68,7 +71,8 @@ class ScoreTracker(val totalNotes: Int) {
         score = score,
         accuracy = accuracy,
         rank = rank,
-        maxCombo = maxCombo,
+        trueCombo = maxCombo,
+        maxCombo = totalNotes,
         totalNotes = totalNotes,
         perfect = count(Judgement.PERFECT),
         great = count(Judgement.GREAT),
