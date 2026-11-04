@@ -1,5 +1,7 @@
 package vn.kozu.ui.components
 
+import vn.kozu.ui.i18n.kozuUiString
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,7 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import vn.kozu.ui.i18n.KozuText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -101,7 +103,7 @@ fun CoverCard(
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = playbackIconVector(LocalAppSettings.current.playbackIcon, false),
-                            contentDescription = "Play ${beatmap.title}",
+                            contentDescription = kozuUiString("Play ${beatmap.title}"),
                             tint = MaterialTheme.colorScheme.onPrimary,
                         )
                     }

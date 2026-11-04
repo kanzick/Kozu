@@ -38,7 +38,6 @@ object ManiaChartParser {
 
         val mode = general["Mode"]?.toDoubleOrNull()?.toInt() ?: 0
         if (mode != 3) throw ChartParseException("This is not a Mania chart (Mode=$mode)")
-
         val keys = (difficulty["CircleSize"]?.toDoubleOrNull() ?: 4.0).toInt().coerceIn(1, MAX_KEYS)
         val od = (difficulty["OverallDifficulty"]?.toDoubleOrNull() ?: 5.0).coerceIn(0.0, 10.0)
         val hp = (difficulty["HPDrainRate"]?.toDoubleOrNull() ?: 5.0).coerceIn(0.0, 10.0)
@@ -51,7 +50,6 @@ object ManiaChartParser {
         val timings = parseTimings(timingLines, defaultSet)
         val notes = parseObjects(objectLines, keys, timings, defaultSet)
         if (notes.isEmpty()) throw ChartParseException("This chart contains no notes")
-
         val firstBpmPoint = timings.firstOrNull { it.uninherited && it.beatLength > 0 }
         return ManiaChart(
             keys = keys,

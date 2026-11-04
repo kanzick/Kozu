@@ -1,5 +1,7 @@
 package vn.kozu.ui.search
 
+import vn.kozu.ui.i18n.kozuUiString
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,7 +22,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -34,7 +35,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import vn.kozu.ui.i18n.KozuText as Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -64,7 +65,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import vn.kozu.data.repository.CatalogSource
 import vn.kozu.domain.model.SearchCategory
 import vn.kozu.domain.model.SearchSort
 import vn.kozu.ui.components.EmptyState
@@ -86,9 +86,19 @@ fun SearchScreen(
     isAppRefreshing: Boolean,
     modifier: Modifier = Modifier,
     focusSignal: Int = 0,
+    initialQuery: String? = null,
+    onInitialQueryConsumed: () -> Unit = {},
     viewModel: SearchViewModel = viewModel(factory = SearchViewModel.Factory)
 ) {
     val searchFocus = remember { FocusRequester() }
+    LaunchedEffect(initialQuery) {
+        val query = initialQuery?.trim()?.takeIf(String::isNotEmpty) ?: return@LaunchedEffect
+        viewModel.onQueryChange(query)
+        viewModel.remember()
+        delay(180)
+        searchFocus.requestFocus()
+        onInitialQueryConsumed()
+    }
     LaunchedEffect(focusSignal) {
         if (focusSignal > 0) {
             delay(180)
@@ -286,7 +296,7 @@ private fun SearchField(
         trailingIcon = {
             if (query.isNotEmpty()) {
                 IconButton(onClick = { onQueryChange("") }) {
-                    Icon(Icons.Rounded.Close, contentDescription = "Clear search")
+                    Icon(Icons.Rounded.Close, contentDescription = kozuUiString("Clear search"))
                 }
             }
         },
@@ -349,7 +359,7 @@ private fun RecentSearches(
                         IconButton(onClick = { onRemove(query) }) {
                             Icon(
                                 Icons.Rounded.Close,
-                                contentDescription = "Remove recent search",
+                                contentDescription = kozuUiString("Remove recent search"),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(18.dp)
                             )

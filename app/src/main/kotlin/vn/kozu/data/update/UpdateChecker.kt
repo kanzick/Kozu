@@ -8,9 +8,27 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import org.json.JSONObject
+import org.json.JSONArray
 import vn.kozu.data.local.SettingsStore
+import vn.kozu.domain.model.UpdateChannel
 import java.io.IOException
+
+data class RecentCommit(
+    val sha: String,
+    val title: String,
+    val author: String,
+    val date: String,
+    val url: String,
+    val avatarUrl: String?,
+)
+
+data class RecentCommitsResult(
+    val branch: String,
+    val commits: List<RecentCommit>,
+    val note: String? = null,
+    val page: Int = 1,
+    val totalPages: Int = 1,
+)
 
 sealed interface UpdateResult {
     data class Available(
@@ -33,25 +51,20 @@ class UpdateChecker(
     private val client: OkHttpClient,
 ) {
     private val appContext = context.applicationContext
+    private val currentVersion: String get() = installedVersion(appContext)
 
-    val currentVersion: String
-        get() = installedVersion(appContext)
-
-    suspend fun check(): UpdateResult =
+    suspend fun check(channel: UpdateChannel = UpdateChannel.STABLE): UpdateResult =
         withContext(Dispatchers.IO) {
             val request =
                 Request
                     .Builder()
-                    .url(LATEST_RELEASE_URL)
+                    .url(RELEASES_URL_API)
                     .header("Accept", "application/vnd.github+json")
+                    .header("X-GitHub-Api-Version", "2022-11-28")
                     .build()
             try {
                 client.newCall(request).execute().use { response ->
                     when {
-                        response.code == 404 -> {
-                            UpdateResult.UpToDate(currentVersion)
-                        }
-
                         response.code == 403 || response.code == 429 -> {
                             UpdateResult.Failed("GitHub is rate limiting requests. Try again later.")
                         }
@@ -60,9 +73,7 @@ class UpdateChecker(
                             UpdateResult.Failed("GitHub returned HTTP ${response.code}")
                         }
 
-                        else -> {
-                            parse(response.body.string())
-                        }
+                        else -> parseReleases(response.body.string(), channel)
                     }
                 }
             } catch (e: CancellationException) {
@@ -74,29 +85,159 @@ class UpdateChecker(
             }
         }
 
-    private fun parse(body: String): UpdateResult {
-        val root =
+    suspend fun recentCommits(
+        channel: UpdateChannel,
+        page: Int = 1,
+    ): RecentCommitsResult =
+        withContext(Dispatchers.IO) {
+            val requestedBranch = channel.branch
+            loadRecentPage(requestedBranch, page)?.let { return@withContext it }
+
+            if (requestedBranch == DEFAULT_BRANCH) {
+                return@withContext RecentCommitsResult(
+                    branch = DEFAULT_BRANCH,
+                    commits = emptyList(),
+                    note = "Commit history is unavailable. Try again later.",
+                    page = page,
+                )
+            }
+
+            loadRecentPage(DEFAULT_BRANCH, page)?.copy(
+                note = "The '$requestedBranch' branch is not published. Showing '$DEFAULT_BRANCH'.",
+            ) ?: RecentCommitsResult(
+                branch = DEFAULT_BRANCH,
+                commits = emptyList(),
+                note = "Commit history is unavailable. Check your connection.",
+                page = page,
+            )
+        }
+
+    /** GitHub's commit API is newest-first; keep that order across pages and within each page. */
+    private fun loadRecentPage(
+        branch: String,
+        requestedPage: Int,
+    ): RecentCommitsResult? {
+        val firstPage = fetchCommits(branch, apiPage = 1) ?: return null
+        val totalPages = firstPage.totalPages.coerceAtLeast(1)
+        val page = requestedPage.coerceIn(1, totalPages)
+        val selected = if (page == 1) firstPage else fetchCommits(branch, apiPage = page) ?: return null
+        return RecentCommitsResult(
+            branch = branch,
+            commits = selected.commits,
+            page = page,
+            totalPages = totalPages,
+        )
+    }
+
+    private data class CommitPage(
+        val commits: List<RecentCommit>,
+        val totalPages: Int,
+    )
+
+    private fun fetchCommits(
+        branch: String,
+        apiPage: Int,
+    ): CommitPage? {
+        val request =
+            Request
+                .Builder()
+                .url("$COMMITS_URL_API?sha=$branch&per_page=$COMMITS_PER_PAGE&page=$apiPage")
+                .header("Accept", "application/vnd.github+json")
+                .header("X-GitHub-Api-Version", "2022-11-28")
+                .build()
+        return try {
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return null
+                val items = JSONArray(response.body.string())
+                val totalPages = parseLastPage(response.header("Link"), apiPage)
+                val commits = buildList {
+                    for (index in 0 until items.length()) {
+                        val item = items.optJSONObject(index) ?: continue
+                        val commit = item.optJSONObject("commit") ?: continue
+                        val metadata = commit.optJSONObject("author")
+                        val account = item.optJSONObject("author")
+                        val committer = item.optJSONObject("committer")
+                        val title = commit.optString("message").substringBefore('\n').trim()
+                        val sha = item.optString("sha").trim()
+                        if (title.isBlank() || sha.isBlank()) continue
+                        add(
+                            RecentCommit(
+                                sha = sha,
+                                title = title,
+                                author = account?.optString("login")?.takeIf(String::isNotBlank)
+                                    ?: metadata?.optString("name")?.takeIf(String::isNotBlank)
+                                    ?: "Unknown author",
+                                date = metadata?.optString("date").orEmpty(),
+                                url = item.optString("html_url").ifBlank { REPOSITORY_URL },
+                                avatarUrl = account?.optString("avatar_url")?.takeIf(String::isNotBlank)
+                                    ?: committer?.optString("avatar_url")?.takeIf(String::isNotBlank),
+                            ),
+                        )
+                    }
+                }
+                CommitPage(commits = commits, totalPages = totalPages)
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun parseLastPage(
+        linkHeader: String?,
+        fallbackPage: Int,
+    ): Int {
+        val links = linkHeader.orEmpty()
+        val lastLink = Regex("<[^>]*[?&]page=(\\d+)[^>]*>;\\s*rel=\"last\"")
+            .find(links)
+            ?.groupValues
+            ?.getOrNull(1)
+            ?.toIntOrNull()
+        val nextLink = Regex("<[^>]*[?&]page=(\\d+)[^>]*>;\\s*rel=\"next\"")
+            .find(links)
+            ?.groupValues
+            ?.getOrNull(1)
+            ?.toIntOrNull()
+        return (lastLink ?: if (nextLink != null) maxOf(fallbackPage, nextLink) else fallbackPage)
+            .coerceIn(1, MAX_COMMIT_PAGES)
+    }
+
+    private fun parseReleases(body: String, channel: UpdateChannel): UpdateResult {
+        val releases =
             try {
-                JSONObject(body)
-            } catch (e: Exception) {
+                JSONArray(body)
+            } catch (_: Exception) {
                 return UpdateResult.Failed("Unexpected response from GitHub")
             }
-        if (root.optBoolean("draft") || root.optBoolean("prerelease")) return UpdateResult.UpToDate(currentVersion)
-        val tag = root.optString("tag_name").trim()
-        if (tag.isEmpty()) return UpdateResult.UpToDate(currentVersion)
-        val url = root.optString("html_url").ifBlank { RELEASES_URL }
+        val release =
+            (0 until releases.length())
+                .mapNotNull { releases.optJSONObject(it) }
+                .firstOrNull { candidate ->
+                    !candidate.optBoolean("draft") && candidate.optBoolean("prerelease") == channel.isPrerelease
+                }
+                ?: return UpdateResult.UpToDate(currentVersion)
+
+        val tag = release.optString("tag_name").trim()
+        if (tag.isEmpty()) return UpdateResult.Failed("GitHub returned a release without a version tag")
         val latest = tag.removePrefix("v").removePrefix("V")
+        val url = release.optString("html_url").ifBlank { RELEASES_URL }
         return if (compareVersions(latest, currentVersion) > 0) {
-            UpdateResult.Available(latest, url, root.optString("body").trim())
+            UpdateResult.Available(latest, url, release.optString("body").trim())
         } else {
             UpdateResult.UpToDate(currentVersion)
         }
     }
 
     companion object {
-        const val LATEST_RELEASE_URL = "https://api.github.com/repos/kanzick/Kozu/releases/latest"
-        const val RELEASES_URL = "https://github.com/kanzick/Kozu/releases/latest"
+        const val RELEASES_URL_API = "https://api.github.com/repos/kanzick/Kozu/releases?per_page=50"
+        const val COMMITS_URL_API = "https://api.github.com/repos/kanzick/Kozu/commits"
+        const val COMMITS_PER_PAGE = 30
+        const val MAX_COMMIT_PAGES = 1_000
+        const val REPOSITORY_URL = "https://github.com/kanzick/Kozu"
+        const val RELEASES_URL = "https://github.com/kanzick/Kozu/releases"
         const val DAY_MS = 24L * 60L * 60L * 1000L
+        const val DEFAULT_BRANCH = "main"
 
         fun installedVersion(context: Context): String =
             try {
@@ -181,7 +322,7 @@ suspend fun UpdateChecker.checkIfDue(settings: SettingsStore): UpdateResult? {
     val now = System.currentTimeMillis()
     if (!current.autoUpdateCheck) return null
     if (now - current.lastUpdateCheckAt in 0 until UpdateChecker.DAY_MS) return null
-    val result = check()
+    val result = check(current.updateChannel)
     if (result is UpdateResult.Failed) return null
     settings.setLastUpdateCheck(now)
     return result

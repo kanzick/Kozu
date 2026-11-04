@@ -1,5 +1,7 @@
 package vn.kozu.ui.library
 
+import vn.kozu.ui.i18n.kozuUiString
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -45,9 +47,10 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
@@ -59,7 +62,6 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
@@ -73,11 +75,11 @@ import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.MyLocation
-import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material.icons.rounded.Shuffle
-import androidx.compose.material.icons.rounded.Sort
+import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.rounded.ViewAgenda
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetDefaults
@@ -91,10 +93,9 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import vn.kozu.ui.i18n.KozuText as Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -120,7 +121,6 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -129,6 +129,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyGridState
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import vn.kozu.data.download.DownloadStatus
 import vn.kozu.domain.model.Beatmap
@@ -138,7 +139,6 @@ import vn.kozu.domain.model.Playlist
 import vn.kozu.ui.components.CoverCard
 import vn.kozu.ui.components.EmptyState
 import vn.kozu.ui.components.FitText
-import vn.kozu.ui.components.HeaderAction
 import vn.kozu.ui.components.LocalAppSettings
 import vn.kozu.ui.components.LocalNowPlaying
 import vn.kozu.ui.components.LocalPerformanceMode
@@ -259,9 +259,7 @@ fun LibraryScreen(
             compact = compactNavigation,
             tab = shownTab,
             sheetOpen = showTabMenu,
-            isSyncing = isSyncing,
             onOpenTabs = { showTabMenu = true },
-            onRefresh = refreshLibrary,
             onOpenSettings = onOpenSettings,
         )
 
@@ -301,15 +299,20 @@ fun LibraryScreen(
                     if (opened != null) {
                         PlaylistDetail(
                             playlist = opened,
+                            sortUi = ui,
                             bottomPadding = bottomPadding,
                             compactRows = compactRows,
                             onBack = viewModel::closePlaylist,
                             onRename = { viewModel.renamePlaylist(opened.id, it) },
                             onDelete = { viewModel.deletePlaylist(opened.id) },
                             onRemoveTrack = { viewModel.removeFromPlaylist(opened.id, it) },
+                            onReorder = { ids -> viewModel.reorderTracks(LibraryTab.PLAYLISTS, ids, opened.id) },
+                            onSort = viewModel::selectSort,
+                            onToggleDirection = viewModel::toggleDirection,
                         )
                     } else {
                         Column(Modifier.fillMaxSize()) {
+                            Spacer(Modifier.height(8.dp))
                             if (!compactNavigation) {
                                 LibraryTabRow(
                                     selected = ui.tab,
@@ -371,6 +374,7 @@ fun LibraryScreen(
                                             emptyIcon = Icons.Rounded.FavoriteBorder,
                                             emptyTitle = "Nothing liked yet",
                                             emptyMessage = "Tap the heart on any song and it will live here.",
+                                            onReorder = { ids -> viewModel.reorderTracks(LibraryTab.LIKED, ids) },
                                         )
 
                                     LibraryTab.SONGS ->
@@ -383,6 +387,7 @@ fun LibraryScreen(
                                             emptyIcon = Icons.Rounded.History,
                                             emptyTitle = "No songs played yet",
                                             emptyMessage = "Everything you listen to will be collected here.",
+                                            onReorder = { ids -> viewModel.reorderTracks(LibraryTab.SONGS, ids) },
                                         )
 
                                     LibraryTab.PLAYLISTS ->
@@ -400,6 +405,7 @@ fun LibraryScreen(
                                             onDelete = viewModel::deleteDownload,
                                             onDismiss = viewModel::dismissDownload,
                                             onCancel = viewModel::cancelDownload,
+                                            onReorder = { ids -> viewModel.reorderTracks(LibraryTab.DOWNLOADS, ids) },
                                         )
                                 }
                             }
@@ -495,9 +501,7 @@ private fun LibraryHeader(
     compact: Boolean,
     tab: LibraryTab,
     sheetOpen: Boolean,
-    isSyncing: Boolean,
     onOpenTabs: () -> Unit,
-    onRefresh: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     Row(
@@ -519,14 +523,6 @@ private fun LibraryHeader(
                 )
             }
         }
-        HeaderAction(
-            icon = Icons.Rounded.Refresh,
-            contentDescription = "Sync library",
-            onClick = onRefresh,
-            container = MaterialTheme.colorScheme.surfaceContainerHigh,
-            content = MaterialTheme.colorScheme.onSurface,
-            rotating = isSyncing,
-        )
         SettingsAction(onOpenSettings)
     }
 }
@@ -591,7 +587,7 @@ private fun SplitTitle(
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     Icons.Rounded.KeyboardArrowDown,
-                    contentDescription = "Choose library tab",
+                    contentDescription = kozuUiString("Choose library tab"),
                     modifier = Modifier.graphicsLayer { rotationZ = chevron },
                 )
             }
@@ -726,10 +722,10 @@ private fun LibraryActionRow(
                                 onClick = onToggleGrid,
                             ),
                         )
-                        add(GroupButton(Icons.Rounded.Sort, "Sort") { sortOpen = true })
+                        add(GroupButton(Icons.AutoMirrored.Rounded.Sort, "Sort") { sortOpen = true })
                     }
 
-                LibraryTab.DOWNLOADS -> listOf(GroupButton(Icons.Rounded.Sort, "Sort downloads") { sortOpen = true })
+                LibraryTab.DOWNLOADS -> listOf(GroupButton(Icons.AutoMirrored.Rounded.Sort, "Sort downloads") { sortOpen = true })
                 LibraryTab.PLAYLISTS -> emptyList()
             }
         ConnectedButtonGroup(buttons)
@@ -833,70 +829,82 @@ private fun SortSheet(
                     .navigationBarsPadding()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp)
-                    .padding(bottom = 24.dp),
+                    .padding(bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("Sort by", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(vertical = 8.dp))
-
-            // Big direction tile; the arrow flips with a spring when toggled.
-            val arrow by animateFloatAsState(
-                targetValue = if (ui.ascending) 0f else 180f,
-                animationSpec = spring(dampingRatio = 0.7f, stiffness = Spring.StiffnessMediumLow),
-                label = "sortArrow",
+            Text(
+                "Sort by",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(top = 2.dp, bottom = 2.dp),
             )
-            Surface(
-                onClick = onToggleDirection,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(26.dp),
-                color = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+
+            if (ui.sort != LibrarySort.CUSTOM) {
+                val arrow by animateFloatAsState(
+                    targetValue = if (ui.ascending) 0f else 180f,
+                    animationSpec = spring(dampingRatio = 0.7f, stiffness = Spring.StiffnessMediumLow),
+                    label = "sortArrow",
+                )
+                Surface(
+                    onClick = onToggleDirection,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(22.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 ) {
-                    Surface(
-                        modifier = Modifier.size(44.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Rounded.ArrowUpward,
-                                contentDescription = null,
-                                modifier = Modifier.graphicsLayer { rotationZ = arrow },
+                        Surface(
+                            modifier = Modifier.size(40.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.Rounded.ArrowUpward,
+                                    contentDescription = null,
+                                    modifier = Modifier.graphicsLayer { rotationZ = arrow },
+                                )
+                            }
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                            Text("Order", style = MaterialTheme.typography.labelSmall)
+                            Text(
+                                if (ui.ascending) "Ascending" else "Descending",
+                                style = MaterialTheme.typography.titleSmall,
                             )
                         }
                     }
-                    Spacer(Modifier.width(14.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text("Order", style = MaterialTheme.typography.labelMedium)
-                        Text(
-                            if (ui.ascending) "Ascending" else "Descending",
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                    }
                 }
+            } else {
+                Text(
+                    "Drag songs to set your own order.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
-            Spacer(Modifier.height(14.dp))
+
             LibrarySort.entries.forEachIndexed { index, option ->
                 val selected = option == ui.sort
                 Surface(
                     onClick = { onSort(option) },
-                    shape = segmentedShape(index, LibrarySort.entries.size, large = 22.dp, small = 6.dp),
+                    shape = segmentedShape(index, LibrarySort.entries.size, large = 20.dp, small = 6.dp),
                     color =
                         if (selected) {
                             MaterialTheme.colorScheme.secondaryContainer
                         } else {
                             MaterialTheme.colorScheme.surfaceContainerHigh
                         },
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 46.dp),
                 ) {
                     Row(
-                        modifier = Modifier.padding(start = 20.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+                        modifier = Modifier.padding(start = 16.dp, end = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(option.label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+                        Text(option.label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
                         RadioButton(selected = selected, onClick = { onSort(option) })
                     }
                 }
@@ -919,28 +927,47 @@ private fun LibraryTabsSheet(
     onReorder: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val sheetState =
+        rememberBottomSheetState(
+            initialValue = SheetValue.Hidden,
+            enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
+        )
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface,
+        scrimColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.56f),
+        dragHandle = { BottomSheetDefaults.DragHandle() },
     ) {
         Column(
             modifier =
                 Modifier
                     .fillMaxWidth()
                     .navigationBarsPadding()
-                    .verticalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp)
-                    .padding(bottom = 24.dp),
+                    .padding(bottom = 14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("Library tabs", style = MaterialTheme.typography.headlineSmall)
-            Text(
-                "Jump directly to any tab or reorder them.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(3.dp),
+            ) {
+                Text("Library tabs", style = MaterialTheme.typography.headlineSmall)
+                Text(
+                    "Choose a tab or change its order.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            // Four tabs are presented as a compact 2×2 group. The sheet wraps its content
+            // instead of filling the window and leaving an empty dark area below the tiles.
             order.chunked(2).forEach { rowTabs ->
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
                     rowTabs.forEach { tab ->
                         val isSelected = tab == selected
                         val container by animateColorAsState(
@@ -949,45 +976,30 @@ private fun LibraryTabsSheet(
                         )
                         Surface(
                             onClick = { onSelect(tab) },
-                            modifier = Modifier.weight(1f).heightIn(min = 112.dp),
-                            shape = RoundedCornerShape(26.dp),
+                            modifier = Modifier.weight(1f).height(96.dp),
+                            shape = RoundedCornerShape(24.dp),
                             color = container,
-                            contentColor =
-                                if (isSelected) {
-                                    MaterialTheme.colorScheme.onPrimaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.onSurface
-                                },
+                            contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
                         ) {
                             Column(
-                                modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp, vertical = 14.dp),
+                                modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 9.dp),
                                 verticalArrangement = Arrangement.Center,
                                 horizontalAlignment = Alignment.CenterHorizontally,
                             ) {
                                 Surface(
-                                    modifier = Modifier.size(44.dp),
+                                    modifier = Modifier.size(38.dp),
                                     shape = CircleShape,
-                                    color =
-                                        if (isSelected) {
-                                            MaterialTheme.colorScheme.primary
-                                        } else {
-                                            MaterialTheme.colorScheme.surfaceContainerHighest
-                                        },
-                                    contentColor =
-                                        if (isSelected) {
-                                            MaterialTheme.colorScheme.onPrimary
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurfaceVariant
-                                        },
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
+                                    contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
-                                        Icon(libraryTabIcon(tab), contentDescription = null, modifier = Modifier.size(22.dp))
+                                        Icon(libraryTabIcon(tab), contentDescription = null, modifier = Modifier.size(20.dp))
                                     }
                                 }
-                                Spacer(Modifier.height(8.dp))
+                                Spacer(Modifier.height(6.dp))
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     FitText(tab.label, style = MaterialTheme.typography.titleSmall, minScale = 0.75f)
-                                    Spacer(Modifier.width(6.dp))
+                                    Spacer(Modifier.width(5.dp))
                                     Text(
                                         countFor(tab).toString(),
                                         style = MaterialTheme.typography.labelSmall,
@@ -1000,21 +1012,22 @@ private fun LibraryTabsSheet(
                     if (rowTabs.size == 1) Spacer(Modifier.weight(1f))
                 }
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                Surface(
-                    onClick = onReorder,
-                    shape = RoundedCornerShape(24.dp),
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+
+            Surface(
+                onClick = onReorder,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(22.dp),
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            ) {
+                Row(
+                    modifier = Modifier.heightIn(min = 48.dp).padding(horizontal = 16.dp, vertical = 9.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Row(
-                        modifier = Modifier.heightIn(min = 48.dp).padding(horizontal = 18.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(Icons.Rounded.Edit, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Reorder tabs", style = MaterialTheme.typography.titleSmall)
-                    }
+                    Icon(Icons.Rounded.Edit, contentDescription = null, modifier = Modifier.size(19.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Reorder tabs", style = MaterialTheme.typography.titleSmall)
                 }
             }
         }
@@ -1055,74 +1068,32 @@ private fun ReorderLibraryTabsSheet(
         sheetGesturesEnabled = false,
         dragHandle = { BottomSheetDefaults.DragHandle() },
     ) {
-        Scaffold(
-            topBar = {
-                Column(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 24.dp, vertical = 14.dp),
-                ) {
-                    Text("Reorder library tabs", style = MaterialTheme.typography.headlineSmall)
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        "Drag a tab to change the order in the library selector.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            },
-            bottomBar = {
-                Box(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .navigationBarsPadding()
-                            .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 18.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(28.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        contentColor = MaterialTheme.colorScheme.onSurface,
-                        tonalElevation = 3.dp,
-                        shadowElevation = 2.dp,
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(10.dp),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            IconButton(
-                                onClick = { confirmReset = true },
-                                modifier = Modifier.size(48.dp),
-                            ) {
-                                Icon(Icons.Rounded.RestartAlt, contentDescription = "Reset tab order")
-                            }
-                            Button(
-                                onClick = { onSave(orderedTabs.toList()) },
-                                modifier = Modifier.heightIn(min = 52.dp),
-                                shape = CircleShape,
-                            ) {
-                                Icon(Icons.Rounded.Check, contentDescription = null)
-                                Spacer(Modifier.width(8.dp))
-                                Text("Done")
-                            }
-                        }
-                    }
-                }
-            },
-            containerColor = MaterialTheme.colorScheme.surface,
-        ) { paddingValues ->
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(9.dp),
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 3.dp),
+                verticalArrangement = Arrangement.spacedBy(3.dp),
+            ) {
+                Text("Reorder library tabs", style = MaterialTheme.typography.headlineSmall)
+                Text(
+                    "Drag a tab to change its order.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
             LazyColumn(
                 state = listState,
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(horizontal = 14.dp),
-                contentPadding = PaddingValues(top = 8.dp, bottom = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp),
+                contentPadding = PaddingValues(vertical = 2.dp),
+                verticalArrangement = Arrangement.spacedBy(7.dp),
             ) {
                 items(orderedTabs, key = { it.key }) { tab ->
                     ReorderableItem(reorderableState, key = tab.key) { isDragging ->
@@ -1132,32 +1103,49 @@ private fun ReorderLibraryTabsSheet(
                         )
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(24.dp),
+                            shape = RoundedCornerShape(20.dp),
                             shadowElevation = if (isDragging) 6.dp else 0.dp,
                             color = container,
-                            contentColor =
-                                if (isDragging) {
-                                    MaterialTheme.colorScheme.onSecondaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.onSurface
-                                },
+                            contentColor = if (isDragging) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface,
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
+                                modifier = Modifier.heightIn(min = 54.dp).padding(horizontal = 14.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Icon(
                                     Icons.Rounded.DragIndicator,
-                                    contentDescription = "Drag to reorder ${tab.label}",
+                                    contentDescription = kozuUiString("Drag to reorder ${tab.label}"),
                                     modifier = Modifier.draggableHandle(),
                                 )
-                                Spacer(Modifier.width(14.dp))
+                                Spacer(Modifier.width(12.dp))
                                 Icon(libraryTabIcon(tab), contentDescription = null, modifier = Modifier.size(20.dp))
-                                Spacer(Modifier.width(14.dp))
-                                Text(tab.label, style = MaterialTheme.typography.titleMedium)
+                                Spacer(Modifier.width(12.dp))
+                                Text(tab.label, style = MaterialTheme.typography.titleSmall)
                             }
                         }
                     }
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 1.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(
+                    onClick = { confirmReset = true },
+                    modifier = Modifier.size(46.dp),
+                ) {
+                    Icon(Icons.Rounded.RestartAlt, contentDescription = kozuUiString("Reset tab order"))
+                }
+                Button(
+                    onClick = { onSave(orderedTabs.toList()) },
+                    modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                    shape = CircleShape,
+                ) {
+                    Icon(Icons.Rounded.Check, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Done")
                 }
             }
         }
@@ -1201,7 +1189,7 @@ private fun LibraryTabRow(
             )
         }
         IconButton(onClick = onReorder) {
-            Icon(Icons.Rounded.DragIndicator, contentDescription = "Reorder library tabs")
+            Icon(Icons.Rounded.DragIndicator, contentDescription = kozuUiString("Reorder library tabs"))
         }
     }
 }
@@ -1220,10 +1208,13 @@ private fun TrackCollection(
     emptyIcon: ImageVector,
     emptyTitle: String,
     emptyMessage: String,
+    onReorder: (List<Long>) -> Unit,
 ) {
     val actions = LocalTrackActions.current
+    var orderedTracks by remember(tracks.map { it.id }) { mutableStateOf(tracks) }
+    LaunchedEffect(tracks) { orderedTracks = tracks }
 
-    if (tracks.isEmpty()) {
+    if (orderedTracks.isEmpty()) {
         RefreshableEmptyState(
             icon = emptyIcon,
             title = emptyTitle,
@@ -1235,38 +1226,87 @@ private fun TrackCollection(
     }
 
     if (grid) {
+        val gridState = rememberLazyGridState()
+        val reorderableState = rememberReorderableLazyGridState(gridState) { from, to ->
+            val fromIndex = from.index
+            val toIndex = to.index
+            if (fromIndex in orderedTracks.indices && toIndex in orderedTracks.indices && fromIndex != toIndex) {
+                orderedTracks = orderedTracks.toMutableList().apply { add(toIndex, removeAt(fromIndex)) }
+                onReorder(orderedTracks.map { it.id })
+            }
+        }
         LazyVerticalGrid(
             columns = GridCells.Adaptive(minSize = if (compactRows) 148.dp else 164.dp),
             modifier = Modifier.fillMaxSize(),
+            state = gridState,
             contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = bottomPadding),
             verticalArrangement = Arrangement.spacedBy(if (compactRows) 12.dp else 20.dp),
             horizontalArrangement = Arrangement.spacedBy(if (compactRows) 8.dp else 16.dp),
         ) {
-            itemsIndexed(tracks, key = { _, b -> "grid-${b.id}" }) { index, beatmap ->
-                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    CoverCard(
-                        beatmap = beatmap,
-                        size = if (compactRows) 136.dp else 156.dp,
-                        shape = RoundedCornerShape(if (compactRows) 28.dp else 34.dp),
-                        onClick = { actions.play(tracks, index) },
-                    )
+            itemsIndexed(orderedTracks, key = { _, beatmap -> beatmap.id }) { index, beatmap ->
+                ReorderableItem(reorderableState, key = beatmap.id) { _ ->
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        CoverCard(
+                            beatmap = beatmap,
+                            size = if (compactRows) 136.dp else 156.dp,
+                            shape = RoundedCornerShape(if (compactRows) 28.dp else 34.dp),
+                            onClick = { actions.play(orderedTracks, index) },
+                        )
+                        Surface(
+                            modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).draggableHandle(),
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.94f),
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        ) {
+                            Box(Modifier.size(34.dp), contentAlignment = Alignment.Center) {
+                                Icon(Icons.Rounded.DragIndicator, contentDescription = kozuUiString("Reorder song"), modifier = Modifier.size(19.dp))
+                            }
+                        }
+                    }
                 }
             }
         }
     } else {
+        val reorderableState = rememberReorderableLazyListState(
+            lazyListState = listState,
+            onMove = { from, to ->
+                val fromIndex = from.index
+                val toIndex = to.index
+                if (fromIndex in orderedTracks.indices && toIndex in orderedTracks.indices && fromIndex != toIndex) {
+                    orderedTracks = orderedTracks.toMutableList().apply { add(toIndex, removeAt(fromIndex)) }
+                    onReorder(orderedTracks.map { it.id })
+                }
+            },
+        )
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = bottomPadding),
             verticalArrangement = Arrangement.spacedBy(if (compactRows) 4.dp else 10.dp),
         ) {
-            itemsIndexed(tracks, key = { _, b -> "row-${b.id}" }) { index, beatmap ->
-                TrackRow(
-                    beatmap = beatmap,
-                    compact = compactRows,
-                    shape = RoundedCornerShape(if (compactRows) 16.dp else 22.dp),
-                    onClick = { actions.play(tracks, index) },
-                )
+            itemsIndexed(orderedTracks, key = { _, beatmap -> beatmap.id }) { index, beatmap ->
+                ReorderableItem(reorderableState, key = beatmap.id) { _ ->
+                    TrackRow(
+                        beatmap = beatmap,
+                        compact = compactRows,
+                        shape = RoundedCornerShape(if (compactRows) 16.dp else 22.dp),
+                        modifier = Modifier,
+                        onClick = { actions.play(orderedTracks, index) },
+                        trailing = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Rounded.DragIndicator,
+                                    contentDescription = kozuUiString("Reorder song"),
+                                    modifier = Modifier.draggableHandle().padding(8.dp).size(22.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                IconButton(onClick = { actions.openMenu(beatmap) }) {
+                                    Icon(Icons.Rounded.MoreVert, contentDescription = kozuUiString("More options"))
+                                }
+                            }
+                        },
+                    )
+                }
             }
         }
     }
@@ -1352,146 +1392,182 @@ private fun PlaylistGrid(
 @Composable
 private fun PlaylistDetail(
     playlist: Playlist,
+    sortUi: LibraryUiState,
     bottomPadding: Dp,
     compactRows: Boolean,
     onBack: () -> Unit,
     onRename: (String) -> Unit,
     onDelete: () -> Unit,
     onRemoveTrack: (Long) -> Unit,
+    onReorder: (List<Long>) -> Unit,
+    onSort: (LibrarySort) -> Unit,
+    onToggleDirection: () -> Unit,
 ) {
     val actions = LocalTrackActions.current
     var showRename by remember { mutableStateOf(false) }
     var showDelete by remember { mutableStateOf(false) }
+    var sortOpen by remember { mutableStateOf(false) }
+    var orderedTracks by remember(playlist.id, playlist.tracks.map { it.id }) { mutableStateOf(sortPlaylistTracks(playlist.tracks, sortUi.sort, sortUi.ascending)) }
+    LaunchedEffect(playlist.tracks, sortUi.sort, sortUi.ascending) {
+        orderedTracks = if (sortUi.sort == LibrarySort.CUSTOM) {
+            val latestById = playlist.tracks.associateBy { it.id }
+            val currentIds = orderedTracks.map { it.id }
+            val retainedIds = currentIds.filter(latestById::containsKey).toSet()
+            val mergedOrder = currentIds.filter(latestById::containsKey) +
+                playlist.tracks.map { it.id }.filterNot(retainedIds::contains)
+            mergedOrder.mapNotNull(latestById::get)
+        } else {
+            sortPlaylistTracks(playlist.tracks, sortUi.sort, sortUi.ascending)
+        }
+    }
 
     Column(Modifier.fillMaxSize()) {
         Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(start = 14.dp, end = 14.dp, top = 16.dp, bottom = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(start = 14.dp, end = 8.dp, top = 16.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Surface(
-                modifier =
-                    Modifier
-                        .size(48.dp)
-                        .bounceClick(onClick = onBack),
+                modifier = Modifier.size(48.dp).bounceClick(onClick = onBack),
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = kozuUiString("Back"))
                 }
             }
-            Column(
-                Modifier
-                    .weight(1f)
-                    .padding(horizontal = 14.dp),
-            ) {
-                Text(
-                    playlist.name,
-                    style = MaterialTheme.typography.headlineSmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+            Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
+                Text(playlist.name, style = MaterialTheme.typography.headlineSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
                     "${playlist.tracks.size} ${if (playlist.tracks.size == 1) "song" else "songs"}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            IconButton(onClick = { showRename = true }) { Icon(Icons.Rounded.Edit, contentDescription = "Rename playlist") }
-            IconButton(onClick = { showDelete = true }) { Icon(Icons.Rounded.Delete, contentDescription = "Delete playlist") }
+            IconButton(onClick = { sortOpen = true }) {
+                Icon(Icons.AutoMirrored.Rounded.Sort, contentDescription = kozuUiString("Sort playlist"))
+            }
+            IconButton(onClick = { showRename = true }) { Icon(Icons.Rounded.Edit, contentDescription = kozuUiString("Rename playlist")) }
+            IconButton(onClick = { showDelete = true }) { Icon(Icons.Rounded.Delete, contentDescription = kozuUiString("Delete playlist")) }
         }
 
         Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp, vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             PillButton(
                 icon = playbackIconVector(LocalAppSettings.current.playbackIcon, false),
                 label = "Play",
-                onClick = { actions.play(playlist.tracks, 0) },
+                onClick = { actions.play(orderedTracks, 0) },
             )
             PillButton(
                 icon = Icons.Rounded.Shuffle,
                 label = "Shuffle",
-                onClick = { actions.playShuffled(playlist.tracks) },
+                onClick = { actions.playShuffled(orderedTracks) },
                 container = MaterialTheme.colorScheme.tertiaryContainer,
                 content = MaterialTheme.colorScheme.onTertiaryContainer,
             )
             PillButton(
                 icon = Icons.Rounded.Download,
                 label = "Offline",
-                onClick = { actions.downloadAll(playlist.tracks) },
+                onClick = { actions.downloadAll(orderedTracks) },
             )
         }
 
-        if (playlist.tracks.isEmpty()) {
+        if (orderedTracks.isEmpty()) {
             RefreshableEmptyState(
                 icon = Icons.AutoMirrored.Rounded.QueueMusic,
                 title = "Empty playlist",
-                message = "Use the \u22EE menu on any song and choose \u201CAdd to playlist\u201D.",
+                message = "Use the ⋮ menu on any song and choose \"Add to playlist\".",
                 shape = KozuCookies.Flower8,
                 modifier = Modifier.padding(top = 24.dp),
             )
         } else {
+            val listState = rememberLazyListState()
+            val reorderableState = rememberReorderableLazyListState(
+                lazyListState = listState,
+                onMove = { from, to ->
+                    if (from.index in orderedTracks.indices && to.index in orderedTracks.indices && from.index != to.index) {
+                        orderedTracks = orderedTracks.toMutableList().apply { add(to.index, removeAt(from.index)) }
+                        onReorder(orderedTracks.map { it.id })
+                    }
+                },
+            )
             LazyColumn(
+                state = listState,
                 modifier = Modifier.weight(1f).fillMaxWidth(),
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = bottomPadding),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                itemsIndexed(playlist.tracks, key = { _, b -> "pl-${b.id}" }) { index, beatmap ->
-                    TrackRow(
-                        beatmap = beatmap,
-                        compact = compactRows,
-                        shape = RoundedCornerShape(if (compactRows) 16.dp else 22.dp),
-                        onClick = { actions.play(playlist.tracks, index) },
-                        trailing = {
-                            IconButton(onClick = { onRemoveTrack(beatmap.id) }) {
-                                Icon(
-                                    Icons.Rounded.Close,
-                                    contentDescription = "Remove from playlist",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        },
-                    )
+                itemsIndexed(orderedTracks, key = { _, beatmap -> beatmap.id }) { index, beatmap ->
+                    ReorderableItem(reorderableState, key = beatmap.id) { _ ->
+                        TrackRow(
+                            beatmap = beatmap,
+                            compact = compactRows,
+                            shape = RoundedCornerShape(if (compactRows) 16.dp else 22.dp),
+                            modifier = Modifier,
+                            onClick = { actions.play(orderedTracks, index) },
+                            trailing = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Rounded.DragIndicator,
+                                        contentDescription = kozuUiString("Reorder song"),
+                                        modifier = Modifier.draggableHandle().padding(8.dp).size(22.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    IconButton(onClick = { onRemoveTrack(beatmap.id) }) {
+                                        Icon(Icons.Rounded.Close, contentDescription = kozuUiString("Remove from playlist"), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            },
+                        )
+                    }
                 }
             }
         }
     }
 
+    if (sortOpen) {
+        SortSheet(
+            ui = sortUi,
+            onSort = onSort,
+            onToggleDirection = onToggleDirection,
+            onDismiss = { sortOpen = false },
+        )
+    }
     if (showRename) {
         NamePlaylistDialog(
             title = "Rename playlist",
             confirmLabel = "Save",
             initial = playlist.name,
             onDismiss = { showRename = false },
-            onConfirm = {
-                showRename = false
-                onRename(it)
-            },
+            onConfirm = { showRename = false; onRename(it) },
         )
     }
     if (showDelete) {
         AlertDialog(
             onDismissRequest = { showDelete = false },
             title = { Text("Delete playlist?") },
-            text = { Text("\u201C${playlist.name}\u201D will be removed. Your songs are not deleted.") },
+            text = { Text("\"${playlist.name}\" will be removed. Your songs are not deleted.") },
             confirmButton = {
-                TextButton(onClick = {
-                    showDelete = false
-                    onDelete()
-                }) { Text("Delete") }
+                TextButton(onClick = { showDelete = false; onDelete() }) { Text("Delete") }
             },
             dismissButton = { TextButton(onClick = { showDelete = false }) { Text("Cancel") } },
         )
     }
+}
+
+private fun sortPlaylistTracks(
+    tracks: List<Beatmap>,
+    sort: LibrarySort,
+    ascending: Boolean,
+): List<Beatmap> {
+    val sorted = when (sort) {
+        LibrarySort.TITLE -> tracks.sortedBy { it.title.lowercase() }
+        LibrarySort.ARTIST -> tracks.sortedBy { it.artist.lowercase() }
+        LibrarySort.MAPPER -> tracks.sortedBy { it.mapper.lowercase() }
+        LibrarySort.RECENT, LibrarySort.CUSTOM -> tracks
+    }
+    return if (sort != LibrarySort.CUSTOM && ascending) sorted.reversed() else sorted
 }
 
 @Composable
@@ -1501,36 +1577,49 @@ private fun DownloadsPane(
     onDelete: (Long) -> Unit,
     onDismiss: (Long) -> Unit,
     onCancel: (Long) -> Unit,
+    onReorder: (List<Long>) -> Unit,
 ) {
     val actions = LocalTrackActions.current
-    val queue =
-        ui.queue.entries.filter { entry ->
-            ui.downloads.none { it.beatmap.id == entry.key } || entry.value !is DownloadStatus.Queued
-        }
-    val tracks = ui.downloads.map { it.beatmap }
+    val queue = ui.queue.entries.filter { entry ->
+        ui.downloads.none { it.beatmap.id == entry.key } || entry.value !is DownloadStatus.Queued
+    }
+    var tracks by remember(ui.downloads.map { it.beatmap.id }) { mutableStateOf(ui.downloads.map { it.beatmap }) }
+    LaunchedEffect(ui.downloads) { tracks = ui.downloads.map { it.beatmap } }
 
-    if (queue.isEmpty() && ui.downloads.isEmpty()) {
+    if (queue.isEmpty() && tracks.isEmpty()) {
         RefreshableEmptyState(
             icon = Icons.Rounded.Download,
             title = "Nothing offline yet",
-            message = "Download songs from the \u22EE menu to play them without internet and use them in game mode.",
+            message = "Download songs from the ⋮ menu to play them without internet and use them in game mode.",
             shape = KozuCookies.Clover4,
             modifier = Modifier.padding(top = 32.dp),
         )
         return
     }
 
+    val listState = rememberLazyListState()
+    val itemsBeforeTracks = 1 + queue.size + if (queue.isNotEmpty() && tracks.isNotEmpty()) 1 else 0
+    val reorderableState = rememberReorderableLazyListState(
+        lazyListState = listState,
+        onMove = { from, to ->
+            val fromIndex = from.index - itemsBeforeTracks
+            val toIndex = to.index - itemsBeforeTracks
+            if (fromIndex in tracks.indices && toIndex in tracks.indices && fromIndex != toIndex) {
+                tracks = tracks.toMutableList().apply { add(toIndex, removeAt(fromIndex)) }
+                onReorder(tracks.map { it.id })
+            }
+        },
+    )
+
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = bottomPadding),
         verticalArrangement = Arrangement.spacedBy(3.dp),
     ) {
         item(key = "summary") {
             Surface(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 10.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
                 shape = RoundedCornerShape(28.dp),
                 color = MaterialTheme.colorScheme.tertiaryContainer,
                 contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
@@ -1539,10 +1628,7 @@ private fun DownloadsPane(
                     Icon(Icons.Rounded.DownloadDone, contentDescription = null)
                     Spacer(Modifier.width(14.dp))
                     Column {
-                        Text(
-                            "${ui.downloads.size} ${if (ui.downloads.size == 1) "song" else "songs"} offline",
-                            style = MaterialTheme.typography.titleMedium,
-                        )
+                        Text("${ui.downloads.size} ${if (ui.downloads.size == 1) "song" else "songs"} offline", style = MaterialTheme.typography.titleMedium)
                         Text(formatBytes(ui.downloadedBytes), style = MaterialTheme.typography.bodyMedium)
                     }
                 }
@@ -1560,77 +1646,47 @@ private fun DownloadsPane(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Text(
-                            text = ui.queueTitles[entry.key]?.takeIf { it.isNotBlank() } ?: "Beatmap #${entry.key}",
-                            style = MaterialTheme.typography.titleSmall,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                        Text(ui.queueTitles[entry.key]?.takeIf { it.isNotBlank() } ?: "Beatmap #${entry.key}", style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         when (status) {
-                            is DownloadStatus.Queued ->
-                                Text(
-                                    "Waiting in queue",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-
+                            is DownloadStatus.Queued -> Text("Waiting in queue", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             is DownloadStatus.Running -> {
-                                Text(
-                                    "Downloading \u00B7 ${(status.progress * 100).toInt()}% \u00B7 ${status.source}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                LinearProgressIndicator(
-                                    progress = { status.progress.coerceIn(0f, 1f) },
-                                    modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
-                                )
+                                Text("Downloading · ${(status.progress * 100).toInt()}% · ${status.source}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                LinearProgressIndicator(progress = { status.progress.coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth().padding(top = 2.dp))
                             }
-
-                            is DownloadStatus.Failed ->
-                                Text(
-                                    status.message,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.error,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
+                            is DownloadStatus.Failed -> Text(status.message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error, maxLines = 2, overflow = TextOverflow.Ellipsis)
                         }
                     }
-                    IconButton(
-                        onClick = {
-                            if (status is DownloadStatus.Failed) onDismiss(entry.key) else onCancel(entry.key)
-                        },
-                    ) {
-                        Icon(
-                            Icons.Rounded.Close,
-                            contentDescription = if (status is DownloadStatus.Failed) "Dismiss" else "Cancel download",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                    IconButton(onClick = { if (status is DownloadStatus.Failed) onDismiss(entry.key) else onCancel(entry.key) }) {
+                        Icon(Icons.Rounded.Close, contentDescription = if (status is DownloadStatus.Failed) "Dismiss" else "Cancel download", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
         }
-        if (queue.isNotEmpty() && ui.downloads.isNotEmpty()) {
-            item(key = "queue-gap") { Spacer(Modifier.height(8.dp)) }
-        }
-        itemsIndexed(tracks, key = { _, b -> "dl-${b.id}" }) { index, beatmap ->
-            TrackRow(
-                beatmap = beatmap,
-                compact = isCompactLayout,
-                shape = segmentedShape(index, tracks.size, large = 22.dp, small = 6.dp),
-                onClick = { actions.play(tracks, index) },
-                trailing = {
-                    IconButton(onClick = { onDelete(beatmap.id) }) {
-                        Icon(
-                            Icons.Rounded.Delete,
-                            contentDescription = "Delete download",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                },
-            )
+        if (queue.isNotEmpty() && tracks.isNotEmpty()) item(key = "queue-gap") { Spacer(Modifier.height(8.dp)) }
+        itemsIndexed(tracks, key = { _, beatmap -> beatmap.id }) { index, beatmap ->
+            ReorderableItem(reorderableState, key = beatmap.id) { _ ->
+                TrackRow(
+                    beatmap = beatmap,
+                    compact = isCompactLayout,
+                    shape = segmentedShape(index, tracks.size, large = 22.dp, small = 6.dp),
+                    modifier = Modifier,
+                    onClick = { actions.play(tracks, index) },
+                    trailing = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Rounded.DragIndicator,
+                                contentDescription = kozuUiString("Reorder download"),
+                                modifier = Modifier.draggableHandle().padding(8.dp).size(22.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            IconButton(onClick = { onDelete(beatmap.id) }) {
+                                Icon(Icons.Rounded.Delete, contentDescription = kozuUiString("Delete download"), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    },
+                )
+            }
         }
     }
 }
+

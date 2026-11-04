@@ -1,8 +1,7 @@
-﻿name: Build
+name: Build
 
 on:
   push:
-    branches:
   workflow_dispatch:
 
 permissions:
@@ -14,7 +13,7 @@ concurrency:
 
 jobs:
   build:
-    name: Build
+    name: Debug Kotlin
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -30,5 +29,12 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Build Debug
-        run: ./gradlew :app:assembleDebug --stacktrace
+      - name: Normalize wrapper permissions and line endings
+        shell: bash
+        run: |
+          set -euo pipefail
+          sed -i 's/\r$//' gradlew
+          chmod +x gradlew
+
+      - name: Debug
+        run: ./gradlew compileDebugKotlin

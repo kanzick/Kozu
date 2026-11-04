@@ -1,5 +1,7 @@
 package vn.kozu.game.mania.gamestage.ui
 
+import vn.kozu.ui.i18n.kozuUiString
+
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -27,7 +29,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import vn.kozu.ui.i18n.KozuText as Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -272,7 +274,7 @@ fun PlayScreen(
                 IconButton(onClick = session::pause) {
                     Icon(
                         Icons.Rounded.Pause,
-                        contentDescription = "Pause game",
+                        contentDescription = kozuUiString("Pause game"),
                         tint = MaterialTheme.colorScheme.onSurface,
                     )
                 }

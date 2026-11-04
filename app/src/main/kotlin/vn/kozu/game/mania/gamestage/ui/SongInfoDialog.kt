@@ -19,11 +19,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Slider
 import vn.kozu.ui.components.KozuSlider
-import androidx.compose.material3.rememberSliderState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import vn.kozu.ui.i18n.KozuText as Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,7 +31,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -44,11 +41,11 @@ import androidx.compose.ui.window.DialogProperties
 import vn.kozu.game.mania.gamestage.GameStageModule
 import vn.kozu.game.mania.gamestage.chart.ManiaChart
 import vn.kozu.game.mania.gamestage.engine.NoteScroll
-import vn.kozu.game.mania.gamestage.playtype.LandscapePlayTypeOptions
-import vn.kozu.game.mania.gamestage.playtype.LandscapeVerticalScrolling
 import vn.kozu.game.mania.gamestage.media.BackgroundLoader
-import vn.kozu.game.mania.gamestage.playtype.Portrait
 import vn.kozu.game.mania.gamestage.settings.GameSettings
+import vn.kozu.game.mania.gamestage.playtype.Landscape3DPerspective
+import vn.kozu.game.mania.gamestage.playtype.LandscapeVerticalScrolling
+import vn.kozu.game.mania.gamestage.playtype.Portrait
 import vn.kozu.game.mania.previewstage.model.DifficultyRecord
 import vn.kozu.game.mania.previewstage.model.ScoreRecord
 import vn.kozu.game.mania.previewstage.model.SongEntry
@@ -145,13 +142,7 @@ fun SongInfoDialog(
                                 !bestLoaded -> "Personal best: …"
                                 bestError != null -> "Personal best unavailable: $bestError"
                                 b == null -> "Personal best: not played yet"
-                                else -> "Personal best: %,d  ·  %.2f%%  ·  %s  ·  %s/%s combo".format(
-                                    b.score,
-                                    b.accuracy,
-                                    b.rank,
-                                    b.trueCombo?.toString() ?: "—",
-                                    b.maxCombo?.toString() ?: "—",
-                                )
+                                else -> "Personal best: %,d  ·  %.2f%%  ·  %s".format(b.score, b.accuracy, b.rank)
                             },
                             fontWeight = FontWeight.SemiBold,
                             color = b?.let { PlayColors.rank(it.rank) } ?: MaterialTheme.colorScheme.onSurface,
@@ -195,44 +186,32 @@ private fun SettingsPanel(
 ) {
     Text("Game settings", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 
-    Text("Screen orientation", fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        if (s.playType == Portrait) {
-            Button(
-                onClick = {},
-                modifier = Modifier.weight(1f),
-            ) { Text("Portrait") }
-        } else {
-            OutlinedButton(
-                onClick = {
-                    val updated = s.copy(playType = Portrait)
-                    onChange(updated)
-                    onCommit(updated)
-                },
-                modifier = Modifier.weight(1f),
-            ) { Text("Portrait") }
+    Text("Playfield layout", fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        PlayTypeOption(
+            selected = s.playType == Portrait,
+            label = "Portrait",
+        ) {
+            val updated = s.copy(playType = Portrait)
+            onChange(updated)
+            onCommit(updated)
         }
-        if (s.playType.isLandscape) {
-            Button(
-                onClick = {},
-                modifier = Modifier.weight(1f),
-            ) { Text("Landscape") }
-        } else {
-            OutlinedButton(
-                onClick = {
-                    val updated = s.copy(playType = LandscapeVerticalScrolling)
-                    onChange(updated)
-                    onCommit(updated)
-                },
-                modifier = Modifier.weight(1f),
-            ) { Text("Landscape") }
+        PlayTypeOption(
+            selected = s.playType == LandscapeVerticalScrolling,
+            label = "Landscape · Vertical scrolling",
+        ) {
+            val updated = s.copy(playType = LandscapeVerticalScrolling)
+            onChange(updated)
+            onCommit(updated)
         }
-    }
-    if (s.playType.isLandscape) {
-        LandscapePlayTypeOptions(s, onChange, onCommit)
+        PlayTypeOption(
+            selected = s.playType == Landscape3DPerspective,
+            label = "Landscape · 3D perspective",
+        ) {
+            val updated = s.copy(playType = Landscape3DPerspective)
+            onChange(updated)
+            onCommit(updated)
+        }
     }
 
     Text("Audio", fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
@@ -250,17 +229,21 @@ private fun SettingsPanel(
     SettingSlider("Background dim (0 = clear, 100 = dark)", "${s.backgroundDim}", s.backgroundDim.toFloat(), 0f..100f, 99,
         onChange = { onChange(s.copy(backgroundDim = it.roundToInt()).coerced()) }, onFinished = { onCommit(s) })
 
-    Text("Timing offsets", fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
+    Text("Timing", fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
     SettingSlider(
-        "Node offset (+ = notes arrive later)", "${s.nodeOffsetMs} ms", s.nodeOffsetMs.toFloat(),
-        GameSettings.OFFSET_MIN.toFloat()..GameSettings.OFFSET_MAX.toFloat(), GameSettings.OFFSET_MAX - GameSettings.OFFSET_MIN - 1,
-        onChange = { onChange(s.copy(nodeOffsetMs = it.roundToInt()).coerced()) }, onFinished = { onCommit(s) },
+        "Note offset (+ = later)", "${s.nodeOffsetMs} ms", s.nodeOffsetMs.toFloat(),
+        GameSettings.OFFSET_MIN.toFloat()..GameSettings.OFFSET_MAX.toFloat(),
+        GameSettings.OFFSET_MAX - GameSettings.OFFSET_MIN - 1,
+        onChange = { onChange(s.copy(nodeOffsetMs = it.roundToInt()).coerced()) },
+        onFinished = { onCommit(s) },
         onStep = { dir -> onCommit(s.copy(nodeOffsetMs = s.nodeOffsetMs + dir).coerced().also(onChange)) },
     )
     SettingSlider(
-        "Judgment offset (+ = judge later; line stays fixed)", "${s.judgmentOffsetMs} ms", s.judgmentOffsetMs.toFloat(),
-        GameSettings.OFFSET_MIN.toFloat()..GameSettings.OFFSET_MAX.toFloat(), GameSettings.OFFSET_MAX - GameSettings.OFFSET_MIN - 1,
-        onChange = { onChange(s.copy(judgmentOffsetMs = it.roundToInt()).coerced()) }, onFinished = { onCommit(s) },
+        "Judgment offset (+ = later)", "${s.judgmentOffsetMs} ms", s.judgmentOffsetMs.toFloat(),
+        GameSettings.OFFSET_MIN.toFloat()..GameSettings.OFFSET_MAX.toFloat(),
+        GameSettings.OFFSET_MAX - GameSettings.OFFSET_MIN - 1,
+        onChange = { onChange(s.copy(judgmentOffsetMs = it.roundToInt()).coerced()) },
+        onFinished = { onCommit(s) },
         onStep = { dir -> onCommit(s.copy(judgmentOffsetMs = s.judgmentOffsetMs + dir).coerced().also(onChange)) },
     )
 
@@ -272,6 +255,20 @@ private fun SettingsPanel(
         singleLine = true,
         modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
     )
+}
+
+@Composable
+private fun PlayTypeOption(
+    selected: Boolean,
+    label: String,
+    onClick: () -> Unit,
+) {
+    val buttonModifier = Modifier.fillMaxWidth()
+    if (selected) {
+        Button(onClick = {}, modifier = buttonModifier) { Text(label) }
+    } else {
+        OutlinedButton(onClick = onClick, modifier = buttonModifier) { Text(label) }
+    }
 }
 
 @Composable

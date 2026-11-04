@@ -1,5 +1,7 @@
 package vn.kozu.ui.settings
 
+import vn.kozu.ui.i18n.kozuUiString
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,7 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
+import vn.kozu.ui.i18n.KozuText as Text
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
@@ -87,7 +89,7 @@ fun SettingsEntry(
                     } else {
                         AsyncImage(
                             model = avatarUrl,
-                            contentDescription = "$title avatar",
+                            contentDescription = kozuUiString("$title avatar"),
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize()
                         )
@@ -281,7 +283,7 @@ fun <T> ChoiceRow(
                             if (option == selected) {
                                 Icon(
                                     Icons.Rounded.Check,
-                                    contentDescription = "Selected",
+                                    contentDescription = kozuUiString("Selected"),
                                     tint = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                             }

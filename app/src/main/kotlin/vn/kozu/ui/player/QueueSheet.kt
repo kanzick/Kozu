@@ -1,5 +1,7 @@
 package vn.kozu.ui.player
 
+import vn.kozu.ui.i18n.kozuUiString
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,7 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import vn.kozu.ui.i18n.KozuText as Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
@@ -191,7 +193,7 @@ fun QueueSheet(
                                     ) {
                                         Icon(
                                             Icons.Rounded.KeyboardArrowUp,
-                                            contentDescription = "Move up",
+                                            contentDescription = kozuUiString("Move up"),
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.size(22.dp),
                                         )
@@ -206,7 +208,7 @@ fun QueueSheet(
                                     ) {
                                         Icon(
                                             Icons.Rounded.KeyboardArrowDown,
-                                            contentDescription = "Move down",
+                                            contentDescription = kozuUiString("Move down"),
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.size(22.dp),
                                         )
@@ -217,7 +219,7 @@ fun QueueSheet(
                                 IconButton(onClick = { onRemove(index) }) {
                                     Icon(
                                         Icons.Rounded.Close,
-                                        contentDescription = "Remove from queue",
+                                        contentDescription = kozuUiString("Remove from queue"),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }

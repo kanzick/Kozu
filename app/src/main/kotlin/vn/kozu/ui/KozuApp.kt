@@ -75,6 +75,7 @@ import vn.kozu.domain.model.ThemeMode
 import vn.kozu.ui.components.BeatmapInfoSheet
 import vn.kozu.ui.components.DownloadInfo
 import vn.kozu.ui.components.LocalAppSettings
+import vn.kozu.ui.components.LocalBackgroundResolver
 import vn.kozu.ui.components.LocalDownloads
 import vn.kozu.ui.components.LocalFavoriteIds
 import vn.kozu.ui.components.LocalIsSupporter
@@ -87,6 +88,7 @@ import vn.kozu.ui.components.PlaylistPickerSheet
 import vn.kozu.ui.components.TrackActions
 import vn.kozu.ui.components.TrackMenuSheet
 import vn.kozu.ui.components.rememberIsMetered
+import vn.kozu.ui.i18n.localizeUiString
 import vn.kozu.ui.explore.AllBeatmapsScreen
 import vn.kozu.ui.explore.ExploreScreen
 import vn.kozu.ui.game.GameScreen
@@ -200,6 +202,8 @@ private fun KozuShell(
     LaunchedEffect(tab) { if (tab != KozuTab.SEARCH) lastMainTab = tab }
     var playerOpen by rememberSaveable { mutableStateOf(false) }
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
+    var settingsInitialPage by rememberSaveable { mutableStateOf(vn.kozu.ui.settings.SettingsPage.ROOT) }
+    var artistSearchRequest by rememberSaveable { mutableStateOf<String?>(null) }
     var allBeatmapsOpen by rememberSaveable { mutableStateOf(false) }
     var gamePlayActive by remember { mutableStateOf(false) }
     var menuTarget by remember { mutableStateOf<Beatmap?>(null) }
@@ -218,7 +222,7 @@ private fun KozuShell(
     fun notify(message: String) {
         scope.launch {
             snackbar.currentSnackbarData?.dismiss()
-            snackbar.showSnackbar(message)
+            snackbar.showSnackbar(localizeUiString(context, message))
         }
     }
 
@@ -267,6 +271,12 @@ private fun KozuShell(
                 override fun playShuffled(queue: List<Beatmap>) {
                     playback.playShuffled(queue)
                     if (latestSettings.autoOpenPlayer) playerOpen = true
+                }
+
+                override fun playShuffledWithOrder(queue: List<Beatmap>): List<Beatmap> {
+                    val shuffled = playback.playShuffledWithOrder(queue)
+                    if (latestSettings.autoOpenPlayer) playerOpen = true
+                    return shuffled
                 }
 
                 override fun toggleFavorite(beatmap: Beatmap) {
@@ -324,7 +334,12 @@ private fun KozuShell(
     }
 
     val metered by rememberIsMetered()
+    val backgroundResolver =
+        remember<suspend (Long, Boolean) -> java.io.File?>(container) {
+            { id, allowRemote -> container.streams.resolveBackground(id, allowRemote) }
+        }
     CompositionLocalProvider(
+        LocalBackgroundResolver provides backgroundResolver,
         LocalContentColor provides MaterialTheme.colorScheme.onSurface,
         LocalAppSettings provides settings,
         LocalMetered provides metered,
@@ -342,54 +357,71 @@ private fun KozuShell(
         ) {
             TabHost(selected = tab) { current ->
                 when (current) {
-                    KozuTab.HOME -> HomeScreen(
-                        listState = homeList,
-                        bottomPadding = bottomPadding,
-                        onOpenSettings = { settingsOpen = true },
-                        onOpenExplore = { tab = KozuTab.EXPLORE },
-                        onOpenLibrary = { tab = KozuTab.LIBRARY },
-                        onRefresh = ::refreshApp,
-                        isAppRefreshing = isAppRefreshing,
-                    )
-                    KozuTab.EXPLORE -> ExploreScreen(
-                        listState = exploreList,
-                        bottomPadding = bottomPadding,
-                        onOpenSettings = { settingsOpen = true },
-                        onOpenLibrary = { tab = KozuTab.LIBRARY },
-                        onOpenSearch = {
-                            tab = KozuTab.SEARCH
-                            searchFocusSignal++
-                        },
-                        onOpenAllBeatmaps = { allBeatmapsOpen = true },
-                        onRefresh = ::refreshApp,
-                        isAppRefreshing = isAppRefreshing,
-                    )
-                    KozuTab.LIBRARY -> LibraryScreen(
-                        listState = libraryList,
-                        bottomPadding = bottomPadding,
-                        onOpenSettings = { settingsOpen = true },
-                        onSyncError = ::notify,
-                    )
-                    KozuTab.GAME -> GameScreen(
-                        isSelected = tab == KozuTab.GAME,
-                        bottomPadding = bottomPadding,
-                        onOpenSettings = { settingsOpen = true },
-                        onRefresh = ::refreshApp,
-                        isAppRefreshing = isAppRefreshing,
-                        onGameplayChanged = { active ->
-                            if (active != gamePlayActive) {
-                                gamePlayActive = active
-                                if (active && state.isPlaying) playback.togglePlayPause()
-                            }
-                        }
-                    )
-                    KozuTab.SEARCH -> SearchScreen(
-                        bottomPadding = bottomPadding,
-                        onOpenSettings = { settingsOpen = true },
-                        onRefresh = ::refreshApp,
-                        isAppRefreshing = isAppRefreshing,
-                        focusSignal = searchFocusSignal,
-                    )
+                    KozuTab.HOME -> {
+                        HomeScreen(
+                            listState = homeList,
+                            bottomPadding = bottomPadding,
+                            onOpenSettings = { settingsOpen = true },
+                            onOpenExplore = { tab = KozuTab.EXPLORE },
+                            onOpenLibrary = { tab = KozuTab.LIBRARY },
+                            onOpenStats = {
+                                settingsInitialPage = vn.kozu.ui.settings.SettingsPage.STATS
+                                settingsOpen = true
+                            },
+                            onRefresh = ::refreshApp,
+                            isAppRefreshing = isAppRefreshing,
+                        )
+                    }
+
+                    KozuTab.EXPLORE -> {
+                        ExploreScreen(
+                            listState = exploreList,
+                            bottomPadding = bottomPadding,
+                            onOpenSettings = { settingsOpen = true },
+                            onOpenLibrary = { tab = KozuTab.LIBRARY },
+                            onOpenSearch = { tab = KozuTab.SEARCH },
+                            onOpenAllBeatmaps = { allBeatmapsOpen = true },
+                            onRefresh = ::refreshApp,
+                            isAppRefreshing = isAppRefreshing,
+                        )
+                    }
+
+                    KozuTab.LIBRARY -> {
+                        LibraryScreen(
+                            listState = libraryList,
+                            bottomPadding = bottomPadding,
+                            onOpenSettings = { settingsOpen = true },
+                            onSyncError = ::notify,
+                        )
+                    }
+
+                    KozuTab.SEARCH -> {
+                        SearchScreen(
+                            focusSignal = searchFocusSignal,
+                            bottomPadding = bottomPadding,
+                            onOpenSettings = { settingsOpen = true },
+                            onRefresh = ::refreshApp,
+                            isAppRefreshing = isAppRefreshing,
+                            initialQuery = artistSearchRequest,
+                            onInitialQueryConsumed = { artistSearchRequest = null },
+                        )
+                    }
+
+                    KozuTab.GAME -> {
+                        GameScreen(
+                            isSelected = tab == KozuTab.GAME,
+                            bottomPadding = bottomPadding,
+                            onOpenSettings = { settingsOpen = true },
+                            onRefresh = ::refreshApp,
+                            isAppRefreshing = isAppRefreshing,
+                            onGameplayChanged = { active ->
+                                if (active != gamePlayActive) {
+                                    gamePlayActive = active
+                                    if (active) playback.pause()
+                                }
+                            },
+                        )
+                    }
                 }
             }
 
@@ -452,7 +484,26 @@ private fun KozuShell(
                 exit = slideOutHorizontally(tween(180, easing = FastOutSlowInEasing)) { it / 6 } + fadeOut(tween(150)),
             ) {
                 SettingsScreen(
-                    onBack = { settingsOpen = false },
+                    initialPage = settingsInitialPage,
+                    onBack = {
+                        settingsOpen = false
+                        settingsInitialPage = vn.kozu.ui.settings.SettingsPage.ROOT
+                    },
+                    bottomContent = {
+                        state.current?.let { beatmap ->
+                            MiniPlayer(
+                                beatmap = beatmap,
+                                isPlaying = state.isPlaying,
+                                position = playback.position,
+                                duration = playback.duration,
+                                onOpen = { playerOpen = true },
+                                onPlayPause = playback::togglePlayPause,
+                                onPrevious = playback::previous,
+                                onNext = playback::next,
+                                onDismiss = playback::clearQueue,
+                            )
+                        }
+                    },
                 )
             }
 
@@ -462,10 +513,18 @@ private fun KozuShell(
                 exit = slideOutHorizontally(tween(240)) { it } + fadeOut(),
             ) {
                 AllBeatmapsScreen(
-                    bottomPadding = bottomPadding,
                     onBack = { allBeatmapsOpen = false },
                     onRetry = ::refreshApp,
                     isAppRefreshing = isAppRefreshing,
+                    currentBeatmap = state.current,
+                    isPlaying = state.isPlaying,
+                    position = playback.position,
+                    duration = playback.duration,
+                    onOpenPlayer = { playerOpen = true },
+                    onTogglePlayPause = playback::togglePlayPause,
+                    onPrevious = playback::previous,
+                    onNext = playback::next,
+                    onDismissPlayer = playback::clearQueue,
                 )
             }
             if (allBeatmapsOpen && !settingsOpen) BackHandler { allBeatmapsOpen = false }
@@ -491,6 +550,11 @@ private fun KozuShell(
                         onRepeat = playback::cycleRepeat,
                         onFavorite = { actions.toggleFavorite(beatmap) },
                         onMore = { menuTarget = beatmap },
+                        onArtistClick = { artist ->
+                            artistSearchRequest = artist
+                            tab = KozuTab.SEARCH
+                            playerOpen = false
+                        },
                         onSkipToQueueItem = playback::skipToQueueItem,
                         onRemoveFromQueue = playback::removeFromQueue,
                         audioInfo = playback.audioInfo,
@@ -506,7 +570,7 @@ private fun KozuShell(
                                 scope.launch {
                                     val id = container.playlists.create("Queue (${unique.size} tracks)")
                                     unique.forEach { container.playlists.addTrack(id, it) }
-                                    snackbar.showSnackbar("Saved ${unique.size} tracks as a playlist")
+                                    snackbar.showSnackbar(localizeUiString(context, "Saved ${unique.size} tracks as a playlist"))
                                 }
                             }
                         },

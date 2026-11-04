@@ -12,11 +12,18 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import okio.Path.Companion.toOkioPath
 import vn.kozu.di.AppContainer
+import vn.kozu.util.AppLocaleManager
 
 class KozuApplication :
     Application(),
     SingletonImageLoader.Factory {
     val container: AppContainer by lazy { AppContainer(this) }
+
+    override fun onCreate() {
+        super.onCreate()
+        // Migrate the pre-Android-13 locale preference before the first Activity is created.
+        AppLocaleManager.currentLanguageTag(this)
+    }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader {
         val limitMb =

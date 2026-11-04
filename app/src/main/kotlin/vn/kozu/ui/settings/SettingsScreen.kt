@@ -1,5 +1,7 @@
 package vn.kozu.ui.settings
 
+import vn.kozu.ui.i18n.kozuUiString
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -37,15 +39,17 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.SearchOff
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import vn.kozu.ui.i18n.KozuText as Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -53,6 +57,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
@@ -62,9 +67,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -74,19 +81,32 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.delay
 import vn.kozu.domain.model.OsuProfile
+import vn.kozu.data.update.UpdateChecker
+import vn.kozu.domain.model.UpdateChannel
 import vn.kozu.ui.components.bounceClick
+import vn.kozu.R
+
+private data class SettingsGroup(
+    val titleRes: Int,
+    val pages: List<SettingsPage>,
+)
 
 private val rootGroups = listOf(
-    "Personalize" to listOf(SettingsPage.APPEARANCE, SettingsPage.BEHAVIOR, SettingsPage.CONTENT),
-    "Music" to listOf(
-        SettingsPage.PLAYBACK,
-        SettingsPage.EQUALIZER,
-        SettingsPage.MUSIC,
-        SettingsPage.SOURCES,
-        SettingsPage.DOWNLOADS
+    SettingsGroup(R.string.settings_group_personalize, listOf(SettingsPage.APPEARANCE, SettingsPage.BEHAVIOR, SettingsPage.LANGUAGE)),
+    SettingsGroup(
+        R.string.settings_group_music,
+        listOf(
+            SettingsPage.MUSIC,
+            SettingsPage.CONTENT,
+            SettingsPage.PLAYBACK,
+            SettingsPage.EQUALIZER,
+            SettingsPage.SOURCES,
+            SettingsPage.DOWNLOADS,
+        ),
     ),
-    "Data & storage" to listOf(SettingsPage.STORAGE, SettingsPage.STATS, SettingsPage.BACKUP),
-    "System" to listOf(SettingsPage.DEVICE, SettingsPage.DEVELOPER, SettingsPage.ABOUT)
+    SettingsGroup(R.string.settings_group_library_data, listOf(SettingsPage.STATS, SettingsPage.STORAGE, SettingsPage.BACKUP)),
+    SettingsGroup(R.string.settings_group_system, listOf(SettingsPage.DEVICE, SettingsPage.DEVELOPER)),
+    SettingsGroup(R.string.settings_group_app, listOf(SettingsPage.UPDATES, SettingsPage.ABOUT)),
 )
 
 private fun parentOf(page: SettingsPage): SettingsPage = when (page) {
@@ -99,9 +119,11 @@ private fun parentOf(page: SettingsPage): SettingsPage = when (page) {
 fun SettingsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory)
+    initialPage: SettingsPage = SettingsPage.ROOT,
+    viewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory),
+    bottomContent: (@Composable () -> Unit)? = null,
 ) {
-    var page by rememberSaveable { mutableStateOf(SettingsPage.ROOT) }
+    var page by rememberSaveable(initialPage) { mutableStateOf(initialPage) }
     val pageStateHolder = rememberSaveableStateHolder()
     var highlight by rememberSaveable { mutableStateOf<String?>(null) }
     var searchOpen by rememberSaveable { mutableStateOf(false) }
@@ -130,11 +152,15 @@ fun SettingsScreen(
         highlight = null
     }
 
+    val density = LocalDensity.current
+    var bottomContentHeightPx by remember { mutableIntStateOf(0) }
+    val bottomContentHeight = with(density) { bottomContentHeightPx.toDp() }
+
     Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         CompositionLocalProvider(LocalSettingsHighlight provides highlight) {
             AnimatedContent(
                 targetState = page,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().padding(bottom = bottomContentHeight),
                 transitionSpec = {
                     val forward = (initialState == SettingsPage.ROOT && targetState != SettingsPage.ROOT) ||
                         targetState == SettingsPage.LICENSES ||
@@ -159,6 +185,7 @@ fun SettingsScreen(
                         SettingsPage.ROOT -> SettingsRoot(
                             profile = profile,
                             loggedIn = loggedIn,
+                            updateChannel = settings.updateChannel,
                             onBack = onBack,
                             onOpen = { page = it },
                             onSearch = { searchOpen = true }
@@ -166,6 +193,7 @@ fun SettingsScreen(
                         SettingsPage.ACCOUNT -> AccountPage(viewModel, close)
                         SettingsPage.MUSIC -> MusicPage(viewModel, close)
                         SettingsPage.CONTENT -> ContentPage(viewModel, { proxyOpen = true }, close)
+                        SettingsPage.LANGUAGE -> LanguagePage(close)
                         SettingsPage.APPEARANCE -> AppearancePage(
                             viewModel,
                             onOpenTypography = { page = SettingsPage.TYPOGRAPHY },
@@ -184,7 +212,8 @@ fun SettingsScreen(
                         SettingsPage.DOWNLOADS -> OfflinePage(viewModel, close)
                         SettingsPage.SOURCES -> SourcesPage(viewModel, close)
                         SettingsPage.STATS -> StatsPage(viewModel, close)
-                        SettingsPage.ABOUT -> AboutPage(viewModel, { page = SettingsPage.LICENSES }, close)
+                        SettingsPage.UPDATES -> UpdatesPage(viewModel, close)
+                        SettingsPage.ABOUT -> AboutPage({ page = SettingsPage.LICENSES }, close)
                         SettingsPage.LICENSES -> LicensesPage(close)
                     }
                 }
@@ -219,6 +248,26 @@ fun SettingsScreen(
                 }
             )
         }
+
+        if (bottomContent != null) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .onSizeChanged { bottomContentHeightPx = it.height }
+                    .background(
+                        androidx.compose.ui.graphics.Brush.verticalGradient(
+                            0f to Color.Transparent,
+                            0.32f to MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+                            1f to MaterialTheme.colorScheme.surface,
+                        )
+                    )
+                    .zIndex(20f),
+            ) {
+                bottomContent()
+            }
+        }
     }
 }
 
@@ -226,173 +275,119 @@ fun SettingsScreen(
 private fun SettingsRoot(
     profile: OsuProfile?,
     loggedIn: Boolean,
+    updateChannel: UpdateChannel,
     onBack: () -> Unit,
     onOpen: (SettingsPage) -> Unit,
-    onSearch: () -> Unit
+    onSearch: () -> Unit,
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val version = remember { UpdateChecker.installedVersion(context) }
+
     SettingsPageScaffold(title = "Settings", onBack = onBack) {
         Spacer(Modifier.height(4.dp))
         SearchEntryBar(onClick = onSearch)
         Spacer(Modifier.height(12.dp))
         AccountSummaryCard(profile = profile, loggedIn = loggedIn, onClick = { onOpen(SettingsPage.ACCOUNT) })
-        Spacer(Modifier.height(4.dp))
-        rootGroups.forEachIndexed { groupIndex, (title, pages) ->
-            SettingsSectionTitle(title)
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                pages.forEachIndexed { index, category ->
-                    CategoryRow(
-                        page = category,
-                        tone = groupIndex + index,
-                        shape = groupShape(index, pages.size),
-                        onClick = { onOpen(category) }
-                    )
-                }
-            }
+        Spacer(Modifier.height(16.dp))
+        rootGroups.forEachIndexed { index, group ->
+            SettingsGroupCard(
+                group = group,
+                installedVersion = version,
+                updateChannel = updateChannel,
+                groupIndex = index,
+                onOpen = onOpen,
+            )
+            Spacer(Modifier.height(14.dp))
         }
     }
 }
 
 @Composable
-private fun SearchEntryBar(onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(30.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(58.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 20.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                Icons.Rounded.Search,
-                contentDescription = "Search settings",
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(Modifier.width(16.dp))
-            Text(
-                "Search settings",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-private fun AccountSummaryCard(profile: OsuProfile?, loggedIn: Boolean, onClick: () -> Unit) {
+private fun SettingsGroupCard(
+    group: SettingsGroup,
+    installedVersion: String,
+    updateChannel: UpdateChannel,
+    groupIndex: Int,
+    onOpen: (SettingsPage) -> Unit,
+) {
     val colors = MaterialTheme.colorScheme
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .bounceClick(pressedScale = 0.985f, onClick = onClick),
-        shape = RoundedCornerShape(30.dp),
-        color = colors.surfaceContainer
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+    val (iconContainer, iconContent) = when (groupIndex % 4) {
+        0 -> colors.primaryContainer to colors.onPrimaryContainer
+        1 -> colors.secondaryContainer to colors.onSecondaryContainer
+        2 -> colors.tertiaryContainer to colors.onTertiaryContainer
+        else -> colors.surfaceContainerHighest to colors.onSurface
+    }
+
+    Column {
+        Text(
+            text = stringResource(group.titleRes),
+            style = MaterialTheme.typography.titleSmall,
+            color = colors.primary,
+            modifier = Modifier.padding(start = 16.dp, bottom = 8.dp),
+        )
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(26.dp),
+            color = colors.surfaceContainer,
         ) {
-            Surface(
-                modifier = Modifier.size(64.dp),
-                shape = CircleShape,
-                color = colors.primaryContainer,
-                contentColor = colors.onPrimaryContainer
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    val avatar = profile?.avatarUrl?.takeIf { loggedIn && it.isNotBlank() }
-                    if (avatar != null) {
-                        AsyncImage(
-                            model = avatar,
-                            contentDescription = "Avatar",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
+            Column {
+                group.pages.forEachIndexed { index, page ->
+                    val title = when (page) {
+                        SettingsPage.LANGUAGE -> stringResource(R.string.settings_language_title)
+                        else -> page.title
+                    }
+                    val subtitle = when (page) {
+                        SettingsPage.UPDATES -> "v$installedVersion · ${updateChannel.label}"
+                        SettingsPage.LANGUAGE -> stringResource(R.string.settings_language_subtitle)
+                        else -> page.subtitle
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .bounceClick(pressedScale = 0.99f) { onOpen(page) }
+                            .padding(horizontal = 16.dp, vertical = 13.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Surface(
+                            modifier = Modifier.size(48.dp),
+                            shape = CircleShape,
+                            color = iconContainer,
+                            contentColor = iconContent,
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(page.icon, contentDescription = null, modifier = Modifier.size(24.dp))
+                            }
+                        }
+                        Spacer(Modifier.width(14.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                text = title,
+                                style = MaterialTheme.typography.titleMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                text = subtitle,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = colors.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        Icon(
+                            Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                            contentDescription = null,
+                            tint = colors.onSurfaceVariant,
                         )
-                    } else {
-                        Text(
-                            text = (profile?.username?.firstOrNull() ?: 'G').uppercase(),
-                            style = MaterialTheme.typography.headlineMedium
+                    }
+                    if (index < group.pages.lastIndex) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(start = 78.dp, end = 16.dp),
+                            color = colors.outlineVariant.copy(alpha = 0.35f),
+                            thickness = 0.5.dp,
                         )
                     }
                 }
-            }
-            Spacer(Modifier.width(16.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = if (loggedIn && profile != null) profile.username else "Guest",
-                    style = MaterialTheme.typography.titleLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = if (loggedIn) "osu! profile · manage account" else "Sign in to sync with osu!",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colors.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-            Surface(
-                modifier = Modifier.size(44.dp),
-                shape = CircleShape,
-                color = colors.secondaryContainer,
-                contentColor = colors.onSecondaryContainer
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(Icons.Rounded.Person, contentDescription = null, modifier = Modifier.size(22.dp))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun CategoryRow(
-    page: SettingsPage,
-    tone: Int,
-    shape: Shape,
-    onClick: () -> Unit
-) {
-    val colors = MaterialTheme.colorScheme
-    val (container, content) = when (tone % 4) {
-        0 -> colors.primaryContainer to colors.onPrimaryContainer
-        1 -> colors.tertiaryContainer to colors.onTertiaryContainer
-        2 -> colors.secondaryContainer to colors.onSecondaryContainer
-        else -> colors.surfaceContainerHighest to colors.onSurface
-    }
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .bounceClick(pressedScale = 0.985f, onClick = onClick),
-        shape = shape,
-        color = colors.surfaceContainer
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(modifier = Modifier.size(54.dp), shape = CircleShape, color = container) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(page.icon, contentDescription = null, tint = content, modifier = Modifier.size(26.dp))
-                }
-            }
-            Spacer(Modifier.width(16.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    page.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    page.subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colors.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
             }
         }
     }
@@ -429,7 +424,7 @@ private fun SettingsSearchOverlay(onClose: () -> Unit, onPick: (Setting) -> Unit
                     keyboard?.hide()
                     onClose()
                 }) {
-                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = kozuUiString("Back"))
                 }
                 TextField(
                     value = query,
@@ -453,7 +448,7 @@ private fun SettingsSearchOverlay(onClose: () -> Unit, onPick: (Setting) -> Unit
                 )
                 if (query.isNotEmpty()) {
                     IconButton(onClick = { query = "" }) {
-                        Icon(Icons.Rounded.Close, contentDescription = "Clear")
+                        Icon(Icons.Rounded.Close, contentDescription = kozuUiString("Clear"))
                     }
                 }
             }
@@ -491,6 +486,21 @@ private fun SettingsSearchOverlay(onClose: () -> Unit, onPick: (Setting) -> Unit
             ) {
                 items(results, key = { it.name }) { setting ->
                     val index = results.indexOf(setting)
+                    val resultTitle = if (setting == Setting.LANGUAGE) {
+                        stringResource(R.string.settings_language_title)
+                    } else {
+                        setting.title
+                    }
+                    val resultDescription = if (setting == Setting.LANGUAGE) {
+                        stringResource(R.string.settings_language_subtitle)
+                    } else {
+                        setting.description
+                    }
+                    val resultPageTitle = if (setting.page == SettingsPage.LANGUAGE) {
+                        stringResource(R.string.settings_language_title)
+                    } else {
+                        setting.page.title
+                    }
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -509,20 +519,20 @@ private fun SettingsSearchOverlay(onClose: () -> Unit, onPick: (Setting) -> Unit
                             Spacer(Modifier.width(14.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(
-                                    setting.title,
+                                    resultTitle,
                                     style = MaterialTheme.typography.titleMedium,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
-                                    setting.description,
+                                    resultDescription,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
-                                    setting.page.title,
+                                    resultPageTitle,
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.primary
                                 )
@@ -537,24 +547,128 @@ private fun SettingsSearchOverlay(onClose: () -> Unit, onPick: (Setting) -> Unit
 
 @Composable
 private fun SearchHint() {
-    val suggestions = listOf(
-        Setting.APP_THEME,
-        Setting.CROSSFADE,
-        Setting.EQUALIZER_BANDS,
-        Setting.CLEAR_STREAM_CACHE,
-        Setting.PROXY,
-        Setting.EXPORT_BACKUP
-    )
-    Column(Modifier.padding(horizontal = 24.dp, vertical = 24.dp)) {
-        Text("Try searching for", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
-        Spacer(Modifier.height(8.dp))
-        suggestions.forEach {
-            Text(
-                it.title,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(vertical = 4.dp)
+    val colors = MaterialTheme.colorScheme
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 28.dp, vertical = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.Search,
+            contentDescription = null,
+            modifier = Modifier.size(56.dp),
+            tint = colors.onSurfaceVariant.copy(alpha = 0.32f),
+        )
+        Spacer(Modifier.height(14.dp))
+        Text(
+            text = "Find a setting",
+            style = MaterialTheme.typography.titleMedium,
+            color = colors.onSurfaceVariant.copy(alpha = 0.58f),
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = "Try theme, playback, cache or downloads",
+            style = MaterialTheme.typography.bodyMedium,
+            color = colors.onSurfaceVariant.copy(alpha = 0.38f),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        )
+    }
+}
+
+@Composable
+private fun SearchEntryBar(onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(30.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(58.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 20.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Rounded.Search,
+                contentDescription = kozuUiString("Search settings"),
+                tint = MaterialTheme.colorScheme.primary
             )
+            Spacer(Modifier.width(16.dp))
+            Text(
+                "Search settings",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun AccountSummaryCard(profile: OsuProfile?, loggedIn: Boolean, onClick: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .bounceClick(pressedScale = 0.985f, onClick = onClick),
+        shape = RoundedCornerShape(30.dp),
+        color = colors.surfaceContainer
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                modifier = Modifier.size(64.dp),
+                shape = CircleShape,
+                color = colors.primaryContainer,
+                contentColor = colors.onPrimaryContainer
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    val avatar = profile?.avatarUrl?.takeIf { loggedIn && it.isNotBlank() }
+                    if (avatar != null) {
+                        AsyncImage(
+                            model = avatar,
+                            contentDescription = kozuUiString("Avatar"),
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        Text(
+                            text = (profile?.username?.firstOrNull() ?: 'G').uppercase(),
+                            style = MaterialTheme.typography.headlineMedium
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.width(16.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = if (loggedIn && profile != null) profile.username else "Guest",
+                    style = MaterialTheme.typography.titleLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = if (loggedIn) "osu! profile · manage account" else "Sign in to sync with osu!",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Surface(
+                modifier = Modifier.size(44.dp),
+                shape = CircleShape,
+                color = colors.secondaryContainer,
+                contentColor = colors.onSecondaryContainer
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.Rounded.Person, contentDescription = null, modifier = Modifier.size(22.dp))
+                }
+            }
         }
     }
 }

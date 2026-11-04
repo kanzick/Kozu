@@ -134,15 +134,20 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
         shell: bash
         run: |
           set -euo pipefail
-          ./gradlew clean :app:assembleRelease --stacktrace
+          release_version="${RELEASE_TAG#v}"
+          ./gradlew clean :app:assembleRelease -PappVersion="$release_version" --stacktrace
 
       - name: Verify package APK
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
         shell: bash
         run: |
           set -euo pipefail
+          expected_version="${RELEASE_TAG#v}"
 
           tools="$(find "$ANDROID_HOME/build-tools" \
             -mindepth 1 -maxdepth 1 -type d |
@@ -250,6 +255,12 @@ jobs:
 
             grep -Fq "package: name='vn.kozu'" badging.txt || {
               echo "::error::Incorrect applicationId: $filename"
+              exit 1
+            }
+
+            tr -d '\r' < badging.txt |
+              grep -Fqx "versionName='$expected_version'" || {
+              echo "::error::APK versionName does not match release tag $expected_version: $filename"
               exit 1
             }
 

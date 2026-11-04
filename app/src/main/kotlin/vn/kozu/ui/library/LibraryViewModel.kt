@@ -3,6 +3,8 @@ package vn.kozu.ui.library
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -12,6 +14,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -33,12 +36,19 @@ enum class LibraryTab(
 }
 
 enum class LibrarySort(
+    val key: String,
     val label: String,
 ) {
-    RECENT("Date added"),
-    TITLE("Title"),
-    ARTIST("Artist"),
-    MAPPER("Mapper"),
+    RECENT("recent", "Date added"),
+    TITLE("title", "Title"),
+    ARTIST("artist", "Artist"),
+    MAPPER("mapper", "Mapper"),
+    CUSTOM("custom", "Custom"),
+    ;
+
+    companion object {
+        fun fromKey(key: String): LibrarySort = entries.firstOrNull { it.key == key } ?: RECENT
+    }
 }
 
 data class LibraryUiState(
@@ -55,7 +65,22 @@ data class LibraryUiState(
     val queue: Map<Long, DownloadStatus> = emptyMap(),
     val queueTitles: Map<Long, String> = emptyMap(),
     val downloadedBytes: Long = 0L,
+    val customOrders: Map<String, List<Long>> = emptyMap(),
 )
+
+private fun <T> applyCustomOrder(
+    items: List<T>,
+    ids: List<Long>?,
+    idOf: (T) -> Long,
+): List<T> {
+    if (items.size < 2 || ids.isNullOrEmpty()) return items
+    val byId = items.associateBy(idOf)
+    val orderedIds = ids.toHashSet()
+    return buildList(items.size) {
+        ids.forEach { id -> byId[id]?.let(::add) }
+        items.filterNot { idOf(it) in orderedIds }.forEach(::add)
+    }
+}
 
 class LibraryViewModel(
     private val container: AppContainer,
@@ -68,6 +93,12 @@ class LibraryViewModel(
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
     private val ascending = MutableStateFlow(false)
     private val openedId = MutableStateFlow<String?>(null)
+    private val localCustomOrders = MutableStateFlow<Map<String, List<Long>>>(emptyMap())
+    private val customOrders = combine(container.settings.libraryCustomOrders, localCustomOrders) { saved, pending ->
+        saved + pending
+    }
+    private val libraryOrderSaveJobs = mutableMapOf<String, Job>()
+    private val playlistOrderSaveJobs = mutableMapOf<String, Job>()
     private val tabOrder = MutableStateFlow<List<LibraryTab>>(LibraryTab.entries.toList())
     val syncing: StateFlow<Boolean> = container.sync.running
     private val _syncError = MutableStateFlow<String?>(null)
@@ -80,6 +111,12 @@ class LibraryViewModel(
                 tabOrder.value = (ordered + LibraryTab.entries.toList()).distinct()
             }
         }
+        viewModelScope.launch {
+            container.settings.librarySortPreferences.collect { (mode, isAscending) ->
+                sort.value = LibrarySort.fromKey(mode)
+                ascending.value = isAscending
+            }
+        }
     }
 
     private val prefs = combine(tab, sort, grid, openedId, ascending) { t, s, g, o, a -> arrayOf<Any?>(t, s, g, o, a) }
@@ -89,14 +126,37 @@ class LibraryViewModel(
             sets to status
         }
 
+    // Playback writes a new history event as soon as a track starts. The history's natural
+    // RECENT order therefore moves the playing item to index 0, which makes a visible Library
+    // list jump while the user is browsing or shuffling. Keep the current session's row order
+    // stable, while still replacing each row with the latest metadata and dropping removed IDs.
+    // A new subscription (for example, reopening Library after leaving it) starts from the
+    // newest persisted history order again.
+    private val stableRecentTracks =
+        container.history.history
+            .map { it.recent }
+            .scan(emptyList<Beatmap>()) { previous, latest ->
+                if (previous.isEmpty()) {
+                    latest
+                } else {
+                    val latestById = latest.associateBy { it.id }
+                    val retainedIds = previous.mapNotNull { old ->
+                        old.id.takeIf(latestById::containsKey)
+                    }
+                    val retainedSet = retainedIds.toHashSet()
+                    val newlySeenIds = latest.map { it.id }.filterNot(retainedSet::contains)
+                    (retainedIds + newlySeenIds).mapNotNull(latestById::get)
+                }
+            }
+
     private val baseUi =
         combine(
             prefs,
             container.favorites.favorites,
-            container.history.history,
+            stableRecentTracks,
             container.playlists.playlists,
             downloadState,
-        ) { p, favorites, history, playlists, downloadState ->
+        ) { p, favorites, recentTracks, playlists, downloadState ->
             val currentSort = p[1] as LibrarySort
             val asc = p[4] as Boolean
             LibraryUiState(
@@ -105,7 +165,7 @@ class LibraryViewModel(
                 ascending = asc,
                 grid = p[2] as Boolean,
                 liked = sortBeatmaps(favorites, currentSort, asc),
-                songs = sortBeatmaps(history.recent, currentSort, asc),
+                songs = sortBeatmaps(recentTracks, currentSort, asc),
                 playlists = playlists,
                 openedPlaylist = playlists.firstOrNull { it.id == p[3] },
                 downloads = sortDownloadedSets(downloadState.first, currentSort, asc),
@@ -116,10 +176,22 @@ class LibraryViewModel(
         }
 
     val ui: StateFlow<LibraryUiState> =
-        baseUi
-            .combine(tabOrder) { state, orderedTabs ->
-                state.copy(tabOrder = orderedTabs)
-            }.flowOn(Dispatchers.Default)
+        combine(baseUi, tabOrder, customOrders) { state, orderedTabs, customOrders ->
+            val customSongs = if (state.sort == LibrarySort.CUSTOM) applyCustomOrder(state.songs, customOrders["songs"]) { it.id } else state.songs
+            val customLiked = if (state.sort == LibrarySort.CUSTOM) applyCustomOrder(state.liked, customOrders["liked"]) { it.id } else state.liked
+            val customDownloads = if (state.sort == LibrarySort.CUSTOM) {
+                applyCustomOrder(state.downloads, customOrders["downloads"]) { it.beatmap.id }
+            } else {
+                state.downloads
+            }
+            state.copy(
+                tabOrder = orderedTabs,
+                songs = customSongs,
+                liked = customLiked,
+                downloads = customDownloads,
+                customOrders = customOrders,
+            )
+        }.flowOn(Dispatchers.Default)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LibraryUiState())
 
     fun selectTab(value: LibraryTab) = tab.update { value }
@@ -149,11 +221,54 @@ class LibraryViewModel(
         _syncError.value = null
     }
 
-    fun selectSort(value: LibrarySort) = sort.update { value }
+    fun selectSort(value: LibrarySort) {
+        sort.value = value
+        viewModelScope.launch {
+            container.settings.setLibrarySortPreferences(value.key, ascending.value)
+        }
+    }
+
+    /** Persist a drag result and immediately switch the active sort mode to Custom. */
+    fun reorderTracks(tab: LibraryTab, orderedIds: List<Long>, playlistId: String? = null) {
+        val normalized = orderedIds.filter { it > 0L }.distinct()
+        if (normalized.isEmpty()) return
+        if (sort.value != LibrarySort.CUSTOM) {
+            sort.value = LibrarySort.CUSTOM
+            val keepAscending = ascending.value
+            viewModelScope.launch {
+                container.settings.setLibrarySortPreferences(LibrarySort.CUSTOM.key, keepAscending)
+            }
+        }
+        when (tab) {
+            LibraryTab.SONGS, LibraryTab.LIKED, LibraryTab.DOWNLOADS -> {
+                // Apply the order synchronously so Compose never snaps back while DataStore writes.
+                localCustomOrders.update { it + (tab.key to normalized) }
+                libraryOrderSaveJobs[tab.key]?.cancel()
+                libraryOrderSaveJobs[tab.key] = viewModelScope.launch {
+                    delay(160L)
+                    container.settings.setLibraryCustomOrder(tab.key, normalized)
+                }
+            }
+            LibraryTab.PLAYLISTS -> {
+                val id = playlistId ?: return
+                playlistOrderSaveJobs[id]?.cancel()
+                playlistOrderSaveJobs[id] = viewModelScope.launch {
+                    delay(160L)
+                    container.playlists.reorderTracks(id, normalized)
+                }
+            }
+        }
+    }
 
     fun toggleGrid() = viewModelScope.launch { container.settings.setLibraryGrid(!grid.value) }
 
-    fun toggleDirection() = ascending.update { !it }
+    fun toggleDirection() {
+        val next = !ascending.value
+        ascending.value = next
+        viewModelScope.launch {
+            container.settings.setLibrarySortPreferences(sort.value.key, next)
+        }
+    }
 
     fun openPlaylist(id: String) = openedId.update { id }
 
@@ -194,8 +309,13 @@ class LibraryViewModel(
                 LibrarySort.TITLE -> items.sortedBy { it.title.lowercase() }
                 LibrarySort.ARTIST -> items.sortedBy { it.artist.lowercase() }
                 LibrarySort.MAPPER -> items.sortedBy { it.mapper.lowercase() }
+                LibrarySort.CUSTOM -> items
             }
-        val reverse = if (sort == LibrarySort.RECENT) ascending else !ascending
+        val reverse = when (sort) {
+            LibrarySort.RECENT -> ascending
+            LibrarySort.CUSTOM -> false
+            else -> !ascending
+        }
         return if (reverse) sorted.reversed() else sorted
     }
 
@@ -210,8 +330,13 @@ class LibraryViewModel(
                 LibrarySort.TITLE -> items.sortedBy { it.beatmap.title.lowercase() }
                 LibrarySort.ARTIST -> items.sortedBy { it.beatmap.artist.lowercase() }
                 LibrarySort.MAPPER -> items.sortedBy { it.beatmap.mapper.lowercase() }
+                LibrarySort.CUSTOM -> items
             }
-        val reverse = if (sort == LibrarySort.RECENT) ascending else !ascending
+        val reverse = when (sort) {
+            LibrarySort.RECENT -> ascending
+            LibrarySort.CUSTOM -> false
+            else -> !ascending
+        }
         return if (reverse) sorted.reversed() else sorted
     }
 

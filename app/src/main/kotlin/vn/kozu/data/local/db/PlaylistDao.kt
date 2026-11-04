@@ -64,6 +64,9 @@ interface PlaylistDao {
     @Query("SELECT COALESCE(MAX(position), -1) + 1 FROM song_in_playlist WHERE playlistId = :playlistId")
     suspend fun nextPosition(playlistId: String): Int
 
+    @Query("UPDATE song_in_playlist SET position = :position WHERE playlistId = :playlistId AND songId = :songId")
+    suspend fun updateSongPosition(playlistId: String, songId: Long, position: Int)
+
     @Query("DELETE FROM songs WHERE id NOT IN (SELECT songId FROM song_in_playlist)")
     suspend fun deleteOrphanSongs()
 }

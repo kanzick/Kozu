@@ -1,5 +1,6 @@
 package vn.kozu
 
+import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
@@ -12,8 +13,13 @@ import kotlinx.coroutines.launch
 import vn.kozu.data.local.SettingsStore
 import vn.kozu.domain.model.ThemeMode
 import vn.kozu.ui.KozuApp
+import vn.kozu.util.AppLocaleManager
 
 class MainActivity : ComponentActivity() {
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppLocaleManager.wrapContext(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         applyLaunchTheme()
         enableEdgeToEdge()

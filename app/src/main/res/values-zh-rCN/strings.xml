@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="settings_language_title">语言</string>
+    <string name="settings_language_subtitle">选择应用语言。</string>
+    <string name="settings_language_description">选择 Kozu 使用的语言。尚未翻译的部分将继续显示为英文。</string>
+    <string name="settings_language_restart_note">Kozu 将重新打开以应用选择。音乐、媒体库和设置仍保留在此设备上。</string>
+    <string name="language_system">跟随系统</string>
+    <string name="language_english">英语</string>
+    <string name="language_arabic">阿拉伯语</string>
+    <string name="language_german">德语</string>
+    <string name="language_spanish">西班牙语</string>
+    <string name="language_french">法语</string>
+    <string name="language_indonesian">印度尼西亚语</string>
+    <string name="language_italian">意大利语</string>
+    <string name="language_japanese">日语</string>
+    <string name="language_korean">韩语</string>
+    <string name="language_portuguese_brazil">葡萄牙语（巴西）</string>
+    <string name="language_russian">俄语</string>
+    <string name="language_turkish">土耳其语</string>
+    <string name="language_chinese_simplified">简体中文</string>
+    <string name="language_vietnamese">越南语</string>
+    <string name="language_selected">已选择</string>
+    <string name="settings_group_personalize">个性化</string>
+    <string name="settings_group_music">音乐</string>
+    <string name="settings_group_library_data">媒体库和数据</string>
+    <string name="settings_group_system">系统</string>
+    <string name="settings_group_app">应用</string>
+</resources>

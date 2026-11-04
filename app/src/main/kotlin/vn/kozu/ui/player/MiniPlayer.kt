@@ -28,7 +28,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import vn.kozu.ui.i18n.KozuText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -62,6 +62,7 @@ import vn.kozu.domain.model.MiniPlayerStyle
 import vn.kozu.domain.model.displayArtist
 import vn.kozu.domain.model.displayTitle
 import vn.kozu.ui.components.BeatmapArt
+import vn.kozu.ui.components.FullBeatmapArt
 import vn.kozu.ui.components.KozuIcons
 import vn.kozu.ui.components.LocalAppSettings
 import vn.kozu.ui.components.LocalPerformanceMode
@@ -588,15 +589,30 @@ private fun MiniArtwork(
                 )
             }
         }
-        BeatmapArt(
-            beatmap = beatmap,
-            modifier =
-                Modifier
-                    .size(inner)
-                    .graphicsLayer { rotationZ = if (spinning) spinDegrees else 0f },
-            shape = shape,
-            followGlobalShape = false,
-        )
+        // Same source as the full player: rectangular shapes show the whole picture. Round shapes
+        // (cookie, circle...) cannot hold a wide image, so they keep the square thumbnail.
+        val appearance = LocalAppSettings.current.appearance
+        val effectiveShape =
+            if (appearance.miniArtShape == ArtworkShape.DEFAULT) appearance.artworkShape else appearance.miniArtShape
+        if (effectiveShape == ArtworkShape.SOFT || effectiveShape == ArtworkShape.SQUARE) {
+            FullBeatmapArt(
+                beatmap = beatmap,
+                modifier = Modifier.size(inner),
+                shape = shape,
+                followGlobalShape = false,
+                wrapToImage = true,
+            )
+        } else {
+            BeatmapArt(
+                beatmap = beatmap,
+                modifier =
+                    Modifier
+                        .size(inner)
+                        .graphicsLayer { rotationZ = if (spinning) spinDegrees else 0f },
+                shape = shape,
+                followGlobalShape = false,
+            )
+        }
     }
 }
 

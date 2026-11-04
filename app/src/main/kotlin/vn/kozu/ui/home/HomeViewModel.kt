@@ -107,8 +107,6 @@ class HomeViewModel(
 
     fun refresh() = container.discover.refresh()
 
-    fun loadMoreMix() = container.discover.loadMoreMix()
-
     companion object {
         val Factory = containerFactory { HomeViewModel(it) }
     }

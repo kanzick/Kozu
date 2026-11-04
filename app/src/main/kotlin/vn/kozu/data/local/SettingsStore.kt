@@ -37,6 +37,7 @@ import vn.kozu.domain.model.StartTab
 import vn.kozu.domain.model.StatusFilter
 import vn.kozu.domain.model.StreamMode
 import vn.kozu.domain.model.ThemeMode
+import vn.kozu.domain.model.UpdateChannel
 import vn.kozu.domain.model.TopSize
 
 class SettingsStore(
@@ -138,7 +139,11 @@ class SettingsStore(
         val autoCleanCache = booleanPreferencesKey("auto_clean_cache")
         val autoUpdateCheck = booleanPreferencesKey("auto_update_check")
         val lastUpdateCheck = longPreferencesKey("last_update_check")
+        val updateChannel = stringPreferencesKey("update_channel")
         val libraryTabOrder = stringPreferencesKey("library_tab_order")
+        val libraryCustomOrder = stringPreferencesKey("library_custom_order_v1")
+        val librarySortMode = stringPreferencesKey("library_sort_mode")
+        val librarySortAscending = booleanPreferencesKey("library_sort_ascending")
         val appearance = stringPreferencesKey("appearance_json")
     }
 
@@ -158,6 +163,48 @@ class SettingsStore(
         val normalized = (order.filter { it in allowed } + allowed).distinct()
         store.edit { it[Keys.libraryTabOrder] = normalized.joinToString(",") }
     }
+
+    val librarySortPreferences: Flow<Pair<String, Boolean>> =
+        store.data.map { prefs ->
+            (prefs[Keys.librarySortMode] ?: "recent") to (prefs[Keys.librarySortAscending] ?: false)
+        }.distinctUntilChanged()
+
+    suspend fun setLibrarySortPreferences(mode: String, ascending: Boolean) {
+        val allowed = setOf("recent", "title", "artist", "mapper", "custom")
+        store.edit { prefs ->
+            prefs[Keys.librarySortMode] = mode.takeIf { it in allowed } ?: "recent"
+            prefs[Keys.librarySortAscending] = ascending
+        }
+    }
+
+    /** Stable user-defined order for library collections. Playlist tracks use Room positions. */
+    val libraryCustomOrders: Flow<Map<String, List<Long>>> =
+        store.data.map { prefs -> decodeLibraryCustomOrders(prefs[Keys.libraryCustomOrder]) }.distinctUntilChanged()
+
+    suspend fun setLibraryCustomOrder(collection: String, beatmapIds: List<Long>) {
+        val allowed = setOf("songs", "liked", "downloads")
+        if (collection !in allowed) return
+        store.edit { prefs ->
+            val current = decodeLibraryCustomOrders(prefs[Keys.libraryCustomOrder]).toMutableMap()
+            current[collection] = beatmapIds.filter { it > 0L }.distinct()
+            val json = JSONObject()
+            current.forEach { (key, ids) ->
+                if (key in allowed) json.put(key, JSONArray(ids))
+            }
+            prefs[Keys.libraryCustomOrder] = json.toString()
+        }
+    }
+
+    private fun decodeLibraryCustomOrders(raw: String?): Map<String, List<Long>> =
+        try {
+            val root = JSONObject(raw.orEmpty())
+            listOf("songs", "liked", "downloads").associateWith { key ->
+                val array = root.optJSONArray(key) ?: JSONArray()
+                List(array.length()) { index -> array.optLong(index) }.filter { it > 0L }.distinct()
+            }.filterValues { it.isNotEmpty() }
+        } catch (_: JSONException) {
+            emptyMap()
+        }
 
     val settings: Flow<AppSettings> =
         store.data
@@ -249,6 +296,7 @@ class SettingsStore(
                     autoCleanCache = prefs[Keys.autoCleanCache] ?: false,
                     autoUpdateCheck = prefs[Keys.autoUpdateCheck] ?: true,
                     lastUpdateCheckAt = prefs[Keys.lastUpdateCheck] ?: 0L,
+                    updateChannel = UpdateChannel.fromKey(prefs[Keys.updateChannel]),
                 )
             }.distinctUntilChanged()
 
@@ -453,6 +501,13 @@ class SettingsStore(
     suspend fun setAutoUpdateCheck(enabled: Boolean) = store.edit { it[Keys.autoUpdateCheck] = enabled }
 
     suspend fun setLastUpdateCheck(timeMillis: Long) = store.edit { it[Keys.lastUpdateCheck] = timeMillis }
+
+    suspend fun setUpdateChannel(channel: UpdateChannel) = store.edit {
+        if (it[Keys.updateChannel] != channel.key) {
+            it[Keys.updateChannel] = channel.key
+            it[Keys.lastUpdateCheck] = 0L
+        }
+    }
 
     suspend fun setProxy(proxy: ProxySettings) =
         store.edit {

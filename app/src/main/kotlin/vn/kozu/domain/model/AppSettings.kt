@@ -217,6 +217,20 @@ enum class CrossfadeDuration(
     }
 }
 
+enum class MixSize(
+    val count: Int,
+    val label: String,
+) {
+    TWENTY_FIVE(25, "25 songs"),
+    FIFTY(50, "50 songs"),
+    HUNDRED(100, "100 songs"),
+    ;
+
+    companion object {
+        fun fromCount(count: Int?): MixSize = entries.firstOrNull { it.count == count } ?: HUNDRED
+    }
+}
+
 enum class QuickPicksSource(
     val key: String,
     val label: String,
@@ -299,6 +313,22 @@ data class ProxySettings(
     val isActive: Boolean get() = type != ProxyType.DISABLED && host.isNotBlank() && port in 1..65535
 }
 
+enum class UpdateChannel(
+    val key: String,
+    val label: String,
+    val description: String,
+    val isPrerelease: Boolean,
+    val branch: String,
+) {
+    STABLE("stable", "Stable", "Public releases", false, "main"),
+    DEV("dev", "Dev", "Prerelease builds", true, "dev"),
+    ;
+
+    companion object {
+        fun fromKey(key: String?): UpdateChannel = entries.firstOrNull { it.key == key } ?: STABLE
+    }
+}
+
 data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val appStyle: AppStyle = AppStyle.EXPRESSIVE,
@@ -367,6 +397,7 @@ data class AppSettings(
     val showMapper: Boolean = true,
     val quickPicksSource: QuickPicksSource = QuickPicksSource.MIX,
     val quickPicksLayout: QuickPicksLayout = QuickPicksLayout.CAROUSEL,
+    val mixSize: MixSize = MixSize.HUNDRED,
     val topSize: TopSize = TopSize.FIFTY,
     val proxy: ProxySettings = ProxySettings(),
     val autoSyncLibrary: Boolean = true,
@@ -374,6 +405,7 @@ data class AppSettings(
     val autoCleanCache: Boolean = false,
     val autoUpdateCheck: Boolean = true,
     val lastUpdateCheckAt: Long = 0L,
+    val updateChannel: UpdateChannel = UpdateChannel.STABLE,
 ) {
     val hasCredentials: Boolean get() = osuClientId.isNotBlank() && osuClientSecret.isNotBlank()
     val activeMirrors: List<Mirror> get() = Mirrors.active(customMirrors, disabledMirrors)

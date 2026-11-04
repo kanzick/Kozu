@@ -1,3 +1,937 @@
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="app_name">Kozu</string>
+    <string name="settings_language_title">Language</string>
+    <string name="settings_language_subtitle">Choose your app language.</string>
+    <string name="settings_language_description">Choose the language used by Kozu. Untranslated parts will keep using English.</string>
+    <string name="settings_language_restart_note">Kozu will reopen to apply your choice. Your music, library and settings stay on this device.</string>
+    <string name="language_system">Follow system</string>
+    <string name="language_english">English</string>
+    <string name="language_arabic">العربية</string>
+    <string name="language_german">Deutsch</string>
+    <string name="language_spanish">Español</string>
+    <string name="language_french">Français</string>
+    <string name="language_indonesian">Bahasa Indonesia</string>
+    <string name="language_italian">Italiano</string>
+    <string name="language_japanese">日本語</string>
+    <string name="language_korean">한국어</string>
+    <string name="language_portuguese_brazil">Português (Brasil)</string>
+    <string name="language_russian">Русский</string>
+    <string name="language_turkish">Türkçe</string>
+    <string name="language_chinese_simplified">简体中文</string>
+    <string name="language_vietnamese">Tiếng Việt</string>
+    <string name="language_selected">Selected</string>
+    <string name="settings_group_personalize">Personalize</string>
+    <string name="settings_group_music">Music</string>
+    <string name="settings_group_library_data">Library &amp; data</string>
+    <string name="settings_group_system">System</string>
+    <string name="settings_group_app">App</string>
+    <string name="ui_b50bf56a8b8f37" formatted="false">10 songs</string>
+    <string name="ui_f6234627883aca" formatted="false">100 songs</string>
+    <string name="ui_5f1a003beac82a" formatted="false">12 seconds</string>
+    <string name="ui_4180e3f7d9b02d" formatted="false">120hz fps smooth</string>
+    <string name="ui_0654c70eb59b08" formatted="false">25 songs</string>
+    <string name="ui_aca3514915382f" formatted="false">3 seconds</string>
+    <string name="ui_76c664a81d76b9" formatted="false">5 seconds</string>
+    <string name="ui_9ead5dd2642431" formatted="false">50 songs</string>
+    <string name="ui_04ccd7191c2ab7" formatted="false">8 seconds</string>
+    <string name="ui_170621ac08426c" formatted="false">90 days</string>
+    <string name="ui_7abd8ae5bc4488" formatted="false">A backup is a single file you save wherever you like. It holds the sections you choose: settings, favorites, playlists and listening history.</string>
+    <string name="ui_6b21fb791ac051" formatted="false">About</string>
+    <string name="ui_e49578edcffe4c" formatted="false">Accent color</string>
+    <string name="ui_61cc55aa045318" formatted="false">Add</string>
+    <string name="ui_35bea43b5dbc0a" formatted="false">Add Mania maps</string>
+    <string name="ui_d2b5ab842e2952" formatted="false">Add maps</string>
+    <string name="ui_4ae0bb227e54ec" formatted="false">Add mirror</string>
+    <string name="ui_df0144beb30667" formatted="false">Add related songs when the queue ends.</string>
+    <string name="ui_3e241e3cc63e8d" formatted="false">Add to playlist</string>
+    <string name="ui_b68734c259106d" formatted="false">Added</string>
+    <string name="ui_a22e4c77c60857" formatted="false">Adjust artwork-based colors.</string>
+    <string name="ui_9c2bbd934fdfc3" formatted="false">Adjust audio frequencies and presets.</string>
+    <string name="ui_9b8dfaa96fb18f" formatted="false">Adjust font roundness in Google Sans Flex.</string>
+    <string name="ui_7d3645a368255a" formatted="false">Adjust how round the player bar is.</string>
+    <string name="ui_178f0f2332a881" formatted="false">Adjust letter width in Google Sans Flex.</string>
+    <string name="ui_45c02c85515f10" formatted="false">Adjust player typography.</string>
+    <string name="ui_46771e22374a12" formatted="false">Adjust text size across the app.</string>
+    <string name="ui_f4335e603aec3e" formatted="false">Advanced maintenance</string>
+    <string name="ui_19550a172c078e" formatted="false">Album art shape</string>
+    <string name="ui_9d9bfc1d35fdd6" formatted="false">Allow reliable background playback.</string>
+    <string name="ui_f1b32a193adc08" formatted="false">Anime</string>
+    <string name="ui_322444d3bb52c3" formatted="false">Any</string>
+    <string name="ui_af7fc12d1dc774" formatted="false">App and project info</string>
+    <string name="ui_36d75972387bc1" formatted="false">App font</string>
+    <string name="ui_abde7a74c8a0f9" formatted="false">App icon</string>
+    <string name="ui_01e1787a9e5b11" formatted="false">App language</string>
+    <string name="ui_a00e3699eb5e5f" formatted="false">App navigation</string>
+    <string name="ui_d342b9d593365c" formatted="false">App style</string>
+    <string name="ui_3d0ba3f991b834" formatted="false">App theme</string>
+    <string name="ui_41def7a0febe74" formatted="false">Appearance</string>
+    <string name="ui_cfea419c3b4e8b" formatted="false">Apply</string>
+    <string name="ui_6c3f3d3203630c" formatted="false">Artist</string>
+    <string name="ui_9719263b4bd7d9" formatted="false">Artwork cache limit</string>
+    <string name="ui_f0d414ba91d680" formatted="false">Artwork colors</string>
+    <string name="ui_7ed628130979d2" formatted="false">Artwork gestures</string>
+    <string name="ui_acdac205f5e24c" formatted="false">Audio</string>
+    <string name="ui_433826ef72e463" formatted="false">Audio and decoder support</string>
+    <string name="ui_cde748985dbe74" formatted="false">Audio settings</string>
+    <string name="ui_6b4943b6e12c80" formatted="false">Audio sources</string>
+    <string name="ui_700fbfb117613e" formatted="false">Auto-update downloads</string>
+    <string name="ui_be44056d4e8f44" formatted="false">Automatic checks</string>
+    <string name="ui_378ca97e4b7094" formatted="false">Automatic cleanup</string>
+    <string name="ui_bc11f588e72aa9" formatted="false">Automatic update check</string>
+    <string name="ui_8a3045b87e1c24" formatted="false">Avoid recently played songs.</string>
+    <string name="ui_1b589f62aa3ec0" formatted="false">Avoid repetitive songs</string>
+    <string name="ui_b52b36b7269fbf" formatted="false">Back</string>
+    <string name="ui_c85387787484aa" formatted="false">Back to chart</string>
+    <string name="ui_64dd60fe1a049f" formatted="false">Background</string>
+    <string name="ui_0559f5ef86b137" formatted="false">Background playback</string>
+    <string name="ui_a16162846d0fbd" formatted="false">Backup &amp; restore</string>
+    <string name="ui_03342dbb856b52" formatted="false">Balanced</string>
+    <string name="ui_81fd2e0f4203ac" formatted="false">Balanced, calm colors</string>
+    <string name="ui_c946c9f6806b44" formatted="false">Bass boost</string>
+    <string name="ui_54d1a1d2957963" formatted="false">Battery optimization</string>
+    <string name="ui_c2132838c39321" formatted="false">Beatmap listings and updates come from osu!.</string>
+    <string name="ui_70cb647a88bd7c" formatted="false">Behavior</string>
+    <string name="ui_6691a2e66fa2ef" formatted="false">Blend the album art behind the full player.</string>
+    <string name="ui_7d44bc449c2a26" formatted="false">Blue</string>
+    <string name="ui_2b3d14570e3c9d" formatted="false">Blur intensity</string>
+    <string name="ui_ef7b5de01870c6" formatted="false">Blurred player background</string>
+    <string name="ui_171b6c66f2fe77" formatted="false">Body text reads comfortably at any size. Everything in the app follows this font, so lists,</string>
+    <string name="ui_f38d3078051ce6" formatted="false">Boost overall perceived volume.</string>
+    <string name="ui_3d5d84ec665b74" formatted="false">Browse all</string>
+    <string name="ui_ec4afa13c3488a" formatted="false">Cache and downloads</string>
+    <string name="ui_e7ecd081270c02" formatted="false">Callback URL</string>
+    <string name="ui_77dfd2135f4db7" formatted="false">Cancel</string>
+    <string name="ui_f1f842e1950136" formatted="false">Carousel</string>
+    <string name="ui_4a88d27bbae1de" formatted="false">Catalog</string>
+    <string name="ui_9eb25373fd6763" formatted="false">Catalog and library sync</string>
+    <string name="ui_52fd253c579793" formatted="false">Catalog source</string>
+    <string name="ui_a7c51e67b60b09" formatted="false">Catch</string>
+    <string name="ui_4b5e84be0e45d1" formatted="false">Check</string>
+    <string name="ui_3a5dadbe202574" formatted="false">Check for a new release when the app starts.</string>
+    <string name="ui_736b9062b33638" formatted="false">Check for updates</string>
+    <string name="ui_97876b8380adb6" formatted="false">Checking</string>
+    <string name="ui_15dc18865567bc" formatted="false">Chinese</string>
+    <string name="ui_3f89fddda927aa" formatted="false">Choose a default game mode.</string>
+    <string name="ui_5ccf89adeea327" formatted="false">Choose a mini player layout.</string>
+    <string name="ui_f55a8aaeb4930d" formatted="false">Choose a tab or change its order.</string>
+    <string name="ui_f55a948db706b1" formatted="false">Choose how Kozu looks and feels.</string>
+    <string name="ui_c465ef63af7bd0" formatted="false">Choose how many songs play when you shuffle Your Mix.</string>
+    <string name="ui_8772d0d3a8682f" formatted="false">Choose light, dark or system theme.</string>
+    <string name="ui_7f44b06fd810ff" formatted="false">Choose mini player colors.</string>
+    <string name="ui_7ea302e52a6619" formatted="false">Choose the app font.</string>
+    <string name="ui_793fb2a367bd9d" formatted="false">Choose the app icon.</string>
+    <string name="ui_e2ee14bfabd5e3" formatted="false">Choose the app language.</string>
+    <string name="ui_30de349da75aa3" formatted="false">Choose the default beatmap status.</string>
+    <string name="ui_bc9856a162f00f" formatted="false">Choose the full player progress style.</string>
+    <string name="ui_d4873b980354ff" formatted="false">Choose the navigation style.</string>
+    <string name="ui_47e0be1b6f7ec3" formatted="false">Choose the play icon.</string>
+    <string name="ui_11d57e3684bc52" formatted="false">Choose the progress indicator.</string>
+    <string name="ui_eadd91329a043b" formatted="false">Choose the screen Kozu opens with.</string>
+    <string name="ui_72e57848c59cb2" formatted="false">Choose the slider style.</string>
+    <string name="ui_130cd7fe33343e" formatted="false">Classic</string>
+    <string name="ui_1dd4129242adcb" formatted="false">Classical</string>
+    <string name="ui_845277fbaf1d03" formatted="false">Clean all</string>
+    <string name="ui_f634213e3bf58a" formatted="false">Clean old stream cache on launch.</string>
+    <string name="ui_c043160a89ba0a" formatted="false">Clear all</string>
+    <string name="ui_4e0e3aad9934b3" formatted="false">Clear all caches</string>
+    <string name="ui_44ba6acb60afce" formatted="false">Clear artwork cache</string>
+    <string name="ui_53b5158bc7bd26" formatted="false">Clear history</string>
+    <string name="ui_1501cb96e3af44" formatted="false">Clear listening history</string>
+    <string name="ui_984301092dbf9c" formatted="false">Clear queue</string>
+    <string name="ui_692409583657af" formatted="false">Clear recent searches</string>
+    <string name="ui_4d770d4e841b04" formatted="false">Clear searches</string>
+    <string name="ui_91de720961aed7" formatted="false">Clear stream and artwork caches.</string>
+    <string name="ui_3826e7fb3e49e0" formatted="false">Clear stream cache</string>
+    <string name="ui_a766cd7ff02c32" formatted="false">Client ID</string>
+    <string name="ui_4b468ec67f3254" formatted="false">Client secret</string>
+    <string name="ui_bbfa773e5a63a5" formatted="false">Close</string>
+    <string name="ui_88d5e4cac104ff" formatted="false">Colors</string>
+    <string name="ui_2313707a4e5c0a" formatted="false">Comfortable</string>
+    <string name="ui_1df39aa58ad403" formatted="false">Compact</string>
+    <string name="ui_bf5707a54e45b7" formatted="false">Compact cards</string>
+    <string name="ui_e040c38ea39789" formatted="false">Compact mode</string>
+    <string name="ui_3890a2ed77c817" formatted="false">Compact swipe tabs</string>
+    <string name="ui_b3b378b7374cb7" formatted="false">Connect your osu! account</string>
+    <string name="ui_3cf0d881e31fb9" formatted="false">Connect your osu! profile to show your avatar, ranks and statistics here. Browsing, searching and listening remain available without signing in.</string>
+    <string name="ui_c1f3b71fdf887f" formatted="false">Connecting</string>
+    <string name="ui_4f9be057f0ea5d" formatted="false">Content</string>
+    <string name="ui_aada5528563ac4" formatted="false">Control buttons</string>
+    <string name="ui_74eb70a4bfebfb" formatted="false">Controls and gestures</string>
+    <string name="ui_6d5f937051d2b6" formatted="false">Could not load beatmap details.</string>
+    <string name="ui_1dbc9558cd8538" formatted="false">Could not refresh your library. Check your connection and try again.</string>
+    <string name="ui_7d0598005d9579" formatted="false">Credentials for the official osu! catalog.</string>
+    <string name="ui_00acfce66b4622" formatted="false">Crossfade</string>
+    <string name="ui_081ae3fdc40360" formatted="false">Custom</string>
+    <string name="ui_a47324afa1aebc" formatted="false">Custom minutes</string>
+    <string name="ui_239dce622324de" formatted="false">Customize</string>
+    <string name="ui_f063a59047a652" formatted="false">Customize the mini player.</string>
+    <string name="ui_869ec885837011" formatted="false">Customize the navigation bar.</string>
+    <string name="ui_cd80befadd3a39" formatted="false">Daily listening</string>
+    <string name="ui_20d246a3bd9255" formatted="false">Dark Theme</string>
+    <string name="ui_56ab7aaee895fd" formatted="false">Date added</string>
+    <string name="ui_2ac3a42adb50fa" formatted="false">Deduplicate queue entries</string>
+    <string name="ui_6485b266a83011" formatted="false">Default (per screen)</string>
+    <string name="ui_12db809a2976a7" formatted="false">Default filters</string>
+    <string name="ui_4dfc110b81ec50" formatted="false">Default game mode</string>
+    <string name="ui_f9c497bb4dd1a1" formatted="false">Default status filter</string>
+    <string name="ui_09d5726afc0b86" formatted="false">Default tab</string>
+    <string name="ui_f6fdbe48dc54dd" formatted="false">Delete</string>
+    <string name="ui_5ec7ff34d9b65e" formatted="false">Delete all downloads?</string>
+    <string name="ui_4ef937ebd0b699" formatted="false">Delete all forgotten</string>
+    <string name="ui_60ac32f930c375" formatted="false">Delete cached audio streams.</string>
+    <string name="ui_afd51d6b14479d" formatted="false">Delete cached cover images.</string>
+    <string name="ui_187f59c07e3c8c" formatted="false">Delete map?</string>
+    <string name="ui_5894f5d3de0452" formatted="false">Delete playlist?</string>
+    <string name="ui_be20a7d43dde8a" formatted="false">Delete stream, artwork and catalog caches.</string>
+    <string name="ui_f67bc6dad74f08" formatted="false">Dev</string>
+    <string name="ui_7ea27f6f8f215a" formatted="false">Developer options</string>
+    <string name="ui_a5a74a6df09278" formatted="false">Device</string>
+    <string name="ui_7945d3c8f7a0de" formatted="false">Difficulty</string>
+    <string name="ui_f4f4473df8cb59" formatted="false">Disabled</string>
+    <string name="ui_ec98a48e2c63c9" formatted="false">Display &amp; performance</string>
+    <string name="ui_c7874aaa0fab4e" formatted="false">Display name</string>
+    <string name="ui_9d2c24ed9e6b49" formatted="false">Display the shuffle mix card on Home.</string>
+    <string name="ui_e4c4ecef7842f9" formatted="false">Display who mapped each beatmap.</string>
+    <string name="ui_e9b450d14bc236" formatted="false">Done</string>
+    <string name="ui_86852533d4aeb7" formatted="false">Double-tap Search to start typing.</string>
+    <string name="ui_beb5f1f26d584a" formatted="false">Double-tap Search to type</string>
+    <string name="ui_42aa0f68a42bb1" formatted="false">Download URL</string>
+    <string name="ui_a4eda9802f7edd" formatted="false">Download beatmaps on Wi-Fi only.</string>
+    <string name="ui_01125e1be1f56c" formatted="false">Download failed</string>
+    <string name="ui_c850f30c959483" formatted="false">Download storage limit</string>
+    <string name="ui_435ce26e22b40b" formatted="false">Downloaded .osz archives are saved in addmap/downloads.</string>
+    <string name="ui_9b4592f9ae45a6" formatted="false">Downloading</string>
+    <string name="ui_a862c2b21b5e13" formatted="false">Downloads</string>
+    <string name="ui_8621cf00f0a798" formatted="false">Downloads use the same public mirror sources for guests and signed-in users. An osu! account is not required.</string>
+    <string name="ui_6a87ebef1d1149" formatted="false">Drag a tab to change its order.</string>
+    <string name="ui_f4f8f514948329" formatted="false">Drag songs to set your own order.</string>
+    <string name="ui_b09cb6e84e747e" formatted="false">Dynamic queue (Autoplay)</string>
+    <string name="ui_62258559cc2805" formatted="false">Electronic</string>
+    <string name="ui_489812d7551160" formatted="false">Enable vibration feedback.</string>
+    <string name="ui_a68743b84201e6" formatted="false">End of results</string>
+    <string name="ui_649df08a448ee3" formatted="false">English</string>
+    <string name="ui_6b7a3b3caa3bab" formatted="false">Enter a valid host name or IP address</string>
+    <string name="ui_a73021f6f21a09" formatted="false">Enter the Client ID and Client Secret from your osu! OAuth application. These are app credentials, not your osu! password. After they are verified, Kozu will open osu! so you can authorize your profile.</string>
+    <string name="ui_3b64a9da4d815a" formatted="false">Equalizer</string>
+    <string name="ui_4a66d148077918" formatted="false">Everything</string>
+    <string name="ui_57ab0d63329570" formatted="false">Explicit content</string>
+    <string name="ui_b965ae66fcc42d" formatted="false">Explore</string>
+    <string name="ui_af20880da9a620" formatted="false">Export and restore data</string>
+    <string name="ui_6043b4bdf9af8b" formatted="false">Export backup</string>
+    <string name="ui_870c8e665463af" formatted="false">Export settings and personal data.</string>
+    <string name="ui_155edc970c2d5c" formatted="false">Expressive</string>
+    <string name="ui_7464976066d652" formatted="false">Expressive pill</string>
+    <string name="ui_6b2a7b4563d2f4" formatted="false">Fade between songs.</string>
+    <string name="ui_e6ccc0fdea8594" formatted="false">Favourites</string>
+    <string name="ui_cf05a136357238" formatted="false">Featured artists</string>
+    <string name="ui_a04405281fcacb" formatted="false">Filled play circle</string>
+    <string name="ui_96e578211aa295" formatted="false">Filters</string>
+    <string name="ui_fff44d9a0ed456" formatted="false">Find a setting</string>
+    <string name="ui_ab224b51965363" formatted="false">Floating</string>
+    <string name="ui_44fa4628d8efb0" formatted="false">Folk</string>
+    <string name="ui_59c6b5887ab72d" formatted="false">Follow System</string>
+    <string name="ui_b775f5cbf8f43a" formatted="false">Font and text</string>
+    <string name="ui_2980442f3dd617" formatted="false">Force catalog refresh</string>
+    <string name="ui_88728942905cfd" formatted="false">Forget your recent search terms.</string>
+    <string name="ui_f665a6919830ca" formatted="false">Forgotten tracks</string>
+    <string name="ui_44389f6a466eaa" formatted="false">French</string>
+    <string name="ui_a3013f2762800b" formatted="false">Full license text was not included in the generated metadata.</string>
+    <string name="ui_fc58bf59118e1e" formatted="false">Full song</string>
+    <string name="ui_e3e82846c32567" formatted="false">Game</string>
+    <string name="ui_2ca008102a7f9c" formatted="false">Game paused</string>
+    <string name="ui_6da4ab776b1093" formatted="false">Game settings</string>
+    <string name="ui_da91388c72d3e3" formatted="false">German</string>
+    <string name="ui_afb597aa808b3d" formatted="false">Global theme</string>
+    <string name="ui_3c79b4fec0386e" formatted="false">Google Sans</string>
+    <string name="ui_78d5a72fe6826d" formatted="false">Google Sans Flex (Rounded)</string>
+    <string name="ui_efa416f971d67c" formatted="false">Graveyard</string>
+    <string name="ui_07ffe0b5c89fa0" formatted="false">Grayscale with a single accent</string>
+    <string name="ui_933bf21afdd55a" formatted="false">Green</string>
+    <string name="ui_b0baa915a1e729" formatted="false">Haptic feedback</string>
+    <string name="ui_020d6b5ecf8204" formatted="false">Haptics</string>
+    <string name="ui_26f95b790002d2" formatted="false">Hardware audio offload</string>
+    <string name="ui_a3cc460f5e4ce7" formatted="false">Has leaderboard</string>
+    <string name="ui_3d69de22491586" formatted="false">Has storyboard</string>
+    <string name="ui_2247b67c506aa1" formatted="false">Has video</string>
+    <string name="ui_57dce7eacf6102" formatted="false">Headline sample</string>
+    <string name="ui_453cce215f7ac3" formatted="false">Headphones</string>
+    <string name="ui_0d4c81e6676fd6" formatted="false">Hi-Fi mode</string>
+    <string name="ui_38cbb185e14335" formatted="false">High (original)</string>
+    <string name="ui_ddfd624753efe0" formatted="false">High refresh rate</string>
+    <string name="ui_f348b5f9db08dd" formatted="false">Hip Hop</string>
+    <string name="ui_68aa05e2a9eb77" formatted="false">Hip hop</string>
+    <string name="ui_70f8bb9a8a5393" formatted="false">Home</string>
+    <string name="ui_3960ec4ca5fb5e" formatted="false">Host</string>
+    <string name="ui_81bdb0be5e6df3" formatted="false">How Kozu finds audio</string>
+    <string name="ui_aebc99a3841a93" formatted="false">How Kozu handles your data.</string>
+    <string name="ui_751ad722bb7e5b" formatted="false">How backup works</string>
+    <string name="ui_65c4932d0cbf42" formatted="false">How soft the player backdrop looks.</string>
+    <string name="ui_f9ea46d8e07409" formatted="false">Icons-only navigation</string>
+    <string name="ui_2f7cfac6f09ac5" formatted="false">Import a Kozu backup.</string>
+    <string name="ui_1b40a3adc76159" formatted="false">Import backup</string>
+    <string name="ui_e6a7934ce9e9db" formatted="false">Include converted beatmaps</string>
+    <string name="ui_4462476709952b" formatted="false">Include explicit maps in search results.</string>
+    <string name="ui_8360a9faab5eed" formatted="false">Instrumental</string>
+    <string name="ui_485b57adcc8065" formatted="false">Italian</string>
+    <string name="ui_9239c22d1d1c99" formatted="false">Japanese</string>
+    <string name="ui_0f940a4107f563" formatted="false">Jazz</string>
+    <string name="ui_20b9a2bb363bf1" formatted="false">Keep full beatmap</string>
+    <string name="ui_2bbe83ad641cf0" formatted="false">Keep playback running after leaving the app.</string>
+    <string name="ui_40e3cc93cfe853" formatted="false">Keep playing after closing</string>
+    <string name="ui_23f85e29fe8820" formatted="false">Keep screen on in player</string>
+    <string name="ui_070c9e8af94c60" formatted="false">Keep the full .osz file for gameplay.</string>
+    <string name="ui_1654e24edb17ef" formatted="false">Keep the screen on in the player.</string>
+    <string name="ui_dec66c5bf0f7fe" formatted="false">Korean</string>
+    <string name="ui_79310146340d31" formatted="false">Kozu</string>
+    <string name="ui_3334891cc6e45f" formatted="false">Kozu is an unofficial fan project and is not affiliated with or endorsed by ppy Pty Ltd. osu! is a trademark of ppy Pty Ltd.</string>
+    <string name="ui_ca5b4f1427e7b0" formatted="false">Kozu updates</string>
+    <string name="ui_89b86ab0e66f52" formatted="false">Language</string>
+    <string name="ui_56e2f5d3634ea4" formatted="false">Later</string>
+    <string name="ui_2e0e9f6c017205" formatted="false">Layout &amp; density</string>
+    <string name="ui_c941e9379443c4" formatted="false">Layout density</string>
+    <string name="ui_0381247a698736" formatted="false">Leaderboard</string>
+    <string name="ui_87f53180168370" formatted="false">Leave blank to use your osu! username</string>
+    <string name="ui_a68bedf6bcd20a" formatted="false">Letter roundness</string>
+    <string name="ui_d6a748f4688aa4" formatted="false">Letter width</string>
+    <string name="ui_b8100f5ba8bd04" formatted="false">Library</string>
+    <string name="ui_5495f6ee5384b9" formatted="false">Library navigation</string>
+    <string name="ui_a6af4cb8479c82" formatted="false">Library rows</string>
+    <string name="ui_51c55df5366763" formatted="false">Library tabs</string>
+    <string name="ui_ee92c8a4b63c95" formatted="false">Licenses</string>
+    <string name="ui_54c33e70709fa4" formatted="false">Light Theme</string>
+    <string name="ui_8c794f6470e427" formatted="false">Liked</string>
+    <string name="ui_f092bc231f2819" formatted="false">Limited details from the public mirror. Add osu! API credentials for the full listing.</string>
+    <string name="ui_bd9991332965ca" formatted="false">Listening history</string>
+    <string name="ui_a760b27b792a34" formatted="false">Listening stats</string>
+    <string name="ui_b4857486c2b93d" formatted="false">Loading charts…</string>
+    <string name="ui_6c73179974b508" formatted="false">Loading personal scores…</string>
+    <string name="ui_e5bc6697ed1dcf" formatted="false">Loading scores…</string>
+    <string name="ui_07531f00ed90ef" formatted="false">Look for a newer Kozu release on GitHub.</string>
+    <string name="ui_59e6cfa4f44950" formatted="false">Loudness</string>
+    <string name="ui_6f345fa2acfd7b" formatted="false">Loved</string>
+    <string name="ui_a0979c3cdf6448" formatted="false">Loved picks</string>
+    <string name="ui_a43a9da0547838" formatted="false">Low (150px)</string>
+    <string name="ui_599d70a0b37f70" formatted="false">Make text lighter or bolder across the app.</string>
+    <string name="ui_2e400084447bb8" formatted="false">Mania</string>
+    <string name="ui_a782be00b0c6b9" formatted="false">Mania difficulties</string>
+    <string name="ui_ea853089d7cf5f" formatted="false">Mapper</string>
+    <string name="ui_30d75dda9523f2" formatted="false">Match the colors to the current album art.</string>
+    <string name="ui_358fcd0682377b" formatted="false">Maximum disk space for cached streams.</string>
+    <string name="ui_e7d788b56af7cc" formatted="false">Maximum disk space used by cached covers.</string>
+    <string name="ui_8e6debd1d6c980" formatted="false">Medium (300px)</string>
+    <string name="ui_90acb406947db8" formatted="false">Metal</string>
+    <string name="ui_ea147cc3e00f00" formatted="false">Mini player and full player</string>
+    <string name="ui_10fde9feee2886" formatted="false">Mini player artwork</string>
+    <string name="ui_c8c5d1a2554c08" formatted="false">Mini player colors</string>
+    <string name="ui_3ff18efcd2e38d" formatted="false">Mini player corner radius</string>
+    <string name="ui_8fb3990fbadab9" formatted="false">Mini player progress</string>
+    <string name="ui_04fa521d0f19e4" formatted="false">Mini player style</string>
+    <string name="ui_fd7391b6720b80" formatted="false">Mix</string>
+    <string name="ui_28a39985f2b554" formatted="false">Mixed picks</string>
+    <string name="ui_8dbc6e2375c249" formatted="false">Mobile artwork quality</string>
+    <string name="ui_1dda992b70d55b" formatted="false">Monochrome</string>
+    <string name="ui_14202e85eab3b4" formatted="false">Most played</string>
+    <string name="ui_131260cbfbb0c8" formatted="false">Music</string>
+    <string name="ui_054700ed9e2722" formatted="false">Muted colors with a hint of tint</string>
+    <string name="ui_337590e34dccc7" formatted="false">My maps</string>
+    <string name="ui_51ae47e5709af1" formatted="false">My top size</string>
+    <string name="ui_709a23220f2c3d" formatted="false">Name</string>
+    <string name="ui_63db7be011d9e0" formatted="false">Name used in the Home greeting.</string>
+    <string name="ui_87f5791b3b20b4" formatted="false">Navigation bar</string>
+    <string name="ui_d3f77266899c20" formatted="false">Navigation bar corner radius</string>
+    <string name="ui_f5df8af75dfa5f" formatted="false">Navigation bar style</string>
+    <string name="ui_53ebc572b4a448" formatted="false">Network</string>
+    <string name="ui_4bd29139454399" formatted="false">Neutral</string>
+    <string name="ui_80c3052d33ccde" formatted="false">Never</string>
+    <string name="ui_ce00926930a45d" formatted="false">New personal best!</string>
+    <string name="ui_3cdd02963c7142" formatted="false">New releases</string>
+    <string name="ui_d0442824723ca3" formatted="false">Newest</string>
+    <string name="ui_14d87527bcedeb" formatted="false">No Mania difficulties were found for this map.</string>
+    <string name="ui_96a486e725db44" formatted="false">No difficulty details are available for this beatmap.</string>
+    <string name="ui_d79ed7a5cd1bab" formatted="false">No license information was provided by the dependency metadata. Check the upstream project before redistributing this build.</string>
+    <string name="ui_1e8cad627274d7" formatted="false">No scores have been recorded for this difficulty.</string>
+    <string name="ui_89bb9fcb1ee90b" formatted="false">No settings found</string>
+    <string name="ui_8676fc4354c128" formatted="false">Not in this difficulty\'s top 50, score not saved</string>
+    <string name="ui_d8abb94b9418d9" formatted="false">Nothing to review. Every offline song has been played recently.</string>
+    <string name="ui_f83cb354410ce6" formatted="false">Nothing to show yet. Listen to a few songs and your top tracks, artists and mappers will appear here.</string>
+    <string name="ui_aea0247b2a4a52" formatted="false">Novelty</string>
+    <string name="ui_0844730531b06e" formatted="false">Now Playing</string>
+    <string name="ui_d244f706071aaf" formatted="false">Number of songs in Top stats lists.</string>
+    <string name="ui_eddae690d5e9b9" formatted="false">OAuth application verified. Opening osu!…</string>
+    <string name="ui_e3de5ab0ca4c69" formatted="false">Off</string>
+    <string name="ui_aa4775f938b695" formatted="false">Off · standard dark surfaces. Turn on for a true black OLED-friendly background.</string>
+    <string name="ui_0901d8dc37190a" formatted="false">Official + fallback</string>
+    <string name="ui_902c98638417f5" formatted="false">Official osu!</string>
+    <string name="ui_3399819b6f2820" formatted="false">Offline beatmaps</string>
+    <string name="ui_ac143f451919e0" formatted="false">Offline songs will be removed from this device. You can download them again anytime.</string>
+    <string name="ui_0fdebe14455471" formatted="false">On · true black background with darker cards. Applies in Dark Theme.</string>
+    <string name="ui_467aeec6bb04e1" formatted="false">Once a day on launch</string>
+    <string name="ui_2c45a53b8c053a" formatted="false">Open battery settings</string>
+    <string name="ui_d2cbed1bbd0645" formatted="false">Open license source</string>
+    <string name="ui_658d868902f079" formatted="false">Open on osu!</string>
+    <string name="ui_96e8e227536300" formatted="false">Open osu! OAuth settings</string>
+    <string name="ui_b226fcfd39aed9" formatted="false">Open osu! beatmap links in Kozu.</string>
+    <string name="ui_720648e10e8c06" formatted="false">Open player on play</string>
+    <string name="ui_6a3bd390fd9607" formatted="false">Open release</string>
+    <string name="ui_b1d90372cb1210" formatted="false">Open system settings</string>
+    <string name="ui_635c6dbebc6f8d" formatted="false">Open the full player on play.</string>
+    <string name="ui_03c21782916347" formatted="false">Open-source notices</string>
+    <string name="ui_31073c8023a4f8" formatted="false">Open-source notices.</string>
+    <string name="ui_09fb6aaba7940a" formatted="false">Orange</string>
+    <string name="ui_1d75774c0f96b6" formatted="false">Order</string>
+    <string name="ui_6e6a6f2086bb5f" formatted="false">Other</string>
+    <string name="ui_bccd863e3deb65" formatted="false">Outlined play circle</string>
+    <string name="ui_524350aebb988c" formatted="false">Palette style</string>
+    <string name="ui_408255ed028bc9" formatted="false">Password (optional)</string>
+    <string name="ui_52d4630d51c5f0" formatted="false">Pause when headphones disconnect</string>
+    <string name="ui_f7f85b9548dbf5" formatted="false">Pause when headphones disconnect.</string>
+    <string name="ui_96f608c16cef16" formatted="false">Pending</string>
+    <string name="ui_482c7d96a4de8f" formatted="false">Performance mode</string>
+    <string name="ui_6c3b0c02ddaf07" formatted="false">Persistent shuffle</string>
+    <string name="ui_eae34d1396e7b1" formatted="false">Personal best: %,d</string>
+    <string name="ui_54076359fdc7f1" formatted="false">Pink</string>
+    <string name="ui_b6c0af90231bef" formatted="false">Play a few songs and your week will show up here.</string>
+    <string name="ui_ae8b18ce8e25e8" formatted="false">Play arrow</string>
+    <string name="ui_fca966b0e35484" formatted="false">Play circle</string>
+    <string name="ui_59ee272a3fa52e" formatted="false">Play full songs or short previews.</string>
+    <string name="ui_c8e3087049119a" formatted="false">Playback</string>
+    <string name="ui_657307e5370b49" formatted="false">Playback icon</string>
+    <string name="ui_91d5082c1dc5a2" formatted="false">Played</string>
+    <string name="ui_e53407cfe1a515" formatted="false">Player</string>
+    <string name="ui_7ead9351b321a1" formatted="false">Player &amp; mini player</string>
+    <string name="ui_abe45b863765f5" formatted="false">Player artwork shape</string>
+    <string name="ui_514c420f38136d" formatted="false">Player icon style</string>
+    <string name="ui_2e4f5ba7b9a5e1" formatted="false">Player name</string>
+    <string name="ui_4a764e61f7a32e" formatted="false">Playfield layout</string>
+    <string name="ui_6a8c16430ce7ac" formatted="false">Playful hues with strong contrast</string>
+    <string name="ui_544f7553c85aae" formatted="false">Playlist name</string>
+    <string name="ui_77b69f32c87800" formatted="false">Playlists</string>
+    <string name="ui_a6bc73a2168f40" formatted="false">Plays</string>
+    <string name="ui_c4f1241e72a271" formatted="false">Plays and favorites</string>
+    <string name="ui_d011986407b111" formatted="false">Polish</string>
+    <string name="ui_267a64d3f8a27f" formatted="false">Pop</string>
+    <string name="ui_fe035157cda20b" formatted="false">Port</string>
+    <string name="ui_249bad65fbd1cd" formatted="false">Port must be between 1 and 65535</string>
+    <string name="ui_7d2f3d54d1db52" formatted="false">Prefer original song titles when available.</string>
+    <string name="ui_19ab5950c683ac" formatted="false">Prefer original titles</string>
+    <string name="ui_a86b1e627bc1d5" formatted="false">Preload the next song.</string>
+    <string name="ui_e20f130049a3eb" formatted="false">Preparation log</string>
+    <string name="ui_5b8ee8b02b8eda" formatted="false">Prerelease builds</string>
+    <string name="ui_5b858d8aebe256" formatted="false">Preview URL (optional)</string>
+    <string name="ui_2579fc4926d2fc" formatted="false">Preview only</string>
+    <string name="ui_e14dd10da9c224" formatted="false">Prioritize smooth scrolling.</string>
+    <string name="ui_cf01481f626d51" formatted="false">Privacy</string>
+    <string name="ui_7ceacdcaab4c89" formatted="false">Privacy policy</string>
+    <string name="ui_2e280b44f81cc1" formatted="false">Proxy server</string>
+    <string name="ui_fd50c2c4dacd2e" formatted="false">Public fallback</string>
+    <string name="ui_4904cbcd4a3c5f" formatted="false">Public mirror downloads</string>
+    <string name="ui_4b6adf3851d638" formatted="false">Public releases</string>
+    <string name="ui_aa8a278d9259e4" formatted="false">Pure black</string>
+    <string name="ui_32576f4fedc07f" formatted="false">Purple</string>
+    <string name="ui_4f12dc10729d00" formatted="false">Qualified</string>
+    <string name="ui_5a60e73f665970" formatted="false">Queue and transitions</string>
+    <string name="ui_72dabfb89f99f8" formatted="false">Queue preloading</string>
+    <string name="ui_6a599877d75384" formatted="false">Queued</string>
+    <string name="ui_87c83dd2029a91" formatted="false">Quicksand</string>
+    <string name="ui_1a2285d8881f22" formatted="false">Quit</string>
+    <string name="ui_58d888c08aa561" formatted="false">Random</string>
+    <string name="ui_86ff9efe8897e4" formatted="false">Rank history is not available yet</string>
+    <string name="ui_092579473a08bd" formatted="false">Ranked</string>
+    <string name="ui_9cd04bc7edb4dc" formatted="false">Ranked + Loved</string>
+    <string name="ui_5513a1fc555d82" formatted="false">Ranked date</string>
+    <string name="ui_711f6f36a61a26" formatted="false">Rate Kozu</string>
+    <string name="ui_60272af4338a30" formatted="false">Rate Kozu on GitHub.</string>
+    <string name="ui_6437b7bf655854" formatted="false">Rating</string>
+    <string name="ui_ff68e45a1f459a" formatted="false">Reading generated dependency licenses…</string>
+    <string name="ui_0ed7e603e8c184" formatted="false">Ready to play</string>
+    <string name="ui_bbb80c33e98e77" formatted="false">Rebuild library</string>
+    <string name="ui_ce2a5db41ff9ff" formatted="false">Rebuild stats from listening history.</string>
+    <string name="ui_a73d2913b829ca" formatted="false">Recent searches</string>
+    <string name="ui_5e64b6867d720a" formatted="false">Reclaimable space</string>
+    <string name="ui_70a7da2db2e3e4" formatted="false">Recommended difficulty</string>
+    <string name="ui_cc9db3a795571c" formatted="false">Red</string>
+    <string name="ui_e4fef4b1ff5152" formatted="false">Reduce effects to save battery.</string>
+    <string name="ui_848cd92b4679e5" formatted="false">Refresh cached catalog pages.</string>
+    <string name="ui_c73deb234dfea1" formatted="false">Refresh catalog</string>
+    <string name="ui_57ada4d398cb45" formatted="false">Refresh device info</string>
+    <string name="ui_614ae02ff3e827" formatted="false">Refresh device information.</string>
+    <string name="ui_96141178bb8953" formatted="false">Refreshing…</string>
+    <string name="ui_efbbd21921ee64" formatted="false">Regenerate stats</string>
+    <string name="ui_dcb70f5244f888" formatted="false">Relevance</string>
+    <string name="ui_5d6db0992b6b98" formatted="false">Remember shuffle and repeat settings.</string>
+    <string name="ui_e963907dac5cd5" formatted="false">Remove</string>
+    <string name="ui_75b8109cdbcd6c" formatted="false">Remove duplicate songs from the queue.</string>
+    <string name="ui_6f824feee97ab1" formatted="false">Remove every play recorded on this device.</string>
+    <string name="ui_f846a913331cd0" formatted="false">Reorder library tabs</string>
+    <string name="ui_c3329f5a5115ec" formatted="false">Reorder tabs</string>
+    <string name="ui_44c57abd888a66" formatted="false">Reset</string>
+    <string name="ui_8a20f099e81b0c" formatted="false">Reset all preferences.</string>
+    <string name="ui_7262c7b77667dc" formatted="false">Reset all settings</string>
+    <string name="ui_56553100b028cf" formatted="false">Reset filters</string>
+    <string name="ui_b74221691b94c9" formatted="false">Reset order</string>
+    <string name="ui_ab92c7f9c013f3" formatted="false">Reset player style</string>
+    <string name="ui_eea26460e96e01" formatted="false">Reset tab order to the default?</string>
+    <string name="ui_f0c3075af32a6a" formatted="false">Reset typography</string>
+    <string name="ui_b11e94bc97028e" formatted="false">Resolution for covers on Wi-Fi.</string>
+    <string name="ui_97a27e6e77359f" formatted="false">Resolution for covers on mobile data.</string>
+    <string name="ui_b134bd555a2f6e" formatted="false">Restart</string>
+    <string name="ui_db3fc498e99e5b" formatted="false">Restore default player appearance.</string>
+    <string name="ui_083e7cf463cf0b" formatted="false">Restore default typography.</string>
+    <string name="ui_b3bd0b5a70497b" formatted="false">Resume</string>
+    <string name="ui_f75ef671e5911a" formatted="false">Resume when headphones reconnect</string>
+    <string name="ui_ae39427449042f" formatted="false">Resume when headphones reconnect.</string>
+    <string name="ui_9f5cd8a2e8807d" formatted="false">Retry</string>
+    <string name="ui_64e904bc028e8a" formatted="false">Retry loading more</string>
+    <string name="ui_fcce8dedddfb8e" formatted="false">Review downloads unused for 60 days.</string>
+    <string name="ui_7d78c9a0fb670e" formatted="false">Rich and saturated colors</string>
+    <string name="ui_0492d6c4624c99" formatted="false">Roboto / Sans Serif</string>
+    <string name="ui_468d79c2e0229e" formatted="false">Rock</string>
+    <string name="ui_119436ed985248" formatted="false">Rotate round artwork while a song plays.</string>
+    <string name="ui_efb5cec884d1a0" formatted="false">Rounded, outlined or sharp playback icons.</string>
+    <string name="ui_74ad93cbebf587" formatted="false">Russian</string>
+    <string name="ui_efc007a393f66c" formatted="false">Save</string>
+    <string name="ui_995e4d5d1af624" formatted="false">Save as playlist</string>
+    <string name="ui_b48530bd1e3118" formatted="false">Saves data</string>
+    <string name="ui_266887db0d5f81" formatted="false">Saving score…</string>
+    <string name="ui_15517b79379ff8" formatted="false">Scrolling style</string>
+    <string name="ui_bce06414177f72" formatted="false">Search</string>
+    <string name="ui_727131e23e1592" formatted="false">Search beatmaps</string>
+    <string name="ui_494603b194c6f1" formatted="false">Search maps</string>
+    <string name="ui_9a6f37a7bf9c2e" formatted="false">Search settings</string>
+    <string name="ui_72524f581bab58" formatted="false">Search songs, artists, or mappers</string>
+    <string name="ui_667fd915f79931" formatted="false">Search the osu! catalog</string>
+    <string name="ui_d2885652b743eb" formatted="false">Search title, artist or mapper</string>
+    <string name="ui_6d587c7eb2bebe" formatted="false">Searching beatmaps…</string>
+    <string name="ui_0ffc656642d62c" formatted="false">Seek bar style</string>
+    <string name="ui_9bf340bbdda1e9" formatted="false">Set artwork shape throughout the app.</string>
+    <string name="ui_ee7a96f955701f" formatted="false">Set navigation bar corners.</string>
+    <string name="ui_89f95bc8ed1f4d" formatted="false">Set spacing across the app.</string>
+    <string name="ui_0c3c15cc000d75" formatted="false">Set the offline storage limit.</string>
+    <string name="ui_c7f73bb54d9289" formatted="false">Settings</string>
+    <string name="ui_03fe74e44544b4" formatted="false">Shape of play, previous and next buttons.</string>
+    <string name="ui_491509a8ba7a82" formatted="false">Shape of the cover in the player bar.</string>
+    <string name="ui_135734f881b628" formatted="false">Shape of the large cover in the full player.</string>
+    <string name="ui_c96a8e08595d20" formatted="false">Shapes &amp; sliders</string>
+    <string name="ui_fd10ccafbf5c81" formatted="false">Share Kozu with others.</string>
+    <string name="ui_06236b93f8b08b" formatted="false">Share app</string>
+    <string name="ui_daa4107cc3f2bf" formatted="false">Sharpest covers</string>
+    <string name="ui_b659f30547c726" formatted="false">Show Your Mix</string>
+    <string name="ui_e7024b179ffa5b" formatted="false">Show artist</string>
+    <string name="ui_7c3a961009b42f" formatted="false">Show audio details in the player.</string>
+    <string name="ui_ab696a2f1e2930" formatted="false">Show explicit content</string>
+    <string name="ui_0e46aeabd03e24" formatted="false">Show mapper names</string>
+    <string name="ui_e8a449cce60fed" formatted="false">Show player file info</string>
+    <string name="ui_3a4b9119e40029" formatted="false">Show previous and next controls.</string>
+    <string name="ui_fff7b4e84f891f" formatted="false">Show previously played songs in the queue.</string>
+    <string name="ui_c6fb87f24f6c2e" formatted="false">Show queue history</string>
+    <string name="ui_22d49ed11c6035" formatted="false">Show quick controls in the player.</string>
+    <string name="ui_2331b5e1e588f2" formatted="false">Show the artist name.</string>
+    <string name="ui_4d2eff5bb3261a" formatted="false">Shuffle, repeat and like row</string>
+    <string name="ui_5184dbccfdb069" formatted="false">Sign in with osu!</string>
+    <string name="ui_dc1649a16c1496" formatted="false">Sign out</string>
+    <string name="ui_e155d7eeb83d12" formatted="false">Sign-in and API access</string>
+    <string name="ui_1b6c524ffb712c" formatted="false">Signed in</string>
+    <string name="ui_c8c7fd7ffd175d" formatted="false">Silver S</string>
+    <string name="ui_0d4fe2050f3adc" formatted="false">Silver SS</string>
+    <string name="ui_065641118e7c56" formatted="false">Skip buttons</string>
+    <string name="ui_6dc6b7e79c51f0" formatted="false">Skip quiet sections of a track.</string>
+    <string name="ui_3d4da20a521ad1" formatted="false">Skip silence</string>
+    <string name="ui_e906133709fbaf" formatted="false">Sleep timer</string>
+    <string name="ui_260592469f9c6a" formatted="false">Slider style</string>
+    <string name="ui_92ce6a29b3ded4" formatted="false">Some archives could not be imported</string>
+    <string name="ui_e1404b4267e475" formatted="false">Songs</string>
+    <string name="ui_a2a5bdeca9391b" formatted="false">Sort by</string>
+    <string name="ui_b4e3efeba10e84" formatted="false">Sound</string>
+    <string name="ui_175245275e8607" formatted="false">Sound settings</string>
+    <string name="ui_8df7f1b361b2af" formatted="false">Spanish</string>
+    <string name="ui_83b51c8ced68fe" formatted="false">Spatial audio</string>
+    <string name="ui_2d2cb022bc3d26" formatted="false">Speed</string>
+    <string name="ui_d313e3dd89e284" formatted="false">Spinning artwork</string>
+    <string name="ui_3421bc247809da" formatted="false">Spotlight beatmaps</string>
+    <string name="ui_d96e5b2dd07c17" formatted="false">Stable</string>
+    <string name="ui_952f375412e89f" formatted="false">Start</string>
+    <string name="ui_9e092dda4f0e27" formatted="false">Storage</string>
+    <string name="ui_be80c840b1e4b8" formatted="false">Stream cache limit</string>
+    <string name="ui_f1f8f16e849059" formatted="false">Stream only while connected to Wi-Fi.</string>
+    <string name="ui_68b0ab5b1850d3" formatted="false">Stream quality</string>
+    <string name="ui_c5acf636349bff" formatted="false">Streaming &amp; data saving</string>
+    <string name="ui_7a54bad178c699" formatted="false">Streaming mirrors</string>
+    <string name="ui_65997f88ef52b8" formatted="false">Strengthen low frequencies.</string>
+    <string name="ui_539fd72c919411" formatted="false">Subscribed mappers</string>
+    <string name="ui_b748173ca9ab33" formatted="false">Supporter</string>
+    <string name="ui_04a422d38c9541" formatted="false">Swedish</string>
+    <string name="ui_e2879daf85e199" formatted="false">Swipe sideways to skip or down to dismiss.</string>
+    <string name="ui_3cb185b71edd16" formatted="false">Swipe to skip</string>
+    <string name="ui_2581d117d350f2" formatted="false">Sync and library</string>
+    <string name="ui_29d71ab7a0857e" formatted="false">Sync favorites, playlists and downloads.</string>
+    <string name="ui_8d5636f53089b6" formatted="false">Sync library</string>
+    <string name="ui_2b7d938e6787ea" formatted="false">Sync now</string>
+    <string name="ui_ed594826568219" formatted="false">Sync on launch</string>
+    <string name="ui_f9265744b75363" formatted="false">Sync personal library data from osu!.</string>
+    <string name="ui_6b1277fbbbc314" formatted="false">Sync the library on launch.</string>
+    <string name="ui_dcdba09942d2e9" formatted="false">Sync your osu! profile and favorites.</string>
+    <string name="ui_221ca63005eaf2" formatted="false">Syncing…</string>
+    <string name="ui_9d8d3808063b4f" formatted="false">System default</string>
+    <string name="ui_848eed0fbd5429" formatted="false">Tags</string>
+    <string name="ui_b04801b57d41ad" formatted="false">Taiko</string>
+    <string name="ui_df0ad373b7ff60" formatted="false">Teal</string>
+    <string name="ui_ccf66f0746494d" formatted="false">Test connection</string>
+    <string name="ui_3cc6e124a8e4ea" formatted="false">Text size</string>
+    <string name="ui_2b27af6b5e9c7b" formatted="false">Text weight</string>
+    <string name="ui_fa789d9d7a34c8" formatted="false">The catalog is unavailable right now.</string>
+    <string name="ui_b34b3a5d4632f5" formatted="false">Theme and layout</string>
+    <string name="ui_098024dc5537ca" formatted="false">Timing</string>
+    <string name="ui_768e0c1c69573f" formatted="false">Title</string>
+    <string name="ui_af209a4deaef44" formatted="false">Title: Dracula (feat. JENNIE)</string>
+    <string name="ui_30ec518f2ec418" formatted="false">Titles &amp; cards</string>
+    <string name="ui_8f5125bea220c0" formatted="false">Titles and catalog preferences</string>
+    <string name="ui_24345a14377fd8" formatted="false">Today</string>
+    <string name="ui_1d210f1d24b21c" formatted="false">Today\'s mix for you</string>
+    <string name="ui_d179432be891c0" formatted="false">Tonal Spot</string>
+    <string name="ui_ad7864dbdaec30" formatted="false">Top songs</string>
+    <string name="ui_3f90e63b88ca5e" formatted="false">Top track</string>
+    <string name="ui_3fa69ad8304db4" formatted="false">Trending (Most played)</string>
+    <string name="ui_8f0ebf62beff73" formatted="false">True combo / Max combo</string>
+    <string name="ui_845bdaa6c65de3" formatted="false">Try a different word, like theme, crossfade or cache.</string>
+    <string name="ui_7ddd66b689c937" formatted="false">Try it</string>
+    <string name="ui_2411cf14f0c88c" formatted="false">Try theme, playback, cache or downloads</string>
+    <string name="ui_a1474d7df45acc" formatted="false">Turn off timer</string>
+    <string name="ui_3deb7456519697" formatted="false">Type</string>
+    <string name="ui_f4beb9af58f792" formatted="false">Typography</string>
+    <string name="ui_a3048e2a30c755" formatted="false">Unable to start this chart</string>
+    <string name="ui_4bb259804eadd2" formatted="false">Unplayed</string>
+    <string name="ui_a6e7eb706e115c" formatted="false">Unspecified</string>
+    <string name="ui_567bfc4dad37a6" formatted="false">Up next</string>
+    <string name="ui_c61b0456729f0d" formatted="false">Update downloaded beatmaps automatically.</string>
+    <string name="ui_f2f8570ddd7b1e" formatted="false">Updated</string>
+    <string name="ui_c76d18079a076e" formatted="false">Updates</string>
+    <string name="ui_fd72c492a280ff" formatted="false">Use 32-bit audio output.</string>
+    <string name="ui_ebdbe51e9f52ac" formatted="false">Use Android spatial audio when supported.</string>
+    <string name="ui_ed1b29a9a17df4" formatted="false">Use a compact navigation bar.</string>
+    <string name="ui_eba093dd2a0efa" formatted="false">Use an HTTP or SOCKS5 proxy.</string>
+    <string name="ui_1bd6836b5aceda" formatted="false">Use artwork gestures in the player.</string>
+    <string name="ui_6d0509bbde2c78" formatted="false">Use compact track rows in the library.</string>
+    <string name="ui_ea3e2c867b13de" formatted="false">Use hardware audio decoding.</string>
+    <string name="ui_74774a811bb882" formatted="false">Use tighter spacing and smaller controls.</string>
+    <string name="ui_da44c6a7da6816" formatted="false">Use true black surfaces on OLED screens.</string>
+    <string name="ui_36d47fb5f65766" formatted="false">Used when nothing is playing.</string>
+    <string name="ui_b1974b83bc43f3" formatted="false">Username (optional)</string>
+    <string name="ui_8a105317347247" formatted="false">Version and channel</string>
+    <string name="ui_0ebbd495aee581" formatted="false">Vibrant</string>
+    <string name="ui_7f01866ab45271" formatted="false">Video Game</string>
+    <string name="ui_973d4dc726dd13" formatted="false">Video game</string>
+    <string name="ui_a2cfb8e142a553" formatted="false">Visible tab row</string>
+    <string name="ui_f882d54e64f1da" formatted="false">Visual quality</string>
+    <string name="ui_4f696cb404b738" formatted="false">Waiting in queue</string>
+    <string name="ui_64584ce22bcddf" formatted="false">Week to date</string>
+    <string name="ui_1ba4f0d76dc146" formatted="false">Wi-Fi artwork quality</string>
+    <string name="ui_67b7044790dd32" formatted="false">Wi-Fi only downloads</string>
+    <string name="ui_3cccc0de1510ad" formatted="false">Wi-Fi only streaming</string>
+    <string name="ui_3526f607bcd4f5" formatted="false">Yellow</string>
+    <string name="ui_ba596fd35b1b63" formatted="false">Your</string>
+    <string name="ui_bb8ca1f5856d39" formatted="false">Your Mix size</string>
+    <string name="ui_f6ed57a761219b" formatted="false">Your OAuth application details will be requested in the next step.</string>
+    <string name="ui_610e6fd135d43e" formatted="false">Your downloaded charts, all in one place.</string>
+    <string name="ui_f76711960ba8fc" formatted="false">Your osu! profile is loading. Refresh it if it takes too long.</string>
+    <string name="ui_daa12520aeb854" formatted="false">amoled oled dark</string>
+    <string name="ui_061650903867fc" formatted="false">background service recents</string>
+    <string name="ui_620211031ac51b" formatted="false">bass treble preset eq</string>
+    <string name="ui_6bfab8bb04884f" formatted="false">bluetooth wired</string>
+    <string name="ui_f2e08945c77b16" formatted="false">bold thin heavy light font</string>
+    <string name="ui_e3e1fe342be106" formatted="false">buffer gapless</string>
+    <string name="ui_b9244983e04275" formatted="false">client id secret api key</string>
+    <string name="ui_422b3e4f4e7987" formatted="false">collage home</string>
+    <string name="ui_938185e328048b" formatted="false">compact spacing size ui scale padding</string>
+    <string name="ui_8dc3b39b12f233" formatted="false">condensed expanded stretch font width</string>
+    <string name="ui_3f579513ff0e23" formatted="false">cover circle cookie</string>
+    <string name="ui_d267765fffe097" formatted="false">cover circle cookie square rounded</string>
+    <string name="ui_75ce549dfdcb02" formatted="false">cover image resolution</string>
+    <string name="ui_fd1fba1475eb91" formatted="false">cover image resolution data saver</string>
+    <string name="ui_b69fbe38e3661c" formatted="false">credits third party</string>
+    <string name="ui_8959f28bcd26ae" formatted="false">dark light mode</string>
+    <string name="ui_19e50ef0c68408" formatted="false">default font reset</string>
+    <string name="ui_89943e9a906f40" formatted="false">default reset</string>
+    <string name="ui_4abf5b0f8ccae8" formatted="false">dense small spacing</string>
+    <string name="ui_a6d91dae137c4f" formatted="false">doze background</string>
+    <string name="ui_5338e56cd942d7" formatted="false">dynamic color cover</string>
+    <string name="ui_196ad86bdf85d5" formatted="false">expressive classic material</string>
+    <string name="ui_1b787cc24dee14" formatted="false">fade transition gapless</string>
+    <string name="ui_a78e381f989f01" formatted="false">float pcm lossless</string>
+    <string name="ui_f629c7bf4c1c14" formatted="false">font scale bigger smaller large</string>
+    <string name="ui_995883b619c265" formatted="false">font text size</string>
+    <string name="ui_774be3cda0c792" formatted="false">format audio quality</string>
+    <string name="ui_b7400b9f2daec5" formatted="false">free space</string>
+    <string name="ui_d299f1edd32733" formatted="false">free space reclaim</string>
+    <string name="ui_47a0d046bc4b9f" formatted="false">free space reset</string>
+    <string name="ui_2af901f9a16a30" formatted="false">free space thumbnails</string>
+    <string name="ui_3035d6f7e86870" formatted="false">gain amplify</string>
+    <string name="ui_83b57ee1c2f6f2" formatted="false">gesture next previous</string>
+    <string name="ui_8d2cb240ee58c1" formatted="false">github review</string>
+    <string name="ui_17173c3f7cd234" formatted="false">greeting username</string>
+    <string name="ui_3def2861d93f89" formatted="false">icons skip shuffle repeat</string>
+    <string name="ui_ef8eb1cbc825f0" formatted="false">image cache size</string>
+    <string name="ui_3567003b4a0b53" formatted="false">intercept deep link url</string>
+    <string name="ui_17b4ba962d6767" formatted="false">labels compact nav</string>
+    <string name="ui_2e1a8a82b44a1b" formatted="false">launcher logo</string>
+    <string name="ui_78e8108e35ebe7" formatted="false">library compact dense spacing</string>
+    <string name="ui_102c9b7b4ee75e" formatted="false">library tabs compact layout</string>
+    <string name="ui_75eeb80638ffa5" formatted="false">locale translation system</string>
+    <string name="ui_e9f2fe418be94f" formatted="false">login sign in oauth profile</string>
+    <string name="ui_d1c032bc785e1d" formatted="false">low end battery saver</string>
+    <string name="ui_7db12ad9fc9a2b" formatted="false">mini player bar now playing</string>
+    <string name="ui_76f903ba8e8efe" formatted="false">mix shuffle queue songs count</string>
+    <string name="ui_71a09d6ada1ef4" formatted="false">mobile data</string>
+    <string name="ui_55d0f0add32466" formatted="false">network vpn socks http</string>
+    <string name="ui_eca1665687c982" formatted="false">noisy bluetooth wired</string>
+    <string name="ui_a262e359bad6aa" formatted="false">now playing</string>
+    <string name="ui_0f838de395a9dc" formatted="false">nsfw adult mature</string>
+    <string name="ui_5ccd951727f4c1" formatted="false">osu taiko catch mania ruleset</string>
+    <string name="ui_9db1b23720abca" formatted="false">osu!</string>
+    <string name="ui_6cbd0328435c8b" formatted="false">osu! API credentials</string>
+    <string name="ui_8c0523bea25f94" formatted="false">osu! account</string>
+    <string name="ui_17b3845b021430" formatted="false">osu! catalog</string>
+    <string name="ui_c4d3dd5985e8cb" formatted="false">osu! link integration</string>
+    <string name="ui_b5d91664fa1bd1" formatted="false">osu! preview reachable</string>
+    <string name="ui_712389862c8e86" formatted="false">osu! preview unreachable</string>
+    <string name="ui_9c7ad1ff0855a6" formatted="false">pill floating classic</string>
+    <string name="ui_890098753283bc" formatted="false">play pause control icon</string>
+    <string name="ui_2a56fe9c992c65" formatted="false">playback cache size</string>
+    <string name="ui_ff703c842e41e2" formatted="false">player bar color theme</string>
+    <string name="ui_c5253ce83988c1" formatted="false">player bar layout</string>
+    <string name="ui_7b9ec9c5d19498" formatted="false">preview full</string>
+    <string name="ui_e072464b10e501" formatted="false">previous next controls</string>
+    <string name="ui_aae16774234a73" formatted="false">privacy search history delete</string>
+    <string name="ui_c0e6585bbec7c2" formatted="false">privacy stats delete</string>
+    <string name="ui_a6777fe009003d" formatted="false">progress bar ring wavy</string>
+    <string name="ui_9310dd76ce8e54" formatted="false">progress slider wavy</string>
+    <string name="ui_1cd5d075603044" formatted="false">radio similar endless</string>
+    <string name="ui_f5bb0781b495c8" formatted="false">ranked loved filter category</string>
+    <string name="ui_36df0af10fc6b2" formatted="false">recent history</string>
+    <string name="ui_62ba41f08c9794" formatted="false">recompute repair</string>
+    <string name="ui_821a42e74fda8a" formatted="false">refresh update library</string>
+    <string name="ui_b5b86c465a59b9" formatted="false">reload specs</string>
+    <string name="ui_dfcd0647f150b4" formatted="false">restore load</string>
+    <string name="ui_cf9f877d6c7c69" formatted="false">resync repair</string>
+    <string name="ui_e779ee0d3ce84c" formatted="false">rotate vinyl</string>
+    <string name="ui_1f78523014eed6" formatted="false">rounded shape</string>
+    <string name="ui_c9c1f868a6db1e" formatted="false">rounded shape corner</string>
+    <string name="ui_949252b959dbd9" formatted="false">rounded soft font</string>
+    <string name="ui_9884fc28509774" formatted="false">seek bar wavy expressive thumb</string>
+    <string name="ui_e91a5814166097" formatted="false">shuffle repeat favorite</string>
+    <string name="ui_77cc9356714313" formatted="false">smart storage</string>
+    <string name="ui_dbed4fe0b24cb3" formatted="false">start launch home explore library game</string>
+    <string name="ui_8da007081a9dd8" formatted="false">surround spatial headphones</string>
+    <string name="ui_be8b12a1d4d6d1" formatted="false">theme color seed</string>
+    <string name="ui_6caeb58baed539" formatted="false">tonal vibrant expressive neutral monochrome</string>
+    <string name="ui_2c1dec4e66f1d4" formatted="false">top stats</string>
+    <string name="ui_5c64f251059b56" formatted="false">transport pill round square</string>
+    <string name="ui_611d6e23d4d57c" formatted="false">typeface quicksand roboto google sans flex</string>
+    <string name="ui_b9371aec869b28" formatted="false">unicode romanised japanese</string>
+    <string name="ui_fdb00456300470" formatted="false">unused old downloads review</string>
+    <string name="ui_0da3c97ee32742" formatted="false">version release</string>
+    <string name="ui_count_songs">%1$d songs</string>
+    <string name="ui_count_songs_offline">%1$d songs offline</string>
+    <string name="ui_count_beatmaps">%1$d beatmaps</string>
+    <string name="ui_count_results">%1$d results</string>
+    <string name="ui_page_of">Page %1$d of %2$d</string>
+    <string name="ui_page">Page %1$d</string>
+    <string name="ui_beatmap_number">Beatmap #%1$d</string>
+    <string name="ui_mapped_by">Mapped by %1$s</string>
+    <string name="ui_downloading_percent">Downloading %1$d%%</string>
+    <string name="ui_kozu_available">Kozu v%1$s is available</string>
+    <string name="ui_level">Level %1$d</string>
+    <string name="ui_plays">%1$d plays</string>
+    <string name="ui_minutes">%1$d min</string>
+    <string name="ui_days_ago">%1$d days ago</string>
+    <string name="ui_days_hours">%1$dd %2$dh</string>
+    <string name="ui_count_songs_english" formatted="false">%1$d songs</string>
+    <string name="ui_count_songs_offline_english" formatted="false">%1$d songs offline</string>
+    <string name="ui_count_beatmaps_english" formatted="false">%1$d beatmaps</string>
+    <string name="ui_count_results_english" formatted="false">%1$d results</string>
+    <string name="ui_page_of_english" formatted="false">Page %1$d of %2$d</string>
+    <string name="ui_page_english" formatted="false">Page %1$d</string>
+    <string name="ui_beatmap_number_english" formatted="false">Beatmap #%1$d</string>
+    <string name="ui_mapped_by_english" formatted="false">Mapped by %1$s</string>
+    <string name="ui_downloading_percent_english" formatted="false">Downloading %1$d%%</string>
+    <string name="ui_kozu_available_english" formatted="false">Kozu v%1$s is available</string>
+    <string name="ui_level_english" formatted="false">Level %1$d</string>
+    <string name="ui_plays_english" formatted="false">%1$d plays</string>
+    <string name="ui_minutes_english" formatted="false">%1$d min</string>
+    <string name="ui_days_ago_english" formatted="false">%1$d days ago</string>
+    <string name="ui_days_hours_english" formatted="false">%1$dd %2$dh</string>
+    <string name="ui_error_prefix">Error: %1$s</string>
+    <string name="ui_could_not_save_score">Could not save score: %1$s</string>
+    <string name="ui_personal_best">Personal best: %1$s</string>
+    <string name="ui_could_not_read_chart">Could not read chart: %1$s</string>
+    <string name="ui_mapped_difficulty">[%1$s] · mapped by %2$s</string>
+    <string name="ui_remove_chart_files">Remove \"%1$s\" and its chart files from this device?</string>
+    <string name="ui_downloading_source">Downloading · %1$d%% · %2$s</string>
+    <string name="ui_remaining">%1$d remaining</string>
+    <string name="ui_saved_playlist">Saved %1$d tracks as a playlist</string>
+    <string name="ui_downloading_songs">Downloading %1$d songs</string>
+    <string name="ui_downloading_track">Downloading %1$s</string>
+    <string name="ui_added_to_playlist">Added to %1$s</string>
+    <string name="ui_will_play_next">Will play next</string>
+    <string name="ui_added_to_queue">Added to queue</string>
+    <string name="ui_removed_offline_copy">Removed offline copy</string>
+    <string name="ui_9d7749b5b711fe" formatted="false">Added to queue</string>
+    <string name="ui_7631b26ea80b1b" formatted="false">Avatar</string>
+    <string name="ui_0316f0e0bfec60" formatted="false">Back to charts</string>
+    <string name="ui_3a117106ee249e" formatted="false">Choose library tab</string>
+    <string name="ui_719ea396ad92e0" formatted="false">Clear</string>
+    <string name="ui_67300d0fed7c77" formatted="false">Clear search</string>
+    <string name="ui_a40f5b84f3b0bd" formatted="false">Close player</string>
+    <string name="ui_c0b1757e0c4779" formatted="false">Copy callback URL</string>
+    <string name="ui_d41b502f0510e1" formatted="false">Delete download</string>
+    <string name="ui_b85a3671b4bc9e" formatted="false">Delete map</string>
+    <string name="ui_b55b186d3a98d3" formatted="false">Delete playlist</string>
+    <string name="ui_70afe9eff3f288" formatted="false">Dismiss</string>
+    <string name="ui_130e06f5413a3c" formatted="false">Mix all beatmaps</string>
+    <string name="ui_86c0a35ec8834c" formatted="false">More options</string>
+    <string name="ui_260ff8ae7182fc" formatted="false">Move down</string>
+    <string name="ui_b4f57cd0cd5c7d" formatted="false">Move up</string>
+    <string name="ui_1dabfe7d4d749a" formatted="false">Open history</string>
+    <string name="ui_6cc3364a242cbf" formatted="false">Open source</string>
+    <string name="ui_715428ff0dec67" formatted="false">Pause game</string>
+    <string name="ui_47bb4429e85fdc" formatted="false">Play preview</string>
+    <string name="ui_73c3b0a5b4855f" formatted="false">Play your mix shuffled</string>
+    <string name="ui_d325fcd919384f" formatted="false">Queue</string>
+    <string name="ui_ad3e5d8c1ce8cc" formatted="false">Remove from playlist</string>
+    <string name="ui_3d2dc52da7fcee" formatted="false">Remove from queue</string>
+    <string name="ui_dc6650d176e3ae" formatted="false">Remove recent search</string>
+    <string name="ui_56c360aee07fcc" formatted="false">Removed offline copy</string>
+    <string name="ui_279af0e5ff935b" formatted="false">Rename playlist</string>
+    <string name="ui_a4fad15932cf7d" formatted="false">Reorder download</string>
+    <string name="ui_c522cec9e5ce24" formatted="false">Reorder song</string>
+    <string name="ui_04f3fba6c0f396" formatted="false">Reset tab order</string>
+    <string name="ui_9a976fc228b6b3" formatted="false">Selected</string>
+    <string name="ui_e63632b22d1cdd" formatted="false">Sort playlist</string>
+    <string name="ui_7a09f6ae482e98" formatted="false">Will play next</string>
+    <string name="ui_see_all">See all %1$s</string>
+    <string name="ui_play_item">Play %1$s</string>
+    <string name="ui_delete_item">Delete %1$s</string>
+    <string name="ui_drag_reorder">Drag to reorder %1$s</string>
+    <string name="ui_dbfc60cdebc2b1" formatted="false">20 results per page · scroll to load more</string>
+    <string name="ui_fc9d70c6959c13" formatted="false">3D Perspective</string>
+    <string name="ui_85dfa32c97d861" formatted="false">Account</string>
+    <string name="ui_069cb4f8932466" formatted="false">Add a map to build your personal play list.</string>
+    <string name="ui_d085854e32d3e2" formatted="false">All beatmaps</string>
+    <string name="ui_2b226c7948b48a" formatted="false">Ascending</string>
+    <string name="ui_3bdd40706d7f53" formatted="false">Backup &amp; Restore</string>
+    <string name="ui_e3faa3538e76ee" formatted="false">Browse Ranked + Loved maps across all game modes</string>
+    <string name="ui_8c6dba5ab57a14" formatted="false">Bundled font. Copyright 2011 The Quicksand Project Authors; Reserved Font Name: Quicksand. The original font and license notice are included in the app.</string>
+    <string name="ui_b60eaa2c996286" formatted="false">Bundled font. Original font software and license notice are included in the app.</string>
+    <string name="ui_f815bebd582449" formatted="false">Bundled variable font. Original font software and license notice are included in the app.</string>
+    <string name="ui_1838f3ab6ac560" formatted="false">Cached streams, artwork and catalog pages will be deleted. Downloads are not affected.</string>
+    <string name="ui_033863e5c33010" formatted="false">Catalog unavailable</string>
+    <string name="ui_aa950c7fdb2990" formatted="false">Charts could not be loaded</string>
+    <string name="ui_d25bce8ebe7bae" formatted="false">Clean caches?</string>
+    <string name="ui_3f0dfbdf372bd6" formatted="false">Clear all caches?</string>
+    <string name="ui_5076df03bb9dba" formatted="false">Clear listening history?</string>
+    <string name="ui_3c0cf7d63afabd" formatted="false">Clear the stream and artwork caches in one step. Downloads, favourites and history are kept.</string>
+    <string name="ui_af74f7c5362aae" formatted="false">Copy</string>
+    <string name="ui_b34762d14abd56" formatted="false">Country rank</string>
+    <string name="ui_6e157c5da4410b" formatted="false">Create</string>
+    <string name="ui_84fbcd9e775c10" formatted="false">Create a playlist, then add beatmaps from the track menu.</string>
+    <string name="ui_60e77f3bb74579" formatted="false">Create backup</string>
+    <string name="ui_0b71cd2c038761" formatted="false">Delete forgotten tracks?</string>
+    <string name="ui_36377adf43984d" formatted="false">Descending</string>
+    <string name="ui_1e53b5ee672aca" formatted="false">Developer Options</string>
+    <string name="ui_4cac01993cc718" formatted="false">Device Capabilities</string>
+    <string name="ui_31a53ad3855cb7" formatted="false">Download liked</string>
+    <string name="ui_7ec3740c802d94" formatted="false">Download songs from the ⋮ menu to play them without internet and use them in game mode.</string>
+    <string name="ui_df437e0872e53d" formatted="false">Dracula (feat. JENNIE)</string>
+    <string name="ui_34db0d63fc2f27" formatted="false">Empty playlist</string>
+    <string name="ui_9923e9d72612de" formatted="false">End of track</string>
+    <string name="ui_c94bb2db5faebf" formatted="false">Every preference returns to its default value. Your osu! API credentials, favourites, playlists and downloads are kept.</string>
+    <string name="ui_af9bb25a8043c8" formatted="false">Every recorded play and your listening statistics will be removed from this device.</string>
+    <string name="ui_d06b00724f7627" formatted="false">Everything you listen to will be collected here.</string>
+    <string name="ui_f1ae0af70b056a" formatted="false">Global rank</string>
+    <string name="ui_b1889813874bab" formatted="false">Keep songs up to date</string>
+    <string name="ui_f6807315db1bc3" formatted="false">Kozu accesses beatmap metadata, covers and previews from osu!. Beatmap audio and artwork remain owned by their respective creators; Kozu does not claim ownership.</string>
+    <string name="ui_f08e8870f2a48b" formatted="false">Landscape · 3D perspective</string>
+    <string name="ui_bec69a78fafd6b" formatted="false">Landscape · Vertical scrolling</string>
+    <string name="ui_c7e02c95fe8505" formatted="false">Like</string>
+    <string name="ui_634216ef318fe8" formatted="false">Like songs or build a playlist and it will live here.</string>
+    <string name="ui_31d30b62864e7e" formatted="false">Listen again</string>
+    <string name="ui_9d8b97b0c29d88" formatted="false">Listening Stats</string>
+    <string name="ui_8edc9c9c33864c" formatted="false">Loudness enhancer</string>
+    <string name="ui_70d690441c5071" formatted="false">Loved by the community</string>
+    <string name="ui_c36e8fd6506545" formatted="false">Mania beatmaps</string>
+    <string name="ui_257f7afd3c2dd9" formatted="false">Material 3 Expressive</string>
+    <string name="ui_c92a133e8e92ff" formatted="false">Mirrors</string>
+    <string name="ui_aade67feaa54fb" formatted="false">Most played ranked maps</string>
+    <string name="ui_ede4a60bb90686" formatted="false">Music Management</string>
+    <string name="ui_6403f2b7eb2aaa" formatted="false">New</string>
+    <string name="ui_8b2fa9d4fbcd6c" formatted="false">New Releases</string>
+    <string name="ui_a5474a872e6a1b" formatted="false">New playlist</string>
+    <string name="ui_bc981983e7f547" formatted="false">Next</string>
+    <string name="ui_d33c183d9cd695" formatted="false">No Mania charts yet</string>
+    <string name="ui_2259ac95c34561" formatted="false">No beatmaps found</string>
+    <string name="ui_7baed67813392e" formatted="false">No matching maps</string>
+    <string name="ui_c0b0ca7681e021" formatted="false">No playlists yet</string>
+    <string name="ui_8db88ee9aa636f" formatted="false">No songs played yet</string>
+    <string name="ui_87cc3dbf161e0a" formatted="false">Nothing liked yet</string>
+    <string name="ui_e1825395c91e3b" formatted="false">Nothing offline yet</string>
+    <string name="ui_e01fa717baccf9" formatted="false">Offline</string>
+    <string name="ui_eeec558b58fb9f" formatted="false">Online &amp; offline</string>
+    <string name="ui_e568dd403f87d1" formatted="false">Optional third-party sources used for streaming and downloads. Kozu does not host these beatmaps; availability and terms are controlled by each service.</string>
+    <string name="ui_170a28a9db6d27" formatted="false">Period</string>
+    <string name="ui_5d12bd53552caf" formatted="false">Play</string>
+    <string name="ui_92b6b1bf71e0c0" formatted="false">Portrait</string>
+    <string name="ui_50f94286ba3070" formatted="false">Previous</string>
+    <string name="ui_d2aaa7290ca5da" formatted="false">Rank achieved</string>
+    <string name="ui_ba7d226f98d8fb" formatted="false">Re-download offline songs automatically when a newer version exists</string>
+    <string name="ui_6618f7db5a3139" formatted="false">Recently Played</string>
+    <string name="ui_12bdcd1e138a3e" formatted="false">Recently updated beatmaps</string>
+    <string name="ui_b04c991e58e772" formatted="false">Regenerate</string>
+    <string name="ui_659eba121958f4" formatted="false">Repeat</string>
+    <string name="ui_bbfe660fd21005" formatted="false">Reset all settings?</string>
+    <string name="ui_a65eaa8807ce20" formatted="false">Restore backup</string>
+    <string name="ui_5b772b7bfd0a43" formatted="false">Shuffle</string>
+    <string name="ui_2eb56be3c2d93c" formatted="false">Sources</string>
+    <string name="ui_de2b910c0b57ae" formatted="false">Start your collection</string>
+    <string name="ui_32923c2be24097" formatted="false">Storage Sense</string>
+    <string name="ui_725ce506ad017b" formatted="false">Store charts, hitsounds and images (needed for Play as game). Off keeps only audio and cover</string>
+    <string name="ui_31e6d03d63c671" formatted="false">Tap the heart on any song and it will live here.</string>
+    <string name="ui_949ec0331b444f" formatted="false">The Kozu source code is licensed under GPL-3.0. The full license text is packaged with the application.</string>
+    <string name="ui_1829279669ffa3" formatted="false">Trending now</string>
+    <string name="ui_08a8505473f8db" formatted="false">Try another search or filter.</string>
+    <string name="ui_7a48e45bfcc0d7" formatted="false">Try another title, artist, mapper, or difficulty name.</string>
+    <string name="ui_bc7819b34ff875" formatted="false">Unknown</string>
+    <string name="ui_3954733b961816" formatted="false">Use the ⋮ menu on any song and choose \"Add to playlist\".</string>
+    <string name="ui_08a4b94ba0f57e" formatted="false">Used to check published Kozu releases and display recent source commits. Update checks can be disabled in Settings.</string>
+    <string name="ui_4bf4f3ffd2a33b" formatted="false">Vertical Scrolling</string>
+    <string name="ui_854637d930a246" formatted="false">Wait for Wi-Fi before downloading songs</string>
+    <string name="ui_8340283d8a39e4" formatted="false">When a new download would exceed the limit, the least recently played downloads are removed first.</string>
+    <string name="ui_119cbce6316b99" formatted="false">Wi-Fi only</string>
+    <string name="ui_fd740ffdf12201" formatted="false">Your Library</string>
+    <string name="ui_3869ed60f81b13" formatted="false">Your charts</string>
+    <string name="ui_1214f316cad942" formatted="false">osu! Updates</string>
+    <string name="ui_1c388f146f5995" formatted="false">Now playing</string>
+    <string name="ui_download_notification_title">Downloading songs</string>
+    <string name="ui_preparing_download">Preparing…</string>
+    <string name="ui_downloads_channel">Downloads</string>
+    <string name="ui_remove_item">Remove %1$s</string>
+    <string name="ui_avatar_for">%1$s avatar</string>
+    <string name="ui_cover_for">%1$s cover</string>
+    <string name="ui_connected_in_ms">Connected in %1$d ms</string>
+    <string name="ui_joined_followers">Joined %1$s · %2$s followers</string>
+    <string name="ui_ranked_score">Ranked score %1$s</string>
+    <string name="ui_offline_not_played">Offline songs not played in the last %1$d days.</string>
+    <string name="ui_sorted_by">Sorted by %1$s</string>
+    <string name="ui_mix_refreshed_daily">%1$d songs · refreshed daily</string>
+    <string name="ui_top_track_plays">%1$s • %2$d plays</string>
+    <string name="ui_last_sync_summary">Refreshes titles and artists of your liked songs, playlists, history and downloads, and detects beatmaps that mappers have updated. Last sync: %1$s</string>
+    <string name="ui_local_charts_refresh_error">Local charts could not be refreshed: %1$s</string>
+    <string name="ui_game_setup_failed">Game setup failed: %1$s</string>
+    <string name="ui_preview_unavailable">Preview unavailable: %1$s</string>
+    <string name="ui_personal_scores_error">Could not load personal scores: %1$s</string>
+    <string name="ui_game_settings_error">Could not save settings: %1$s</string>
+    <string name="ui_storage_item_summary">%1$s · %2$s · %3$s days ago</string>
+    <string name="ui_removed_from_playlist">Removed from %1$s</string>
+    <string name="ui_update_version_checked">v%1$s · %2$s</string>
+    <string name="ui_remove_playlist_confirmation">"%1$s" will be removed. Your songs are not deleted.</string>
+    <string name="ui_spdx_label">SPDX: %1$s</string>
 </resources>

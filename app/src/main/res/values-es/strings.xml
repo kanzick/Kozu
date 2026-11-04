@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="settings_language_title">Idioma</string>
+    <string name="settings_language_subtitle">Elige el idioma de la aplicación.</string>
+    <string name="settings_language_description">Elige el idioma de Kozu. Las partes sin traducir seguirán en inglés.</string>
+    <string name="settings_language_restart_note">Kozu se volverá a abrir para aplicar el cambio. Tu música, biblioteca y ajustes permanecerán en este dispositivo.</string>
+    <string name="language_system">Seguir el sistema</string>
+    <string name="language_english">Inglés</string>
+    <string name="language_arabic">Árabe</string>
+    <string name="language_german">Alemán</string>
+    <string name="language_spanish">Español</string>
+    <string name="language_french">Francés</string>
+    <string name="language_indonesian">Indonesio</string>
+    <string name="language_italian">Italiano</string>
+    <string name="language_japanese">Japonés</string>
+    <string name="language_korean">Coreano</string>
+    <string name="language_portuguese_brazil">Portugués (Brasil)</string>
+    <string name="language_russian">Ruso</string>
+    <string name="language_turkish">Turco</string>
+    <string name="language_chinese_simplified">Chino simplificado</string>
+    <string name="language_vietnamese">Vietnamita</string>
+    <string name="language_selected">Seleccionado</string>
+    <string name="settings_group_personalize">Personalizar</string>
+    <string name="settings_group_music">Música</string>
+    <string name="settings_group_library_data">Biblioteca y datos</string>
+    <string name="settings_group_system">Sistema</string>
+    <string name="settings_group_app">Aplicación</string>
+</resources>

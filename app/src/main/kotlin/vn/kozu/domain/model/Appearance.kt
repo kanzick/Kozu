@@ -2,7 +2,6 @@ package vn.kozu.domain.model
 
 import org.json.JSONObject
 
-/** Anything that can be picked from a list in Settings and stored by a stable key. */
 interface KeyedOption {
     val key: String
     val label: String
@@ -13,10 +12,6 @@ private fun <T : KeyedOption> List<T>.byKey(
     fallback: T,
 ): T = firstOrNull { it.key == key } ?: fallback
 
-/**
- * App-wide layout density. [layoutScale] multiplies every dp in the UI (paddings, icons, artwork,
- * rows, bars) while text keeps its own size, so the whole app tightens up without clipping text.
- */
 enum class UiDensity(
     override val key: String,
     override val label: String,
@@ -155,23 +150,15 @@ enum class IconStyle(
     }
 }
 
-/**
- * Every appearance option that is not already a dedicated field of [AppSettings].
- * Stored as one JSON string, so adding an option never needs a new DataStore key.
- */
 data class AppearancePrefs(
-    // Layout
     val density: UiDensity = UiDensity.COMFORTABLE,
-    // Typography
     val textScale: Int = 100,
     val fontWeightShift: Int = 0,
     val fontWidth: Int = 100,
     val fontRoundness: Int = 100,
-    // Shapes, icons and sliders
     val artworkShape: ArtworkShape = ArtworkShape.DEFAULT,
     val iconStyle: IconStyle = IconStyle.ROUNDED,
     val sliderStyle: SliderStyle = SliderStyle.EXPRESSIVE,
-    // Mini player
     val miniStyle: MiniPlayerStyle = MiniPlayerStyle.FLOATING,
     val miniColors: MiniPlayerColors = MiniPlayerColors.GRADIENT,
     val miniProgress: MiniPlayerProgress = MiniPlayerProgress.RING,
@@ -181,7 +168,6 @@ data class AppearancePrefs(
     val miniShowArtist: Boolean = true,
     val miniSpinArtwork: Boolean = true,
     val miniSwipeToSkip: Boolean = true,
-    // Full player
     val seekStyle: SeekBarStyle = SeekBarStyle.WAVY,
     val playerArtShape: ArtworkShape = ArtworkShape.DEFAULT,
     val transportShape: TransportShape = TransportShape.PILL,

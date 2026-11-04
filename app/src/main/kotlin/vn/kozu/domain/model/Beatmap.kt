@@ -27,6 +27,9 @@ data class Beatmap(
 ) {
     val thumbUrl: String get() = "https://assets.ppy.sh/beatmaps/$id/covers/list@2x.jpg"
     val artUrl: String get() = "https://assets.ppy.sh/beatmaps/$id/covers/cover@2x.jpg"
+
+    /** The original, uncropped background image (cover/list/card variants are all cropped from it). */
+    val fullArtUrl: String get() = "https://assets.ppy.sh/beatmaps/$id/covers/raw.jpg"
     val webUrl: String get() = "https://osu.ppy.sh/beatmapsets/$id"
 }
 

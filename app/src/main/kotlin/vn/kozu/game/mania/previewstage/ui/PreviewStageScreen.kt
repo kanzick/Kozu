@@ -1,5 +1,7 @@
 package vn.kozu.game.mania.previewstage.ui
 
+import vn.kozu.ui.i18n.kozuUiString
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
@@ -32,12 +34,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import vn.kozu.ui.i18n.KozuText as Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -452,7 +453,7 @@ private fun ChartSetCard(
                 IconButton(onClick = onDelete, enabled = !deleting) {
                     Icon(
                         Icons.Rounded.Delete,
-                        contentDescription = "Delete map",
+                        contentDescription = kozuUiString("Delete map"),
                         tint = MaterialTheme.colorScheme.error,
                     )
                 }
@@ -462,7 +463,7 @@ private fun ChartSetCard(
                 ) {
                     Icon(
                         Icons.Rounded.PlayArrow,
-                        contentDescription = "Play preview",
+                        contentDescription = kozuUiString("Play preview"),
                         tint = MaterialTheme.colorScheme.primary,
                     )
                 }

@@ -64,6 +64,12 @@ class PlaylistStore(context: Context) {
         dao.deleteOrphanSongs()
     }
 
+    suspend fun reorderTracks(playlistId: String, orderedBeatmapIds: List<Long>) = db.withTransaction {
+        orderedBeatmapIds.distinct().forEachIndexed { position, songId ->
+            dao.updateSongPosition(playlistId, songId, position)
+        }
+    }
+
     suspend fun updateMetadata(fresh: Map<Long, Beatmap>) = db.withTransaction {
         val changed = dao.getAllSongs().mapNotNull { old ->
             val newer = fresh[old.id] ?: return@mapNotNull null
