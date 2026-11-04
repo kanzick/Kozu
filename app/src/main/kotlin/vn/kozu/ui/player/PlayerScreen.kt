@@ -3,7 +3,6 @@ package vn.kozu.ui.player
 import vn.kozu.ui.i18n.kozuUiString
 
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -17,7 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -61,10 +60,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import vn.kozu.domain.model.ArtworkShape
 import vn.kozu.domain.model.Beatmap
+import vn.kozu.domain.model.PlayerLayoutStyle
 import vn.kozu.domain.model.displayArtist
 import vn.kozu.domain.model.displayTitle
 import vn.kozu.player.PlaybackState
 import vn.kozu.player.SleepTimer
+import vn.kozu.ui.components.BeatmapArt
 import vn.kozu.ui.components.FullBeatmapArt
 import vn.kozu.ui.components.LocalAppSettings
 import vn.kozu.ui.components.LocalPerformanceMode
@@ -124,14 +125,10 @@ fun PlayerScreen(
     }
 
     val coverScale by animateFloatAsState(
-        targetValue = if (state.isPlaying) 1f else 0.9f,
+        // Keep the artwork visually large while paused; only use a subtle scale change.
+        targetValue = if (state.isPlaying) 1f else 0.98f,
         animationSpec = KozuMotion.spatial(),
         label = "coverScale",
-    )
-    val coverRadius by animateDpAsState(
-        targetValue = if (state.isPlaying) 40.dp else 72.dp,
-        animationSpec = KozuMotion.spatial(),
-        label = "coverRadius",
     )
 
     Box(
@@ -193,45 +190,40 @@ fun PlayerScreen(
                     .fillMaxSize()
                     .statusBarsPadding()
                     .navigationBarsPadding()
-                    .padding(horizontal = 24.dp, vertical = 12.dp),
+                    .padding(top = 6.dp, bottom = 6.dp),
         ) {
-            val artworkSize = minOf(maxWidth, maxHeight * if (maxHeight < 700.dp) 0.3f else 0.4f)
-            val compact = maxHeight < 580.dp
+            val layoutStyle = settings.appearance.playerLayoutStyle
+            val compact = maxHeight < 660.dp || layoutStyle == PlayerLayoutStyle.COMPACT
+            val artworkGutter = if (maxWidth < 380.dp) 18.dp else 22.dp
             Column(
                 modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.SpaceBetween,
+                verticalArrangement = Arrangement.spacedBy(if (compact) 5.dp else 9.dp),
             ) {
-                PlayerTopBar(
-                    onClose = onClose,
-                    onQueue = { showQueue = true },
-                    sleepActive = timer != null,
-                    onSleep = { showSleep = true },
-                )
+                Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    PlayerTopBar(
+                        onClose = onClose,
+                        onQueue = { showQueue = true },
+                        sleepActive = timer != null,
+                        onSleep = { showSleep = true },
+                        compact = compact,
+                    )
+                }
 
+                // Resolve the full-player shape once and use the exact same mask for every layout.
                 val effectiveShape =
                     if (settings.appearance.playerArtShape == ArtworkShape.DEFAULT) {
                         settings.appearance.artworkShape
                     } else {
                         settings.appearance.playerArtShape
                     }
-                // Rectangular shapes use the full width and hug the real image; cookie/circle need a square.
-                val rectangular =
-                    effectiveShape == ArtworkShape.DEFAULT ||
-                        effectiveShape == ArtworkShape.SOFT ||
-                        effectiveShape == ArtworkShape.SQUARE
-                // Keep the corners from eating into the picture of a wide image.
-                val artRadius = if (rectangular) coverRadius.coerceAtMost(24.dp) else coverRadius
-                Box(
+                val playerArtShape = effectiveShape.toShape(RoundedCornerShape(24.dp))
+                val useOriginalArtwork = effectiveShape == ArtworkShape.SQUARE
+                BoxWithConstraints(
                     modifier =
                         Modifier
-                            .align(Alignment.CenterHorizontally)
-                            .then(
-                                if (rectangular) {
-                                    Modifier.fillMaxWidth().height(artworkSize)
-                                } else {
-                                    Modifier.size(artworkSize)
-                                },
-                            )
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .padding(horizontal = artworkGutter)
                             .then(
                                 if (settings.artworkSwipe) {
                                     Modifier.pointerInput(Unit) {
@@ -244,15 +236,11 @@ fun PlayerScreen(
                                             },
                                             onDragEnd = {
                                                 when {
-                                                    dy > 160f && abs(dy) > abs(dx) -> {
-                                                        onClose()
-                                                    }
-
+                                                    dy > 160f && abs(dy) > abs(dx) -> onClose()
                                                     dx > 140f && abs(dx) > abs(dy) -> {
                                                         haptics.tick()
                                                         onPrevious()
                                                     }
-
                                                     dx < -140f && abs(dx) > abs(dy) -> {
                                                         haptics.tick()
                                                         onNext()
@@ -266,88 +254,71 @@ fun PlayerScreen(
                                             },
                                         )
                                     }
-                                } else {
-                                    Modifier
-                                },
+                                } else Modifier,
                             ),
                     contentAlignment = Alignment.Center,
                 ) {
-                    FullBeatmapArt(
-                        beatmap = beatmap,
-                        wrapToImage = rectangular,
-                        shape = settings.appearance.playerArtShape.toShape(RoundedCornerShape(artRadius)),
-                        followGlobalShape = settings.appearance.playerArtShape == ArtworkShape.DEFAULT,
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .graphicsLayer {
-                                    scaleX = coverScale
-                                    scaleY = coverScale
-                                },
+                    val widthFraction = when (layoutStyle) {
+                        PlayerLayoutStyle.BALANCED -> 0.96f
+                        PlayerLayoutStyle.EDITORIAL -> 0.94f
+                        PlayerLayoutStyle.IMMERSIVE -> 0.985f
+                        PlayerLayoutStyle.COMPACT -> 0.82f
+                    }
+                    val artworkSize = minOf(maxWidth * widthFraction, maxHeight * 0.985f)
+                    val artworkModifier =
+                        Modifier
+                            .size(artworkSize)
+                            .graphicsLayer {
+                                scaleX = coverScale
+                                scaleY = coverScale
+                            }
+                    if (useOriginalArtwork) {
+                        FullBeatmapArt(
+                            beatmap = beatmap,
+                            shape = playerArtShape,
+                            followGlobalShape = false,
+                            wrapToImage = true,
+                            modifier = artworkModifier,
+                        )
+                    } else {
+                        BeatmapArt(
+                            beatmap = beatmap,
+                            shape = playerArtShape,
+                            large = false,
+                            followGlobalShape = false,
+                            modifier = artworkModifier,
+                        )
+                    }
+                }
+
+                PlayerTrackInfo(
+                    title = beatmap.displayTitle(settings.preferUnicode),
+                    artist = artistName,
+                    mapper = beatmap.mapper,
+                    layout = layoutStyle,
+                    compact = compact,
+                    onArtistClick = { onArtistClick(artistName) },
+                    onMore = onMore,
+                )
+
+                Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
+                    PlayerProgress(
+                        isPlaying = state.isPlaying,
+                        position = position,
+                        duration = duration,
+                        onSeek = onSeek,
+                        animated = !performanceMode,
+                        fileInfo = if (settings.showFileInfo) fileInfo else null,
                     )
                 }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            text = beatmap.displayTitle(settings.preferUnicode),
-                            style = MaterialTheme.typography.headlineMedium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            text = artistName,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.bounceClick {
-                                onArtistClick(artistName)
-                            },
-                        )
-                        if (beatmap.mapper.isNotBlank() && !compact) {
-                            Text(
-                                text = "Mapped by ${beatmap.mapper}",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-                    Surface(
-                        modifier =
-                            Modifier
-                                .padding(start = 12.dp)
-                                .size(width = 56.dp, height = 56.dp)
-                                .bounceClick(onClick = onMore),
-                        shape = RoundedCornerShape(20.dp),
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Rounded.MoreVert,
-                                contentDescription = kozuUiString("More options"),
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                            )
-                        }
-                    }
-                }
-
-                PlayerProgress(
-                    isPlaying = state.isPlaying,
-                    position = position,
-                    duration = duration,
-                    onSeek = onSeek,
-                    animated = !performanceMode,
-                    fileInfo = if (settings.showFileInfo) fileInfo else null,
-                )
 
                 TransportControls(
                     isPlaying = state.isPlaying,
                     onPrevious = onPrevious,
                     onPlayPause = onPlayPause,
                     onNext = onNext,
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                    compact = compact,
                 )
 
                 if (settings.appearance.showToggleRow) {
@@ -358,9 +329,12 @@ fun PlayerScreen(
                         onShuffle = onShuffle,
                         onRepeat = onRepeat,
                         onFavorite = onFavorite,
+                        modifier = Modifier.padding(horizontal = 12.dp),
+                        compact = compact,
                     )
                 }
             }
+
         }
     }
 
@@ -390,6 +364,119 @@ fun PlayerScreen(
     }
 }
 
+@Composable
+private fun PlayerTrackInfo(
+    title: String,
+    artist: String,
+    mapper: String,
+    layout: PlayerLayoutStyle,
+    compact: Boolean,
+    onArtistClick: () -> Unit,
+    onMore: () -> Unit,
+) {
+    val titleStyle = when {
+        compact -> MaterialTheme.typography.titleLarge
+        layout == PlayerLayoutStyle.EDITORIAL -> MaterialTheme.typography.headlineMedium
+        else -> MaterialTheme.typography.headlineSmall
+    }
+    val textContent: @Composable (Modifier, Boolean) -> Unit = { modifier, centered ->
+        Column(
+            modifier = modifier,
+            horizontalAlignment = if (centered) Alignment.CenterHorizontally else Alignment.Start,
+        ) {
+            Text(
+                text = title,
+                style = titleStyle,
+                maxLines = if (layout == PlayerLayoutStyle.EDITORIAL && !compact) 2 else 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = if (centered) TextAlign.Center else TextAlign.Start,
+            )
+            Text(
+                text = artist,
+                style = if (compact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = if (centered) TextAlign.Center else TextAlign.Start,
+                modifier = Modifier.bounceClick(onClick = onArtistClick),
+            )
+            if (mapper.isNotBlank() && !compact && layout != PlayerLayoutStyle.COMPACT) {
+                Text(
+                    text = "Mapped by $mapper",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = if (centered) TextAlign.Center else TextAlign.Start,
+                )
+            }
+        }
+    }
+
+    when (layout) {
+        PlayerLayoutStyle.EDITORIAL ->
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp)
+                    .heightIn(min = if (compact) 58.dp else 72.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                textContent(Modifier.fillMaxWidth().padding(horizontal = 52.dp), true)
+                PlayerMoreButton(
+                    onClick = onMore,
+                    compact = compact,
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                )
+            }
+
+        PlayerLayoutStyle.IMMERSIVE ->
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.72f),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = if (compact) 8.dp else 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    textContent(Modifier.weight(1f), false)
+                    PlayerMoreButton(onClick = onMore, compact = compact, modifier = Modifier.padding(start = 10.dp))
+                }
+            }
+
+        PlayerLayoutStyle.BALANCED, PlayerLayoutStyle.COMPACT ->
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                textContent(Modifier.weight(1f), false)
+                PlayerMoreButton(onClick = onMore, compact = compact, modifier = Modifier.padding(start = 10.dp))
+            }
+    }
+}
+
+@Composable
+private fun PlayerMoreButton(
+    onClick: () -> Unit,
+    compact: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.size(if (compact) 46.dp else 52.dp).bounceClick(onClick = onClick),
+        shape = RoundedCornerShape(19.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                Icons.Rounded.MoreVert,
+                contentDescription = kozuUiString("More options"),
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+        }
+    }
+}
+
 private val NoSleepTimer = MutableStateFlow<SleepTimer?>(null)
 private val NoAudioInfo = MutableStateFlow<String?>(null)
 
@@ -399,7 +486,9 @@ private fun PlayerTopBar(
     onQueue: () -> Unit,
     sleepActive: Boolean,
     onSleep: () -> Unit,
+    compact: Boolean,
 ) {
+    val actionSize = if (compact) 46.dp else 52.dp
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -408,7 +497,7 @@ private fun PlayerTopBar(
         Surface(
             modifier =
                 Modifier
-                    .size(52.dp)
+                    .size(actionSize)
                     .bounceClick(onClick = onClose),
             shape = CircleShape,
             color = MaterialTheme.colorScheme.surfaceContainerHighest,
@@ -428,7 +517,7 @@ private fun PlayerTopBar(
         Surface(
             modifier =
                 Modifier
-                    .size(52.dp)
+                    .size(actionSize)
                     .bounceClick(onClick = onSleep),
             shape = CircleShape,
             color =
@@ -464,7 +553,7 @@ private fun PlayerTopBar(
         Surface(
             modifier =
                 Modifier
-                    .size(52.dp)
+                    .size(actionSize)
                     .bounceClick(onClick = onQueue),
             shape = CircleShape,
             color = MaterialTheme.colorScheme.surfaceContainerHighest,

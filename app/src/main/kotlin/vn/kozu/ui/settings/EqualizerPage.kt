@@ -3,8 +3,6 @@ package vn.kozu.ui.settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,7 +13,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -59,17 +56,17 @@ fun EqualizerPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
             switch(Setting.EQUALIZER_BANDS, enabled) { viewModel.setEqualizerEnabled(it) }
         }
         SettingsSection("Presets") {
-            custom { shape ->
-                PresetCard(
-                    shape = shape,
-                    active = activePreset,
-                    enabled = enabled,
-                    onPick = { name ->
-                        val gains = EqualizerProfile.presets.getValue(name)
-                        draft = gains
-                        viewModel.setEqualizerGains(gains)
-                    }
-                )
+            // A popup list instead of a row of chips, like every other choice in settings.
+            dropdown(
+                Setting.EQUALIZER_PRESET,
+                activePreset,
+                EqualizerProfile.presets.keys.toList(),
+                { it },
+                enabled = enabled,
+            ) { name ->
+                val gains = EqualizerProfile.presets.getValue(name)
+                draft = gains
+                viewModel.setEqualizerGains(gains)
             }
         }
         SettingsSection("Frequency bands") {
@@ -113,34 +110,6 @@ fun EqualizerPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
 }
 
 private fun percent(value: Float): String = "${(value / 10f).toInt()}%"
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun PresetCard(
-    shape: Shape,
-    active: String,
-    enabled: Boolean,
-    onPick: (String) -> Unit
-) {
-    SettingCard(setting = null, shape = shape, onClick = null) {
-        FlowRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            (EqualizerProfile.presets.keys + CUSTOM_PRESET).forEach { name ->
-                FilterChip(
-                    selected = name == active,
-                    onClick = { if (name != CUSTOM_PRESET) onPick(name) },
-                    enabled = enabled,
-                    label = { Text(name) }
-                )
-            }
-        }
-    }
-}
 
 @Composable
 private fun BandsCard(

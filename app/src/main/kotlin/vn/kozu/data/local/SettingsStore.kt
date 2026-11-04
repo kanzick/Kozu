@@ -25,6 +25,7 @@ import vn.kozu.domain.model.CrossfadeDuration
 import vn.kozu.domain.model.LibraryDensity
 import vn.kozu.domain.model.LibraryNavigationMode
 import vn.kozu.domain.model.Mirror
+import vn.kozu.domain.model.MixSize
 import vn.kozu.domain.model.ModeFilter
 import vn.kozu.domain.model.NavigationStyle
 import vn.kozu.domain.model.PaletteStyle
@@ -101,6 +102,7 @@ class SettingsStore(
         val compactNavigation = booleanPreferencesKey("compact_navigation")
         val navCornerRadius = intPreferencesKey("nav_corner_radius")
         val showMixCard = booleanPreferencesKey("show_mix_card")
+        val mixSize = intPreferencesKey("mix_size")
         val artworkQualityWifi = stringPreferencesKey("artwork_quality_wifi")
         val artworkQualityMobile = stringPreferencesKey("artwork_quality_mobile")
         val imageCacheMb = intPreferencesKey("image_cache_mb")
@@ -222,7 +224,7 @@ class SettingsStore(
                     osuClientSecret = prefs[Keys.clientSecret].orEmpty(),
                     streamMode = StreamMode.fromKey(prefs[Keys.streamMode]),
                     wifiOnlyStreaming = prefs[Keys.wifiOnlyStreaming] ?: false,
-                    streamCacheMb = prefs[Keys.streamCacheMb] ?: 512,
+                    streamCacheMb = prefs[Keys.streamCacheMb] ?: 256,
                     skipSilence = prefs[Keys.skipSilence] ?: false,
                     equalizerEnabled = prefs[Keys.equalizerEnabled] ?: false,
                     equalizerGains = decodeEqualizerGains(prefs[Keys.equalizerGains]),
@@ -233,7 +235,7 @@ class SettingsStore(
                             .filter { it.isNotBlank() }
                             .toSet(),
                     customMirrors = decodeMirrors(prefs[Keys.customMirrors]),
-                    keepFullBeatmap = prefs[Keys.keepFull] ?: true,
+                    keepFullBeatmap = prefs[Keys.keepFull] ?: false,
                     wifiOnlyDownloads = prefs[Keys.wifiOnlyDownloads] ?: false,
                     autoUpdateDownloads = prefs[Keys.autoUpdate] ?: true,
                     showExplicit = prefs[Keys.explicit] ?: false,
@@ -255,9 +257,10 @@ class SettingsStore(
                     compactNavigation = prefs[Keys.compactNavigation] ?: false,
                     navCornerRadius = (prefs[Keys.navCornerRadius] ?: 32).coerceIn(0, 32),
                     showMixCard = prefs[Keys.showMixCard] ?: true,
+                    mixSize = MixSize.fromCount(prefs[Keys.mixSize]),
                     artworkQualityWifi = ArtworkQuality.fromKey(prefs[Keys.artworkQualityWifi] ?: ArtworkQuality.HIGH.key),
                     artworkQualityMobile = ArtworkQuality.fromKey(prefs[Keys.artworkQualityMobile]),
-                    imageCacheMb = (prefs[Keys.imageCacheMb] ?: 256).coerceIn(32, 1024),
+                    imageCacheMb = (prefs[Keys.imageCacheMb] ?: 128).coerceIn(32, 1024),
                     keepPlayingAfterClose = prefs[Keys.keepPlayingAfterClose] ?: true,
                     resumeOnHeadset = prefs[Keys.resumeOnHeadset] ?: false,
                     pauseOnHeadsetDisconnect = prefs[Keys.pauseOnHeadsetDisconnect] ?: true,
@@ -435,6 +438,8 @@ class SettingsStore(
     suspend fun setNavCornerRadius(value: Int) = store.edit { it[Keys.navCornerRadius] = value.coerceIn(0, 32) }
 
     suspend fun setShowMixCard(enabled: Boolean) = store.edit { it[Keys.showMixCard] = enabled }
+
+    suspend fun setMixSize(size: MixSize) = store.edit { it[Keys.mixSize] = size.count }
 
     suspend fun setArtworkQualityWifi(quality: ArtworkQuality) = store.edit { it[Keys.artworkQualityWifi] = quality.key }
 

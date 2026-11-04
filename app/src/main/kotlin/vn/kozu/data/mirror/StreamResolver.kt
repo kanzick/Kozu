@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ExecutorCompletionService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 
 data class ResolvedAudio(
     val uri: Uri,
@@ -111,6 +112,10 @@ class StreamResolver(
     private val streamDir = File(context.cacheDir, "stream").apply { mkdirs() }
     private val backgroundDir = File(context.cacheDir, "background")
     private val backgroundMissUntil = ConcurrentHashMap<Long, Long>()
+    private val backgroundExecutor =
+        Executors.newFixedThreadPool(BACKGROUND_PARALLEL) { task ->
+            Thread(task, "Kozu-BackgroundProvider").apply { isDaemon = true }
+        }
 
     init {
         scope.launch {
@@ -144,7 +149,15 @@ class StreamResolver(
 
     fun labelFor(id: Long): String? = labels[id]
 
-    fun cacheBytes(): Long = streamDir.listFiles()?.sumOf { it.length() } ?: 0L
+    fun cacheBytes(): Long =
+        (streamDir.listFiles()?.sumOf { it.length() } ?: 0L) +
+            (backgroundDir.listFiles()?.sumOf { it.length() } ?: 0L)
+
+    /**
+     * Keeps the saved full songs inside their share of the stream cache budget (the rest belongs to
+     * the playback cache), oldest first. Safe to call at any time.
+     */
+    fun trimTo(limitMb: Int) = prune(limitMb * STREAM_FILES_SHARE_PERCENT / 100)
 
     fun clearCache() {
         streamDir.listFiles()?.forEach { it.deleteRecursively() }
@@ -447,7 +460,7 @@ class StreamResolver(
 
         target.setLastModified(System.currentTimeMillis())
         preferredZipMirrorId = sourceId
-        prune(current.streamCacheMb)
+        prune(current.streamCacheMb * STREAM_FILES_SHARE_PERCENT / 100)
         Log.i(TAG, "Full song $id cached after streaming from $sourceId")
         return true
     }
@@ -703,6 +716,10 @@ class StreamResolver(
             }
         }
 
+    /**
+     * Probes every active mirror at the same time (like the audio resolver does) and takes the first
+     * one that can serve the picture. Only one mirror actually transfers it.
+     */
     private fun fetchBackground(
         id: Long,
         target: File,
@@ -712,36 +729,80 @@ class StreamResolver(
             archiveCandidates.entries
                 .filter { it.key.startsWith("$id:") }
                 .map { it.value.mirror to it.value.url }
-        val others =
-            current.activeMirrors
-                .sortedBy { if (it.id == preferredZipMirrorId) 0 else 1 }
-                .map { it to it.downloadFor(id) }
-        val tried = HashSet<String>()
-        var attempts = 0
-        for ((mirror, url) in known + others) {
-            if (attempts >= BACKGROUND_MAX_MIRRORS) break
-            if (!tried.add(url)) continue
-            attempts++
-            try {
-                extractBackground(id, mirror, url, target)?.let { return it }
-            } catch (e: Exception) {
-                Log.d(TAG, "${mirror.name} background extract failed for $id: ${e.message}")
+        val others = current.activeMirrors.map { it to it.downloadFor(id) }
+        val jobs = LinkedHashMap<String, Mirror>()
+        (known + others).forEach { (mirror, url) -> if (url !in jobs) jobs[url] = mirror }
+        if (jobs.isEmpty()) return null
+
+        val lock = Any()
+        val winner = AtomicReference<File?>(null)
+        val completion = ExecutorCompletionService<File?>(backgroundExecutor)
+        val futures =
+            jobs.map { (url, mirror) ->
+                completion.submit(
+                    Callable {
+                        try {
+                            val probe = HttpRangeSource(probeClient, url, mirror.referer)
+                            val entries = RemoteZip.readEntries(probe)
+                            val image = pickBackgroundEntry(entries, probe) ?: return@Callable null
+                            if (image.compressedSize <= 0L || image.uncompressedSize > BACKGROUND_MAX_BYTES) {
+                                return@Callable null
+                            }
+                            // Several mirrors may answer at once; the first one transfers the image,
+                            // the others skip it (or take over if that transfer fails).
+                            synchronized(lock) {
+                                winner.get()?.let { return@Callable it }
+                                val file = downloadBackgroundEntry(id, mirror, url, image, target)
+                                if (file != null) {
+                                    winner.set(file)
+                                    Log.i(TAG, "Background for $id came from ${mirror.name}")
+                                }
+                                file
+                            }
+                        } catch (e: Exception) {
+                            Log.d(TAG, "${mirror.name} background failed for $id: ${e.message}")
+                            null
+                        }
+                    },
+                )
+            }
+
+        val deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(BACKGROUND_BUDGET_MS)
+        var completed = 0
+        while (completed < futures.size) {
+            val remaining = deadline - System.nanoTime()
+            if (remaining <= 0L) break
+            val finished =
+                try {
+                    completion.poll(remaining, TimeUnit.NANOSECONDS) ?: break
+                } catch (_: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                    break
+                }
+            completed++
+            val file =
+                try {
+                    finished.get()
+                } catch (e: Exception) {
+                    null
+                }
+            if (file != null) {
+                futures.forEach { if (!it.isDone) it.cancel(true) }
+                return file
             }
         }
+        futures.forEach { if (!it.isDone) it.cancel(true) }
+        Log.w(TAG, "No mirror could provide the background of $id")
         return null
     }
 
-    private fun extractBackground(
+    private fun downloadBackgroundEntry(
         id: Long,
         mirror: Mirror,
         url: String,
+        image: ZipEntryInfo,
         target: File,
     ): File? {
-        val probe = HttpRangeSource(probeClient, url, mirror.referer)
-        val entries = RemoteZip.readEntries(probe)
-        val image = pickBackgroundEntry(entries, probe) ?: return null
-        if (image.compressedSize <= 0L || image.uncompressedSize > BACKGROUND_MAX_BYTES) return null
-
         backgroundDir.mkdirs()
         val temporary = File(backgroundDir, "$id.part")
         temporary.delete()
@@ -825,11 +886,13 @@ class StreamResolver(
         private const val PLAYBACK_RESOLVE_BUDGET_MS = 4_500L
         private const val MAX_PARALLEL_PROVIDERS = 11
         private const val FULL_RETRY_COOLDOWN_MS = 12_000L
-        private const val BACKGROUND_MAX_MIRRORS = 4
+        private const val BACKGROUND_PARALLEL = 8
+        private const val BACKGROUND_BUDGET_MS = 20_000L
         private const val BACKGROUND_MISS_COOLDOWN_MS = 120_000L
-        private const val BACKGROUND_MAX_BYTES = 12L * 1024L * 1024L
+        private const val BACKGROUND_MAX_BYTES = 8L * 1024L * 1024L
+        private const val STREAM_FILES_SHARE_PERCENT = 60
         private const val BACKGROUND_OSU_MAX_BYTES = 2L * 1024L * 1024L
-        private const val BACKGROUND_CACHE_LIMIT_BYTES = 48L * 1024L * 1024L
+        private const val BACKGROUND_CACHE_LIMIT_BYTES = 24L * 1024L * 1024L
         private val BACKGROUND_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp")
         private val BACKGROUND_EVENT = Regex("(?m)^\\s*(?:0|Background)\\s*,\\s*0\\s*,\\s*\"([^\"]+)\"")
 

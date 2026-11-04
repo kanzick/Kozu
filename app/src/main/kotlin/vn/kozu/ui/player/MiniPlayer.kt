@@ -1,6 +1,7 @@
 package vn.kozu.ui.player
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
@@ -31,8 +32,12 @@ import androidx.compose.material3.Surface
 import vn.kozu.ui.i18n.KozuText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,6 +56,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import vn.kozu.domain.model.ArtworkShape
@@ -206,10 +212,18 @@ fun MiniPlayer(
         }
     }
 
-    // Gestures: swipe down dismisses, swipe sideways skips (optional).
-    val offsetX = remember { Animatable(0f) }
-    val offsetY = remember { Animatable(0f) }
-    LaunchedEffect(beatmap.id) { offsetY.snapTo(0f) }
+    // Keep drag offsets as plain state so pointer events update the layer synchronously.
+    // Animatable.snapTo() is suspending; launching one coroutine for every pointer move made
+    // the mini player stutter during fast swipes (including the Settings preview instance).
+    var offsetX by remember { mutableFloatStateOf(0f) }
+    var offsetY by remember { mutableFloatStateOf(0f) }
+    var gestureAnimation by remember { mutableStateOf<Job?>(null) }
+    val latestGestureAnimation = rememberUpdatedState(gestureAnimation)
+    LaunchedEffect(beatmap.id) {
+        latestGestureAnimation.value?.cancel()
+        offsetX = 0f
+        offsetY = 0f
+    }
 
     val title = beatmap.displayTitle(settings.preferUnicode)
     val artist = beatmap.displayArtist(settings.preferUnicode)
@@ -234,17 +248,18 @@ fun MiniPlayer(
                 .fillMaxWidth()
                 .then(outerPadding)
                 .graphicsLayer {
-                    translationX = offsetX.value
-                    translationY = offsetY.value
-                    alpha = 1f - (abs(offsetX.value) / (size.width.coerceAtLeast(1f))).coerceIn(0f, 0.6f)
+                    translationX = offsetX
+                    translationY = offsetY
+                    alpha = 1f - (abs(offsetX) / size.width.coerceAtLeast(1f)).coerceIn(0f, 0.42f)
                 }.pointerInput(prefs.miniSwipeToSkip, onDismiss, onNext, onPrevious) {
                     var axis = 0
                     var dx = 0f
                     var dy = 0f
                     val skipThreshold = 96.dp.toPx()
-                    val dismissThreshold = 72.dp.toPx()
+                    val dismissThreshold = 80.dp.toPx()
                     detectDragGestures(
                         onDragStart = {
+                            gestureAnimation?.cancel()
                             axis = 0
                             dx = 0f
                             dy = 0f
@@ -258,53 +273,56 @@ fun MiniPlayer(
                             when (axis) {
                                 1 -> {
                                     change.consume()
-                                    scope.launch { offsetX.snapTo(dx) }
+                                    offsetX = dx
                                 }
-
-                                2 ->
-                                    if (dy > 0f) {
-                                        change.consume()
-                                        scope.launch { offsetY.snapTo(dy) }
-                                    }
+                                2 -> if (dy > 0f) {
+                                    change.consume()
+                                    offsetY = dy
+                                }
                             }
                         },
                         onDragEnd = {
-                            val width = size.width.toFloat()
-                            val height = size.height.toFloat()
-                            scope.launch {
+                            val width = size.width.toFloat().coerceAtLeast(1f)
+                            val height = size.height.toFloat().coerceAtLeast(1f)
+                            gestureAnimation = scope.launch {
+                                val settle = spring<Float>(
+                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                    stiffness = Spring.StiffnessMediumLow,
+                                )
                                 when {
                                     axis == 1 && dx > skipThreshold -> {
                                         haptics.tick()
-                                        offsetX.animateTo(width * 0.4f, tween(110))
+                                        animate(initialValue = offsetX, targetValue = width * 0.42f, animationSpec = tween(120)) { value, _ -> offsetX = value }
                                         onPrevious()
-                                        offsetX.snapTo(-width * 0.4f)
-                                        offsetX.animateTo(0f, spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow))
+                                        offsetX = -width * 0.36f
+                                        animate(initialValue = offsetX, targetValue = 0f, animationSpec = settle) { value, _ -> offsetX = value }
                                     }
-
                                     axis == 1 && dx < -skipThreshold -> {
                                         haptics.tick()
-                                        offsetX.animateTo(-width * 0.4f, tween(110))
+                                        animate(initialValue = offsetX, targetValue = -width * 0.42f, animationSpec = tween(120)) { value, _ -> offsetX = value }
                                         onNext()
-                                        offsetX.snapTo(width * 0.4f)
-                                        offsetX.animateTo(0f, spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow))
+                                        offsetX = width * 0.36f
+                                        animate(initialValue = offsetX, targetValue = 0f, animationSpec = settle) { value, _ -> offsetX = value }
                                     }
-
                                     axis == 2 && dy > dismissThreshold -> {
-                                        offsetY.animateTo(height, tween(180))
+                                        animate(initialValue = offsetY, targetValue = height, animationSpec = tween(190)) { value, _ -> offsetY = value }
                                         onDismiss()
                                     }
-
                                     else -> {
-                                        launch { offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMedium)) }
-                                        offsetY.animateTo(0f, spring(stiffness = Spring.StiffnessMedium))
+                                        launch { animate(initialValue = offsetX, targetValue = 0f, animationSpec = settle) { value, _ -> offsetX = value } }
+                                        animate(initialValue = offsetY, targetValue = 0f, animationSpec = settle) { value, _ -> offsetY = value }
                                     }
                                 }
                             }
                         },
                         onDragCancel = {
-                            scope.launch {
-                                launch { offsetX.animateTo(0f) }
-                                offsetY.animateTo(0f)
+                            gestureAnimation = scope.launch {
+                                val settle = spring<Float>(
+                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                    stiffness = Spring.StiffnessMediumLow,
+                                )
+                                launch { animate(initialValue = offsetX, targetValue = 0f, animationSpec = settle) { value, _ -> offsetX = value } }
+                                animate(initialValue = offsetY, targetValue = 0f, animationSpec = settle) { value, _ -> offsetY = value }
                             }
                         },
                     )
@@ -594,7 +612,7 @@ private fun MiniArtwork(
         val appearance = LocalAppSettings.current.appearance
         val effectiveShape =
             if (appearance.miniArtShape == ArtworkShape.DEFAULT) appearance.artworkShape else appearance.miniArtShape
-        if (effectiveShape == ArtworkShape.SOFT || effectiveShape == ArtworkShape.SQUARE) {
+        if (effectiveShape == ArtworkShape.SQUARE) {
             FullBeatmapArt(
                 beatmap = beatmap,
                 modifier = Modifier.size(inner),

@@ -39,6 +39,7 @@ import vn.kozu.domain.model.ArtworkQuality
 import vn.kozu.domain.model.CrossfadeDuration
 import vn.kozu.domain.model.LibraryDensity
 import vn.kozu.domain.model.LibraryNavigationMode
+import vn.kozu.domain.model.MixSize
 import vn.kozu.domain.model.ModeFilter
 import vn.kozu.domain.model.NavigationStyle
 import vn.kozu.domain.model.PaletteStyle
@@ -461,6 +462,12 @@ fun ContentPage(
             switch(Setting.SHOW_MIX_CARD, settings.showMixCard) { enabled ->
                 viewModel.save { setShowMixCard(enabled) }
             }
+            dropdown(
+                Setting.MIX_SIZE,
+                settings.mixSize,
+                MixSize.entries.toList(),
+                { it.label },
+            ) { size -> viewModel.save { setMixSize(size) } }
             custom { shape ->
                 DisplayNameItem(
                     shape = shape,

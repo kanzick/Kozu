@@ -201,14 +201,18 @@ class SettingsViewModel(
     fun clearSearches() = viewModelScope.launch { container.settings.clearRecentSearches() }
 
     fun clearStreamCache() {
-        container.streams.clearCache()
-        PlaybackService.clearMediaCacheIfUnlocked(container.appContext)
-        refreshCacheSize()
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            container.streams.clearCache()
+            PlaybackService.clearMediaCache(container.appContext)
+            refreshCacheSize()
+        }
     }
 
     fun refreshCacheSize() {
-        _cacheBytes.value = container.streams.cacheBytes() +
-            PlaybackService.mediaCacheBytes(container.appContext)
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            _cacheBytes.value = container.streams.cacheBytes() +
+                PlaybackService.mediaCacheBytes(container.appContext)
+        }
     }
 
     fun deleteAllDownloads() = viewModelScope.launch { container.downloads.deleteAll() }

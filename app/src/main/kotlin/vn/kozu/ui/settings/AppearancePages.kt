@@ -34,6 +34,7 @@ import vn.kozu.domain.model.MiniPlayerColors
 import vn.kozu.domain.model.MiniPlayerProgress
 import vn.kozu.domain.model.MiniPlayerStyle
 import vn.kozu.domain.model.PlaybackIcon
+import vn.kozu.domain.model.PlayerLayoutStyle
 import vn.kozu.domain.model.SeekBarStyle
 import vn.kozu.domain.model.SliderStyle
 import vn.kozu.domain.model.TransportShape
@@ -204,6 +205,13 @@ fun PlayerStylePage(
         }
         SettingsSection("Full player") {
             dropdown(
+                Setting.PLAYER_LAYOUT,
+                appearance.playerLayoutStyle,
+                PlayerLayoutStyle.entries.toList(),
+                { it.label },
+                description = appearance.playerLayoutStyle.description,
+            ) { value -> viewModel.updateAppearance { copy(playerLayoutStyle = value) } }
+            dropdown(
                 Setting.SEEK_STYLE,
                 appearance.seekStyle,
                 SeekBarStyle.entries.toList(),
@@ -275,6 +283,7 @@ fun PlayerStylePage(
                         miniSpinArtwork = true,
                         miniSwipeToSkip = true,
                         seekStyle = SeekBarStyle.WAVY,
+                        playerLayoutStyle = PlayerLayoutStyle.BALANCED,
                         playerArtShape = ArtworkShape.DEFAULT,
                         transportShape = TransportShape.PILL,
                         iconStyle = vn.kozu.domain.model.IconStyle.ROUNDED,

@@ -44,6 +44,12 @@ class DownloadsStore(
             listOf(set) + list.filterNot { it.beatmap.id == set.beatmap.id }
         }
 
+    /** Updates the stored size of sets without touching their order. */
+    suspend fun updateSizes(sizes: Map<Long, Long>) =
+        update { list ->
+            list.map { set -> sizes[set.beatmap.id]?.let { set.copy(sizeBytes = it) } ?: set }
+        }
+
     suspend fun markOutdated(ids: Set<Long>) =
         update { list ->
             list.map { it.copy(outdated = it.beatmap.id in ids) }
