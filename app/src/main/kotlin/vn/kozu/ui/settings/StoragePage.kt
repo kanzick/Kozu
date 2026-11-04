@@ -1,5 +1,7 @@
 package vn.kozu.ui.settings
 
+import vn.kozu.ui.i18n.kozuUiString
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,7 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Text
+import vn.kozu.ui.i18n.KozuText as Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberBottomSheetState
@@ -391,7 +393,7 @@ private fun ForgottenRow(shape: Shape, set: DownloadedSet, daysAgo: Int, onDelet
                 )
             }
             IconButton(onClick = onDelete) {
-                Icon(Icons.Rounded.Delete, contentDescription = "Delete ${set.beatmap.title}", tint = MaterialTheme.colorScheme.error)
+                Icon(Icons.Rounded.Delete, contentDescription = kozuUiString("Delete ${set.beatmap.title}"), tint = MaterialTheme.colorScheme.error)
             }
         }
     }

@@ -1,5 +1,7 @@
 package vn.kozu.ui.explore
 
+import vn.kozu.ui.i18n.kozuUiString
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -24,7 +26,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import vn.kozu.ui.i18n.KozuText as Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -96,7 +98,7 @@ internal fun BrowseSearchField(
         trailingIcon = {
             if (query.isNotEmpty()) {
                 IconButton(onClick = { onQueryChange("") }) {
-                    Icon(Icons.Rounded.Close, contentDescription = "Clear search")
+                    Icon(Icons.Rounded.Close, contentDescription = kozuUiString("Clear search"))
                 }
             }
         },
@@ -210,7 +212,7 @@ fun ActiveFilterChips(
                 trailingIcon = {
                     Icon(
                         Icons.Rounded.Close,
-                        contentDescription = "Remove ${filter.label}",
+                        contentDescription = kozuUiString("Remove ${filter.label}"),
                         modifier = Modifier.size(16.dp),
                     )
                 },

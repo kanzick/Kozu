@@ -1,0 +1,937 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="settings_language_title" formatted="false">Ngôn ngữ</string>
+    <string name="settings_language_subtitle" formatted="false">Chọn ngôn ngữ ứng dụng.</string>
+    <string name="settings_language_description" formatted="false">Chọn ngôn ngữ dùng trong Kozu. Phần chưa được dịch sẽ hiển thị bằng tiếng Anh.</string>
+    <string name="settings_language_restart_note" formatted="false">Kozu sẽ mở lại để áp dụng lựa chọn. Nhạc, thư viện và cài đặt vẫn được giữ trên thiết bị.</string>
+    <string name="language_system" formatted="false">Theo hệ thống</string>
+    <string name="language_english">English</string>
+    <string name="language_arabic">العربية</string>
+    <string name="language_german">Deutsch</string>
+    <string name="language_spanish">Español</string>
+    <string name="language_french">Français</string>
+    <string name="language_indonesian">Bahasa Indonesia</string>
+    <string name="language_italian">Italiano</string>
+    <string name="language_japanese">日本語</string>
+    <string name="language_korean">한국어</string>
+    <string name="language_portuguese_brazil">Português (Brasil)</string>
+    <string name="language_russian">Русский</string>
+    <string name="language_turkish">Türkçe</string>
+    <string name="language_chinese_simplified">简体中文</string>
+    <string name="language_vietnamese">Tiếng Việt</string>
+    <string name="language_selected" formatted="false">Đã chọn</string>
+    <string name="settings_group_personalize" formatted="false">Cá nhân hóa</string>
+    <string name="settings_group_music" formatted="false">Âm nhạc</string>
+    <string name="settings_group_library_data" formatted="false">Thư viện &amp; dữ liệu</string>
+    <string name="settings_group_system" formatted="false">Hệ thống</string>
+    <string name="settings_group_app" formatted="false">Ứng dụng</string>
+    <string name="ui_b50bf56a8b8f37" formatted="false">10 bài hát</string>
+    <string name="ui_f6234627883aca" formatted="false">100 bài hát</string>
+    <string name="ui_5f1a003beac82a" formatted="false">12 giây</string>
+    <string name="ui_4180e3f7d9b02d" formatted="false">120hz fps smooth</string>
+    <string name="ui_0654c70eb59b08" formatted="false">25 bài hát</string>
+    <string name="ui_aca3514915382f" formatted="false">3 giây</string>
+    <string name="ui_76c664a81d76b9" formatted="false">5 giây</string>
+    <string name="ui_9ead5dd2642431" formatted="false">50 bài hát</string>
+    <string name="ui_04ccd7191c2ab7" formatted="false">8 giây</string>
+    <string name="ui_170621ac08426c" formatted="false">90 ngày</string>
+    <string name="ui_7abd8ae5bc4488" formatted="false">Bản sao lưu là một tệp duy nhất mà bạn có thể lưu ở bất cứ đâu. Tệp chứa các mục bạn chọn: cài đặt, bài yêu thích, danh sách phát và lịch sử nghe.</string>
+    <string name="ui_6b21fb791ac051" formatted="false">Giới thiệu</string>
+    <string name="ui_e49578edcffe4c" formatted="false">Màu nhấn</string>
+    <string name="ui_61cc55aa045318" formatted="false">Thêm</string>
+    <string name="ui_35bea43b5dbc0a" formatted="false">Thêm bản đồ Mania</string>
+    <string name="ui_d2b5ab842e2952" formatted="false">Thêm bản đồ</string>
+    <string name="ui_4ae0bb227e54ec" formatted="false">Thêm máy chủ phản chiếu</string>
+    <string name="ui_df0144beb30667" formatted="false">Tự thêm bài hát liên quan khi hàng đợi kết thúc.</string>
+    <string name="ui_3e241e3cc63e8d" formatted="false">Thêm vào danh sách phát</string>
+    <string name="ui_b68734c259106d" formatted="false">Đã thêm</string>
+    <string name="ui_a22e4c77c60857" formatted="false">Điều chỉnh màu dựa trên ảnh bìa.</string>
+    <string name="ui_9c2bbd934fdfc3" formatted="false">Điều chỉnh dải tần và cấu hình âm thanh.</string>
+    <string name="ui_9b8dfaa96fb18f" formatted="false">Điều chỉnh độ bo tròn của chữ Google Sans Flex.</string>
+    <string name="ui_7d3645a368255a" formatted="false">Điều chỉnh độ bo tròn của thanh trình phát.</string>
+    <string name="ui_178f0f2332a881" formatted="false">Điều chỉnh độ rộng chữ trong Google Sans Flex.</string>
+    <string name="ui_45c02c85515f10" formatted="false">Điều chỉnh kiểu chữ của trình phát.</string>
+    <string name="ui_46771e22374a12" formatted="false">Điều chỉnh cỡ chữ trên toàn ứng dụng.</string>
+    <string name="ui_f4335e603aec3e" formatted="false">Bảo trì nâng cao</string>
+    <string name="ui_19550a172c078e" formatted="false">Hình dạng ảnh bìa</string>
+    <string name="ui_9d9bfc1d35fdd6" formatted="false">Cho phép phát nhạc ổn định trong nền.</string>
+    <string name="ui_f1b32a193adc08" formatted="false">Anime</string>
+    <string name="ui_322444d3bb52c3" formatted="false">Bất kỳ</string>
+    <string name="ui_af7fc12d1dc774" formatted="false">Thông tin ứng dụng và dự án</string>
+    <string name="ui_36d75972387bc1" formatted="false">Phông chữ ứng dụng</string>
+    <string name="ui_abde7a74c8a0f9" formatted="false">Biểu tượng ứng dụng</string>
+    <string name="ui_01e1787a9e5b11" formatted="false">Ngôn ngữ ứng dụng</string>
+    <string name="ui_a00e3699eb5e5f" formatted="false">Điều hướng ứng dụng</string>
+    <string name="ui_d342b9d593365c" formatted="false">Kiểu ứng dụng</string>
+    <string name="ui_3d0ba3f991b834" formatted="false">Giao diện ứng dụng</string>
+    <string name="ui_41def7a0febe74" formatted="false">Giao diện</string>
+    <string name="ui_cfea419c3b4e8b" formatted="false">Áp dụng</string>
+    <string name="ui_6c3f3d3203630c" formatted="false">Nghệ sĩ</string>
+    <string name="ui_9719263b4bd7d9" formatted="false">Giới hạn bộ nhớ đệm ảnh bìa</string>
+    <string name="ui_f0d414ba91d680" formatted="false">Màu sắc từ ảnh bìa</string>
+    <string name="ui_7ed628130979d2" formatted="false">Thao tác với ảnh bìa</string>
+    <string name="ui_acdac205f5e24c" formatted="false">Âm thanh</string>
+    <string name="ui_433826ef72e463" formatted="false">Hỗ trợ âm thanh và bộ giải mã</string>
+    <string name="ui_cde748985dbe74" formatted="false">Cài đặt âm thanh</string>
+    <string name="ui_6b4943b6e12c80" formatted="false">Nguồn âm thanh</string>
+    <string name="ui_700fbfb117613e" formatted="false">Tự động cập nhật bản tải xuống</string>
+    <string name="ui_be44056d4e8f44" formatted="false">Kiểm tra tự động</string>
+    <string name="ui_378ca97e4b7094" formatted="false">Dọn dẹp tự động</string>
+    <string name="ui_bc11f588e72aa9" formatted="false">Tự động kiểm tra cập nhật</string>
+    <string name="ui_8a3045b87e1c24" formatted="false">Tránh các bài vừa phát gần đây.</string>
+    <string name="ui_1b589f62aa3ec0" formatted="false">Tránh bài hát lặp lại</string>
+    <string name="ui_b52b36b7269fbf" formatted="false">Quay lại</string>
+    <string name="ui_c85387787484aa" formatted="false">Quay lại biểu đồ</string>
+    <string name="ui_64dd60fe1a049f" formatted="false">Nền</string>
+    <string name="ui_0559f5ef86b137" formatted="false">Phát nhạc nền</string>
+    <string name="ui_a16162846d0fbd" formatted="false">Sao lưu &amp; khôi phục</string>
+    <string name="ui_03342dbb856b52" formatted="false">Cân bằng</string>
+    <string name="ui_81fd2e0f4203ac" formatted="false">Màu sắc cân bằng, dịu mắt</string>
+    <string name="ui_c946c9f6806b44" formatted="false">Tăng âm trầm</string>
+    <string name="ui_54d1a1d2957963" formatted="false">Tối ưu hóa pin</string>
+    <string name="ui_c2132838c39321" formatted="false">Danh sách beatmap và cập nhật được lấy từ osu!.</string>
+    <string name="ui_70cb647a88bd7c" formatted="false">Hành vi</string>
+    <string name="ui_6691a2e66fa2ef" formatted="false">Làm mờ ảnh bìa làm nền phía sau trình phát toàn màn hình.</string>
+    <string name="ui_7d44bc449c2a26" formatted="false">Xanh dương</string>
+    <string name="ui_2b3d14570e3c9d" formatted="false">Cường độ làm mờ</string>
+    <string name="ui_ef7b5de01870c6" formatted="false">Làm mờ nền trình phát</string>
+    <string name="ui_171b6c66f2fe77" formatted="false">Văn bản dễ đọc ở mọi cỡ chữ. Phông chữ này được dùng xuyên suốt ứng dụng, từ danh sách đến các trang cài đặt.</string>
+    <string name="ui_f38d3078051ce6" formatted="false">Tăng âm lượng cảm nhận tổng thể.</string>
+    <string name="ui_3d5d84ec665b74" formatted="false">Xem tất cả</string>
+    <string name="ui_ec4afa13c3488a" formatted="false">Bộ nhớ đệm và tải xuống</string>
+    <string name="ui_e7ecd081270c02" formatted="false">URL callback</string>
+    <string name="ui_77dfd2135f4db7" formatted="false">Hủy</string>
+    <string name="ui_f1f842e1950136" formatted="false">Băng chuyền</string>
+    <string name="ui_4a88d27bbae1de" formatted="false">Kho beatmap</string>
+    <string name="ui_9eb25373fd6763" formatted="false">Đồng bộ kho beatmap và thư viện</string>
+    <string name="ui_52fd253c579793" formatted="false">Nguồn danh mục</string>
+    <string name="ui_a7c51e67b60b09" formatted="false">Catch</string>
+    <string name="ui_4b5e84be0e45d1" formatted="false">Kiểm tra</string>
+    <string name="ui_3a5dadbe202574" formatted="false">Kiểm tra phiên bản mới khi mở ứng dụng.</string>
+    <string name="ui_736b9062b33638" formatted="false">Kiểm tra cập nhật</string>
+    <string name="ui_97876b8380adb6" formatted="false">Đang kiểm tra</string>
+    <string name="ui_15dc18865567bc" formatted="false">Tiếng Trung</string>
+    <string name="ui_3f89fddda927aa" formatted="false">Chọn chế độ chơi mặc định.</string>
+    <string name="ui_5ccf89adeea327" formatted="false">Chọn bố cục mini player.</string>
+    <string name="ui_f55a8aaeb4930d" formatted="false">Chọn tab hoặc thay đổi thứ tự.</string>
+    <string name="ui_f55a948db706b1" formatted="false">Tùy chỉnh giao diện và cảm nhận khi dùng Kozu.</string>
+    <string name="ui_c465ef63af7bd0" formatted="false">Chọn số bài hát phát khi trộn Your Mix.</string>
+    <string name="ui_8772d0d3a8682f" formatted="false">Chọn giao diện sáng, tối hoặc theo hệ thống.</string>
+    <string name="ui_7f44b06fd810ff" formatted="false">Chọn màu mini player.</string>
+    <string name="ui_7ea302e52a6619" formatted="false">Chọn phông chữ ứng dụng.</string>
+    <string name="ui_793fb2a367bd9d" formatted="false">Chọn biểu tượng ứng dụng.</string>
+    <string name="ui_e2ee14bfabd5e3" formatted="false">Chọn ngôn ngữ ứng dụng.</string>
+    <string name="ui_30de349da75aa3" formatted="false">Chọn trạng thái beatmap mặc định.</string>
+    <string name="ui_bc9856a162f00f" formatted="false">Chọn kiểu thanh tiến trình của trình phát toàn màn hình.</string>
+    <string name="ui_d4873b980354ff" formatted="false">Chọn kiểu thanh điều hướng.</string>
+    <string name="ui_47e0be1b6f7ec3" formatted="false">Chọn biểu tượng phát.</string>
+    <string name="ui_11d57e3684bc52" formatted="false">Chọn kiểu hiển thị tiến trình.</string>
+    <string name="ui_eadd91329a043b" formatted="false">Chọn màn hình mở ra khi khởi động Kozu.</string>
+    <string name="ui_72e57848c59cb2" formatted="false">Chọn kiểu thanh trượt.</string>
+    <string name="ui_130cd7fe33343e" formatted="false">Cổ điển</string>
+    <string name="ui_1dd4129242adcb" formatted="false">Cổ điển</string>
+    <string name="ui_845277fbaf1d03" formatted="false">Dọn dẹp tất cả</string>
+    <string name="ui_f634213e3bf58a" formatted="false">Xóa bộ nhớ đệm phát trực tuyến cũ khi mở ứng dụng.</string>
+    <string name="ui_c043160a89ba0a" formatted="false">Xóa tất cả</string>
+    <string name="ui_4e0e3aad9934b3" formatted="false">Xóa toàn bộ bộ nhớ đệm</string>
+    <string name="ui_44ba6acb60afce" formatted="false">Xóa bộ nhớ đệm ảnh bìa</string>
+    <string name="ui_53b5158bc7bd26" formatted="false">Xóa lịch sử</string>
+    <string name="ui_1501cb96e3af44" formatted="false">Xóa lịch sử nghe</string>
+    <string name="ui_984301092dbf9c" formatted="false">Xóa hàng đợi</string>
+    <string name="ui_692409583657af" formatted="false">Xóa tìm kiếm gần đây</string>
+    <string name="ui_4d770d4e841b04" formatted="false">Xóa tìm kiếm</string>
+    <string name="ui_91de720961aed7" formatted="false">Xóa bộ nhớ đệm luồng phát và ảnh bìa.</string>
+    <string name="ui_3826e7fb3e49e0" formatted="false">Xóa bộ nhớ đệm luồng phát</string>
+    <string name="ui_a766cd7ff02c32" formatted="false">Client ID</string>
+    <string name="ui_4b468ec67f3254" formatted="false">Client Secret</string>
+    <string name="ui_bbfa773e5a63a5" formatted="false">Đóng</string>
+    <string name="ui_88d5e4cac104ff" formatted="false">Màu sắc</string>
+    <string name="ui_2313707a4e5c0a" formatted="false">Thoải mái</string>
+    <string name="ui_1df39aa58ad403" formatted="false">Thu gọn</string>
+    <string name="ui_bf5707a54e45b7" formatted="false">Thẻ thu gọn</string>
+    <string name="ui_e040c38ea39789" formatted="false">Chế độ thu gọn</string>
+    <string name="ui_3890a2ed77c817" formatted="false">Tab vuốt gọn</string>
+    <string name="ui_b3b378b7374cb7" formatted="false">Kết nối tài khoản osu!</string>
+    <string name="ui_3cf0d881e31fb9" formatted="false">Kết nối hồ sơ osu! để hiển thị ảnh đại diện, thứ hạng và thống kê tại đây. Bạn vẫn có thể khám phá, tìm kiếm và nghe nhạc mà không cần đăng nhập.</string>
+    <string name="ui_c1f3b71fdf887f" formatted="false">Đang kết nối…</string>
+    <string name="ui_4f9be057f0ea5d" formatted="false">Nội dung</string>
+    <string name="ui_aada5528563ac4" formatted="false">Nút điều khiển</string>
+    <string name="ui_74eb70a4bfebfb" formatted="false">Điều khiển và thao tác</string>
+    <string name="ui_6d5f937051d2b6" formatted="false">Không thể tải thông tin beatmap.</string>
+    <string name="ui_1dbc9558cd8538" formatted="false">Không thể làm mới thư viện. Hãy kiểm tra kết nối rồi thử lại.</string>
+    <string name="ui_7d0598005d9579" formatted="false">Thông tin xác thực để truy cập kho osu! chính thức.</string>
+    <string name="ui_00acfce66b4622" formatted="false">Chuyển bài mượt</string>
+    <string name="ui_081ae3fdc40360" formatted="false">Tùy chỉnh</string>
+    <string name="ui_a47324afa1aebc" formatted="false">Số phút tùy chỉnh</string>
+    <string name="ui_239dce622324de" formatted="false">Tùy chỉnh</string>
+    <string name="ui_f063a59047a652" formatted="false">Tùy chỉnh mini player.</string>
+    <string name="ui_869ec885837011" formatted="false">Tùy chỉnh thanh điều hướng.</string>
+    <string name="ui_cd80befadd3a39" formatted="false">Thời gian nghe hằng ngày</string>
+    <string name="ui_20d246a3bd9255" formatted="false">Giao diện tối</string>
+    <string name="ui_56ab7aaee895fd" formatted="false">Ngày thêm</string>
+    <string name="ui_2ac3a42adb50fa" formatted="false">Loại bỏ bài trùng trong hàng đợi</string>
+    <string name="ui_6485b266a83011" formatted="false">Mặc định (theo từng màn hình)</string>
+    <string name="ui_12db809a2976a7" formatted="false">Bộ lọc mặc định</string>
+    <string name="ui_4dfc110b81ec50" formatted="false">Chế độ chơi mặc định</string>
+    <string name="ui_f9c497bb4dd1a1" formatted="false">Bộ lọc trạng thái mặc định</string>
+    <string name="ui_09d5726afc0b86" formatted="false">Tab mặc định</string>
+    <string name="ui_f6fdbe48dc54dd" formatted="false">Xóa</string>
+    <string name="ui_5ec7ff34d9b65e" formatted="false">Xóa toàn bộ nội dung đã tải xuống?</string>
+    <string name="ui_4ef937ebd0b699" formatted="false">Xóa tất cả bài ít nghe</string>
+    <string name="ui_60ac32f930c375" formatted="false">Xóa dữ liệu âm thanh trong bộ nhớ đệm.</string>
+    <string name="ui_afd51d6b14479d" formatted="false">Xóa ảnh bìa trong bộ nhớ đệm.</string>
+    <string name="ui_187f59c07e3c8c" formatted="false">Xóa bản đồ?</string>
+    <string name="ui_5894f5d3de0452" formatted="false">Xóa danh sách phát?</string>
+    <string name="ui_be20a7d43dde8a" formatted="false">Xóa bộ nhớ đệm luồng phát, ảnh bìa và kho beatmap.</string>
+    <string name="ui_f67bc6dad74f08" formatted="false">Phát triển</string>
+    <string name="ui_7ea27f6f8f215a" formatted="false">Tùy chọn nhà phát triển</string>
+    <string name="ui_a5a74a6df09278" formatted="false">Thiết bị</string>
+    <string name="ui_7945d3c8f7a0de" formatted="false">Độ khó</string>
+    <string name="ui_f4f4473df8cb59" formatted="false">Tắt</string>
+    <string name="ui_ec98a48e2c63c9" formatted="false">Hiển thị &amp; hiệu năng</string>
+    <string name="ui_c7874aaa0fab4e" formatted="false">Tên hiển thị</string>
+    <string name="ui_9d2c24ed9e6b49" formatted="false">Hiển thị thẻ trộn nhạc trên Trang chủ.</string>
+    <string name="ui_e4c4ecef7842f9" formatted="false">Hiển thị người tạo beatmap.</string>
+    <string name="ui_e9b450d14bc236" formatted="false">Xong</string>
+    <string name="ui_86852533d4aeb7" formatted="false">Chạm đúp vào Tìm kiếm để bắt đầu nhập.</string>
+    <string name="ui_beb5f1f26d584a" formatted="false">Chạm đúp vào Tìm kiếm để nhập</string>
+    <string name="ui_42aa0f68a42bb1" formatted="false">URL tải xuống</string>
+    <string name="ui_a4eda9802f7edd" formatted="false">Chỉ tải beatmap khi dùng Wi-Fi.</string>
+    <string name="ui_01125e1be1f56c" formatted="false">Tải xuống thất bại</string>
+    <string name="ui_c850f30c959483" formatted="false">Giới hạn dung lượng tải xuống</string>
+    <string name="ui_435ce26e22b40b" formatted="false">Tệp .osz đã tải được lưu trong addmap/downloads.</string>
+    <string name="ui_9b4592f9ae45a6" formatted="false">Đang tải xuống</string>
+    <string name="ui_a862c2b21b5e13" formatted="false">Tải xuống</string>
+    <string name="ui_8621cf00f0a798" formatted="false">Nguồn tải công khai giống nhau cho người dùng khách và người đã đăng nhập. Không bắt buộc có tài khoản osu!.</string>
+    <string name="ui_6a87ebef1d1149" formatted="false">Kéo tab để đổi thứ tự.</string>
+    <string name="ui_f4f8f514948329" formatted="false">Kéo bài hát để tự sắp xếp.</string>
+    <string name="ui_b09cb6e84e747e" formatted="false">Hàng đợi động (tự phát)</string>
+    <string name="ui_62258559cc2805" formatted="false">Nhạc điện tử</string>
+    <string name="ui_489812d7551160" formatted="false">Bật phản hồi rung.</string>
+    <string name="ui_a68743b84201e6" formatted="false">Đã hết kết quả</string>
+    <string name="ui_649df08a448ee3" formatted="false">Tiếng Anh</string>
+    <string name="ui_6b7a3b3caa3bab" formatted="false">Nhập tên máy chủ hoặc địa chỉ IP hợp lệ</string>
+    <string name="ui_a73021f6f21a09" formatted="false">Nhập Client ID và Client Secret từ ứng dụng OAuth osu! của bạn. Đây là thông tin xác thực của ứng dụng, không phải mật khẩu osu!. Sau khi xác minh, Kozu sẽ mở osu! để bạn cấp quyền cho hồ sơ.</string>
+    <string name="ui_3b64a9da4d815a" formatted="false">Bộ chỉnh âm</string>
+    <string name="ui_4a66d148077918" formatted="false">Tất cả</string>
+    <string name="ui_57ab0d63329570" formatted="false">Nội dung nhạy cảm</string>
+    <string name="ui_b965ae66fcc42d" formatted="false">Khám phá</string>
+    <string name="ui_af20880da9a620" formatted="false">Xuất và khôi phục dữ liệu</string>
+    <string name="ui_6043b4bdf9af8b" formatted="false">Xuất bản sao lưu</string>
+    <string name="ui_870c8e665463af" formatted="false">Xuất cài đặt và dữ liệu cá nhân.</string>
+    <string name="ui_155edc970c2d5c" formatted="false">Biểu cảm</string>
+    <string name="ui_7464976066d652" formatted="false">Viên thuốc biểu cảm</string>
+    <string name="ui_6b2a7b4563d2f4" formatted="false">Chuyển bài bằng hiệu ứng mờ dần.</string>
+    <string name="ui_e6ccc0fdea8594" formatted="false">Yêu thích</string>
+    <string name="ui_cf05a136357238" formatted="false">Nghệ sĩ nổi bật</string>
+    <string name="ui_a04405281fcacb" formatted="false">Nút phát tròn đặc</string>
+    <string name="ui_96e578211aa295" formatted="false">Bộ lọc</string>
+    <string name="ui_fff44d9a0ed456" formatted="false">Tìm cài đặt</string>
+    <string name="ui_ab224b51965363" formatted="false">Nổi</string>
+    <string name="ui_44fa4628d8efb0" formatted="false">Dân ca</string>
+    <string name="ui_59c6b5887ab72d" formatted="false">Theo hệ thống</string>
+    <string name="ui_b775f5cbf8f43a" formatted="false">Phông chữ và văn bản</string>
+    <string name="ui_2980442f3dd617" formatted="false">Buộc làm mới kho beatmap</string>
+    <string name="ui_88728942905cfd" formatted="false">Xóa các từ khóa tìm kiếm gần đây.</string>
+    <string name="ui_f665a6919830ca" formatted="false">Bài hát ít nghe</string>
+    <string name="ui_44389f6a466eaa" formatted="false">Tiếng Pháp</string>
+    <string name="ui_a3013f2762800b" formatted="false">Metadata được tạo không bao gồm toàn văn giấy phép.</string>
+    <string name="ui_fc58bf59118e1e" formatted="false">Toàn bộ bài hát</string>
+    <string name="ui_e3e82846c32567" formatted="false">Trò chơi</string>
+    <string name="ui_2ca008102a7f9c" formatted="false">Đã tạm dừng trò chơi</string>
+    <string name="ui_6da4ab776b1093" formatted="false">Cài đặt trò chơi</string>
+    <string name="ui_da91388c72d3e3" formatted="false">Tiếng Đức</string>
+    <string name="ui_afb597aa808b3d" formatted="false">Giao diện chung</string>
+    <string name="ui_3c79b4fec0386e" formatted="false">Google Sans</string>
+    <string name="ui_78d5a72fe6826d" formatted="false">Google Sans Flex (bo tròn)</string>
+    <string name="ui_efa416f971d67c" formatted="false">Graveyard</string>
+    <string name="ui_07ffe0b5c89fa0" formatted="false">Thang xám với một màu nhấn</string>
+    <string name="ui_933bf21afdd55a" formatted="false">Xanh lá</string>
+    <string name="ui_b0baa915a1e729" formatted="false">Phản hồi rung</string>
+    <string name="ui_020d6b5ecf8204" formatted="false">Rung phản hồi</string>
+    <string name="ui_26f95b790002d2" formatted="false">Giải mã âm thanh bằng phần cứng</string>
+    <string name="ui_a3cc460f5e4ce7" formatted="false">Có bảng xếp hạng</string>
+    <string name="ui_3d69de22491586" formatted="false">Có storyboard</string>
+    <string name="ui_2247b67c506aa1" formatted="false">Có video</string>
+    <string name="ui_57dce7eacf6102" formatted="false">Mẫu tiêu đề</string>
+    <string name="ui_453cce215f7ac3" formatted="false">Tai nghe</string>
+    <string name="ui_0d4c81e6676fd6" formatted="false">Chế độ Hi-Fi</string>
+    <string name="ui_38cbb185e14335" formatted="false">Cao (gốc)</string>
+    <string name="ui_ddfd624753efe0" formatted="false">Tần số quét cao</string>
+    <string name="ui_f348b5f9db08dd" formatted="false">Hip Hop</string>
+    <string name="ui_68aa05e2a9eb77" formatted="false">Hip hop</string>
+    <string name="ui_70f8bb9a8a5393" formatted="false">Trang chủ</string>
+    <string name="ui_3960ec4ca5fb5e" formatted="false">Máy chủ</string>
+    <string name="ui_81bdb0be5e6df3" formatted="false">Cách Kozu tìm nguồn âm thanh</string>
+    <string name="ui_aebc99a3841a93" formatted="false">Cách Kozu xử lý dữ liệu của bạn.</string>
+    <string name="ui_751ad722bb7e5b" formatted="false">Cách hoạt động của sao lưu</string>
+    <string name="ui_65c4932d0cbf42" formatted="false">Điều chỉnh độ mờ của nền trình phát.</string>
+    <string name="ui_f9ea46d8e07409" formatted="false">Thanh điều hướng chỉ hiển thị biểu tượng</string>
+    <string name="ui_2f7cfac6f09ac5" formatted="false">Nhập bản sao lưu Kozu.</string>
+    <string name="ui_1b40a3adc76159" formatted="false">Nhập bản sao lưu</string>
+    <string name="ui_e6a7934ce9e9db" formatted="false">Bao gồm beatmap đã chuyển đổi</string>
+    <string name="ui_4462476709952b" formatted="false">Bao gồm beatmap có nội dung nhạy cảm trong kết quả tìm kiếm.</string>
+    <string name="ui_8360a9faab5eed" formatted="false">Không lời</string>
+    <string name="ui_485b57adcc8065" formatted="false">Tiếng Ý</string>
+    <string name="ui_9239c22d1d1c99" formatted="false">Tiếng Nhật</string>
+    <string name="ui_0f940a4107f563" formatted="false">Jazz</string>
+    <string name="ui_20b9a2bb363bf1" formatted="false">Lưu toàn bộ beatmap</string>
+    <string name="ui_2bbe83ad641cf0" formatted="false">Tiếp tục phát nhạc khi rời khỏi ứng dụng.</string>
+    <string name="ui_40e3cc93cfe853" formatted="false">Tiếp tục phát khi đóng ứng dụng</string>
+    <string name="ui_23f85e29fe8820" formatted="false">Giữ màn hình sáng khi mở trình phát</string>
+    <string name="ui_070c9e8af94c60" formatted="false">Giữ toàn bộ tệp .osz để chơi trong chế độ game.</string>
+    <string name="ui_1654e24edb17ef" formatted="false">Giữ màn hình luôn bật trong trình phát.</string>
+    <string name="ui_dec66c5bf0f7fe" formatted="false">Tiếng Hàn</string>
+    <string name="ui_79310146340d31" formatted="false">Kozu</string>
+    <string name="ui_3334891cc6e45f" formatted="false">Kozu là dự án do người hâm mộ phát triển, không liên kết hoặc được ppy Pty Ltd chứng thực. osu! là nhãn hiệu của ppy Pty Ltd.</string>
+    <string name="ui_ca5b4f1427e7b0" formatted="false">Cập nhật Kozu</string>
+    <string name="ui_89b86ab0e66f52" formatted="false">Ngôn ngữ</string>
+    <string name="ui_56e2f5d3634ea4" formatted="false">Để sau</string>
+    <string name="ui_2e0e9f6c017205" formatted="false">Bố cục &amp; mật độ</string>
+    <string name="ui_c941e9379443c4" formatted="false">Mật độ bố cục</string>
+    <string name="ui_0381247a698736" formatted="false">Bảng xếp hạng</string>
+    <string name="ui_87f53180168370" formatted="false">Để trống để dùng tên người dùng osu!</string>
+    <string name="ui_a68bedf6bcd20a" formatted="false">Độ bo tròn chữ</string>
+    <string name="ui_d6a748f4688aa4" formatted="false">Độ rộng chữ</string>
+    <string name="ui_b8100f5ba8bd04" formatted="false">Thư viện</string>
+    <string name="ui_5495f6ee5384b9" formatted="false">Điều hướng thư viện</string>
+    <string name="ui_a6af4cb8479c82" formatted="false">Các hàng trong thư viện</string>
+    <string name="ui_51c55df5366763" formatted="false">Các tab thư viện</string>
+    <string name="ui_ee92c8a4b63c95" formatted="false">Giấy phép</string>
+    <string name="ui_54c33e70709fa4" formatted="false">Giao diện sáng</string>
+    <string name="ui_8c794f6470e427" formatted="false">Yêu thích</string>
+    <string name="ui_f092bc231f2819" formatted="false">Thông tin từ máy chủ công khai bị giới hạn. Thêm thông tin osu! API để xem đầy đủ.</string>
+    <string name="ui_bd9991332965ca" formatted="false">Lịch sử nghe</string>
+    <string name="ui_a760b27b792a34" formatted="false">Thống kê nghe nhạc</string>
+    <string name="ui_b4857486c2b93d" formatted="false">Đang tải biểu đồ…</string>
+    <string name="ui_6c73179974b508" formatted="false">Đang tải điểm cá nhân…</string>
+    <string name="ui_e5bc6697ed1dcf" formatted="false">Đang tải điểm…</string>
+    <string name="ui_07531f00ed90ef" formatted="false">Tìm phiên bản Kozu mới hơn trên GitHub.</string>
+    <string name="ui_59e6cfa4f44950" formatted="false">Âm lượng</string>
+    <string name="ui_6f345fa2acfd7b" formatted="false">Loved</string>
+    <string name="ui_a0979c3cdf6448" formatted="false">Được yêu thích</string>
+    <string name="ui_a43a9da0547838" formatted="false">Thấp (150px)</string>
+    <string name="ui_599d70a0b37f70" formatted="false">Làm chữ mảnh hoặc đậm hơn trên toàn ứng dụng.</string>
+    <string name="ui_2e400084447bb8" formatted="false">Mania</string>
+    <string name="ui_a782be00b0c6b9" formatted="false">Độ khó Mania</string>
+    <string name="ui_ea853089d7cf5f" formatted="false">Người tạo beatmap</string>
+    <string name="ui_30d75dda9523f2" formatted="false">Đồng bộ màu sắc với ảnh bìa hiện tại.</string>
+    <string name="ui_358fcd0682377b" formatted="false">Dung lượng tối đa dành cho bộ nhớ đệm luồng phát.</string>
+    <string name="ui_e7d788b56af7cc" formatted="false">Dung lượng tối đa dành cho ảnh bìa trong bộ nhớ đệm.</string>
+    <string name="ui_8e6debd1d6c980" formatted="false">Trung bình (300px)</string>
+    <string name="ui_90acb406947db8" formatted="false">Metal</string>
+    <string name="ui_ea147cc3e00f00" formatted="false">Mini player và trình phát toàn màn hình</string>
+    <string name="ui_10fde9feee2886" formatted="false">Ảnh mini player</string>
+    <string name="ui_c8c5d1a2554c08" formatted="false">Màu mini player</string>
+    <string name="ui_3ff18efcd2e38d" formatted="false">Độ bo góc mini player</string>
+    <string name="ui_8fb3990fbadab9" formatted="false">Tiến trình mini player</string>
+    <string name="ui_04fa521d0f19e4" formatted="false">Kiểu mini player</string>
+    <string name="ui_fd7391b6720b80" formatted="false">Trộn</string>
+    <string name="ui_28a39985f2b554" formatted="false">Lựa chọn pha trộn</string>
+    <string name="ui_8dbc6e2375c249" formatted="false">Chất lượng ảnh bìa khi dùng dữ liệu di động</string>
+    <string name="ui_1dda992b70d55b" formatted="false">Đơn sắc</string>
+    <string name="ui_14202e85eab3b4" formatted="false">Phát nhiều nhất</string>
+    <string name="ui_131260cbfbb0c8" formatted="false">Âm nhạc</string>
+    <string name="ui_054700ed9e2722" formatted="false">Màu trầm với sắc độ nhẹ</string>
+    <string name="ui_337590e34dccc7" formatted="false">Bản đồ của tôi</string>
+    <string name="ui_51ae47e5709af1" formatted="false">Số lượng mục hàng đầu</string>
+    <string name="ui_709a23220f2c3d" formatted="false">Tên</string>
+    <string name="ui_63db7be011d9e0" formatted="false">Tên dùng trong lời chào ở Trang chủ.</string>
+    <string name="ui_87f5791b3b20b4" formatted="false">Thanh điều hướng</string>
+    <string name="ui_d3f77266899c20" formatted="false">Độ bo góc thanh điều hướng</string>
+    <string name="ui_f5df8af75dfa5f" formatted="false">Kiểu thanh điều hướng</string>
+    <string name="ui_53ebc572b4a448" formatted="false">Mạng</string>
+    <string name="ui_4bd29139454399" formatted="false">Trung tính</string>
+    <string name="ui_80c3052d33ccde" formatted="false">Không bao giờ</string>
+    <string name="ui_ce00926930a45d" formatted="false">Kỷ lục cá nhân mới!</string>
+    <string name="ui_3cdd02963c7142" formatted="false">Bản phát hành mới</string>
+    <string name="ui_d0442824723ca3" formatted="false">Mới nhất</string>
+    <string name="ui_14d87527bcedeb" formatted="false">Không tìm thấy độ khó Mania cho bản đồ này.</string>
+    <string name="ui_96a486e725db44" formatted="false">Không có thông tin độ khó cho beatmap này.</string>
+    <string name="ui_d79ed7a5cd1bab" formatted="false">Metadata dependency không cung cấp thông tin giấy phép. Hãy kiểm tra dự án gốc trước khi phân phối lại bản dựng này.</string>
+    <string name="ui_1e8cad627274d7" formatted="false">Chưa có điểm số nào được ghi nhận cho độ khó này.</string>
+    <string name="ui_89bb9fcb1ee90b" formatted="false">Không tìm thấy cài đặt</string>
+    <string name="ui_8676fc4354c128" formatted="false">Không nằm trong top 50 của độ khó này, điểm chưa được lưu</string>
+    <string name="ui_d8abb94b9418d9" formatted="false">Không có gì cần xem lại. Tất cả bài hát ngoại tuyến đều được phát gần đây.</string>
+    <string name="ui_f83cb354410ce6" formatted="false">Chưa có dữ liệu. Hãy nghe vài bài để xem bài hát, nghệ sĩ và mapper hàng đầu tại đây.</string>
+    <string name="ui_aea0247b2a4a52" formatted="false">Độc lạ</string>
+    <string name="ui_0844730531b06e" formatted="false">Đang phát</string>
+    <string name="ui_d244f706071aaf" formatted="false">Số bài hát hiển thị trong các danh sách thống kê hàng đầu.</string>
+    <string name="ui_eddae690d5e9b9" formatted="false">Ứng dụng OAuth đã được xác minh. Đang mở osu!…</string>
+    <string name="ui_e3de5ab0ca4c69" formatted="false">Tắt</string>
+    <string name="ui_aa4775f938b695" formatted="false">Tắt · dùng nền tối tiêu chuẩn. Bật để sử dụng nền đen tuyệt đối phù hợp màn hình OLED.</string>
+    <string name="ui_0901d8dc37190a" formatted="false">Chính thức + dự phòng</string>
+    <string name="ui_902c98638417f5" formatted="false">osu! chính thức</string>
+    <string name="ui_3399819b6f2820" formatted="false">Beatmap ngoại tuyến</string>
+    <string name="ui_ac143f451919e0" formatted="false">Bài hát ngoại tuyến sẽ bị xóa khỏi thiết bị này. Bạn có thể tải lại bất cứ lúc nào.</string>
+    <string name="ui_0fdebe14455471" formatted="false">Bật · nền đen tuyệt đối cùng thẻ tối hơn. Áp dụng trong giao diện tối.</string>
+    <string name="ui_467aeec6bb04e1" formatted="false">Mỗi ngày một lần khi mở ứng dụng</string>
+    <string name="ui_2c45a53b8c053a" formatted="false">Mở cài đặt pin</string>
+    <string name="ui_d2cbed1bbd0645" formatted="false">Mở nguồn giấy phép</string>
+    <string name="ui_658d868902f079" formatted="false">Mở trên osu!</string>
+    <string name="ui_96e8e227536300" formatted="false">Mở cài đặt OAuth của osu!</string>
+    <string name="ui_b226fcfd39aed9" formatted="false">Mở liên kết beatmap osu! bằng Kozu.</string>
+    <string name="ui_720648e10e8c06" formatted="false">Mở trình phát khi phát nhạc</string>
+    <string name="ui_6a3bd390fd9607" formatted="false">Mở bản phát hành</string>
+    <string name="ui_b1d90372cb1210" formatted="false">Mở cài đặt hệ thống</string>
+    <string name="ui_635c6dbebc6f8d" formatted="false">Mở trình phát toàn màn hình khi bắt đầu phát.</string>
+    <string name="ui_03c21782916347" formatted="false">Thông tin phần mềm nguồn mở</string>
+    <string name="ui_31073c8023a4f8" formatted="false">Thông tin phần mềm nguồn mở.</string>
+    <string name="ui_09fb6aaba7940a" formatted="false">Cam</string>
+    <string name="ui_1d75774c0f96b6" formatted="false">Thứ tự</string>
+    <string name="ui_6e6a6f2086bb5f" formatted="false">Khác</string>
+    <string name="ui_bccd863e3deb65" formatted="false">Nút phát tròn viền</string>
+    <string name="ui_524350aebb988c" formatted="false">Kiểu bảng màu</string>
+    <string name="ui_408255ed028bc9" formatted="false">Mật khẩu (không bắt buộc)</string>
+    <string name="ui_52d4630d51c5f0" formatted="false">Tạm dừng khi ngắt tai nghe</string>
+    <string name="ui_f7f85b9548dbf5" formatted="false">Tạm dừng khi ngắt tai nghe.</string>
+    <string name="ui_96f608c16cef16" formatted="false">Pending</string>
+    <string name="ui_482c7d96a4de8f" formatted="false">Chế độ hiệu năng</string>
+    <string name="ui_6c3b0c02ddaf07" formatted="false">Phát ngẫu nhiên liên tục</string>
+    <string name="ui_eae34d1396e7b1" formatted="false">Điểm cá nhân tốt nhất: %,d</string>
+    <string name="ui_54076359fdc7f1" formatted="false">Hồng</string>
+    <string name="ui_b6c0af90231bef" formatted="false">Hãy nghe vài bài, thống kê tuần của bạn sẽ xuất hiện tại đây.</string>
+    <string name="ui_ae8b18ce8e25e8" formatted="false">Mũi tên phát</string>
+    <string name="ui_fca966b0e35484" formatted="false">Nút phát hình tròn</string>
+    <string name="ui_59ee272a3fa52e" formatted="false">Phát toàn bộ bài hát hoặc đoạn nghe thử.</string>
+    <string name="ui_c8e3087049119a" formatted="false">Phát nhạc</string>
+    <string name="ui_657307e5370b49" formatted="false">Biểu tượng phát</string>
+    <string name="ui_91d5082c1dc5a2" formatted="false">Đã phát</string>
+    <string name="ui_e53407cfe1a515" formatted="false">Trình phát</string>
+    <string name="ui_7ead9351b321a1" formatted="false">Trình phát &amp; mini player</string>
+    <string name="ui_abe45b863765f5" formatted="false">Hình ảnh trình phát</string>
+    <string name="ui_514c420f38136d" formatted="false">Kiểu biểu tượng trình phát</string>
+    <string name="ui_2e4f5ba7b9a5e1" formatted="false">Tên người chơi</string>
+    <string name="ui_4a764e61f7a32e" formatted="false">Bố cục vùng chơi</string>
+    <string name="ui_6a8c16430ce7ac" formatted="false">Màu tươi vui với độ tương phản cao</string>
+    <string name="ui_544f7553c85aae" formatted="false">Tên danh sách phát</string>
+    <string name="ui_77b69f32c87800" formatted="false">Danh sách phát</string>
+    <string name="ui_a6bc73a2168f40" formatted="false">Lượt phát</string>
+    <string name="ui_c4f1241e72a271" formatted="false">Lượt phát và yêu thích</string>
+    <string name="ui_d011986407b111" formatted="false">Tiếng Ba Lan</string>
+    <string name="ui_267a64d3f8a27f" formatted="false">Pop</string>
+    <string name="ui_fe035157cda20b" formatted="false">Cổng</string>
+    <string name="ui_249bad65fbd1cd" formatted="false">Cổng phải nằm trong khoảng 1 đến 65535</string>
+    <string name="ui_7d2f3d54d1db52" formatted="false">Ưu tiên tiêu đề bài hát gốc nếu có.</string>
+    <string name="ui_19ab5950c683ac" formatted="false">Ưu tiên tiêu đề gốc</string>
+    <string name="ui_a86b1e627bc1d5" formatted="false">Tải trước bài hát tiếp theo.</string>
+    <string name="ui_e20f130049a3eb" formatted="false">Nhật ký chuẩn bị</string>
+    <string name="ui_5b8ee8b02b8eda" formatted="false">Bản thử nghiệm</string>
+    <string name="ui_5b858d8aebe256" formatted="false">URL nghe thử (không bắt buộc)</string>
+    <string name="ui_2579fc4926d2fc" formatted="false">Chỉ nghe thử</string>
+    <string name="ui_e14dd10da9c224" formatted="false">Ưu tiên thao tác cuộn mượt.</string>
+    <string name="ui_cf01481f626d51" formatted="false">Quyền riêng tư</string>
+    <string name="ui_7ceacdcaab4c89" formatted="false">Chính sách quyền riêng tư</string>
+    <string name="ui_2e280b44f81cc1" formatted="false">Máy chủ proxy</string>
+    <string name="ui_fd50c2c4dacd2e" formatted="false">Nguồn dự phòng công khai</string>
+    <string name="ui_4904cbcd4a3c5f" formatted="false">Tải từ máy chủ công khai</string>
+    <string name="ui_4b6adf3851d638" formatted="false">Bản phát hành chính thức</string>
+    <string name="ui_aa8a278d9259e4" formatted="false">Đen tuyệt đối</string>
+    <string name="ui_32576f4fedc07f" formatted="false">Tím</string>
+    <string name="ui_4f12dc10729d00" formatted="false">Đủ điều kiện</string>
+    <string name="ui_5a60e73f665970" formatted="false">Hàng đợi và chuyển bài</string>
+    <string name="ui_72dabfb89f99f8" formatted="false">Tải trước bài tiếp theo</string>
+    <string name="ui_6a599877d75384" formatted="false">Đang chờ</string>
+    <string name="ui_87c83dd2029a91" formatted="false">Quicksand</string>
+    <string name="ui_1a2285d8881f22" formatted="false">Thoát</string>
+    <string name="ui_58d888c08aa561" formatted="false">Ngẫu nhiên</string>
+    <string name="ui_86ff9efe8897e4" formatted="false">Chưa có lịch sử thứ hạng</string>
+    <string name="ui_092579473a08bd" formatted="false">Đã xếp hạng</string>
+    <string name="ui_9cd04bc7edb4dc" formatted="false">Ranked + Loved</string>
+    <string name="ui_5513a1fc555d82" formatted="false">Ngày xếp hạng</string>
+    <string name="ui_711f6f36a61a26" formatted="false">Đánh giá Kozu</string>
+    <string name="ui_60272af4338a30" formatted="false">Đánh giá Kozu trên GitHub.</string>
+    <string name="ui_6437b7bf655854" formatted="false">Đánh giá</string>
+    <string name="ui_ff68e45a1f459a" formatted="false">Đang đọc giấy phép dependency…</string>
+    <string name="ui_0ed7e603e8c184" formatted="false">Sẵn sàng chơi</string>
+    <string name="ui_bbb80c33e98e77" formatted="false">Xây dựng lại thư viện</string>
+    <string name="ui_ce2a5db41ff9ff" formatted="false">Tạo lại thống kê từ lịch sử nghe.</string>
+    <string name="ui_a73d2913b829ca" formatted="false">Tìm kiếm gần đây</string>
+    <string name="ui_5e64b6867d720a" formatted="false">Dung lượng có thể giải phóng</string>
+    <string name="ui_70a7da2db2e3e4" formatted="false">Độ khó đề xuất</string>
+    <string name="ui_cc9db3a795571c" formatted="false">Đỏ</string>
+    <string name="ui_e4fef4b1ff5152" formatted="false">Giảm hiệu ứng để tiết kiệm pin.</string>
+    <string name="ui_848cd92b4679e5" formatted="false">Làm mới các trang kho beatmap đã lưu đệm.</string>
+    <string name="ui_c73deb234dfea1" formatted="false">Làm mới danh mục</string>
+    <string name="ui_57ada4d398cb45" formatted="false">Làm mới thông tin thiết bị</string>
+    <string name="ui_614ae02ff3e827" formatted="false">Làm mới thông tin thiết bị.</string>
+    <string name="ui_96141178bb8953" formatted="false">Đang làm mới…</string>
+    <string name="ui_efbbd21921ee64" formatted="false">Tạo lại thống kê</string>
+    <string name="ui_dcb70f5244f888" formatted="false">Mức độ liên quan</string>
+    <string name="ui_5d6db0992b6b98" formatted="false">Ghi nhớ cài đặt phát ngẫu nhiên và lặp lại.</string>
+    <string name="ui_e963907dac5cd5" formatted="false">Xóa</string>
+    <string name="ui_75b8109cdbcd6c" formatted="false">Loại bỏ bài hát trùng khỏi hàng đợi.</string>
+    <string name="ui_6f824feee97ab1" formatted="false">Xóa mọi lượt phát được ghi nhận trên thiết bị này.</string>
+    <string name="ui_f846a913331cd0" formatted="false">Sắp xếp lại tab thư viện</string>
+    <string name="ui_c3329f5a5115ec" formatted="false">Sắp xếp tab</string>
+    <string name="ui_44c57abd888a66" formatted="false">Đặt lại</string>
+    <string name="ui_8a20f099e81b0c" formatted="false">Đặt lại tất cả tùy chọn.</string>
+    <string name="ui_7262c7b77667dc" formatted="false">Đặt lại toàn bộ cài đặt</string>
+    <string name="ui_56553100b028cf" formatted="false">Đặt lại bộ lọc</string>
+    <string name="ui_b74221691b94c9" formatted="false">Đặt lại thứ tự</string>
+    <string name="ui_ab92c7f9c013f3" formatted="false">Đặt lại kiểu trình phát</string>
+    <string name="ui_eea26460e96e01" formatted="false">Đặt lại thứ tự tab về mặc định?</string>
+    <string name="ui_f0c3075af32a6a" formatted="false">Đặt lại kiểu chữ</string>
+    <string name="ui_b11e94bc97028e" formatted="false">Độ phân giải ảnh bìa khi dùng Wi-Fi.</string>
+    <string name="ui_97a27e6e77359f" formatted="false">Độ phân giải ảnh bìa khi dùng dữ liệu di động.</string>
+    <string name="ui_b134bd555a2f6e" formatted="false">Khởi động lại</string>
+    <string name="ui_db3fc498e99e5b" formatted="false">Khôi phục giao diện trình phát mặc định.</string>
+    <string name="ui_083e7cf463cf0b" formatted="false">Khôi phục kiểu chữ mặc định.</string>
+    <string name="ui_b3bd0b5a70497b" formatted="false">Tiếp tục</string>
+    <string name="ui_f75ef671e5911a" formatted="false">Tiếp tục phát khi tai nghe kết nối lại</string>
+    <string name="ui_ae39427449042f" formatted="false">Tiếp tục phát khi kết nối lại tai nghe.</string>
+    <string name="ui_9f5cd8a2e8807d" formatted="false">Thử lại</string>
+    <string name="ui_64e904bc028e8a" formatted="false">Thử tải thêm</string>
+    <string name="ui_fcce8dedddfb8e" formatted="false">Xem lại các bài tải xuống chưa phát trong 60 ngày.</string>
+    <string name="ui_7d78c9a0fb670e" formatted="false">Màu sắc đậm và bão hòa</string>
+    <string name="ui_0492d6c4624c99" formatted="false">Roboto / Không chân</string>
+    <string name="ui_468d79c2e0229e" formatted="false">Rock</string>
+    <string name="ui_119436ed985248" formatted="false">Xoay ảnh bìa tròn khi bài hát đang phát.</string>
+    <string name="ui_efb5cec884d1a0" formatted="false">Biểu tượng phát nhạc dạng bo tròn, viền hoặc góc vuông.</string>
+    <string name="ui_74ad93cbebf587" formatted="false">Tiếng Nga</string>
+    <string name="ui_efc007a393f66c" formatted="false">Lưu</string>
+    <string name="ui_995e4d5d1af624" formatted="false">Lưu thành danh sách phát</string>
+    <string name="ui_b48530bd1e3118" formatted="false">Tiết kiệm dữ liệu</string>
+    <string name="ui_266887db0d5f81" formatted="false">Đang lưu điểm…</string>
+    <string name="ui_15517b79379ff8" formatted="false">Kiểu cuộn</string>
+    <string name="ui_bce06414177f72" formatted="false">Tìm kiếm</string>
+    <string name="ui_727131e23e1592" formatted="false">Tìm beatmap</string>
+    <string name="ui_494603b194c6f1" formatted="false">Tìm bản đồ</string>
+    <string name="ui_9a6f37a7bf9c2e" formatted="false">Tìm cài đặt</string>
+    <string name="ui_72524f581bab58" formatted="false">Tìm bài hát, nghệ sĩ hoặc mapper</string>
+    <string name="ui_667fd915f79931" formatted="false">Tìm trong kho osu!</string>
+    <string name="ui_d2885652b743eb" formatted="false">Tìm tên bài, nghệ sĩ hoặc mapper</string>
+    <string name="ui_6d587c7eb2bebe" formatted="false">Đang tìm beatmap…</string>
+    <string name="ui_0ffc656642d62c" formatted="false">Kiểu thanh tua</string>
+    <string name="ui_9bf340bbdda1e9" formatted="false">Thiết lập hình dạng ảnh bìa trên toàn ứng dụng.</string>
+    <string name="ui_ee7a96f955701f" formatted="false">Thiết lập độ bo góc thanh điều hướng.</string>
+    <string name="ui_89f95bc8ed1f4d" formatted="false">Thiết lập khoảng cách trên toàn ứng dụng.</string>
+    <string name="ui_0c3c15cc000d75" formatted="false">Đặt giới hạn dung lượng lưu trữ ngoại tuyến.</string>
+    <string name="ui_c7f73bb54d9289" formatted="false">Cài đặt</string>
+    <string name="ui_03fe74e44544b4" formatted="false">Hình dạng nút phát, bài trước và bài tiếp theo.</string>
+    <string name="ui_491509a8ba7a82" formatted="false">Hình dạng ảnh bìa trong thanh trình phát.</string>
+    <string name="ui_135734f881b628" formatted="false">Hình dạng ảnh bìa lớn trong trình phát toàn màn hình.</string>
+    <string name="ui_c96a8e08595d20" formatted="false">Hình dạng &amp; thanh trượt</string>
+    <string name="ui_fd10ccafbf5c81" formatted="false">Chia sẻ Kozu với mọi người.</string>
+    <string name="ui_06236b93f8b08b" formatted="false">Chia sẻ ứng dụng</string>
+    <string name="ui_daa4107cc3f2bf" formatted="false">Ảnh bìa sắc nét nhất</string>
+    <string name="ui_b659f30547c726" formatted="false">Hiển thị Your Mix</string>
+    <string name="ui_e7024b179ffa5b" formatted="false">Hiện nghệ sĩ</string>
+    <string name="ui_7c3a961009b42f" formatted="false">Hiển thị thông tin âm thanh trong trình phát.</string>
+    <string name="ui_ab696a2f1e2930" formatted="false">Hiển thị nội dung nhạy cảm</string>
+    <string name="ui_0e46aeabd03e24" formatted="false">Hiển thị tên mapper</string>
+    <string name="ui_e8a449cce60fed" formatted="false">Hiển thị thông tin tệp trong trình phát</string>
+    <string name="ui_3a4b9119e40029" formatted="false">Hiển thị nút bài trước và bài tiếp theo.</string>
+    <string name="ui_fff7b4e84f891f" formatted="false">Hiển thị các bài đã phát trước đó trong hàng đợi.</string>
+    <string name="ui_c6fb87f24f6c2e" formatted="false">Hiện lịch sử hàng đợi</string>
+    <string name="ui_22d49ed11c6035" formatted="false">Hiển thị nút điều khiển nhanh trong trình phát.</string>
+    <string name="ui_2331b5e1e588f2" formatted="false">Hiển thị tên nghệ sĩ.</string>
+    <string name="ui_4d2eff5bb3261a" formatted="false">Hàng nút trộn, lặp và yêu thích</string>
+    <string name="ui_5184dbccfdb069" formatted="false">Đăng nhập bằng osu!</string>
+    <string name="ui_dc1649a16c1496" formatted="false">Đăng xuất</string>
+    <string name="ui_e155d7eeb83d12" formatted="false">Đăng nhập và truy cập API</string>
+    <string name="ui_1b6c524ffb712c" formatted="false">Đã đăng nhập</string>
+    <string name="ui_c8c7fd7ffd175d" formatted="false">S bạc</string>
+    <string name="ui_0d4fe2050f3adc" formatted="false">SS bạc</string>
+    <string name="ui_065641118e7c56" formatted="false">Nút chuyển bài</string>
+    <string name="ui_6dc6b7e79c51f0" formatted="false">Bỏ qua những đoạn âm lượng nhỏ.</string>
+    <string name="ui_3d4da20a521ad1" formatted="false">Bỏ qua đoạn im lặng</string>
+    <string name="ui_e906133709fbaf" formatted="false">Hẹn giờ tắt nhạc</string>
+    <string name="ui_260592469f9c6a" formatted="false">Kiểu thanh trượt</string>
+    <string name="ui_92ce6a29b3ded4" formatted="false">Không thể nhập một số tệp lưu trữ</string>
+    <string name="ui_e1404b4267e475" formatted="false">Bài hát</string>
+    <string name="ui_a2a5bdeca9391b" formatted="false">Sắp xếp theo</string>
+    <string name="ui_b4e3efeba10e84" formatted="false">Âm thanh</string>
+    <string name="ui_175245275e8607" formatted="false">Cài đặt âm thanh</string>
+    <string name="ui_8df7f1b361b2af" formatted="false">Tiếng Tây Ban Nha</string>
+    <string name="ui_83b51c8ced68fe" formatted="false">Âm thanh không gian</string>
+    <string name="ui_2d2cb022bc3d26" formatted="false">Tốc độ</string>
+    <string name="ui_d313e3dd89e284" formatted="false">Xoay ảnh bìa</string>
+    <string name="ui_3421bc247809da" formatted="false">Beatmap nổi bật</string>
+    <string name="ui_d96e5b2dd07c17" formatted="false">Ổn định</string>
+    <string name="ui_952f375412e89f" formatted="false">Bắt đầu</string>
+    <string name="ui_9e092dda4f0e27" formatted="false">Lưu trữ</string>
+    <string name="ui_be80c840b1e4b8" formatted="false">Giới hạn bộ nhớ đệm phát trực tuyến</string>
+    <string name="ui_f1f8f16e849059" formatted="false">Chỉ phát trực tuyến khi kết nối Wi-Fi.</string>
+    <string name="ui_68b0ab5b1850d3" formatted="false">Chất lượng phát trực tuyến</string>
+    <string name="ui_c5acf636349bff" formatted="false">Phát trực tuyến &amp; tiết kiệm dữ liệu</string>
+    <string name="ui_7a54bad178c699" formatted="false">Máy chủ phát trực tuyến</string>
+    <string name="ui_65997f88ef52b8" formatted="false">Tăng cường âm trầm.</string>
+    <string name="ui_539fd72c919411" formatted="false">Mapper đã theo dõi</string>
+    <string name="ui_b748173ca9ab33" formatted="false">Người ủng hộ</string>
+    <string name="ui_04a422d38c9541" formatted="false">Tiếng Thụy Điển</string>
+    <string name="ui_e2879daf85e199" formatted="false">Vuốt ngang để chuyển bài hoặc vuốt xuống để đóng.</string>
+    <string name="ui_3cb185b71edd16" formatted="false">Vuốt để chuyển bài</string>
+    <string name="ui_2581d117d350f2" formatted="false">Đồng bộ và thư viện</string>
+    <string name="ui_29d71ab7a0857e" formatted="false">Đồng bộ bài yêu thích, danh sách phát và nội dung tải xuống.</string>
+    <string name="ui_8d5636f53089b6" formatted="false">Đồng bộ thư viện</string>
+    <string name="ui_2b7d938e6787ea" formatted="false">Đồng bộ ngay</string>
+    <string name="ui_ed594826568219" formatted="false">Đồng bộ khi mở ứng dụng</string>
+    <string name="ui_f9265744b75363" formatted="false">Đồng bộ dữ liệu thư viện cá nhân từ osu!.</string>
+    <string name="ui_6b1277fbbbc314" formatted="false">Đồng bộ thư viện khi khởi động.</string>
+    <string name="ui_dcdba09942d2e9" formatted="false">Đồng bộ hồ sơ osu! và bài hát yêu thích.</string>
+    <string name="ui_221ca63005eaf2" formatted="false">Đang đồng bộ…</string>
+    <string name="ui_9d8d3808063b4f" formatted="false">Mặc định hệ thống</string>
+    <string name="ui_848eed0fbd5429" formatted="false">Thẻ</string>
+    <string name="ui_b04801b57d41ad" formatted="false">Taiko</string>
+    <string name="ui_df0ad373b7ff60" formatted="false">Xanh ngọc</string>
+    <string name="ui_ccf66f0746494d" formatted="false">Kiểm tra kết nối</string>
+    <string name="ui_3cc6e124a8e4ea" formatted="false">Cỡ chữ</string>
+    <string name="ui_2b27af6b5e9c7b" formatted="false">Độ đậm chữ</string>
+    <string name="ui_fa789d9d7a34c8" formatted="false">Kho beatmap hiện không khả dụng.</string>
+    <string name="ui_b34b3a5d4632f5" formatted="false">Giao diện và bố cục</string>
+    <string name="ui_098024dc5537ca" formatted="false">Canh thời gian</string>
+    <string name="ui_768e0c1c69573f" formatted="false">Tiêu đề</string>
+    <string name="ui_af209a4deaef44" formatted="false">Tiêu đề: Dracula (feat. JENNIE)</string>
+    <string name="ui_30ec518f2ec418" formatted="false">Tiêu đề &amp; thẻ</string>
+    <string name="ui_8f5125bea220c0" formatted="false">Tùy chọn tiêu đề và kho beatmap</string>
+    <string name="ui_24345a14377fd8" formatted="false">Hôm nay</string>
+    <string name="ui_1d210f1d24b21c" formatted="false">Bản trộn dành cho bạn hôm nay</string>
+    <string name="ui_d179432be891c0" formatted="false">Tông màu dịu</string>
+    <string name="ui_ad7864dbdaec30" formatted="false">Bài hát hàng đầu</string>
+    <string name="ui_3f90e63b88ca5e" formatted="false">Bài hát nổi bật</string>
+    <string name="ui_3fa69ad8304db4" formatted="false">Thịnh hành (phát nhiều nhất)</string>
+    <string name="ui_8f0ebf62beff73" formatted="false">Combo chuẩn / Combo tối đa</string>
+    <string name="ui_845bdaa6c65de3" formatted="false">Thử từ khóa khác như giao diện, chuyển bài hoặc bộ nhớ đệm.</string>
+    <string name="ui_7ddd66b689c937" formatted="false">Dùng thử</string>
+    <string name="ui_2411cf14f0c88c" formatted="false">Thử tìm giao diện, phát nhạc, bộ nhớ đệm hoặc tải xuống</string>
+    <string name="ui_a1474d7df45acc" formatted="false">Tắt hẹn giờ</string>
+    <string name="ui_3deb7456519697" formatted="false">Loại</string>
+    <string name="ui_f4beb9af58f792" formatted="false">Kiểu chữ</string>
+    <string name="ui_a3048e2a30c755" formatted="false">Không thể bắt đầu biểu đồ này</string>
+    <string name="ui_4bb259804eadd2" formatted="false">Chưa phát</string>
+    <string name="ui_a6e7eb706e115c" formatted="false">Không xác định</string>
+    <string name="ui_567bfc4dad37a6" formatted="false">Tiếp theo</string>
+    <string name="ui_c61b0456729f0d" formatted="false">Tự động cập nhật beatmap đã tải xuống.</string>
+    <string name="ui_f2f8570ddd7b1e" formatted="false">Đã cập nhật</string>
+    <string name="ui_c76d18079a076e" formatted="false">Cập nhật</string>
+    <string name="ui_fd72c492a280ff" formatted="false">Dùng đầu ra âm thanh 32-bit.</string>
+    <string name="ui_ebdbe51e9f52ac" formatted="false">Dùng âm thanh không gian của Android nếu thiết bị hỗ trợ.</string>
+    <string name="ui_ed1b29a9a17df4" formatted="false">Dùng thanh điều hướng thu gọn.</string>
+    <string name="ui_eba093dd2a0efa" formatted="false">Dùng proxy HTTP hoặc SOCKS5.</string>
+    <string name="ui_1bd6836b5aceda" formatted="false">Dùng thao tác vuốt với ảnh bìa trong trình phát.</string>
+    <string name="ui_6d0509bbde2c78" formatted="false">Dùng hàng bài hát thu gọn trong thư viện.</string>
+    <string name="ui_ea3e2c867b13de" formatted="false">Dùng giải mã âm thanh bằng phần cứng.</string>
+    <string name="ui_74774a811bb882" formatted="false">Dùng khoảng cách hẹp và nút điều khiển nhỏ hơn.</string>
+    <string name="ui_da44c6a7da6816" formatted="false">Dùng nền đen tuyệt đối trên màn hình OLED.</string>
+    <string name="ui_36d47fb5f65766" formatted="false">Dùng khi không có bài nào đang phát.</string>
+    <string name="ui_b1974b83bc43f3" formatted="false">Tên người dùng (không bắt buộc)</string>
+    <string name="ui_8a105317347247" formatted="false">Phiên bản và kênh</string>
+    <string name="ui_0ebbd495aee581" formatted="false">Rực rỡ</string>
+    <string name="ui_7f01866ab45271" formatted="false">Trò chơi điện tử</string>
+    <string name="ui_973d4dc726dd13" formatted="false">Trò chơi điện tử</string>
+    <string name="ui_a2cfb8e142a553" formatted="false">Hàng tab hiển thị</string>
+    <string name="ui_f882d54e64f1da" formatted="false">Chất lượng hình ảnh</string>
+    <string name="ui_4f696cb404b738" formatted="false">Đang chờ trong hàng đợi</string>
+    <string name="ui_64584ce22bcddf" formatted="false">Tuần này</string>
+    <string name="ui_1ba4f0d76dc146" formatted="false">Chất lượng ảnh bìa khi dùng Wi-Fi</string>
+    <string name="ui_67b7044790dd32" formatted="false">Chỉ tải xuống qua Wi-Fi</string>
+    <string name="ui_3cccc0de1510ad" formatted="false">Chỉ phát trực tuyến qua Wi-Fi</string>
+    <string name="ui_3526f607bcd4f5" formatted="false">Vàng</string>
+    <string name="ui_ba596fd35b1b63" formatted="false">Của bạn</string>
+    <string name="ui_bb8ca1f5856d39" formatted="false">Số bài trong Your Mix</string>
+    <string name="ui_f6ed57a761219b" formatted="false">Thông tin ứng dụng OAuth sẽ được yêu cầu ở bước tiếp theo.</string>
+    <string name="ui_610e6fd135d43e" formatted="false">Tất cả biểu đồ đã tải xuống ở cùng một nơi.</string>
+    <string name="ui_f76711960ba8fc" formatted="false">Hồ sơ osu! đang tải. Hãy làm mới nếu quá lâu.</string>
+    <string name="ui_daa12520aeb854" formatted="false">amoled oled dark</string>
+    <string name="ui_061650903867fc" formatted="false">background service recents</string>
+    <string name="ui_620211031ac51b" formatted="false">bass treble preset eq</string>
+    <string name="ui_6bfab8bb04884f" formatted="false">bluetooth wired</string>
+    <string name="ui_f2e08945c77b16" formatted="false">bold thin heavy light font</string>
+    <string name="ui_e3e1fe342be106" formatted="false">buffer gapless</string>
+    <string name="ui_b9244983e04275" formatted="false">client id secret api key</string>
+    <string name="ui_422b3e4f4e7987" formatted="false">collage home</string>
+    <string name="ui_938185e328048b" formatted="false">compact spacing size ui scale padding</string>
+    <string name="ui_8dc3b39b12f233" formatted="false">condensed expanded stretch font width</string>
+    <string name="ui_3f579513ff0e23" formatted="false">cover circle cookie</string>
+    <string name="ui_d267765fffe097" formatted="false">cover circle cookie square rounded</string>
+    <string name="ui_75ce549dfdcb02" formatted="false">cover image resolution</string>
+    <string name="ui_fd1fba1475eb91" formatted="false">cover image resolution data saver</string>
+    <string name="ui_b69fbe38e3661c" formatted="false">credits third party</string>
+    <string name="ui_8959f28bcd26ae" formatted="false">dark light mode</string>
+    <string name="ui_19e50ef0c68408" formatted="false">default font reset</string>
+    <string name="ui_89943e9a906f40" formatted="false">default reset</string>
+    <string name="ui_4abf5b0f8ccae8" formatted="false">dense small spacing</string>
+    <string name="ui_a6d91dae137c4f" formatted="false">doze background</string>
+    <string name="ui_5338e56cd942d7" formatted="false">dynamic color cover</string>
+    <string name="ui_196ad86bdf85d5" formatted="false">expressive classic material</string>
+    <string name="ui_1b787cc24dee14" formatted="false">fade transition gapless</string>
+    <string name="ui_a78e381f989f01" formatted="false">float pcm lossless</string>
+    <string name="ui_f629c7bf4c1c14" formatted="false">font scale bigger smaller large</string>
+    <string name="ui_995883b619c265" formatted="false">font text size</string>
+    <string name="ui_774be3cda0c792" formatted="false">format audio quality</string>
+    <string name="ui_b7400b9f2daec5" formatted="false">free space</string>
+    <string name="ui_d299f1edd32733" formatted="false">free space reclaim</string>
+    <string name="ui_47a0d046bc4b9f" formatted="false">free space reset</string>
+    <string name="ui_2af901f9a16a30" formatted="false">free space thumbnails</string>
+    <string name="ui_3035d6f7e86870" formatted="false">gain amplify</string>
+    <string name="ui_83b57ee1c2f6f2" formatted="false">gesture next previous</string>
+    <string name="ui_8d2cb240ee58c1" formatted="false">github review</string>
+    <string name="ui_17173c3f7cd234" formatted="false">greeting username</string>
+    <string name="ui_3def2861d93f89" formatted="false">icons skip shuffle repeat</string>
+    <string name="ui_ef8eb1cbc825f0" formatted="false">image cache size</string>
+    <string name="ui_3567003b4a0b53" formatted="false">intercept deep link url</string>
+    <string name="ui_17b4ba962d6767" formatted="false">labels compact nav</string>
+    <string name="ui_2e1a8a82b44a1b" formatted="false">launcher logo</string>
+    <string name="ui_78e8108e35ebe7" formatted="false">library compact dense spacing</string>
+    <string name="ui_102c9b7b4ee75e" formatted="false">library tabs compact layout</string>
+    <string name="ui_75eeb80638ffa5" formatted="false">locale translation system</string>
+    <string name="ui_e9f2fe418be94f" formatted="false">login sign in oauth profile</string>
+    <string name="ui_d1c032bc785e1d" formatted="false">low end battery saver</string>
+    <string name="ui_7db12ad9fc9a2b" formatted="false">mini player bar now playing</string>
+    <string name="ui_76f903ba8e8efe" formatted="false">mix shuffle queue songs count</string>
+    <string name="ui_71a09d6ada1ef4" formatted="false">mobile data</string>
+    <string name="ui_55d0f0add32466" formatted="false">network vpn socks http</string>
+    <string name="ui_eca1665687c982" formatted="false">noisy bluetooth wired</string>
+    <string name="ui_a262e359bad6aa" formatted="false">now playing</string>
+    <string name="ui_0f838de395a9dc" formatted="false">nsfw adult mature</string>
+    <string name="ui_5ccd951727f4c1" formatted="false">osu taiko catch mania ruleset</string>
+    <string name="ui_9db1b23720abca" formatted="false">osu!</string>
+    <string name="ui_6cbd0328435c8b" formatted="false">Thông tin xác thực osu! API</string>
+    <string name="ui_8c0523bea25f94" formatted="false">Tài khoản osu!</string>
+    <string name="ui_17b3845b021430" formatted="false">Kho beatmap osu!</string>
+    <string name="ui_c4d3dd5985e8cb" formatted="false">osu! link integration</string>
+    <string name="ui_b5d91664fa1bd1" formatted="false">Có thể kết nối bản nghe thử osu!</string>
+    <string name="ui_712389862c8e86" formatted="false">Không thể kết nối bản nghe thử osu!</string>
+    <string name="ui_9c7ad1ff0855a6" formatted="false">pill floating classic</string>
+    <string name="ui_890098753283bc" formatted="false">play pause control icon</string>
+    <string name="ui_2a56fe9c992c65" formatted="false">playback cache size</string>
+    <string name="ui_ff703c842e41e2" formatted="false">player bar color theme</string>
+    <string name="ui_c5253ce83988c1" formatted="false">player bar layout</string>
+    <string name="ui_7b9ec9c5d19498" formatted="false">preview full</string>
+    <string name="ui_e072464b10e501" formatted="false">previous next controls</string>
+    <string name="ui_aae16774234a73" formatted="false">privacy search history delete</string>
+    <string name="ui_c0e6585bbec7c2" formatted="false">privacy stats delete</string>
+    <string name="ui_a6777fe009003d" formatted="false">progress bar ring wavy</string>
+    <string name="ui_9310dd76ce8e54" formatted="false">progress slider wavy</string>
+    <string name="ui_1cd5d075603044" formatted="false">radio similar endless</string>
+    <string name="ui_f5bb0781b495c8" formatted="false">ranked loved filter category</string>
+    <string name="ui_36df0af10fc6b2" formatted="false">recent history</string>
+    <string name="ui_62ba41f08c9794" formatted="false">recompute repair</string>
+    <string name="ui_821a42e74fda8a" formatted="false">refresh update library</string>
+    <string name="ui_b5b86c465a59b9" formatted="false">reload specs</string>
+    <string name="ui_dfcd0647f150b4" formatted="false">restore load</string>
+    <string name="ui_cf9f877d6c7c69" formatted="false">resync repair</string>
+    <string name="ui_e779ee0d3ce84c" formatted="false">rotate vinyl</string>
+    <string name="ui_1f78523014eed6" formatted="false">rounded shape</string>
+    <string name="ui_c9c1f868a6db1e" formatted="false">rounded shape corner</string>
+    <string name="ui_949252b959dbd9" formatted="false">rounded soft font</string>
+    <string name="ui_9884fc28509774" formatted="false">seek bar wavy expressive thumb</string>
+    <string name="ui_e91a5814166097" formatted="false">shuffle repeat favorite</string>
+    <string name="ui_77cc9356714313" formatted="false">smart storage</string>
+    <string name="ui_dbed4fe0b24cb3" formatted="false">start launch home explore library game</string>
+    <string name="ui_8da007081a9dd8" formatted="false">surround spatial headphones</string>
+    <string name="ui_be8b12a1d4d6d1" formatted="false">theme color seed</string>
+    <string name="ui_6caeb58baed539" formatted="false">tonal vibrant expressive neutral monochrome</string>
+    <string name="ui_2c1dec4e66f1d4" formatted="false">top stats</string>
+    <string name="ui_5c64f251059b56" formatted="false">transport pill round square</string>
+    <string name="ui_611d6e23d4d57c" formatted="false">typeface quicksand roboto google sans flex</string>
+    <string name="ui_b9371aec869b28" formatted="false">unicode romanised japanese</string>
+    <string name="ui_fdb00456300470" formatted="false">unused old downloads review</string>
+    <string name="ui_0da3c97ee32742" formatted="false">version release</string>
+    <string name="ui_count_songs">%1$d bài hát</string>
+    <string name="ui_count_songs_offline">%1$d bài hát ngoại tuyến</string>
+    <string name="ui_count_beatmaps">%1$d beatmap</string>
+    <string name="ui_count_results">%1$d kết quả</string>
+    <string name="ui_page_of">Trang %1$d / %2$d</string>
+    <string name="ui_page">Trang %1$d</string>
+    <string name="ui_beatmap_number">Beatmap #%1$d</string>
+    <string name="ui_mapped_by">Mapper: %1$s</string>
+    <string name="ui_downloading_percent">Đang tải %1$d%%</string>
+    <string name="ui_kozu_available">Có Kozu v%1$s</string>
+    <string name="ui_level">Cấp %1$d</string>
+    <string name="ui_plays">%1$d lượt phát</string>
+    <string name="ui_minutes">%1$d phút</string>
+    <string name="ui_days_ago">%1$d ngày trước</string>
+    <string name="ui_days_hours">%1$d ngày %2$d giờ</string>
+    <string name="ui_count_songs_english" formatted="false">%1$d songs</string>
+    <string name="ui_count_songs_offline_english" formatted="false">%1$d songs offline</string>
+    <string name="ui_count_beatmaps_english" formatted="false">%1$d beatmaps</string>
+    <string name="ui_count_results_english" formatted="false">%1$d results</string>
+    <string name="ui_page_of_english" formatted="false">Page %1$d of %2$d</string>
+    <string name="ui_page_english" formatted="false">Page %1$d</string>
+    <string name="ui_beatmap_number_english" formatted="false">Beatmap #%1$d</string>
+    <string name="ui_mapped_by_english" formatted="false">Mapped by %1$s</string>
+    <string name="ui_downloading_percent_english" formatted="false">Downloading %1$d%%</string>
+    <string name="ui_kozu_available_english" formatted="false">Kozu v%1$s is available</string>
+    <string name="ui_level_english" formatted="false">Level %1$d</string>
+    <string name="ui_plays_english" formatted="false">%1$d plays</string>
+    <string name="ui_minutes_english" formatted="false">%1$d min</string>
+    <string name="ui_days_ago_english" formatted="false">%1$d days ago</string>
+    <string name="ui_days_hours_english" formatted="false">%1$dd %2$dh</string>
+    <string name="ui_error_prefix">Lỗi: %1$s</string>
+    <string name="ui_could_not_save_score">Không thể lưu điểm: %1$s</string>
+    <string name="ui_personal_best">Kỷ lục cá nhân: %1$s</string>
+    <string name="ui_could_not_read_chart">Không thể đọc chart: %1$s</string>
+    <string name="ui_mapped_difficulty">[%1$s] · tạo bởi %2$s</string>
+    <string name="ui_remove_chart_files">Xóa \"%1$s\" cùng các tệp chart khỏi thiết bị này?</string>
+    <string name="ui_downloading_source">Đang tải · %1$d%% · %2$s</string>
+    <string name="ui_remaining">Còn %1$d</string>
+    <string name="ui_saved_playlist">Đã lưu %1$d bài hát thành danh sách phát</string>
+    <string name="ui_downloading_songs">Đang tải xuống %1$d bài hát</string>
+    <string name="ui_downloading_track">Đang tải xuống %1$s</string>
+    <string name="ui_added_to_playlist">Đã thêm vào %1$s</string>
+    <string name="ui_will_play_next">Sẽ phát tiếp theo</string>
+    <string name="ui_added_to_queue">Đã thêm vào hàng đợi</string>
+    <string name="ui_removed_offline_copy">Đã xóa bản ngoại tuyến</string>
+    <string name="ui_9d7749b5b711fe" formatted="false">Đã thêm vào hàng đợi</string>
+    <string name="ui_7631b26ea80b1b" formatted="false">Ảnh đại diện</string>
+    <string name="ui_0316f0e0bfec60" formatted="false">Quay lại biểu đồ</string>
+    <string name="ui_3a117106ee249e" formatted="false">Chọn tab thư viện</string>
+    <string name="ui_719ea396ad92e0" formatted="false">Xóa</string>
+    <string name="ui_67300d0fed7c77" formatted="false">Xóa tìm kiếm</string>
+    <string name="ui_a40f5b84f3b0bd" formatted="false">Đóng trình phát</string>
+    <string name="ui_c0b1757e0c4779" formatted="false">Sao chép URL callback</string>
+    <string name="ui_d41b502f0510e1" formatted="false">Xóa bản tải xuống</string>
+    <string name="ui_b85a3671b4bc9e" formatted="false">Xóa bản đồ</string>
+    <string name="ui_b55b186d3a98d3" formatted="false">Xóa danh sách phát</string>
+    <string name="ui_70afe9eff3f288" formatted="false">Đóng</string>
+    <string name="ui_130e06f5413a3c" formatted="false">Trộn tất cả beatmap</string>
+    <string name="ui_86c0a35ec8834c" formatted="false">Tùy chọn khác</string>
+    <string name="ui_260ff8ae7182fc" formatted="false">Di chuyển xuống</string>
+    <string name="ui_b4f57cd0cd5c7d" formatted="false">Di chuyển lên</string>
+    <string name="ui_1dabfe7d4d749a" formatted="false">Mở lịch sử</string>
+    <string name="ui_6cc3364a242cbf" formatted="false">Mã nguồn mở</string>
+    <string name="ui_715428ff0dec67" formatted="false">Tạm dừng trò chơi</string>
+    <string name="ui_47bb4429e85fdc" formatted="false">Phát thử</string>
+    <string name="ui_73c3b0a5b4855f" formatted="false">Phát ngẫu nhiên Your Mix</string>
+    <string name="ui_d325fcd919384f" formatted="false">Hàng đợi</string>
+    <string name="ui_ad3e5d8c1ce8cc" formatted="false">Xóa khỏi danh sách phát</string>
+    <string name="ui_3d2dc52da7fcee" formatted="false">Xóa khỏi hàng đợi</string>
+    <string name="ui_dc6650d176e3ae" formatted="false">Xóa tìm kiếm gần đây</string>
+    <string name="ui_56c360aee07fcc" formatted="false">Đã xóa bản ngoại tuyến</string>
+    <string name="ui_279af0e5ff935b" formatted="false">Đổi tên danh sách phát</string>
+    <string name="ui_a4fad15932cf7d" formatted="false">Sắp xếp lại bản tải xuống</string>
+    <string name="ui_c522cec9e5ce24" formatted="false">Sắp xếp lại bài hát</string>
+    <string name="ui_04f3fba6c0f396" formatted="false">Đặt lại thứ tự tab</string>
+    <string name="ui_9a976fc228b6b3" formatted="false">Đã chọn</string>
+    <string name="ui_e63632b22d1cdd" formatted="false">Sắp xếp danh sách phát</string>
+    <string name="ui_7a09f6ae482e98" formatted="false">Sẽ phát tiếp theo</string>
+    <string name="ui_see_all">Xem tất cả %1$s</string>
+    <string name="ui_play_item">Phát %1$s</string>
+    <string name="ui_delete_item">Xóa %1$s</string>
+    <string name="ui_drag_reorder">Kéo để sắp xếp lại %1$s</string>
+    <string name="ui_dbfc60cdebc2b1" formatted="false">20 kết quả mỗi trang · cuộn để tải thêm</string>
+    <string name="ui_fc9d70c6959c13" formatted="false">Góc nhìn 3D</string>
+    <string name="ui_85dfa32c97d861" formatted="false">Tài khoản</string>
+    <string name="ui_069cb4f8932466" formatted="false">Thêm bản đồ để tạo danh sách phát của riêng bạn.</string>
+    <string name="ui_d085854e32d3e2" formatted="false">Tất cả beatmap</string>
+    <string name="ui_2b226c7948b48a" formatted="false">Tăng dần</string>
+    <string name="ui_3bdd40706d7f53" formatted="false">Sao lưu &amp; khôi phục</string>
+    <string name="ui_e3faa3538e76ee" formatted="false">Khám phá beatmap Ranked + Loved ở tất cả chế độ chơi</string>
+    <string name="ui_8c6dba5ab57a14" formatted="false">Phông chữ được đóng gói trong ứng dụng. Bản quyền 2011 thuộc Quicksand Project Authors; tên được bảo lưu: Quicksand. Phông chữ gốc và thông báo giấy phép được kèm theo ứng dụng.</string>
+    <string name="ui_b60eaa2c996286" formatted="false">Phông chữ được đóng gói trong ứng dụng. Phần mềm phông chữ gốc và thông báo giấy phép được kèm theo ứng dụng.</string>
+    <string name="ui_f815bebd582449" formatted="false">Phông chữ biến thiên được đóng gói trong ứng dụng. Phần mềm phông chữ gốc và thông báo giấy phép được kèm theo ứng dụng.</string>
+    <string name="ui_1838f3ab6ac560" formatted="false">Bộ nhớ đệm luồng phát, ảnh bìa và trang danh mục sẽ bị xóa. Nội dung đã tải xuống không bị ảnh hưởng.</string>
+    <string name="ui_033863e5c33010" formatted="false">Danh mục không khả dụng</string>
+    <string name="ui_aa950c7fdb2990" formatted="false">Không thể tải chart</string>
+    <string name="ui_d25bce8ebe7bae" formatted="false">Dọn bộ nhớ đệm?</string>
+    <string name="ui_3f0dfbdf372bd6" formatted="false">Xóa toàn bộ bộ nhớ đệm?</string>
+    <string name="ui_5076df03bb9dba" formatted="false">Xóa lịch sử nghe?</string>
+    <string name="ui_3c0cf7d63afabd" formatted="false">Xóa bộ nhớ đệm phát nhạc và ảnh bìa trong một lần. Bản tải xuống, bài yêu thích và lịch sử vẫn được giữ.</string>
+    <string name="ui_af74f7c5362aae" formatted="false">Sao chép</string>
+    <string name="ui_b34762d14abd56" formatted="false">Hạng quốc gia</string>
+    <string name="ui_6e157c5da4410b" formatted="false">Tạo</string>
+    <string name="ui_84fbcd9e775c10" formatted="false">Tạo danh sách phát rồi thêm beatmap từ menu bài hát.</string>
+    <string name="ui_60e77f3bb74579" formatted="false">Tạo bản sao lưu</string>
+    <string name="ui_0b71cd2c038761" formatted="false">Xóa bài hát ít nghe?</string>
+    <string name="ui_36377adf43984d" formatted="false">Giảm dần</string>
+    <string name="ui_1e53b5ee672aca" formatted="false">Tùy chọn nhà phát triển</string>
+    <string name="ui_4cac01993cc718" formatted="false">Khả năng thiết bị</string>
+    <string name="ui_31a53ad3855cb7" formatted="false">Tải bài yêu thích</string>
+    <string name="ui_7ec3740c802d94" formatted="false">Tải bài hát từ menu ⋮ để nghe khi không có mạng và sử dụng trong chế độ trò chơi.</string>
+    <string name="ui_df437e0872e53d" formatted="false">Dracula (feat. JENNIE)</string>
+    <string name="ui_34db0d63fc2f27" formatted="false">Danh sách phát trống</string>
+    <string name="ui_9923e9d72612de" formatted="false">Cuối bài hát</string>
+    <string name="ui_c94bb2db5faebf" formatted="false">Tất cả tùy chọn sẽ trở về mặc định. Thông tin osu! API, bài yêu thích, danh sách phát và nội dung tải xuống vẫn được giữ.</string>
+    <string name="ui_af9bb25a8043c8" formatted="false">Toàn bộ lượt phát đã ghi nhận và thống kê nghe sẽ bị xóa khỏi thiết bị này.</string>
+    <string name="ui_d06b00724f7627" formatted="false">Mọi bài hát bạn nghe sẽ được lưu tại đây.</string>
+    <string name="ui_f1ae0af70b056a" formatted="false">Hạng toàn cầu</string>
+    <string name="ui_b1889813874bab" formatted="false">Luôn cập nhật bài hát</string>
+    <string name="ui_f6807315db1bc3" formatted="false">Kozu lấy siêu dữ liệu beatmap, ảnh bìa và bản nghe thử từ osu!. Âm thanh và hình ảnh beatmap vẫn thuộc quyền sở hữu của tác giả tương ứng; Kozu không nhận quyền sở hữu.</string>
+    <string name="ui_f08e8870f2a48b" formatted="false">Ngang · Góc nhìn 3D</string>
+    <string name="ui_bec69a78fafd6b" formatted="false">Ngang · Cuộn dọc</string>
+    <string name="ui_c7e02c95fe8505" formatted="false">Thích</string>
+    <string name="ui_634216ef318fe8" formatted="false">Thích bài hát hoặc tạo danh sách phát; chúng sẽ xuất hiện tại đây.</string>
+    <string name="ui_31d30b62864e7e" formatted="false">Nghe lại</string>
+    <string name="ui_9d8b97b0c29d88" formatted="false">Thống kê nghe nhạc</string>
+    <string name="ui_8edc9c9c33864c" formatted="false">Tăng âm lượng cảm nhận</string>
+    <string name="ui_70d690441c5071" formatted="false">Được cộng đồng yêu thích</string>
+    <string name="ui_c36e8fd6506545" formatted="false">Beatmap Mania</string>
+    <string name="ui_257f7afd3c2dd9" formatted="false">Material 3 Expressive</string>
+    <string name="ui_c92a133e8e92ff" formatted="false">Máy chủ mirror</string>
+    <string name="ui_aade67feaa54fb" formatted="false">Beatmap Ranked được phát nhiều nhất</string>
+    <string name="ui_ede4a60bb90686" formatted="false">Quản lý nhạc</string>
+    <string name="ui_6403f2b7eb2aaa" formatted="false">Mới</string>
+    <string name="ui_8b2fa9d4fbcd6c" formatted="false">Bản phát hành mới</string>
+    <string name="ui_a5474a872e6a1b" formatted="false">Danh sách phát mới</string>
+    <string name="ui_bc981983e7f547" formatted="false">Tiếp theo</string>
+    <string name="ui_d33c183d9cd695" formatted="false">Chưa có chart Mania</string>
+    <string name="ui_2259ac95c34561" formatted="false">Không tìm thấy beatmap</string>
+    <string name="ui_7baed67813392e" formatted="false">Không tìm thấy bản đồ phù hợp</string>
+    <string name="ui_c0b0ca7681e021" formatted="false">Chưa có danh sách phát</string>
+    <string name="ui_8db88ee9aa636f" formatted="false">Chưa phát bài hát nào</string>
+    <string name="ui_87cc3dbf161e0a" formatted="false">Chưa có bài hát yêu thích</string>
+    <string name="ui_e1825395c91e3b" formatted="false">Chưa có bài hát ngoại tuyến</string>
+    <string name="ui_e01fa717baccf9" formatted="false">Ngoại tuyến</string>
+    <string name="ui_eeec558b58fb9f" formatted="false">Trực tuyến &amp; ngoại tuyến</string>
+    <string name="ui_e568dd403f87d1" formatted="false">Các nguồn bên thứ ba tùy chọn dùng để phát trực tuyến và tải xuống. Kozu không lưu trữ beatmap; tình trạng khả dụng và điều khoản do từng dịch vụ kiểm soát.</string>
+    <string name="ui_170a28a9db6d27" formatted="false">Khoảng thời gian</string>
+    <string name="ui_5d12bd53552caf" formatted="false">Phát</string>
+    <string name="ui_92b6b1bf71e0c0" formatted="false">Dọc</string>
+    <string name="ui_50f94286ba3070" formatted="false">Trước đó</string>
+    <string name="ui_d2aaa7290ca5da" formatted="false">Hạng đạt được</string>
+    <string name="ui_ba7d226f98d8fb" formatted="false">Tự tải lại bài ngoại tuyến khi có phiên bản mới</string>
+    <string name="ui_6618f7db5a3139" formatted="false">Đã phát gần đây</string>
+    <string name="ui_12bdcd1e138a3e" formatted="false">Beatmap vừa cập nhật</string>
+    <string name="ui_b04c991e58e772" formatted="false">Tạo lại</string>
+    <string name="ui_659eba121958f4" formatted="false">Lặp lại</string>
+    <string name="ui_bbfe660fd21005" formatted="false">Đặt lại toàn bộ cài đặt?</string>
+    <string name="ui_a65eaa8807ce20" formatted="false">Khôi phục bản sao lưu</string>
+    <string name="ui_5b772b7bfd0a43" formatted="false">Phát ngẫu nhiên</string>
+    <string name="ui_2eb56be3c2d93c" formatted="false">Nguồn</string>
+    <string name="ui_de2b910c0b57ae" formatted="false">Bắt đầu bộ sưu tập</string>
+    <string name="ui_32923c2be24097" formatted="false">Quản lý lưu trữ</string>
+    <string name="ui_725ce506ad017b" formatted="false">Lưu chart, hitsound và hình ảnh (cần thiết để chơi trong chế độ game). Tắt sẽ chỉ giữ âm thanh và ảnh bìa.</string>
+    <string name="ui_31e6d03d63c671" formatted="false">Nhấn biểu tượng trái tim ở bài hát để lưu tại đây.</string>
+    <string name="ui_949ec0331b444f" formatted="false">Mã nguồn Kozu được cấp phép theo GPL-3.0. Toàn văn giấy phép được đóng gói cùng ứng dụng.</string>
+    <string name="ui_1829279669ffa3" formatted="false">Đang thịnh hành</string>
+    <string name="ui_08a8505473f8db" formatted="false">Thử từ khóa hoặc bộ lọc khác.</string>
+    <string name="ui_7a48e45bfcc0d7" formatted="false">Thử tên bài hát, nghệ sĩ, mapper hoặc độ khó khác.</string>
+    <string name="ui_bc7819b34ff875" formatted="false">Không xác định</string>
+    <string name="ui_3954733b961816" formatted="false">Mở menu ⋮ của bài hát bất kỳ rồi chọn \"Thêm vào danh sách phát\".</string>
+    <string name="ui_08a4b94ba0f57e" formatted="false">Dùng để kiểm tra bản phát hành Kozu và hiển thị các commit mã nguồn gần đây. Có thể tắt kiểm tra cập nhật trong Cài đặt.</string>
+    <string name="ui_4bf4f3ffd2a33b" formatted="false">Cuộn dọc</string>
+    <string name="ui_854637d930a246" formatted="false">Chờ Wi-Fi trước khi tải bài hát</string>
+    <string name="ui_8340283d8a39e4" formatted="false">Khi tải xuống mới vượt quá giới hạn, những bản tải xuống lâu không được phát nhất sẽ bị xóa trước.</string>
+    <string name="ui_119cbce6316b99" formatted="false">Chỉ Wi-Fi</string>
+    <string name="ui_fd740ffdf12201" formatted="false">Thư viện của bạn</string>
+    <string name="ui_3869ed60f81b13" formatted="false">Chart của bạn</string>
+    <string name="ui_1214f316cad942" formatted="false">Cập nhật osu!</string>
+    <string name="ui_1c388f146f5995" formatted="false">Đang phát</string>
+    <string name="ui_download_notification_title">Đang tải bài hát</string>
+    <string name="ui_preparing_download">Đang chuẩn bị…</string>
+    <string name="ui_downloads_channel">Tải xuống</string>
+    <string name="ui_remove_item">Xóa %1$s</string>
+    <string name="ui_avatar_for">Ảnh đại diện của %1$s</string>
+    <string name="ui_cover_for">Ảnh bìa của %1$s</string>
+    <string name="ui_connected_in_ms">Kết nối trong %1$d ms</string>
+    <string name="ui_joined_followers">Tham gia %1$s · %2$s người theo dõi</string>
+    <string name="ui_ranked_score">Điểm xếp hạng %1$s</string>
+    <string name="ui_offline_not_played">Bài hát ngoại tuyến chưa được phát trong %1$d ngày qua.</string>
+    <string name="ui_sorted_by">Sắp xếp theo %1$s</string>
+    <string name="ui_mix_refreshed_daily">%1$d bài hát · làm mới mỗi ngày</string>
+    <string name="ui_top_track_plays">%1$s • %2$d lượt phát</string>
+    <string name="ui_last_sync_summary">Làm mới tên bài hát và nghệ sĩ trong mục yêu thích, danh sách phát, lịch sử và bản tải xuống; đồng thời phát hiện beatmap đã được mapper cập nhật. Lần đồng bộ gần nhất: %1$s</string>
+    <string name="ui_local_charts_refresh_error">Không thể làm mới chart cục bộ: %1$s</string>
+    <string name="ui_game_setup_failed">Không thể thiết lập trò chơi: %1$s</string>
+    <string name="ui_preview_unavailable">Không thể xem trước: %1$s</string>
+    <string name="ui_personal_scores_error">Không thể tải điểm cá nhân: %1$s</string>
+    <string name="ui_game_settings_error">Không thể lưu cài đặt: %1$s</string>
+    <string name="ui_storage_item_summary">%1$s · %2$s · %3$s ngày trước</string>
+    <string name="ui_removed_from_playlist">Đã xóa khỏi %1$s</string>
+    <string name="app_name">Kozu</string>
+    <string name="ui_update_version_checked">v%1$s · %2$s</string>
+    <string name="ui_remove_playlist_confirmation">Danh sách phát "%1$s" sẽ bị xóa. Các bài hát của bạn vẫn được giữ nguyên.</string>
+    <string name="ui_spdx_label">Mã SPDX: %1$s</string>
+</resources>

@@ -1,5 +1,7 @@
 package vn.kozu.game.ui.game
 
+import vn.kozu.ui.i18n.kozuUiString
+
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -32,7 +34,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import vn.kozu.ui.i18n.KozuText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -198,7 +200,7 @@ fun AddMapScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back to charts")
+                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = kozuUiString("Back to charts"))
             }
             Column(Modifier.weight(1f)) {
                 Text("Add Mania maps", style = MaterialTheme.typography.titleLarge)

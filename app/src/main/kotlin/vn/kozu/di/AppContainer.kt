@@ -72,7 +72,15 @@ class AppContainer(
         )
 
     val playback: PlaybackController by lazy {
-        PlaybackController(appContext, history, streams, catalog, settings.settings)
+        PlaybackController(
+            appContext,
+            history,
+            streams,
+            catalog,
+            settings.settings,
+            favorites,
+            downloadsStore,
+        )
     }
 
     val updates = UpdateChecker(appContext, httpClient)

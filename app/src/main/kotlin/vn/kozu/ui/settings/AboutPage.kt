@@ -1,5 +1,7 @@
 package vn.kozu.ui.settings
 
+import vn.kozu.ui.i18n.kozuUiString
+
 import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.Image
@@ -34,7 +36,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import vn.kozu.ui.i18n.KozuText as Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -180,7 +182,7 @@ private fun HeroCard(
                 contentAlignment = Alignment.Center,
             ) {
                 if (icon != null) {
-                    Image(bitmap = icon, contentDescription = "Kozu", modifier = Modifier.size(96.dp))
+                    Image(bitmap = icon, contentDescription = kozuUiString("Kozu"), modifier = Modifier.size(96.dp))
                 } else {
                     Icon(Icons.Rounded.AutoAwesome, contentDescription = null, tint = colors.primary, modifier = Modifier.size(48.dp))
                 }

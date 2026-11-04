@@ -73,7 +73,7 @@ class UpdateChecker(
                             UpdateResult.Failed("GitHub returned HTTP ${response.code}")
                         }
 
-                        else -> parseReleases(response.body?.string().orEmpty(), channel)
+                        else -> parseReleases(response.body.string(), channel)
                     }
                 }
             } catch (e: CancellationException) {
@@ -91,7 +91,7 @@ class UpdateChecker(
     ): RecentCommitsResult =
         withContext(Dispatchers.IO) {
             val requestedBranch = channel.branch
-            loadChronologicalPage(requestedBranch, page)?.let { return@withContext it }
+            loadRecentPage(requestedBranch, page)?.let { return@withContext it }
 
             if (requestedBranch == DEFAULT_BRANCH) {
                 return@withContext RecentCommitsResult(
@@ -102,7 +102,7 @@ class UpdateChecker(
                 )
             }
 
-            loadChronologicalPage(DEFAULT_BRANCH, page)?.copy(
+            loadRecentPage(DEFAULT_BRANCH, page)?.copy(
                 note = "The '$requestedBranch' branch is not published. Showing '$DEFAULT_BRANCH'.",
             ) ?: RecentCommitsResult(
                 branch = DEFAULT_BRANCH,
@@ -112,19 +112,18 @@ class UpdateChecker(
             )
         }
 
-    /** GitHub returns commits newest-first; reverse both page order and item order. */
-    private fun loadChronologicalPage(
+    /** GitHub's commit API is newest-first; keep that order across pages and within each page. */
+    private fun loadRecentPage(
         branch: String,
         requestedPage: Int,
     ): RecentCommitsResult? {
-        val newestPage = fetchCommits(branch, apiPage = 1) ?: return null
-        val totalPages = newestPage.totalPages.coerceAtLeast(1)
+        val firstPage = fetchCommits(branch, apiPage = 1) ?: return null
+        val totalPages = firstPage.totalPages.coerceAtLeast(1)
         val page = requestedPage.coerceIn(1, totalPages)
-        val apiPage = totalPages - page + 1
-        val selected = if (apiPage == 1) newestPage else fetchCommits(branch, apiPage) ?: return null
+        val selected = if (page == 1) firstPage else fetchCommits(branch, apiPage = page) ?: return null
         return RecentCommitsResult(
             branch = branch,
-            commits = selected.commits.asReversed(),
+            commits = selected.commits,
             page = page,
             totalPages = totalPages,
         )
@@ -149,7 +148,7 @@ class UpdateChecker(
         return try {
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return null
-                val items = JSONArray(response.body?.string().orEmpty())
+                val items = JSONArray(response.body.string())
                 val totalPages = parseLastPage(response.header("Link"), apiPage)
                 val commits = buildList {
                     for (index in 0 until items.length()) {

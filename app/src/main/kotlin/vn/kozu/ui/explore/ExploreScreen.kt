@@ -1,5 +1,7 @@
 package vn.kozu.ui.explore
 
+import vn.kozu.ui.i18n.kozuUiString
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,7 +28,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import vn.kozu.ui.i18n.KozuText as Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
@@ -93,7 +95,7 @@ fun ExploreScreen(
             actions = {
                 HeaderAction(
                     icon = Icons.Rounded.AutoAwesome,
-                    contentDescription = "Mix all beatmaps",
+                    contentDescription = kozuUiString("Mix all beatmaps"),
                     onClick = {
                         if (ui.surprisePool.isNotEmpty()) {
                             actions.playShuffled(ui.surprisePool.shuffled())
@@ -365,7 +367,7 @@ private fun CollectionCard(
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 playbackIconVector(LocalAppSettings.current.playbackIcon, false),
-                                contentDescription = "Play ${collection.title}",
+                                contentDescription = kozuUiString("Play ${collection.title}"),
                                 tint = MaterialTheme.colorScheme.onPrimary,
                             )
                         }

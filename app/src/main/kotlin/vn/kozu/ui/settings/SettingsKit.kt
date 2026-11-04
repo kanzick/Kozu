@@ -1,5 +1,7 @@
 package vn.kozu.ui.settings
 
+import vn.kozu.ui.i18n.kozuUiString
+
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animate
@@ -47,7 +49,7 @@ import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
+import vn.kozu.ui.i18n.KozuText as Text
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
@@ -201,7 +203,7 @@ private fun CollapsingHeader(
             color = colors.surfaceContainerHighest,
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = kozuUiString("Back"))
             }
         }
         Text(
@@ -622,7 +624,7 @@ fun <T> OptionSheet(
                         if (isSelected) {
                             Icon(
                                 Icons.Rounded.Check,
-                                contentDescription = "Selected",
+                                contentDescription = kozuUiString("Selected"),
                                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
                             )
                         }

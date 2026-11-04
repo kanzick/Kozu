@@ -16,7 +16,6 @@ import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.Compress
-import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.DeveloperBoard
 import androidx.compose.material.icons.rounded.DeveloperMode
@@ -85,12 +84,13 @@ enum class SettingsPage(
     MUSIC("Music", "Catalog and library sync", Icons.Rounded.LibraryMusic),
     CONTENT("Content", "Titles and catalog preferences", Icons.Rounded.Language),
     APPEARANCE("Appearance", "Theme and layout", Icons.Rounded.Palette),
+    LANGUAGE("Language", "App language", Icons.Rounded.Language),
     TYPOGRAPHY("Typography", "Font and text", Icons.Rounded.TextFields),
     PLAYER_STYLE("Player", "Mini player and full player", Icons.Rounded.PlayCircle),
     PLAYBACK("Playback", "Audio settings", Icons.Rounded.MusicNote),
     BEHAVIOR("Behavior", "Controls and gestures", Icons.Rounded.TouchApp),
     BACKUP("Backup & restore", "Export and restore data", Icons.Rounded.Upload),
-    DEVELOPER("Developer options", "Diagnostics and maintenance", Icons.Rounded.DeveloperMode),
+    DEVELOPER("Developer options", "Advanced maintenance", Icons.Rounded.DeveloperMode),
     STORAGE("Storage", "Cache and downloads", Icons.Rounded.Storage),
     EQUALIZER("Equalizer", "Sound settings", Icons.Rounded.GraphicEq),
     DEVICE("Device", "Audio and decoder support", Icons.Rounded.DeveloperBoard),
@@ -109,6 +109,13 @@ enum class Setting(
     val description: String,
     val keywords: String = "",
 ) {
+    LANGUAGE(
+        SettingsPage.LANGUAGE,
+        Icons.Rounded.Language,
+        "Language",
+        "Choose the app language.",
+        "locale translation system",
+    ),
     LOGIN(
         SettingsPage.ACCOUNT,
         Icons.Rounded.AccountCircle,
@@ -191,6 +198,7 @@ enum class Setting(
         "nsfw adult mature",
     ),
     SHOW_MIX_CARD(SettingsPage.CONTENT, Icons.Rounded.Shuffle, "Show Your Mix", "Display the shuffle mix card on Home.", "collage home"),
+    MIX_SIZE(SettingsPage.CONTENT, Icons.Rounded.Shuffle, "Your Mix size", "Choose how many songs play when you shuffle Your Mix.", "mix shuffle queue songs count"),
     DISPLAY_NAME(SettingsPage.CONTENT, Icons.Rounded.AccountCircle, "Display name", "Name used in the Home greeting.", "greeting username"),
     PROXY(
         SettingsPage.CONTENT,
@@ -776,13 +784,6 @@ enum class Setting(
         "Force catalog refresh",
         "Refresh cached catalog pages.",
         "reload",
-    ),
-    COPY_DEBUG(
-        SettingsPage.DEVELOPER,
-        Icons.Rounded.ContentCopy,
-        "Copy debug info",
-        "Copy device and app details for bug reports.",
-        "diagnostics",
     ),
     REBUILD_LIBRARY(
         SettingsPage.DEVELOPER,

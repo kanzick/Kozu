@@ -9,6 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
@@ -108,6 +109,8 @@ class StreamResolver(
     private val archiveCandidates = ConcurrentHashMap<String, ZipCandidate>()
 
     private val streamDir = File(context.cacheDir, "stream").apply { mkdirs() }
+    private val backgroundDir = File(context.cacheDir, "background")
+    private val backgroundMissUntil = ConcurrentHashMap<Long, Long>()
 
     init {
         scope.launch {
@@ -145,6 +148,8 @@ class StreamResolver(
 
     fun clearCache() {
         streamDir.listFiles()?.forEach { it.deleteRecursively() }
+        backgroundDir.listFiles()?.forEach { it.deleteRecursively() }
+        backgroundMissUntil.clear()
         fullUrlCache.clear()
         previewCache.clear()
         fullMissUntil.clear()
@@ -661,6 +666,143 @@ class StreamResolver(
         }
     }
 
+    /**
+     * The full, uncropped background image of a beatmap set as a local file, or null.
+     *
+     * Order: the downloaded copy, then a previously cached copy, then (only when [allowRemote]) the
+     * image is extracted from the set's .osz on a mirror with HTTP range requests, so only the
+     * archive index, one small .osu file and the picture itself are transferred, never the audio.
+     */
+    suspend fun resolveBackground(
+        id: Long,
+        allowRemote: Boolean,
+    ): File? =
+        withContext(Dispatchers.IO) {
+            try {
+                downloads.find(id)?.let { set ->
+                    if (set.backgroundFile.isNotBlank()) {
+                        val local = File(downloads.folder(id), set.backgroundFile)
+                        if (local.isFile && local.length() > 0L) return@withContext local
+                    }
+                }
+                val cached = File(backgroundDir, "$id.img")
+                if (cached.isFile && cached.length() > 0L) {
+                    cached.setLastModified(System.currentTimeMillis())
+                    return@withContext cached
+                }
+                if (!allowRemote) return@withContext null
+                val now = System.currentTimeMillis()
+                if ((backgroundMissUntil[id] ?: 0L) > now) return@withContext null
+                val fetched = fetchBackground(id, cached)
+                if (fetched == null) backgroundMissUntil[id] = now + BACKGROUND_MISS_COOLDOWN_MS
+                fetched
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                Log.d(TAG, "Background lookup failed for $id: ${e.message}")
+                null
+            }
+        }
+
+    private fun fetchBackground(
+        id: Long,
+        target: File,
+    ): File? {
+        // Mirrors already proven to work for this song's audio go first.
+        val known =
+            archiveCandidates.entries
+                .filter { it.key.startsWith("$id:") }
+                .map { it.value.mirror to it.value.url }
+        val others =
+            current.activeMirrors
+                .sortedBy { if (it.id == preferredZipMirrorId) 0 else 1 }
+                .map { it to it.downloadFor(id) }
+        val tried = HashSet<String>()
+        var attempts = 0
+        for ((mirror, url) in known + others) {
+            if (attempts >= BACKGROUND_MAX_MIRRORS) break
+            if (!tried.add(url)) continue
+            attempts++
+            try {
+                extractBackground(id, mirror, url, target)?.let { return it }
+            } catch (e: Exception) {
+                Log.d(TAG, "${mirror.name} background extract failed for $id: ${e.message}")
+            }
+        }
+        return null
+    }
+
+    private fun extractBackground(
+        id: Long,
+        mirror: Mirror,
+        url: String,
+        target: File,
+    ): File? {
+        val probe = HttpRangeSource(probeClient, url, mirror.referer)
+        val entries = RemoteZip.readEntries(probe)
+        val image = pickBackgroundEntry(entries, probe) ?: return null
+        if (image.compressedSize <= 0L || image.uncompressedSize > BACKGROUND_MAX_BYTES) return null
+
+        backgroundDir.mkdirs()
+        val temporary = File(backgroundDir, "$id.part")
+        temporary.delete()
+        RemoteZip.extract(HttpRangeSource(dataClient, url, mirror.referer), image, temporary)
+        if (!temporary.renameTo(target)) {
+            temporary.copyTo(target, overwrite = true)
+            temporary.delete()
+        }
+        pruneBackgrounds()
+        return target.takeIf { it.isFile && it.length() > 0L }
+    }
+
+    /** Prefers the file named by the .osu "Events" section; falls back to the largest picture. */
+    private fun pickBackgroundEntry(
+        entries: List<ZipEntryInfo>,
+        source: RangeSource,
+    ): ZipEntryInfo? {
+        val images =
+            entries.filter {
+                it.uncompressedSize > 0L && it.name.substringAfterLast('.', "").lowercase() in BACKGROUND_EXTENSIONS
+            }
+        if (images.isEmpty()) return null
+
+        val declared = declaredBackground(entries, source)?.replace('\\', '/')?.lowercase()
+        if (!declared.isNullOrBlank()) {
+            val fileName = declared.substringAfterLast('/')
+            images.firstOrNull { it.name.replace('\\', '/').lowercase() == declared }?.let { return it }
+            images.firstOrNull { it.name.replace('\\', '/').lowercase().substringAfterLast('/') == fileName }?.let { return it }
+        }
+        return images.maxByOrNull { it.uncompressedSize }
+    }
+
+    private fun declaredBackground(
+        entries: List<ZipEntryInfo>,
+        source: RangeSource,
+    ): String? {
+        val osu =
+            entries.firstOrNull {
+                it.name.endsWith(".osu", ignoreCase = true) && it.uncompressedSize in 1L..BACKGROUND_OSU_MAX_BYTES
+            } ?: return null
+        return try {
+            val text = RemoteZip.openEntryStream(source, osu).use { it.readBytes() }.toString(Charsets.UTF_8)
+            BACKGROUND_EVENT.find(text)?.groupValues?.get(1)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun pruneBackgrounds() {
+        val files =
+            backgroundDir
+                .listFiles { file -> !file.name.endsWith(".part") }
+                ?.sortedBy { it.lastModified() } ?: return
+        var total = files.sumOf { it.length() }
+        for (file in files) {
+            if (total <= BACKGROUND_CACHE_LIMIT_BYTES) break
+            total -= file.length()
+            file.delete()
+        }
+    }
+
     private fun prune(limitMb: Int) {
         val limit = (if (limitMb <= 0) 64 else limitMb) * 1024L * 1024L
         val files =
@@ -683,6 +825,13 @@ class StreamResolver(
         private const val PLAYBACK_RESOLVE_BUDGET_MS = 4_500L
         private const val MAX_PARALLEL_PROVIDERS = 11
         private const val FULL_RETRY_COOLDOWN_MS = 12_000L
+        private const val BACKGROUND_MAX_MIRRORS = 4
+        private const val BACKGROUND_MISS_COOLDOWN_MS = 120_000L
+        private const val BACKGROUND_MAX_BYTES = 12L * 1024L * 1024L
+        private const val BACKGROUND_OSU_MAX_BYTES = 2L * 1024L * 1024L
+        private const val BACKGROUND_CACHE_LIMIT_BYTES = 48L * 1024L * 1024L
+        private val BACKGROUND_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp")
+        private val BACKGROUND_EVENT = Regex("(?m)^\\s*(?:0|Background)\\s*,\\s*0\\s*,\\s*\"([^\"]+)\"")
 
         fun probeAudio(
             client: OkHttpClient,

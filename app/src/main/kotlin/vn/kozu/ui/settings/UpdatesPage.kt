@@ -1,9 +1,13 @@
 package vn.kozu.ui.settings
 
+import vn.kozu.ui.i18n.kozuUiString
+
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -22,7 +26,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
+import vn.kozu.ui.i18n.KozuText as Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -273,7 +277,7 @@ private fun CommitCard(
             if (!commit.avatarUrl.isNullOrBlank()) {
                 AsyncImage(
                     model = commit.avatarUrl,
-                    contentDescription = "${commit.author} avatar",
+                    contentDescription = kozuUiString("${commit.author} avatar"),
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.size(44.dp).clip(CircleShape),
                 )
@@ -312,27 +316,48 @@ private fun CommitPagination(
         ) {
             Text("Page $currentPage of $totalPages", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(
-                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                TextButton(onClick = { onSelect(currentPage - 1) }, enabled = enabled && currentPage > 1) { Text("‹") }
-                pages.forEach { page ->
-                    if (page == null) {
-                        Text("…", modifier = Modifier.padding(horizontal = 2.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    } else {
-                        Surface(
-                            onClick = { onSelect(page) },
-                            enabled = enabled,
-                            shape = CircleShape,
-                            color = if (page == currentPage) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-                            contentColor = if (page == currentPage) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
-                        ) {
-                            Text(page.toString(), modifier = Modifier.padding(horizontal = 13.dp, vertical = 8.dp), style = MaterialTheme.typography.labelLarge)
+                TextButton(
+                    onClick = { onSelect(currentPage - 1) },
+                    enabled = enabled && currentPage > 1,
+                    modifier = Modifier.width(44.dp),
+                    contentPadding = PaddingValues(0.dp),
+                ) { Text("‹") }
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Row(
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        pages.forEach { page ->
+                            if (page == null) {
+                                Text("…", modifier = Modifier.padding(horizontal = 2.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            } else {
+                                Surface(
+                                    onClick = { onSelect(page) },
+                                    enabled = enabled,
+                                    shape = CircleShape,
+                                    color = if (page == currentPage) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    contentColor = if (page == currentPage) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+                                ) {
+                                    Text(page.toString(), modifier = Modifier.padding(horizontal = 11.dp, vertical = 8.dp), style = MaterialTheme.typography.labelLarge)
+                                }
+                            }
                         }
                     }
                 }
-                TextButton(onClick = { onSelect(currentPage + 1) }, enabled = enabled && currentPage < totalPages) { Text("›") }
+                TextButton(
+                    onClick = { onSelect(currentPage + 1) },
+                    enabled = enabled && currentPage < totalPages,
+                    modifier = Modifier.width(44.dp),
+                    contentPadding = PaddingValues(0.dp),
+                ) { Text("›") }
             }
         }
     }

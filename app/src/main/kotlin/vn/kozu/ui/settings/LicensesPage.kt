@@ -1,5 +1,7 @@
 package vn.kozu.ui.settings
 
+import vn.kozu.ui.i18n.kozuUiString
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,7 +18,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import vn.kozu.ui.i18n.KozuText as Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -309,7 +311,7 @@ private fun AttributionCard(
                 Text(entry.url.removePrefix("https://"), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Spacer(Modifier.width(12.dp))
-            Icon(Icons.AutoMirrored.Rounded.OpenInNew, contentDescription = "Open source", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.AutoMirrored.Rounded.OpenInNew, contentDescription = kozuUiString("Open source"), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

@@ -24,7 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import vn.kozu.ui.i18n.KozuText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -151,11 +151,13 @@ fun KozuSlider(
     }
 
     val effectiveStyle = if (vertical && style == SliderStyle.WAVY) SliderStyle.EXPRESSIVE else style
+    // Keep the thumb centre exactly one half-thumb-size from either end.
+    // The previous generic 10–12 dp inset left a visible dead strip on vertical sliders.
     val insetPx =
         with(density) {
             when (effectiveStyle) {
-                SliderStyle.CLASSIC -> 12.dp.toPx()
-                else -> 10.dp.toPx()
+                SliderStyle.CLASSIC -> 10.dp.toPx()
+                SliderStyle.EXPRESSIVE, SliderStyle.WAVY -> ExpressiveHandleWidth.toPx() / 2f
             }
         }
 
@@ -194,11 +196,6 @@ fun KozuSlider(
     val inactiveTick = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
     val alpha = if (enabled) 1f else 0.38f
 
-    val handleWidth by animateFloatAsState(
-        targetValue = if (pressed || dragging) 0.5f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessMedium),
-        label = "sliderHandleWidth",
-    )
     val bubbleAlpha by animateFloatAsState(
         targetValue = if (dragging && bubbleLabel != null) 1f else 0f,
         animationSpec = tween(140),
@@ -340,7 +337,7 @@ fun KozuSlider(
                     segment(vertical, length, hi, length, c0, c1, r, r, inactive)
                     segment(vertical, length, lo, hi, c0, c1, r, r, active)
                     drawTicks(vertical, length, cross, insetPx, usable, math.steps, lo, hi, 1.5.dp.toPx(), activeTick, inactiveTick, handleAlong, 0f)
-                    val thumbRadius = lerpPx(10.dp.toPx(), 7.dp.toPx(), 1f - handleWidth)
+                    val thumbRadius = 10.dp.toPx()
                     drawCircle(active, thumbRadius, if (vertical) Offset(cross / 2f, length - handleAlong) else Offset(handleAlong, cross / 2f))
                 }
 
@@ -348,6 +345,8 @@ fun KozuSlider(
                     val stroke = 5.dp.toPx()
                     val centerY = cross / 2f
                     val gap = ExpressiveGap.toPx()
+                    val handleAtEnd = handleAlong <= insetPx + 0.5f || handleAlong >= length - insetPx - 0.5f
+                    val endGap = if (handleAtEnd) 0f else gap
                     val lo = min(originAlong, handleAlong)
                     val hi = max(originAlong, handleAlong)
                     val handleIsHi = handleAlong >= originAlong
@@ -360,11 +359,11 @@ fun KozuSlider(
                             drawLine(inactive, Offset(a, centerY), Offset(b, centerY), stroke, StrokeCap.Round)
                         }
                     }
-                    line(0f, if (handleIsHi) lo else lo - gap)
-                    line(if (handleIsHi) hi + gap else hi, length)
+                    line(0f, if (handleIsHi) lo else lo - endGap)
+                    line(if (handleIsHi) hi + endGap else hi, length)
 
-                    val a0 = if (handleIsHi) lo else lo + gap
-                    val a1 = if (handleIsHi) hi - gap else hi
+                    val a0 = if (handleIsHi) lo else lo + endGap
+                    val a1 = if (handleIsHi) hi - endGap else hi
                     if (a1 - a0 > 0.5f) {
                         val path = Path()
                         var x = a0
@@ -375,7 +374,8 @@ fun KozuSlider(
                         }
                         drawPath(path, active, style = Stroke(stroke, cap = StrokeCap.Round, join = StrokeJoin.Round))
                     }
-                    val handleW = ExpressiveHandleWidth.toPx() * handleWidth
+                    // Keep the along-axis width fixed so the handle remains flush at 0% and 100%.
+                    val handleW = ExpressiveHandleWidth.toPx()
                     val handleLen = 28.dp.toPx()
                     drawRoundRect(
                         color = active,
@@ -390,16 +390,18 @@ fun KozuSlider(
                     val c0 = (cross - thickness) / 2f
                     val c1 = c0 + thickness
                     val gap = ExpressiveGap.toPx()
+                    val handleAtEnd = handleAlong <= insetPx + 0.5f || handleAlong >= length - insetPx - 0.5f
+                    val endGap = if (handleAtEnd) 0f else gap
                     val outer = thickness / 2f
                     val inner = InnerCorner.toPx()
                     val handleIsHi = handleAlong >= originAlong
                     val lo = min(originAlong, handleAlong)
                     val hi = max(originAlong, handleAlong)
 
-                    val activeStart = if (handleIsHi) lo else lo + gap
-                    val activeEnd = if (handleIsHi) hi - gap else hi
-                    val lowInactiveEnd = if (handleIsHi) lo else lo - gap
-                    val highInactiveStart = if (handleIsHi) hi + gap else hi
+                    val activeStart = if (handleIsHi) lo else lo + endGap
+                    val activeEnd = if (handleIsHi) hi - endGap else hi
+                    val lowInactiveEnd = if (handleIsHi) lo else lo - endGap
+                    val highInactiveStart = if (handleIsHi) hi + endGap else hi
 
                     // Inactive parts on both sides of the filled part.
                     segment(vertical, length, 0f, lowInactiveEnd, c0, c1, outer, inner, inactive)
@@ -411,9 +413,11 @@ fun KozuSlider(
                         if (handleIsHi && startsAtEdge) outer else inner,
                         inner, active,
                     )
-                    drawTicks(vertical, length, cross, insetPx, usable, math.steps, activeStart, activeEnd, 2.dp.toPx(), activeTick, inactiveTick, handleAlong, gap + 4.dp.toPx())
+                    drawTicks(vertical, length, cross, insetPx, usable, math.steps, activeStart, activeEnd, 2.dp.toPx(), activeTick, inactiveTick, handleAlong, endGap + 4.dp.toPx())
 
-                    val handleW = ExpressiveHandleWidth.toPx() * handleWidth
+                    // The narrow dimension follows the slider axis; do not animate it or it floats
+                    // away from the track ends while the thumb is pressed.
+                    val handleW = ExpressiveHandleWidth.toPx()
                     val handleLen = ExpressiveHandleLength.toPx().coerceAtMost(cross)
                     val handleRect =
                         if (vertical) {

@@ -1,5 +1,7 @@
 package vn.kozu.ui.search
 
+import vn.kozu.ui.i18n.kozuUiString
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,7 +35,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import vn.kozu.ui.i18n.KozuText as Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -294,7 +296,7 @@ private fun SearchField(
         trailingIcon = {
             if (query.isNotEmpty()) {
                 IconButton(onClick = { onQueryChange("") }) {
-                    Icon(Icons.Rounded.Close, contentDescription = "Clear search")
+                    Icon(Icons.Rounded.Close, contentDescription = kozuUiString("Clear search"))
                 }
             }
         },
@@ -357,7 +359,7 @@ private fun RecentSearches(
                         IconButton(onClick = { onRemove(query) }) {
                             Icon(
                                 Icons.Rounded.Close,
-                                contentDescription = "Remove recent search",
+                                contentDescription = kozuUiString("Remove recent search"),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(18.dp)
                             )

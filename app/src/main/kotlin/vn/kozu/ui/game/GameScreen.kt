@@ -1,5 +1,7 @@
 package vn.kozu.ui.game
 
+import vn.kozu.ui.i18n.kozuUiString
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
@@ -61,7 +63,7 @@ fun GameScreen(
                         IconButton(onClick = { addMapsOpen = true }) {
                             Icon(
                                 Icons.Rounded.Add,
-                                contentDescription = "Add maps",
+                                contentDescription = kozuUiString("Add maps"),
                                 tint = MaterialTheme.colorScheme.onSurface,
                             )
                         }

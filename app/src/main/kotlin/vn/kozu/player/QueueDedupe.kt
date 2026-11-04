@@ -14,20 +14,12 @@ object QueueDedupe {
         val result = ArrayList<Beatmap>(queue.size)
         var keptPosition = 0
         queue.forEachIndexed { index, beatmap ->
-            when {
-                index == keep -> {
-                    keptPosition = result.size
-                    seen.add(beatmap.id)
-                    result.add(beatmap)
-                }
-
-                beatmap.id == keptId -> {
-                    Unit
-                }
-
-                seen.add(beatmap.id) -> {
-                    result.add(beatmap)
-                }
+            if (index == keep) {
+                keptPosition = result.size
+                seen.add(beatmap.id)
+                result.add(beatmap)
+            } else if (beatmap.id != keptId && seen.add(beatmap.id)) {
+                result.add(beatmap)
             }
         }
         return result to keptPosition

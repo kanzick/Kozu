@@ -1,5 +1,7 @@
 package vn.kozu.ui.home
 
+import vn.kozu.ui.i18n.kozuUiString
+
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -40,7 +42,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import vn.kozu.ui.i18n.KozuText as Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -53,6 +55,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -202,13 +207,17 @@ fun HomeScreen(
                 }
 
                 if (appSettings.showMixCard) item(key = "mix") {
+                    // The order that was actually started, so the artwork preview matches what plays.
+                    var playedOrder by remember(ui.mix) { mutableStateOf<List<Beatmap>?>(null) }
                     Column {
                         Spacer(Modifier.height(28.dp))
                         YourMixCard(
-                            mix = ui.mix,
+                            mix = playedOrder ?: ui.mix,
+                            totalCount = ui.mix.size,
                             onShuffle = {
-                                actions.playShuffled(ui.mix)
-                                viewModel.loadMoreMix()
+                                // Shuffle the current snapshot only (no extra loading), as a full
+                                // smart shuffle of the whole list rather than a random start index.
+                                playedOrder = actions.playShuffledWithOrder(ui.mix)
                             }
                         )
                     }
@@ -515,7 +524,7 @@ private fun CatalogErrorBanner(error: String, onRetry: () -> Unit, onSettings: (
 }
 
 @Composable
-private fun YourMixCard(mix: List<Beatmap>, onShuffle: () -> Unit) {
+private fun YourMixCard(mix: List<Beatmap>, totalCount: Int, onShuffle: () -> Unit) {
     Surface(
         modifier = Modifier
             .padding(horizontal = 20.dp)
@@ -549,7 +558,7 @@ private fun YourMixCard(mix: List<Beatmap>, onShuffle: () -> Unit) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             Icons.Rounded.Shuffle,
-                            contentDescription = "Play your mix shuffled",
+                            contentDescription = kozuUiString("Play your mix shuffled"),
                             modifier = Modifier.size(38.dp)
                         )
                     }
@@ -575,7 +584,7 @@ private fun YourMixCard(mix: List<Beatmap>, onShuffle: () -> Unit) {
                     }
                     Spacer(Modifier.width(12.dp))
                     Text(
-                        text = "${mix.size} songs · refreshed daily",
+                        text = "$totalCount songs · refreshed daily",
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
                     )
@@ -647,7 +656,7 @@ private fun ListeningStatsCard(
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = "Open history")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = kozuUiString("Open history"))
                     }
                 }
             }

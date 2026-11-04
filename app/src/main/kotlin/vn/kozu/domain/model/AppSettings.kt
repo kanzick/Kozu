@@ -217,6 +217,20 @@ enum class CrossfadeDuration(
     }
 }
 
+enum class MixSize(
+    val count: Int,
+    val label: String,
+) {
+    TWENTY_FIVE(25, "25 songs"),
+    FIFTY(50, "50 songs"),
+    HUNDRED(100, "100 songs"),
+    ;
+
+    companion object {
+        fun fromCount(count: Int?): MixSize = entries.firstOrNull { it.count == count } ?: HUNDRED
+    }
+}
+
 enum class QuickPicksSource(
     val key: String,
     val label: String,
@@ -383,6 +397,7 @@ data class AppSettings(
     val showMapper: Boolean = true,
     val quickPicksSource: QuickPicksSource = QuickPicksSource.MIX,
     val quickPicksLayout: QuickPicksLayout = QuickPicksLayout.CAROUSEL,
+    val mixSize: MixSize = MixSize.HUNDRED,
     val topSize: TopSize = TopSize.FIFTY,
     val proxy: ProxySettings = ProxySettings(),
     val autoSyncLibrary: Boolean = true,

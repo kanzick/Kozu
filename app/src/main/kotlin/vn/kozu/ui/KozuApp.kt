@@ -75,6 +75,7 @@ import vn.kozu.domain.model.ThemeMode
 import vn.kozu.ui.components.BeatmapInfoSheet
 import vn.kozu.ui.components.DownloadInfo
 import vn.kozu.ui.components.LocalAppSettings
+import vn.kozu.ui.components.LocalBackgroundResolver
 import vn.kozu.ui.components.LocalDownloads
 import vn.kozu.ui.components.LocalFavoriteIds
 import vn.kozu.ui.components.LocalIsSupporter
@@ -87,6 +88,7 @@ import vn.kozu.ui.components.PlaylistPickerSheet
 import vn.kozu.ui.components.TrackActions
 import vn.kozu.ui.components.TrackMenuSheet
 import vn.kozu.ui.components.rememberIsMetered
+import vn.kozu.ui.i18n.localizeUiString
 import vn.kozu.ui.explore.AllBeatmapsScreen
 import vn.kozu.ui.explore.ExploreScreen
 import vn.kozu.ui.game.GameScreen
@@ -220,7 +222,7 @@ private fun KozuShell(
     fun notify(message: String) {
         scope.launch {
             snackbar.currentSnackbarData?.dismiss()
-            snackbar.showSnackbar(message)
+            snackbar.showSnackbar(localizeUiString(context, message))
         }
     }
 
@@ -269,6 +271,12 @@ private fun KozuShell(
                 override fun playShuffled(queue: List<Beatmap>) {
                     playback.playShuffled(queue)
                     if (latestSettings.autoOpenPlayer) playerOpen = true
+                }
+
+                override fun playShuffledWithOrder(queue: List<Beatmap>): List<Beatmap> {
+                    val shuffled = playback.playShuffledWithOrder(queue)
+                    if (latestSettings.autoOpenPlayer) playerOpen = true
+                    return shuffled
                 }
 
                 override fun toggleFavorite(beatmap: Beatmap) {
@@ -326,7 +334,12 @@ private fun KozuShell(
     }
 
     val metered by rememberIsMetered()
+    val backgroundResolver =
+        remember<suspend (Long, Boolean) -> java.io.File?>(container) {
+            { id, allowRemote -> container.streams.resolveBackground(id, allowRemote) }
+        }
     CompositionLocalProvider(
+        LocalBackgroundResolver provides backgroundResolver,
         LocalContentColor provides MaterialTheme.colorScheme.onSurface,
         LocalAppSettings provides settings,
         LocalMetered provides metered,
@@ -476,6 +489,21 @@ private fun KozuShell(
                         settingsOpen = false
                         settingsInitialPage = vn.kozu.ui.settings.SettingsPage.ROOT
                     },
+                    bottomContent = {
+                        state.current?.let { beatmap ->
+                            MiniPlayer(
+                                beatmap = beatmap,
+                                isPlaying = state.isPlaying,
+                                position = playback.position,
+                                duration = playback.duration,
+                                onOpen = { playerOpen = true },
+                                onPlayPause = playback::togglePlayPause,
+                                onPrevious = playback::previous,
+                                onNext = playback::next,
+                                onDismiss = playback::clearQueue,
+                            )
+                        }
+                    },
                 )
             }
 
@@ -542,7 +570,7 @@ private fun KozuShell(
                                 scope.launch {
                                     val id = container.playlists.create("Queue (${unique.size} tracks)")
                                     unique.forEach { container.playlists.addTrack(id, it) }
-                                    snackbar.showSnackbar("Saved ${unique.size} tracks as a playlist")
+                                    snackbar.showSnackbar(localizeUiString(context, "Saved ${unique.size} tracks as a playlist"))
                                 }
                             }
                         },

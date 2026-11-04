@@ -1,5 +1,7 @@
 package vn.kozu.ui.settings
 
+import vn.kozu.ui.i18n.kozuUiString
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -47,7 +49,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import vn.kozu.ui.i18n.KozuText as Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -55,6 +57,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
@@ -66,6 +69,9 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -78,16 +84,17 @@ import vn.kozu.domain.model.OsuProfile
 import vn.kozu.data.update.UpdateChecker
 import vn.kozu.domain.model.UpdateChannel
 import vn.kozu.ui.components.bounceClick
+import vn.kozu.R
 
 private data class SettingsGroup(
-    val title: String,
+    val titleRes: Int,
     val pages: List<SettingsPage>,
 )
 
 private val rootGroups = listOf(
-    SettingsGroup("Personalize", listOf(SettingsPage.APPEARANCE, SettingsPage.BEHAVIOR)),
+    SettingsGroup(R.string.settings_group_personalize, listOf(SettingsPage.APPEARANCE, SettingsPage.BEHAVIOR, SettingsPage.LANGUAGE)),
     SettingsGroup(
-        "Music",
+        R.string.settings_group_music,
         listOf(
             SettingsPage.MUSIC,
             SettingsPage.CONTENT,
@@ -97,9 +104,9 @@ private val rootGroups = listOf(
             SettingsPage.DOWNLOADS,
         ),
     ),
-    SettingsGroup("Library & data", listOf(SettingsPage.STATS, SettingsPage.STORAGE, SettingsPage.BACKUP)),
-    SettingsGroup("System", listOf(SettingsPage.DEVICE, SettingsPage.DEVELOPER)),
-    SettingsGroup("App", listOf(SettingsPage.UPDATES, SettingsPage.ABOUT)),
+    SettingsGroup(R.string.settings_group_library_data, listOf(SettingsPage.STATS, SettingsPage.STORAGE, SettingsPage.BACKUP)),
+    SettingsGroup(R.string.settings_group_system, listOf(SettingsPage.DEVICE, SettingsPage.DEVELOPER)),
+    SettingsGroup(R.string.settings_group_app, listOf(SettingsPage.UPDATES, SettingsPage.ABOUT)),
 )
 
 private fun parentOf(page: SettingsPage): SettingsPage = when (page) {
@@ -113,7 +120,8 @@ fun SettingsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     initialPage: SettingsPage = SettingsPage.ROOT,
-    viewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory)
+    viewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory),
+    bottomContent: (@Composable () -> Unit)? = null,
 ) {
     var page by rememberSaveable(initialPage) { mutableStateOf(initialPage) }
     val pageStateHolder = rememberSaveableStateHolder()
@@ -144,11 +152,15 @@ fun SettingsScreen(
         highlight = null
     }
 
+    val density = LocalDensity.current
+    var bottomContentHeightPx by remember { mutableIntStateOf(0) }
+    val bottomContentHeight = with(density) { bottomContentHeightPx.toDp() }
+
     Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         CompositionLocalProvider(LocalSettingsHighlight provides highlight) {
             AnimatedContent(
                 targetState = page,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().padding(bottom = bottomContentHeight),
                 transitionSpec = {
                     val forward = (initialState == SettingsPage.ROOT && targetState != SettingsPage.ROOT) ||
                         targetState == SettingsPage.LICENSES ||
@@ -181,6 +193,7 @@ fun SettingsScreen(
                         SettingsPage.ACCOUNT -> AccountPage(viewModel, close)
                         SettingsPage.MUSIC -> MusicPage(viewModel, close)
                         SettingsPage.CONTENT -> ContentPage(viewModel, { proxyOpen = true }, close)
+                        SettingsPage.LANGUAGE -> LanguagePage(close)
                         SettingsPage.APPEARANCE -> AppearancePage(
                             viewModel,
                             onOpenTypography = { page = SettingsPage.TYPOGRAPHY },
@@ -235,6 +248,26 @@ fun SettingsScreen(
                 }
             )
         }
+
+        if (bottomContent != null) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .onSizeChanged { bottomContentHeightPx = it.height }
+                    .background(
+                        androidx.compose.ui.graphics.Brush.verticalGradient(
+                            0f to Color.Transparent,
+                            0.32f to MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+                            1f to MaterialTheme.colorScheme.surface,
+                        )
+                    )
+                    .zIndex(20f),
+            ) {
+                bottomContent()
+            }
+        }
     }
 }
 
@@ -287,7 +320,7 @@ private fun SettingsGroupCard(
 
     Column {
         Text(
-            text = group.title,
+            text = stringResource(group.titleRes),
             style = MaterialTheme.typography.titleSmall,
             color = colors.primary,
             modifier = Modifier.padding(start = 16.dp, bottom = 8.dp),
@@ -299,8 +332,13 @@ private fun SettingsGroupCard(
         ) {
             Column {
                 group.pages.forEachIndexed { index, page ->
+                    val title = when (page) {
+                        SettingsPage.LANGUAGE -> stringResource(R.string.settings_language_title)
+                        else -> page.title
+                    }
                     val subtitle = when (page) {
                         SettingsPage.UPDATES -> "v$installedVersion · ${updateChannel.label}"
+                        SettingsPage.LANGUAGE -> stringResource(R.string.settings_language_subtitle)
                         else -> page.subtitle
                     }
                     Row(
@@ -323,7 +361,7 @@ private fun SettingsGroupCard(
                         Spacer(Modifier.width(14.dp))
                         Column(Modifier.weight(1f)) {
                             Text(
-                                text = page.title,
+                                text = title,
                                 style = MaterialTheme.typography.titleMedium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -386,7 +424,7 @@ private fun SettingsSearchOverlay(onClose: () -> Unit, onPick: (Setting) -> Unit
                     keyboard?.hide()
                     onClose()
                 }) {
-                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = kozuUiString("Back"))
                 }
                 TextField(
                     value = query,
@@ -410,7 +448,7 @@ private fun SettingsSearchOverlay(onClose: () -> Unit, onPick: (Setting) -> Unit
                 )
                 if (query.isNotEmpty()) {
                     IconButton(onClick = { query = "" }) {
-                        Icon(Icons.Rounded.Close, contentDescription = "Clear")
+                        Icon(Icons.Rounded.Close, contentDescription = kozuUiString("Clear"))
                     }
                 }
             }
@@ -448,6 +486,21 @@ private fun SettingsSearchOverlay(onClose: () -> Unit, onPick: (Setting) -> Unit
             ) {
                 items(results, key = { it.name }) { setting ->
                     val index = results.indexOf(setting)
+                    val resultTitle = if (setting == Setting.LANGUAGE) {
+                        stringResource(R.string.settings_language_title)
+                    } else {
+                        setting.title
+                    }
+                    val resultDescription = if (setting == Setting.LANGUAGE) {
+                        stringResource(R.string.settings_language_subtitle)
+                    } else {
+                        setting.description
+                    }
+                    val resultPageTitle = if (setting.page == SettingsPage.LANGUAGE) {
+                        stringResource(R.string.settings_language_title)
+                    } else {
+                        setting.page.title
+                    }
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -466,20 +519,20 @@ private fun SettingsSearchOverlay(onClose: () -> Unit, onPick: (Setting) -> Unit
                             Spacer(Modifier.width(14.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(
-                                    setting.title,
+                                    resultTitle,
                                     style = MaterialTheme.typography.titleMedium,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
-                                    setting.description,
+                                    resultDescription,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
-                                    setting.page.title,
+                                    resultPageTitle,
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.primary
                                 )
@@ -494,25 +547,33 @@ private fun SettingsSearchOverlay(onClose: () -> Unit, onPick: (Setting) -> Unit
 
 @Composable
 private fun SearchHint() {
-    val suggestions = listOf(
-        Setting.APP_THEME,
-        Setting.CROSSFADE,
-        Setting.EQUALIZER_BANDS,
-        Setting.CLEAR_STREAM_CACHE,
-        Setting.PROXY,
-        Setting.EXPORT_BACKUP
-    )
-    Column(Modifier.padding(horizontal = 24.dp, vertical = 24.dp)) {
-        Text("Try searching for", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
-        Spacer(Modifier.height(8.dp))
-        suggestions.forEach {
-            Text(
-                it.title,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(vertical = 4.dp)
-            )
-        }
+    val colors = MaterialTheme.colorScheme
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 28.dp, vertical = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.Search,
+            contentDescription = null,
+            modifier = Modifier.size(56.dp),
+            tint = colors.onSurfaceVariant.copy(alpha = 0.32f),
+        )
+        Spacer(Modifier.height(14.dp))
+        Text(
+            text = "Find a setting",
+            style = MaterialTheme.typography.titleMedium,
+            color = colors.onSurfaceVariant.copy(alpha = 0.58f),
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = "Try theme, playback, cache or downloads",
+            style = MaterialTheme.typography.bodyMedium,
+            color = colors.onSurfaceVariant.copy(alpha = 0.38f),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        )
     }
 }
 
@@ -532,7 +593,7 @@ private fun SearchEntryBar(onClick: () -> Unit) {
         ) {
             Icon(
                 Icons.Rounded.Search,
-                contentDescription = "Search settings",
+                contentDescription = kozuUiString("Search settings"),
                 tint = MaterialTheme.colorScheme.primary
             )
             Spacer(Modifier.width(16.dp))
@@ -570,7 +631,7 @@ private fun AccountSummaryCard(profile: OsuProfile?, loggedIn: Boolean, onClick:
                     if (avatar != null) {
                         AsyncImage(
                             model = avatar,
-                            contentDescription = "Avatar",
+                            contentDescription = kozuUiString("Avatar"),
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize()
                         )

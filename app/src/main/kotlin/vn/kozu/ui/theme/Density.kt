@@ -52,7 +52,6 @@ fun ProvideKozuDensity(
     CompositionLocalProvider(
         LocalDensity provides scaled,
         LocalUiDensity provides prefs.density,
-        // Keep the physical touch target at 48dp even when the layout is scaled down.
         LocalMinimumInteractiveComponentSize provides (48f / layout).dp,
         content = content,
     )

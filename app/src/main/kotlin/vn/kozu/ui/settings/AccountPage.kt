@@ -1,5 +1,7 @@
 package vn.kozu.ui.settings
 
+import vn.kozu.ui.i18n.kozuUiString
+
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -34,7 +36,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import vn.kozu.ui.i18n.KozuText as Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -215,7 +217,7 @@ private fun OAuthCredentialsDialog(
                         val manager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                         manager.setPrimaryClip(ClipData.newPlainText("callback", OsuAuth.REDIRECT_URI))
                     }) {
-                        Icon(Icons.Rounded.ContentCopy, contentDescription = "Copy callback URL")
+                        Icon(Icons.Rounded.ContentCopy, contentDescription = kozuUiString("Copy callback URL"))
                     }
                 }
                 OutlinedTextField(

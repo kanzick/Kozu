@@ -142,7 +142,6 @@ class ScoreDatabase private constructor(private val db: SQLiteDatabase) : Closea
                                 )"""
                             )
                         } else if (db.version < 2) {
-                            // v1 -> v2
                             db.execSQL("ALTER TABLE score ADD COLUMN difficulty TEXT NOT NULL DEFAULT ''")
                             db.execSQL("ALTER TABLE score ADD COLUMN played_at INTEGER NOT NULL DEFAULT 0")
                             db.execSQL("DROP INDEX IF EXISTS idx_score_song")

@@ -141,6 +141,9 @@ class SettingsStore(
         val lastUpdateCheck = longPreferencesKey("last_update_check")
         val updateChannel = stringPreferencesKey("update_channel")
         val libraryTabOrder = stringPreferencesKey("library_tab_order")
+        val libraryCustomOrder = stringPreferencesKey("library_custom_order_v1")
+        val librarySortMode = stringPreferencesKey("library_sort_mode")
+        val librarySortAscending = booleanPreferencesKey("library_sort_ascending")
         val appearance = stringPreferencesKey("appearance_json")
     }
 
@@ -160,6 +163,48 @@ class SettingsStore(
         val normalized = (order.filter { it in allowed } + allowed).distinct()
         store.edit { it[Keys.libraryTabOrder] = normalized.joinToString(",") }
     }
+
+    val librarySortPreferences: Flow<Pair<String, Boolean>> =
+        store.data.map { prefs ->
+            (prefs[Keys.librarySortMode] ?: "recent") to (prefs[Keys.librarySortAscending] ?: false)
+        }.distinctUntilChanged()
+
+    suspend fun setLibrarySortPreferences(mode: String, ascending: Boolean) {
+        val allowed = setOf("recent", "title", "artist", "mapper", "custom")
+        store.edit { prefs ->
+            prefs[Keys.librarySortMode] = mode.takeIf { it in allowed } ?: "recent"
+            prefs[Keys.librarySortAscending] = ascending
+        }
+    }
+
+    /** Stable user-defined order for library collections. Playlist tracks use Room positions. */
+    val libraryCustomOrders: Flow<Map<String, List<Long>>> =
+        store.data.map { prefs -> decodeLibraryCustomOrders(prefs[Keys.libraryCustomOrder]) }.distinctUntilChanged()
+
+    suspend fun setLibraryCustomOrder(collection: String, beatmapIds: List<Long>) {
+        val allowed = setOf("songs", "liked", "downloads")
+        if (collection !in allowed) return
+        store.edit { prefs ->
+            val current = decodeLibraryCustomOrders(prefs[Keys.libraryCustomOrder]).toMutableMap()
+            current[collection] = beatmapIds.filter { it > 0L }.distinct()
+            val json = JSONObject()
+            current.forEach { (key, ids) ->
+                if (key in allowed) json.put(key, JSONArray(ids))
+            }
+            prefs[Keys.libraryCustomOrder] = json.toString()
+        }
+    }
+
+    private fun decodeLibraryCustomOrders(raw: String?): Map<String, List<Long>> =
+        try {
+            val root = JSONObject(raw.orEmpty())
+            listOf("songs", "liked", "downloads").associateWith { key ->
+                val array = root.optJSONArray(key) ?: JSONArray()
+                List(array.length()) { index -> array.optLong(index) }.filter { it > 0L }.distinct()
+            }.filterValues { it.isNotEmpty() }
+        } catch (_: JSONException) {
+            emptyMap()
+        }
 
     val settings: Flow<AppSettings> =
         store.data

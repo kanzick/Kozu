@@ -26,9 +26,13 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import vn.kozu.data.mirror.StreamResolver
+import vn.kozu.data.local.DownloadsStore
+import vn.kozu.data.local.FavoritesStore
 import vn.kozu.data.local.HistoryStore
 import vn.kozu.data.repository.BeatmapRepository
 import vn.kozu.domain.model.AppSettings
@@ -41,17 +45,24 @@ class PlaybackController(
     private val history: HistoryStore,
     private val streams: StreamResolver,
     catalog: BeatmapRepository,
-    private val settingsFlow: Flow<AppSettings>
+    private val settingsFlow: Flow<AppSettings>,
+    favorites: FavoritesStore? = null,
+    downloads: DownloadsStore? = null,
 ) {
     private val appContext = context.applicationContext
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var controller: MediaController? = null
     private val pendingCommands = ArrayList<(MediaController) -> Unit>()
     private var cachedQueue: List<Beatmap> = emptyList()
+    private var lastShuffledPreviewIds: List<Long> = emptyList()
+    private var recentPlayedIds: Set<Long> = emptySet()
     private var settings = AppSettings()
-    private val autoplay = AutoplayQueue(catalog, history)
+    private val autoplay = AutoplayQueue(catalog, history, favorites, downloads)
     private var autoplayJob: Job? = null
-    private var autoplayAttempt: Pair<Long, Int>? = null
+
+    /** The (track, queue size) a lookup was started for; together with [autoplayRetryAt] it throttles retries. */
+    private var autoplayKey: Pair<Long, Int>? = null
+    private var autoplayRetryAt = 0L
     private var sleepJob: Job? = null
 
     private val _audioInfo = MutableStateFlow<String?>(null)
@@ -149,6 +160,26 @@ class PlaybackController(
         }
         scope.launch {
             try {
+                // Remember what was heard lately so a new shuffle does not open with the same songs.
+                history.history
+                    .map { snapshot ->
+                        snapshot.events
+                            .asReversed()
+                            .asSequence()
+                            .map { it.beatmapId }
+                            .distinct()
+                            .take(RECENT_SHUFFLE_WINDOW)
+                            .toSet()
+                    }.flowOn(Dispatchers.Default)
+                    .collect { recentPlayedIds = it }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                Log.w(TAG, "Could not observe listening history", error)
+            }
+        }
+        scope.launch {
+            try {
                 settingsFlow.collect {
                     settings = it
                     maybeAutoplay()
@@ -177,17 +208,42 @@ class PlaybackController(
         }
     }
 
+    /** Plays [queue] in a smart-shuffled order. Same behaviour as [playShuffledWithOrder]. */
     fun playShuffled(queue: List<Beatmap>) {
-        if (queue.isEmpty()) return
-        val items = if (settings.dedupeQueue) QueueDedupe.distinct(queue) else queue
+        playShuffledWithOrder(queue)
+    }
+
+    /**
+     * Shuffles the whole queue once ([SmartShuffle]) and plays that exact order. The returned order
+     * is used by the Home Your Mix card so its artwork preview matches the first tracks that play.
+     * Player-level shuffle is switched off because the order is already randomized, which also makes
+     * "previous" and the queue sheet behave predictably.
+     */
+    fun playShuffledWithOrder(queue: List<Beatmap>): List<Beatmap> {
+        if (queue.isEmpty()) return emptyList()
+
+        val candidates = if (settings.dedupeQueue) QueueDedupe.distinct(queue) else queue
+        if (candidates.isEmpty()) return emptyList()
+
+        val shuffled =
+            SmartShuffle.order(
+                items = candidates,
+                // Do not open with what was just played, or with the previous shuffle's first songs.
+                deprioritized = recentPlayedIds + lastShuffledPreviewIds,
+            )
+        lastShuffledPreviewIds = shuffled.take(SHUFFLE_HEAD).map { it.id }
+
         retryTrackId = null
         currentTrackRetryCount = 0
+        autoplayKey = null
+        autoplayRetryAt = 0L
         withController { c ->
-            c.shuffleModeEnabled = true
-            c.setMediaItems(items.map { it.toMediaItem() }, items.indices.random(), 0L)
+            c.shuffleModeEnabled = false
+            c.setMediaItems(shuffled.map { it.toMediaItem() }, 0, 0L)
             c.prepare()
             c.play()
         }
+        return shuffled
     }
 
     fun togglePlayPause() = withController { c ->
@@ -247,7 +303,8 @@ class PlaybackController(
     fun clearQueue() = withController { c ->
         c.pause()
         c.clearMediaItems()
-        autoplayAttempt = null
+        autoplayKey = null
+        autoplayRetryAt = 0L
         _position.value = 0L
         _duration.value = 0L
     }
@@ -390,6 +447,8 @@ class PlaybackController(
         return -1
     }
 
+    private enum class AutoplayOutcome { ADDED, NOTHING_NEW, STALE }
+
     private fun maybeAutoplay() {
         val c = controller ?: return
         if (!settings.autoplay || autoplayJob?.isActive == true) return
@@ -397,30 +456,57 @@ class PlaybackController(
         if (!c.playWhenReady) return
         val current = cachedQueue.getOrNull(c.currentMediaItemIndex) ?: return
         if (current.id <= 0L) return
-        val attempt = current.id to c.mediaItemCount
-        if (autoplayAttempt == attempt) return
-        autoplayAttempt = attempt
 
-        val queue = cachedQueue
+        // A lookup that found nothing is retried later, but not on every player event.
+        val key = current.id to c.mediaItemCount
+        if (autoplayKey == key && SystemClock.elapsedRealtime() < autoplayRetryAt) return
+        autoplayKey = key
+        autoplayRetryAt = 0L
+
         autoplayJob = scope.launch {
-            val related = try {
-                autoplay.fetch(current, queue, settings.avoidRepeats)
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (error: Exception) {
-                Log.w(TAG, "Autoplay lookup failed", error)
-                emptyList()
+            var attempt = 0
+            while (true) {
+                // After the normal retries the last round may also loop the queue instead of stopping.
+                val allowReplay = attempt >= AUTOPLAY_RETRY_DELAYS_MS.size
+                when (runAutoplayRound(current, allowReplay)) {
+                    AutoplayOutcome.ADDED, AutoplayOutcome.STALE -> {
+                        autoplayKey = null
+                        autoplayRetryAt = 0L
+                        return@launch
+                    }
+                    AutoplayOutcome.NOTHING_NEW -> Unit
+                }
+                val wait = AUTOPLAY_RETRY_DELAYS_MS.getOrNull(attempt)
+                if (wait == null) {
+                    // Give up for now; the next player event after the cool-down tries again.
+                    autoplayRetryAt = SystemClock.elapsedRealtime() + AUTOPLAY_COOLDOWN_MS
+                    return@launch
+                }
+                attempt++
+                delay(wait)
             }
-            val player = controller ?: return@launch
-            if (related.isEmpty() || !settings.autoplay) return@launch
-            val stillLast = player.currentMediaItem?.mediaId == current.id.toString() &&
-                player.repeatMode == Player.REPEAT_MODE_OFF &&
-                !player.hasNextMediaItem()
-            if (!stillLast) return@launch
-            val queued = HashSet<String>()
-            for (index in 0 until player.mediaItemCount) queued.add(player.getMediaItemAt(index).mediaId)
-            val fresh = related.filter { queued.add(it.id.toString()) }
-            if (fresh.isEmpty()) return@launch
+        }
+    }
+
+    private suspend fun runAutoplayRound(
+        current: Beatmap,
+        allowReplay: Boolean,
+    ): AutoplayOutcome {
+        val related = try {
+            autoplay.fetch(current, cachedQueue, settings.avoidRepeats)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            Log.w(TAG, "Autoplay lookup failed", error)
+            emptyList()
+        }
+        val player = controller ?: return AutoplayOutcome.STALE
+        if (!settings.autoplay || !isStillLast(player, current)) return AutoplayOutcome.STALE
+
+        val queued = HashSet<String>()
+        for (index in 0 until player.mediaItemCount) queued.add(player.getMediaItemAt(index).mediaId)
+        val fresh = related.filter { queued.add(it.id.toString()) }
+        if (fresh.isNotEmpty()) {
             val ended = player.playbackState == Player.STATE_ENDED
             player.addMediaItems(fresh.map { it.toMediaItem() })
             if (ended) {
@@ -429,7 +515,45 @@ class PlaybackController(
                 player.play()
             }
             _messages.tryEmit("Added ${fresh.size} similar ${if (fresh.size == 1) "song" else "songs"}")
+            return AutoplayOutcome.ADDED
         }
+        if (allowReplay && loopQueue(player, current)) return AutoplayOutcome.ADDED
+        return AutoplayOutcome.NOTHING_NEW
+    }
+
+    private fun isStillLast(
+        player: MediaController,
+        current: Beatmap,
+    ): Boolean =
+        player.currentMediaItem?.mediaId == current.id.toString() &&
+            player.repeatMode == Player.REPEAT_MODE_OFF &&
+            !player.hasNextMediaItem()
+
+    /**
+     * Last resort when no new songs can be found: moves the songs that were already played behind
+     * the current one in a fresh order. No duplicates are created, and playback does not stop.
+     */
+    private fun loopQueue(
+        player: MediaController,
+        current: Beatmap,
+    ): Boolean {
+        val plan = autoplay.replay(current, cachedQueue)
+        var moved = 0
+        for (beatmap in plan) {
+            val from = indexOfId(player, beatmap.id)
+            if (from in 0 until player.currentMediaItemIndex) {
+                player.moveMediaItem(from, player.mediaItemCount - 1)
+                moved++
+            }
+        }
+        if (moved == 0) return false
+        if (player.playbackState == Player.STATE_ENDED) {
+            player.seekToNextMediaItem()
+            player.prepare()
+            player.play()
+        }
+        _messages.tryEmit("No new songs found. Replaying your queue")
+        return true
     }
 
     private fun withController(block: (MediaController) -> Unit) {
@@ -570,6 +694,10 @@ class PlaybackController(
 
     companion object {
         private const val MAX_SOURCE_RETRIES = 10
+        private const val RECENT_SHUFFLE_WINDOW = 20
+        private const val SHUFFLE_HEAD = 3
+        private const val AUTOPLAY_COOLDOWN_MS = 60_000L
+        private val AUTOPLAY_RETRY_DELAYS_MS = longArrayOf(3_000L, 10_000L)
         private const val MAX_SLEEP_MINUTES = 24 * 60
         private const val SLEEP_FADE_MS = 3_000L
         private const val SLEEP_END_MARGIN_MS = 200L

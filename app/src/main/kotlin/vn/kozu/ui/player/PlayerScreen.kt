@@ -1,5 +1,7 @@
 package vn.kozu.ui.player
 
+import vn.kozu.ui.i18n.kozuUiString
+
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -15,6 +17,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -30,7 +33,7 @@ import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import vn.kozu.ui.i18n.KozuText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -62,7 +65,7 @@ import vn.kozu.domain.model.displayArtist
 import vn.kozu.domain.model.displayTitle
 import vn.kozu.player.PlaybackState
 import vn.kozu.player.SleepTimer
-import vn.kozu.ui.components.BeatmapArt
+import vn.kozu.ui.components.FullBeatmapArt
 import vn.kozu.ui.components.LocalAppSettings
 import vn.kozu.ui.components.LocalPerformanceMode
 import vn.kozu.ui.components.WavySlider
@@ -205,11 +208,30 @@ fun PlayerScreen(
                     onSleep = { showSleep = true },
                 )
 
+                val effectiveShape =
+                    if (settings.appearance.playerArtShape == ArtworkShape.DEFAULT) {
+                        settings.appearance.artworkShape
+                    } else {
+                        settings.appearance.playerArtShape
+                    }
+                // Rectangular shapes use the full width and hug the real image; cookie/circle need a square.
+                val rectangular =
+                    effectiveShape == ArtworkShape.DEFAULT ||
+                        effectiveShape == ArtworkShape.SOFT ||
+                        effectiveShape == ArtworkShape.SQUARE
+                // Keep the corners from eating into the picture of a wide image.
+                val artRadius = if (rectangular) coverRadius.coerceAtMost(24.dp) else coverRadius
                 Box(
                     modifier =
                         Modifier
                             .align(Alignment.CenterHorizontally)
-                            .size(artworkSize)
+                            .then(
+                                if (rectangular) {
+                                    Modifier.fillMaxWidth().height(artworkSize)
+                                } else {
+                                    Modifier.size(artworkSize)
+                                },
+                            )
                             .then(
                                 if (settings.artworkSwipe) {
                                     Modifier.pointerInput(Unit) {
@@ -250,12 +272,10 @@ fun PlayerScreen(
                             ),
                     contentAlignment = Alignment.Center,
                 ) {
-                    BeatmapArt(
+                    FullBeatmapArt(
                         beatmap = beatmap,
-                        // Match the square, fully-visible artwork used by the mini-player.
-                        // The large cover endpoint is a wide banner and looks zoomed in this square slot.
-                        large = false,
-                        shape = settings.appearance.playerArtShape.toShape(RoundedCornerShape(coverRadius)),
+                        wrapToImage = rectangular,
+                        shape = settings.appearance.playerArtShape.toShape(RoundedCornerShape(artRadius)),
                         followGlobalShape = settings.appearance.playerArtShape == ArtworkShape.DEFAULT,
                         modifier =
                             Modifier
@@ -307,7 +327,7 @@ fun PlayerScreen(
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 Icons.Rounded.MoreVert,
-                                contentDescription = "More options",
+                                contentDescription = kozuUiString("More options"),
                                 tint = MaterialTheme.colorScheme.onSecondaryContainer,
                             )
                         }
@@ -394,7 +414,7 @@ private fun PlayerTopBar(
             color = MaterialTheme.colorScheme.surfaceContainerHighest,
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "Close player")
+                Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = kozuUiString("Close player"))
             }
         }
         Text(
@@ -450,7 +470,7 @@ private fun PlayerTopBar(
             color = MaterialTheme.colorScheme.surfaceContainerHighest,
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(Icons.AutoMirrored.Rounded.QueueMusic, contentDescription = "Queue")
+                Icon(Icons.AutoMirrored.Rounded.QueueMusic, contentDescription = kozuUiString("Queue"))
             }
         }
     }

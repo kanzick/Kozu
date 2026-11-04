@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="settings_language_title">Bahasa</string>
+    <string name="settings_language_subtitle">Pilih bahasa aplikasi.</string>
+    <string name="settings_language_description">Pilih bahasa untuk Kozu. Bagian yang belum diterjemahkan akan tetap menggunakan bahasa Inggris.</string>
+    <string name="settings_language_restart_note">Kozu akan dibuka kembali untuk menerapkan pilihan. Musik, pustaka, dan pengaturan tetap tersimpan di perangkat ini.</string>
+    <string name="language_system">Ikuti sistem</string>
+    <string name="language_english">Inggris</string>
+    <string name="language_arabic">Arab</string>
+    <string name="language_german">Jerman</string>
+    <string name="language_spanish">Spanyol</string>
+    <string name="language_french">Prancis</string>
+    <string name="language_indonesian">Bahasa Indonesia</string>
+    <string name="language_italian">Italia</string>
+    <string name="language_japanese">Jepang</string>
+    <string name="language_korean">Korea</string>
+    <string name="language_portuguese_brazil">Portugis (Brasil)</string>
+    <string name="language_russian">Rusia</string>
+    <string name="language_turkish">Turki</string>
+    <string name="language_chinese_simplified">Mandarin Sederhana</string>
+    <string name="language_vietnamese">Vietnam</string>
+    <string name="language_selected">Dipilih</string>
+    <string name="settings_group_personalize">Personalisasi</string>
+    <string name="settings_group_music">Musik</string>
+    <string name="settings_group_library_data">Pustaka &amp; data</string>
+    <string name="settings_group_system">Sistem</string>
+    <string name="settings_group_app">Aplikasi</string>
+</resources>
