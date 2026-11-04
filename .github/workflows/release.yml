@@ -259,7 +259,7 @@ jobs:
             }
 
             tr -d '\r' < badging.txt |
-              grep -Fqx "versionName='$expected_version'" || {
+              grep -Fq "versionName='$expected_version'" || {
               echo "::error::APK versionName does not match release tag $expected_version: $filename"
               exit 1
             }
