@@ -48,6 +48,6 @@ class KozuApplication :
     }
 
     private companion object {
-        const val DEFAULT_IMAGE_CACHE_MB = 256
+        const val DEFAULT_IMAGE_CACHE_MB = 128
     }
 }

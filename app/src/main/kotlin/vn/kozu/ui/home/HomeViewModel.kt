@@ -70,6 +70,7 @@ class HomeViewModel(
                 discover.mix
                     .distinctBy { it.id }
                     .shuffled(Random(daySeed))
+                    .take(settings.mixSize.count)
 
             val customName = settings.displayName.trim()
             val greetingName =

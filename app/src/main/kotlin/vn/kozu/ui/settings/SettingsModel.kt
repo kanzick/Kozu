@@ -390,6 +390,13 @@ enum class Setting(
         "Swipe sideways to skip or down to dismiss.",
         "gesture next previous",
     ),
+    PLAYER_LAYOUT(
+        SettingsPage.PLAYER_STYLE,
+        Icons.Rounded.ViewCarousel,
+        "Now Playing layout",
+        "Choose a Balanced, Editorial, Immersive or Compact player design.",
+        "now playing layout design editorial immersive compact balanced",
+    ),
     SEEK_STYLE(
         SettingsPage.PLAYER_STYLE,
         Icons.Rounded.GraphicEq,
@@ -672,6 +679,13 @@ enum class Setting(
         "Adjust audio frequencies and presets.",
         "bass treble preset eq",
     ),
+    EQUALIZER_PRESET(
+        SettingsPage.EQUALIZER,
+        Icons.Rounded.Equalizer,
+        "Preset",
+        "Pick a ready-made sound profile.",
+        "flat bass vocal treble custom eq",
+    ),
     BASS_BOOST(SettingsPage.EQUALIZER, Icons.Rounded.GraphicEq, "Bass boost", "Strengthen low frequencies.", "bass"),
     VIRTUALIZER(
         SettingsPage.EQUALIZER,
@@ -716,6 +730,13 @@ enum class Setting(
         "Download storage limit",
         "Set the offline storage limit.",
         "offline",
+    ),
+    SLIM_DOWNLOADS(
+        SettingsPage.STORAGE,
+        Icons.Rounded.CleaningServices,
+        "Slim down downloads",
+        "Remove hitsounds, images and storyboards from offline songs.",
+        "optimize shrink offline size space",
     ),
     FORGOTTEN_TRACKS(
         SettingsPage.STORAGE,

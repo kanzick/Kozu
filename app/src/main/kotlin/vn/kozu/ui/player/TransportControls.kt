@@ -53,6 +53,7 @@ fun TransportControls(
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
     val haptics = rememberKozuHaptics()
     val prefs = LocalAppSettings.current.appearance
@@ -76,6 +77,7 @@ fun TransportControls(
         animationSpec = KozuMotion.spatial(),
         label = "playRadius",
     )
+    val controlHeight = if (compact) 72.dp else 82.dp
     val sideShape: Shape =
         when (prefs.transportShape) {
             TransportShape.PILL -> RoundedCornerShape(44.dp)
@@ -87,7 +89,7 @@ fun TransportControls(
         modifier =
             modifier
                 .fillMaxWidth()
-                .height(88.dp),
+                .height(controlHeight),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -99,6 +101,7 @@ fun TransportControls(
             container = MaterialTheme.colorScheme.secondaryContainer,
             content = MaterialTheme.colorScheme.onSecondaryContainer,
             source = prevSource,
+            buttonHeight = controlHeight,
             onClick = {
                 haptics.tick()
                 onPrevious()
@@ -112,7 +115,8 @@ fun TransportControls(
             container = MaterialTheme.colorScheme.primary,
             content = MaterialTheme.colorScheme.onPrimary,
             source = playSource,
-            iconSize = 40.dp,
+            buttonHeight = controlHeight,
+            iconSize = if (compact) 34.dp else 38.dp,
             onClick = {
                 haptics.press()
                 onPlayPause()
@@ -126,6 +130,7 @@ fun TransportControls(
             container = MaterialTheme.colorScheme.secondaryContainer,
             content = MaterialTheme.colorScheme.onSecondaryContainer,
             source = nextSource,
+            buttonHeight = controlHeight,
             onClick = {
                 haptics.tick()
                 onNext()
@@ -143,6 +148,7 @@ private fun RowScope.TransportButton(
     container: Color,
     content: Color,
     source: MutableInteractionSource,
+    buttonHeight: androidx.compose.ui.unit.Dp,
     onClick: () -> Unit,
     iconSize: androidx.compose.ui.unit.Dp = 32.dp,
 ) {
@@ -150,7 +156,7 @@ private fun RowScope.TransportButton(
         modifier =
             Modifier
                 .weight(weight)
-                .height(88.dp)
+                .height(buttonHeight)
                 .clip(shape)
                 .background(container)
                 .clickable(interactionSource = source, indication = null, onClick = onClick),
@@ -174,6 +180,7 @@ fun PlayerToggleRow(
     onRepeat: () -> Unit,
     onFavorite: () -> Unit,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
     val haptics = rememberKozuHaptics()
     val prefs = LocalAppSettings.current.appearance
@@ -187,10 +194,10 @@ fun PlayerToggleRow(
         color = MaterialTheme.colorScheme.surfaceContainer,
     ) {
         Row(
-            modifier = Modifier.padding(6.dp),
+            modifier = Modifier.padding(if (compact) 4.dp else 6.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            ToggleSegment(KozuIcons.shuffle(iconStyle), "Shuffle", shuffle, segmentShape) {
+            ToggleSegment(KozuIcons.shuffle(iconStyle), "Shuffle", shuffle, segmentShape, if (compact) 48.dp else 56.dp) {
                 haptics.tick()
                 onShuffle()
             }
@@ -199,6 +206,7 @@ fun PlayerToggleRow(
                 shape = segmentShape,
                 description = "Repeat",
                 active = repeat != RepeatState.OFF,
+                height = if (compact) 48.dp else 56.dp,
                 onClick = {
                     haptics.tick()
                     onRepeat()
@@ -209,6 +217,7 @@ fun PlayerToggleRow(
                 shape = segmentShape,
                 description = "Like",
                 active = isFavorite,
+                height = if (compact) 48.dp else 56.dp,
                 onClick = {
                     if (isFavorite) haptics.tick() else haptics.confirm()
                     onFavorite()
@@ -224,13 +233,14 @@ private fun RowScope.ToggleSegment(
     description: String,
     active: Boolean,
     shape: Shape,
+    height: androidx.compose.ui.unit.Dp = 56.dp,
     onClick: () -> Unit,
 ) {
     Surface(
         modifier =
             Modifier
                 .weight(1f)
-                .height(56.dp)
+                .height(height)
                 .bounceClick(onClick = onClick),
         shape = shape,
         color = if (active) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,

@@ -93,6 +93,22 @@ enum class ArtworkShape(
     }
 }
 
+enum class PlayerLayoutStyle(
+    override val key: String,
+    override val label: String,
+    val description: String,
+) : KeyedOption {
+    BALANCED("balanced", "Balanced", "Large artwork with comfortable, balanced controls"),
+    EDITORIAL("editorial", "Editorial", "Centered typography and a magazine-like layout"),
+    IMMERSIVE("immersive", "Immersive", "Hero artwork with a floating track information panel"),
+    COMPACT("compact", "Compact", "Smaller artwork with more room for playback controls"),
+    ;
+
+    companion object {
+        fun fromKey(key: String?): PlayerLayoutStyle = entries.byKey(key, BALANCED)
+    }
+}
+
 enum class SeekBarStyle(
     override val key: String,
     override val label: String,
@@ -169,6 +185,7 @@ data class AppearancePrefs(
     val miniSpinArtwork: Boolean = true,
     val miniSwipeToSkip: Boolean = true,
     val seekStyle: SeekBarStyle = SeekBarStyle.WAVY,
+    val playerLayoutStyle: PlayerLayoutStyle = PlayerLayoutStyle.BALANCED,
     val playerArtShape: ArtworkShape = ArtworkShape.DEFAULT,
     val transportShape: TransportShape = TransportShape.PILL,
     val showToggleRow: Boolean = true,
@@ -193,6 +210,7 @@ data class AppearancePrefs(
             .put("miniSpinArtwork", miniSpinArtwork)
             .put("miniSwipeToSkip", miniSwipeToSkip)
             .put("seekStyle", seekStyle.key)
+            .put("playerLayoutStyle", playerLayoutStyle.key)
             .put("playerArtShape", playerArtShape.key)
             .put("transportShape", transportShape.key)
             .put("showToggleRow", showToggleRow)
@@ -234,6 +252,7 @@ data class AppearancePrefs(
                     miniSpinArtwork = o.optBoolean("miniSpinArtwork", d.miniSpinArtwork),
                     miniSwipeToSkip = o.optBoolean("miniSwipeToSkip", d.miniSwipeToSkip),
                     seekStyle = SeekBarStyle.fromKey(o.optString("seekStyle")),
+                    playerLayoutStyle = PlayerLayoutStyle.fromKey(o.optString("playerLayoutStyle")),
                     playerArtShape = ArtworkShape.fromKey(o.optString("playerArtShape")),
                     transportShape = TransportShape.fromKey(o.optString("transportShape")),
                     showToggleRow = o.optBoolean("showToggleRow", d.showToggleRow),

@@ -336,7 +336,7 @@ fun KozuSlider(
                     segment(vertical, length, 0f, lo, c0, c1, r, r, inactive)
                     segment(vertical, length, hi, length, c0, c1, r, r, inactive)
                     segment(vertical, length, lo, hi, c0, c1, r, r, active)
-                    drawTicks(vertical, length, cross, insetPx, usable, math.steps, lo, hi, 1.5.dp.toPx(), activeTick, inactiveTick, handleAlong, 0f)
+                    drawTicks(vertical, length, cross, insetPx, usable, math.steps, lo, hi, 1.5.dp.toPx(), activeTick, inactiveTick, handleAlong, 12.dp.toPx())
                     val thumbRadius = 10.dp.toPx()
                     drawCircle(active, thumbRadius, if (vertical) Offset(cross / 2f, length - handleAlong) else Offset(handleAlong, cross / 2f))
                 }
@@ -515,7 +515,10 @@ private fun DrawScope.segment(
     drawPath(Path().apply { addRoundRect(round) }, color)
 }
 
-/** Draws the step dots of a discrete slider, skipping the ones hidden behind the handle. */
+/**
+ * Draws the step dots of a discrete slider, skipping the ones hidden behind the handle.
+ * Only the steps *between* the two ends are drawn: 0% and 100% are the ends of the track and get no dot.
+ */
 private fun DrawScope.drawTicks(
     vertical: Boolean,
     length: Float,
@@ -532,7 +535,7 @@ private fun DrawScope.drawTicks(
     keepClear: Float,
 ) {
     if (steps <= 0 || steps > 40) return
-    for (i in 0..steps + 1) {
+    for (i in 1..steps) {
         val along = inset + usable * i / (steps + 1f)
         if (keepClear > 0f && kotlin.math.abs(along - handleAlong) < keepClear) continue
         val inActive = along >= activeStart - 0.5f && along <= activeEnd + 0.5f

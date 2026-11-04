@@ -91,7 +91,7 @@ private fun PillNavBar(
     // The radius is animated so dragging the slider (or tapping a value) morphs the bar instead of snapping.
     val radius by animateFloatAsState(
         targetValue = cornerRadius.coerceIn(0, 32).toFloat(),
-        animationSpec = spring(dampingRatio = 0.75f, stiffness = Spring.StiffnessMedium),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow),
         label = "navBarRadius",
     )
     val searchSize by animateDpAsState(

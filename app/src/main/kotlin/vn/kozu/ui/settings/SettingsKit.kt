@@ -253,9 +253,10 @@ class SettingsGroupScope {
         label: (T) -> String,
         description: String = setting.description,
         leading: (@Composable (T) -> Unit)? = null,
+        enabled: Boolean = true,
         onSelect: (T) -> Unit,
     ) = custom { shape ->
-        DropdownItem(setting, value, options, label, description, leading, shape, onSelect)
+        DropdownItem(setting, value, options, label, description, leading, shape, enabled, onSelect)
     }
 
     fun slider(
@@ -420,6 +421,8 @@ internal fun ItemText(
     description: String?,
     enabled: Boolean = true,
     modifier: Modifier = Modifier,
+    titleMaxLines: Int = Int.MAX_VALUE,
+    descriptionMaxLines: Int = Int.MAX_VALUE,
     extra: (@Composable () -> Unit)? = null,
 ) {
     val alpha = if (enabled) 1f else 0.5f
@@ -428,12 +431,16 @@ internal fun ItemText(
             text = title,
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
+            maxLines = titleMaxLines,
+            overflow = TextOverflow.Ellipsis,
         )
         if (!description.isNullOrBlank()) {
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha),
+                maxLines = descriptionMaxLines,
+                overflow = TextOverflow.Ellipsis,
             )
         }
         extra?.invoke()
@@ -495,12 +502,16 @@ private fun <T> DropdownItem(
     description: String,
     leading: (@Composable (T) -> Unit)?,
     shape: Shape,
+    enabled: Boolean,
     onSelect: (T) -> Unit,
 ) {
     var open by rememberSaveable { mutableStateOf(false) }
-    SettingCard(setting = setting, shape = shape, onClick = { open = true }) {
+    SettingCard(setting = setting, shape = shape, onClick = if (enabled) ({ open = true }) else null) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            modifier =
+                Modifier
+                    .graphicsLayer { alpha = if (enabled) 1f else 0.5f }
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.Top,
         ) {
             IconBadge(setting.icon)
@@ -546,6 +557,9 @@ fun ValueChip(
                 text = text,
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -654,12 +668,29 @@ private fun SliderItem(
     LaunchedEffect(value) { if (!interacting) draft = value }
     SettingCard(setting = setting, shape = shape, onClick = null) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 IconBadge(setting.icon, enabled)
                 Spacer(Modifier.width(14.dp))
-                ItemText(setting.title, description, enabled, Modifier.weight(1f))
+                // Reserve a stable text column: a changing value such as 9 dp -> 10 dp must
+                // never steal width from the description and make the whole card jump.
+                ItemText(
+                    title = setting.title,
+                    description = description,
+                    enabled = enabled,
+                    modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                    titleMaxLines = 1,
+                    descriptionMaxLines = 2,
+                )
                 Spacer(Modifier.width(12.dp))
-                ValueChip(valueLabel(draft))
+                Box(
+                    modifier = Modifier.width(92.dp),
+                    contentAlignment = Alignment.CenterEnd,
+                ) {
+                    ValueChip(valueLabel(draft))
+                }
             }
             KozuSlider(
                 value = draft,
@@ -674,7 +705,8 @@ private fun SliderItem(
                 valueRange = range,
                 steps = steps,
                 enabled = enabled,
-                bubbleLabel = valueLabel,
+                // The value chip above updates live while dragging. A second floating bubble
+                // only overlaps the description in this compact card layout.
                 contentDescription = setting.title,
                 modifier = Modifier.padding(top = 10.dp),
             )

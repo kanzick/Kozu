@@ -316,6 +316,7 @@ class BackupManager(
                     "virtualizer",
                     "loudness",
                     "top_size",
+                    "mix_size",
                     "proxy_port",
                     "download_limit_mb",
                 ).forEach { put(it, "i") }

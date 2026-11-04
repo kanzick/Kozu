@@ -256,13 +256,6 @@ fun SettingsScreen(
                     .fillMaxWidth()
                     .navigationBarsPadding()
                     .onSizeChanged { bottomContentHeightPx = it.height }
-                    .background(
-                        androidx.compose.ui.graphics.Brush.verticalGradient(
-                            0f to Color.Transparent,
-                            0.32f to MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
-                            1f to MaterialTheme.colorScheme.surface,
-                        )
-                    )
                     .zIndex(20f),
             ) {
                 bottomContent()

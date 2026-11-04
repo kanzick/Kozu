@@ -88,6 +88,9 @@ fun StoragePage(viewModel: SettingsViewModel, onBack: () -> Unit) {
             .sortedBy { it.second }
     }
     val forgottenBytes = forgotten.sumOf { it.first.sizeBytes }
+    val slimmableBytes by produceState(0L, downloads) {
+        value = withContext(Dispatchers.IO) { container.downloads.slimmableBytes() }
+    }
     val downloadBytes = downloads.sumOf { it.sizeBytes }
     val reclaimable = streamBytes + artworkBytes + forgottenBytes
 
@@ -172,6 +175,16 @@ fun StoragePage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                 { if (it == 0) "Unlimited" else sizeLabel(it) },
                 description = "When a new download would exceed the limit, the least recently played downloads are removed first."
             ) { value -> viewModel.save { setDownloadLimitMb(value) } }
+            action(
+                Setting.SLIM_DOWNLOADS,
+                "Slim down",
+                description = if (slimmableBytes > 0L) {
+                    "Remove hitsounds, images and storyboards from offline songs. Frees ${formatBytes(slimmableBytes)}; audio, cover and charts are kept."
+                } else {
+                    "Offline songs already contain only audio, cover and charts."
+                },
+                enabled = slimmableBytes > 0L
+            ) { scope.launch { container.downloads.slimDownloads() } }
             navigation(
                 Setting.FORGOTTEN_TRACKS,
                 value = if (forgotten.isEmpty()) "None" else "${forgotten.size} · ${formatBytes(forgottenBytes)}",

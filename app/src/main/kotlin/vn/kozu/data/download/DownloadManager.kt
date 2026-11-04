@@ -147,6 +147,56 @@ class DownloadManager(
         }
     }
 
+    /** True for the files an offline song needs: its audio, its cover picture and the charts. */
+    private fun isEssential(set: DownloadedSet, relative: String): Boolean {
+        val name = relative.replace('\\', '/').lowercase()
+        return name == set.audioFile.replace('\\', '/').lowercase() ||
+            name == set.backgroundFile.replace('\\', '/').lowercase() ||
+            name.endsWith(".osu")
+    }
+
+    private fun extraFiles(set: DownloadedSet): List<File> {
+        val root = store.folder(set.beatmap.id)
+        if (!root.isDirectory) return emptyList()
+        return root
+            .walkTopDown()
+            .filter { it.isFile && !isEssential(set, it.relativeTo(root).path) }
+            .toList()
+    }
+
+    /** Space that [slimDownloads] would give back. */
+    suspend fun slimmableBytes(): Long =
+        withContext(Dispatchers.IO) {
+            store.sets.first().sumOf { set -> extraFiles(set).sumOf { it.length() } }
+        }
+
+    /**
+     * Removes hitsounds, images, storyboards and everything else that an offline song does not need
+     * to play, keeping only audio, cover picture and charts. Returns the number of bytes freed.
+     */
+    suspend fun slimDownloads(): Long =
+        withContext(Dispatchers.IO) {
+            var freed = 0L
+            val sizes = HashMap<Long, Long>()
+            for (set in store.sets.first()) {
+                val extras = extraFiles(set)
+                if (extras.isEmpty()) continue
+                extras.forEach { file ->
+                    freed += file.length()
+                    file.delete()
+                }
+                val root = store.folder(set.beatmap.id)
+                root
+                    .walkBottomUp()
+                    .filter { it.isDirectory && it != root && it.list().isNullOrEmpty() }
+                    .toList()
+                    .forEach { it.delete() }
+                sizes[set.beatmap.id] = root.walkTopDown().filter { it.isFile }.sumOf { it.length() }
+            }
+            if (sizes.isNotEmpty()) store.updateSizes(sizes)
+            freed
+        }
+
     fun cancel(id: Long) {
         jobs.remove(id)?.cancel()
         clearStatus(id)
@@ -261,7 +311,7 @@ class DownloadManager(
             )
 
             clearStatus(id)
-            _events.tryEmit("Downloaded ${beatmap.title} from $usedSource")
+            _events.tryEmit("Downloaded ${beatmap.title}")
         } catch (e: CancellationException) {
             clearStatus(id)
             throw e

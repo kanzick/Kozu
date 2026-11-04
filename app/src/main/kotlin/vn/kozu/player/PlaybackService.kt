@@ -22,9 +22,13 @@ import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.FileDataSource
 import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.TransferListener
+import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.datasource.cache.CacheEvictor
+import androidx.media3.datasource.cache.CacheSpan
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
@@ -60,6 +64,7 @@ import java.util.concurrent.TimeUnit
 class PlaybackService : MediaSessionService() {
     private var session: MediaSession? = null
     private var mediaCache: SimpleCache? = null
+    private var mediaEvictor: DynamicLruEvictor? = null
     private var streamResolver: StreamResolver? = null
     private var player: ExoPlayer? = null
     private var equalizer: Equalizer? = null
@@ -164,15 +169,20 @@ class PlaybackService : MediaSessionService() {
         currentSettings = initialSettings
         hiFiAtBuild = initialSettings.hiFiMode
         val configuredCacheMb = initialSettings.streamCacheMb.coerceIn(MIN_CACHE_MB, MAX_CACHE_MB)
-        val cacheLimitBytes = configuredCacheMb.toLong() * BYTES_PER_MEGABYTE
+        // The stream cache setting is one budget shared with the full songs kept by StreamResolver,
+        // so this cache only gets its share of it.
+        val cacheLimitBytes = configuredCacheMb.toLong() * BYTES_PER_MEGABYTE * MEDIA_CACHE_SHARE_PERCENT / 100L
 
+        val evictor = DynamicLruEvictor(cacheLimitBytes)
+        mediaEvictor = evictor
         val cache =
             SimpleCache(
                 cacheDirectory,
-                LeastRecentlyUsedCacheEvictor(cacheLimitBytes),
+                evictor,
                 databaseProvider,
             )
         mediaCache = cache
+        liveCache = cache
 
         val playbackClient =
             container.httpClient
@@ -200,9 +210,18 @@ class PlaybackService : MediaSessionService() {
                 .setUpstreamDataSourceFactory(routedUpstream)
                 .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
 
+        // Songs that already sit in a local file (downloads, fully cached streams) are read directly;
+        // only network data goes through the cache. Otherwise every local song would be copied into
+        // the cache a second time.
+        val localFiles = FileDataSource.Factory()
+        val localAware =
+            DataSource.Factory {
+                LocalAwareDataSource(localFiles.createDataSource(), cachedDataSource.createDataSource())
+            }
+
         val resolving =
             ResolvingDataSource.Factory(
-                cachedDataSource,
+                localAware,
                 object : ResolvingDataSource.Resolver {
                     override fun resolveDataSpec(dataSpec: DataSpec): DataSpec {
                         if (dataSpec.uri.scheme != PlaybackController.SET_SCHEME) {
@@ -277,7 +296,10 @@ class PlaybackService : MediaSessionService() {
         scope.launch {
             container.settings.settings
                 .distinctUntilChanged()
-                .collect { settings -> applySettings(player, settings) }
+                .collect { settings ->
+                    applySettings(player, settings)
+                    updateCacheLimit(settings)
+                }
         }
 
         registerAudioDeviceCallback()
@@ -514,6 +536,24 @@ class PlaybackService : MediaSessionService() {
         }
     }
 
+    /** Applies a changed "Stream cache limit" right away instead of after the next restart. */
+    private fun updateCacheLimit(settings: AppSettings) {
+        val evictor = mediaEvictor ?: return
+        val cache = mediaCache ?: return
+        val limitMb = settings.streamCacheMb.coerceIn(MIN_CACHE_MB, MAX_CACHE_MB)
+        val newLimit = limitMb.toLong() * BYTES_PER_MEGABYTE * MEDIA_CACHE_SHARE_PERCENT / 100L
+        if (evictor.maxBytes == newLimit) return
+        evictor.maxBytes = newLimit
+        scope.launch(Dispatchers.IO) {
+            try {
+                synchronized(cache) { evictor.trim(cache) }
+                streamResolver?.trimTo(limitMb)
+            } catch (e: Exception) {
+                Log.w(TAG, "Could not apply the new cache limit", e)
+            }
+        }
+    }
+
     override fun onDestroy() {
         scope.cancel()
         tickerJob = null
@@ -537,8 +577,10 @@ class PlaybackService : MediaSessionService() {
         session = null
         player = null
 
+        liveCache = null
         mediaCache?.release()
         mediaCache = null
+        mediaEvictor = null
 
         streamResolver = null
 
@@ -582,6 +624,10 @@ class PlaybackService : MediaSessionService() {
         private const val MIN_CACHE_MB = 128
         private const val MAX_CACHE_MB = 2048
         private const val BYTES_PER_MEGABYTE = 1024L * 1024L
+        private const val MEDIA_CACHE_SHARE_PERCENT = 40L
+
+        @Volatile
+        private var liveCache: SimpleCache? = null
         private const val PRELOAD_DURATION_US = 10_000_000L
         private const val RAMP_TICK_MS = 40L
         private const val PLAYING_TICK_MS = 250L
@@ -597,6 +643,23 @@ class PlaybackService : MediaSessionService() {
                 .walkTopDown()
                 .filter { it.isFile }
                 .sumOf { it.length() }
+        }
+
+        /**
+         * Empties the playback cache. While the service runs it owns the cache folder, so entries are
+         * removed through the live cache; the folder cannot be deleted from outside at that point.
+         */
+        fun clearMediaCache(context: android.content.Context) {
+            val cache = liveCache
+            if (cache == null) {
+                clearMediaCacheIfUnlocked(context)
+                return
+            }
+            try {
+                for (key in HashSet(cache.keys)) cache.removeResource(key)
+            } catch (e: Exception) {
+                Log.w(TAG, "Could not clear the playback cache", e)
+            }
         }
 
         fun clearMediaCacheIfUnlocked(context: android.content.Context) {
@@ -657,5 +720,111 @@ private class KozuRoutingDataSource(
         val source = delegate
         delegate = null
         source?.close()
+    }
+}
+
+/** Reads local files directly and sends everything else through the caching data source. */
+@OptIn(UnstableApi::class)
+private class LocalAwareDataSource(
+    private val local: DataSource,
+    private val remote: DataSource,
+) : DataSource {
+    private val listeners = ArrayList<TransferListener>()
+    private var delegate: DataSource? = null
+
+    override fun addTransferListener(transferListener: TransferListener) {
+        listeners += transferListener
+        delegate?.addTransferListener(transferListener)
+    }
+
+    override fun open(dataSpec: DataSpec): Long {
+        val source = if (dataSpec.uri.scheme == "file") local else remote
+        listeners.forEach(source::addTransferListener)
+        delegate = source
+        return source.open(dataSpec)
+    }
+
+    override fun read(
+        buffer: ByteArray,
+        offset: Int,
+        length: Int,
+    ): Int = delegate?.read(buffer, offset, length) ?: C.RESULT_END_OF_INPUT
+
+    override fun getUri(): android.net.Uri? = delegate?.uri
+
+    override fun getResponseHeaders(): Map<String, List<String>> = delegate?.responseHeaders ?: emptyMap()
+
+    override fun close() {
+        val source = delegate
+        delegate = null
+        source?.close()
+    }
+}
+
+/**
+ * Least-recently-used cache eviction like Media3's own, but with a limit that can change while the
+ * cache is open, so the Stream cache limit setting takes effect immediately.
+ */
+@OptIn(UnstableApi::class)
+private class DynamicLruEvictor(
+    @Volatile var maxBytes: Long,
+) : CacheEvictor {
+    private val leastRecentlyUsed =
+        java.util.TreeSet<CacheSpan>(
+            Comparator { a, b ->
+                val difference = a.lastTouchTimestamp - b.lastTouchTimestamp
+                if (difference == 0L) a.compareTo(b) else if (difference < 0L) -1 else 1
+            },
+        )
+    private var currentSize = 0L
+
+    override fun requiresCacheSpanTouches(): Boolean = true
+
+    override fun onCacheInitialized() = Unit
+
+    override fun onStartFile(
+        cache: Cache,
+        key: String,
+        position: Long,
+        length: Long,
+    ) {
+        if (length != C.LENGTH_UNSET.toLong()) evict(cache, length)
+    }
+
+    override fun onSpanAdded(
+        cache: Cache,
+        span: CacheSpan,
+    ) {
+        leastRecentlyUsed.add(span)
+        currentSize += span.length
+        evict(cache, 0L)
+    }
+
+    override fun onSpanRemoved(
+        cache: Cache,
+        span: CacheSpan,
+    ) {
+        leastRecentlyUsed.remove(span)
+        currentSize -= span.length
+    }
+
+    override fun onSpanTouched(
+        cache: Cache,
+        oldSpan: CacheSpan,
+        newSpan: CacheSpan,
+    ) {
+        onSpanRemoved(cache, oldSpan)
+        onSpanAdded(cache, newSpan)
+    }
+
+    fun trim(cache: Cache) = evict(cache, 0L)
+
+    private fun evict(
+        cache: Cache,
+        requiredSpace: Long,
+    ) {
+        while (currentSize + requiredSpace > maxBytes && leastRecentlyUsed.isNotEmpty()) {
+            cache.removeSpan(leastRecentlyUsed.first())
+        }
     }
 }
