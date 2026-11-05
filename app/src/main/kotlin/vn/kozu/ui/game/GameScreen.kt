@@ -20,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,6 +52,9 @@ fun GameScreen(
 ) {
     var addMapsOpen by remember { mutableStateOf(false) }
     var gameplayActive by remember { mutableStateOf(false) }
+    val playerName by viewModel.playerName.collectAsState()
+    val osuUsername by viewModel.osuUsername.collectAsState()
+    val requestedMapId by viewModel.requestedMapId.collectAsState()
     val pullState = rememberPullToRefreshState()
     BackHandler(enabled = addMapsOpen && !gameplayActive) { addMapsOpen = false }
 
@@ -84,13 +88,22 @@ fun GameScreen(
                     viewModel = viewModel,
                     bottomPadding = if (gameplayActive) 0.dp else bottomPadding,
                     onBack = { addMapsOpen = false },
-                    onOpenSettings = onOpenSettings
+                    onOpenSettings = onOpenSettings,
+                    onPlayMap = { beatmapSetId ->
+                        viewModel.requestOpenMap(beatmapSetId)
+                        addMapsOpen = false
+                    },
                 )
             } else {
                 GameStageHost(
                     preview = viewModel.previewModule,
                     game = viewModel.gameModule,
                     isActive = isSelected,
+                    playerName = playerName,
+                    osuUsername = osuUsername,
+                    loadRankedAt = viewModel::rankedAt,
+                    requestedMapId = requestedMapId,
+                    onMapOpenHandled = viewModel::consumeOpenMapRequest,
                     onAddMaps = { addMapsOpen = true },
                     onGameplayChanged = {
                         gameplayActive = it

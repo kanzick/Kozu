@@ -47,7 +47,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
@@ -430,13 +429,7 @@ private fun KozuShell(
                     modifier =
                         Modifier
                             .align(Alignment.BottomCenter)
-                            .background(
-                                Brush.verticalGradient(
-                                    0f to Color.Transparent,
-                                    0.3f to MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-                                    0.5f to MaterialTheme.colorScheme.surface,
-                                ),
-                            ).onSizeChanged { chromeHeightPx = it.height },
+                            .onSizeChanged { chromeHeightPx = it.height },
                 ) {
                     AnimatedVisibility(
                         visible = state.current != null,

@@ -79,6 +79,41 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
         }
     }
 
+    fun collectionNames(): List<String> =
+        db.rawQuery("SELECT name FROM kozu_collection ORDER BY name COLLATE NOCASE", null).use { cursor ->
+            buildList {
+                while (cursor.moveToNext()) add(cursor.getString(0))
+            }
+        }
+
+    fun setSongCollections(songId: Long, names: List<String>) {
+        db.transaction {
+            val normalized = names.map { it.trim().take(MAX_COLLECTION_NAME) }.filter { it.isNotEmpty() }.distinct()
+            db.delete("kozu_song_collection", "song_id = ?", arrayOf(songId.toString()))
+            normalized.forEach { name ->
+                db.insertWithOnConflict(
+                    "kozu_collection",
+                    null,
+                    ContentValues().apply { put("name", name) },
+                    SQLiteDatabase.CONFLICT_IGNORE,
+                )
+                val collectionId = db.rawQuery(
+                    "SELECT id FROM kozu_collection WHERE name = ? COLLATE NOCASE",
+                    arrayOf(name),
+                ).use { cursor -> if (cursor.moveToFirst()) cursor.getLong(0) else null } ?: return@forEach
+                db.insertWithOnConflict(
+                    "kozu_song_collection",
+                    null,
+                    ContentValues().apply {
+                        put("song_id", songId)
+                        put("collection_id", collectionId)
+                    },
+                    SQLiteDatabase.CONFLICT_IGNORE,
+                )
+            }
+        }
+    }
+
     fun removeNonManiaDifficulties() {
         db.transaction {
             db.delete("kozu_difficulty", "mode != ?", arrayOf("3"))
@@ -94,8 +129,14 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
 
     fun loadAll(songsDir: File): List<SongEntry> {
         val byId = LinkedHashMap<Long, MutableList<DifficultyRecord>>()
-        db.rawQuery("SELECT song_id FROM kozu_song ORDER BY song_id", null).use { c ->
-            while (c.moveToNext()) byId[c.getLong(0)] = ArrayList()
+        val importedAt = HashMap<Long, Long>()
+        val collections = HashMap<Long, MutableList<String>>()
+        db.rawQuery("SELECT song_id, imported_at FROM kozu_song ORDER BY song_id", null).use { c ->
+            while (c.moveToNext()) {
+                val id = c.getLong(0)
+                byId[id] = ArrayList()
+                importedAt[id] = c.getLong(1)
+            }
         }
         db.rawQuery(
             "SELECT * FROM kozu_difficulty ORDER BY song_id, overall_difficulty, circle_size, id", null
@@ -105,7 +146,16 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
                 byId.getOrPut(rec.songId) { ArrayList() }.add(rec)
             }
         }
-        return byId.map { (id, diffs) -> SongEntry(id, File(songsDir, id.toString()), diffs) }
+        db.rawQuery(
+            """SELECT sc.song_id, c.name FROM kozu_song_collection sc
+               JOIN kozu_collection c ON c.id = sc.collection_id ORDER BY c.name COLLATE NOCASE""",
+            null,
+        ).use { c ->
+            while (c.moveToNext()) collections.getOrPut(c.getLong(0)) { ArrayList() }.add(c.getString(1))
+        }
+        return byId.map { (id, diffs) ->
+            SongEntry(id, File(songsDir, id.toString()), diffs, importedAt[id] ?: 0L, collections[id].orEmpty())
+        }
     }
 
     fun loadSong(songId: Long, songsDir: File): SongEntry? {
@@ -119,7 +169,19 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
             while (cursor.moveToNext()) difficulties += cursor.toRecord()
         }
         return difficulties.takeIf { it.isNotEmpty() }
-            ?.let { SongEntry(songId, File(songsDir, songId.toString()), it) }
+            ?.let {
+                val imported = db.rawQuery(
+                    "SELECT imported_at FROM kozu_song WHERE song_id = ?",
+                    arrayOf(songId.toString()),
+                ).use { cursor -> if (cursor.moveToFirst()) cursor.getLong(0) else 0L }
+                val names = db.rawQuery(
+                    """SELECT c.name FROM kozu_song_collection sc
+                       JOIN kozu_collection c ON c.id = sc.collection_id
+                       WHERE sc.song_id = ? ORDER BY c.name COLLATE NOCASE""",
+                    arrayOf(songId.toString()),
+                ).use { cursor -> buildList { while (cursor.moveToNext()) add(cursor.getString(0)) } }
+                SongEntry(songId, File(songsDir, songId.toString()), it, imported, names)
+            }
     }
 
     override fun close() = db.close()
@@ -174,7 +236,8 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
     }
 
     companion object {
-        private const val SCHEMA_VERSION = 2
+        private const val SCHEMA_VERSION = 3
+        private const val MAX_COLLECTION_NAME = 40
 
         fun open(file: File): KozuDatabase {
             val db = SQLiteDatabase.openOrCreateDatabase(file, null)
@@ -190,6 +253,8 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
                                 "ALTER TABLE kozu_difficulty ADD COLUMN star_rating REAL NOT NULL DEFAULT 0"
                             )
                         }
+                        db.execSQL(CREATE_COLLECTION)
+                        db.execSQL(CREATE_SONG_COLLECTION)
                         db.version = SCHEMA_VERSION
                     }
                 }
@@ -256,6 +321,19 @@ class KozuDatabase private constructor(private val db: SQLiteDatabase) : Closeab
                 background_path       TEXT,
                 background_exists     INTEGER NOT NULL,
                 UNIQUE (song_id, osu_file)
+            )"""
+
+        private const val CREATE_COLLECTION = """
+            CREATE TABLE IF NOT EXISTS kozu_collection (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL COLLATE NOCASE UNIQUE
+            )"""
+
+        private const val CREATE_SONG_COLLECTION = """
+            CREATE TABLE IF NOT EXISTS kozu_song_collection (
+                song_id INTEGER NOT NULL REFERENCES kozu_song(song_id) ON DELETE CASCADE,
+                collection_id INTEGER NOT NULL REFERENCES kozu_collection(id) ON DELETE CASCADE,
+                PRIMARY KEY (song_id, collection_id)
             )"""
     }
 }

@@ -76,6 +76,11 @@ class GameStageModule private constructor(
             scoreDb().bestScores(song.songId, settings.playerName).associateBy { it.difficulty }
         }
 
+    suspend fun latestPlayedAt(song: SongEntry): Map<String, Long> =
+        withContext(Dispatchers.IO) {
+            scoreDb().latestPlayedAt(song.songId, settings.playerName)
+        }
+
     /** Leaderboard for this song and difficulty. */
     suspend fun leaderboard(song: SongEntry, difficulty: DifficultyRecord, limit: Int = 50): List<ScoreRecord> =
         withContext(Dispatchers.IO) { scoreDb().topScores(song.songId, difficulty.version, limit) }
@@ -97,7 +102,9 @@ class GameStageModule private constructor(
                     maxCombo = result.maxCombo,
                 )
             )
-            SubmitOutcome(recorded && (previous == null || result.score > previous.score), previous, recorded)
+            val isNewBest = previous == null || result.score > previous.score ||
+                (result.score == previous.score && result.accuracyPercent > previous.accuracy)
+            SubmitOutcome(isNewBest, previous, recorded)
         }
 
     companion object {

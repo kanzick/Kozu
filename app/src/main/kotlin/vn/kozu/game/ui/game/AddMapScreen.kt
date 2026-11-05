@@ -17,14 +17,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.FilterChip
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -61,6 +64,16 @@ import vn.kozu.ui.components.SectionHeader
 import vn.kozu.ui.components.SettingsAction
 import java.util.Locale
 
+private enum class MapStatusFilter(val label: String, val apiValue: String?) {
+    ANY("Any", "any"),
+    RECENT("Recent", null),
+    RANKED("Ranked", "ranked"),
+    QUALIFIED("Qualified", "qualified"),
+    LOVED("Loved", "loved"),
+    PENDING("Pending", "pending"),
+    GRAVEYARD("Graveyard", "graveyard"),
+}
+
 private data class MapPagingSnapshot(
     val lastVisibleIndex: Int,
     val resultCount: Int,
@@ -75,6 +88,7 @@ fun AddMapScreen(
     bottomPadding: Dp,
     onBack: () -> Unit,
     onOpenSettings: () -> Unit,
+    onPlayMap: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
@@ -82,6 +96,8 @@ fun AddMapScreen(
     val localMapIds by viewModel.localMapIds.collectAsStateWithLifecycle()
     val localSongs by viewModel.previewModule.catalog.entries.collectAsStateWithLifecycle()
     var query by remember { mutableStateOf("") }
+    var statusFilter by remember { mutableStateOf(MapStatusFilter.RECENT) }
+    var explicit by remember { mutableStateOf(false) }
     var maps by remember { mutableStateOf(emptyList<Beatmap>()) }
     var nextPage by remember { mutableIntStateOf(1) }
     var hasMore by remember { mutableStateOf(false) }
@@ -90,6 +106,7 @@ fun AddMapScreen(
     var error by remember { mutableStateOf<String?>(null) }
     var moduleError by remember { mutableStateOf<String?>(null) }
     var expandedMapId by remember { mutableStateOf<Long?>(null) }
+    var openingMapInLibrary by remember { mutableStateOf(false) }
     var difficulties by remember { mutableStateOf<List<BeatmapDifficulty>?>(null) }
     var fetchedDifficulties by remember { mutableStateOf<Map<Long, List<BeatmapDifficulty>>>(emptyMap()) }
     var difficultiesLoading by remember { mutableStateOf(false) }
@@ -97,7 +114,9 @@ fun AddMapScreen(
     val previewError by viewModel.previewError.collectAsStateWithLifecycle()
 
     DisposableEffect(viewModel) {
-        onDispose { viewModel.stopSearchPreview() }
+        onDispose {
+            if (!openingMapInLibrary) viewModel.stopSearchPreview()
+        }
     }
 
     LaunchedEffect(expandedMapId) {
@@ -128,7 +147,7 @@ fun AddMapScreen(
         }
     }
 
-    LaunchedEffect(query) {
+    LaunchedEffect(query, statusFilter, explicit) {
         expandedMapId = null
         viewModel.stopSearchPreview()
         delay(350)
@@ -141,7 +160,7 @@ fun AddMapScreen(
         fetchedDifficulties = emptyMap()
         fetchedDifficulties = emptyMap()
         try {
-            val result = viewModel.searchMania(query, 0)
+            val result = viewModel.searchMania(query, 0, statusFilter.apiValue, explicit)
             maps = result.items
             hasMore = result.nextCursor != null
             nextPage = 1
@@ -155,7 +174,7 @@ fun AddMapScreen(
         }
     }
 
-    LaunchedEffect(listState, query) {
+    LaunchedEffect(listState, query, statusFilter, explicit) {
         snapshotFlow {
             MapPagingSnapshot(
                 lastVisibleIndex = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1,
@@ -174,7 +193,7 @@ fun AddMapScreen(
                 ) {
                     loadingMore = true
                     try {
-                        val result = viewModel.searchMania(query, nextPage)
+                        val result = viewModel.searchMania(query, nextPage, statusFilter.apiValue, explicit)
                         val existing = maps.mapTo(HashSet()) { it.id }
                         maps = maps + result.items.filter { existing.add(it.id) }
                         hasMore = result.nextCursor != null
@@ -223,11 +242,29 @@ fun AddMapScreen(
             placeholder = { Text("Search songs, artists, or mappers") }
         )
         Text(
-            "Downloaded .osz archives are saved in addmap/downloads.",
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
-            style = MaterialTheme.typography.bodySmall,
+            "Categories",
+            modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 8.dp),
+            style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            MapStatusFilter.entries.forEach { option ->
+                FilterChip(
+                    selected = statusFilter == option,
+                    onClick = { statusFilter = option },
+                    label = { Text(option.label) }
+                )
+            }
+            FilterChip(
+                selected = explicit,
+                onClick = { explicit = !explicit },
+                label = { Text("Explicit content") }
+            )
+        }
+        Spacer(Modifier.height(4.dp))
 
         LazyColumn(
             state = listState,
@@ -299,7 +336,11 @@ fun AddMapScreen(
                                 viewModel.playSearchPreview(beatmap.id)
                             }
                         },
-                        onDownload = { viewModel.download(beatmap) }
+                        onDownload = { viewModel.download(beatmap) },
+                        onPlay = {
+                            openingMapInLibrary = true
+                            onPlayMap(beatmap.id)
+                        }
                     )
                 }
                 if (loadingMore) {
@@ -333,7 +374,8 @@ private fun AddMapCard(
     difficultiesError: String?,
     previewError: String?,
     onClick: () -> Unit,
-    onDownload: () -> Unit
+    onDownload: () -> Unit,
+    onPlay: () -> Unit,
 ) {
     Surface(
         modifier = Modifier
@@ -419,13 +461,13 @@ private fun AddMapCard(
                 }
                 Spacer(Modifier.width(8.dp))
                 when {
-                    isAdded -> Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer) {
-                        Text(
-                            "Added",
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
+                    isAdded -> Button(
+                        onClick = onPlay,
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                    ) {
+                        Icon(Icons.Rounded.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Play")
                     }
                     download != null && download.error == null -> CircularProgressIndicator(
                         modifier = Modifier.size(22.dp),
