@@ -51,6 +51,7 @@ import vn.kozu.domain.model.StartTab
 import vn.kozu.domain.model.StatusFilter
 import vn.kozu.domain.model.StreamMode
 import vn.kozu.domain.model.ThemeMode
+import vn.kozu.domain.model.ThemePreset
 import vn.kozu.domain.model.TopSize
 import vn.kozu.util.AppIcon
 import java.text.DateFormat
@@ -68,6 +69,7 @@ fun AppearancePage(
     val context = LocalContext.current
     var appIcon by remember { mutableStateOf(AppIcon.current(context)) }
     val floating = settings.navigationStyle == NavigationStyle.FLOATING
+    var showPresets by remember { mutableStateOf(false) }
 
     SettingsScaffold(title = "Appearance", onBack = onBack) {
         SettingsSection("Global theme") {
@@ -160,6 +162,12 @@ fun AppearancePage(
             )
         }
         SettingsSection("Colors") {
+            navigation(
+                Setting.THEME_PRESET,
+                value = settings.themePreset.label,
+                description = settings.themePreset.description,
+                onClick = { showPresets = true },
+            )
             dropdown(
                 Setting.ACCENT_COLOR,
                 settings.accent,
@@ -168,8 +176,13 @@ fun AppearancePage(
                 leading = { accent ->
                     Surface(Modifier.size(22.dp), shape = CircleShape, color = accent.color) {}
                 },
-                onSelect = viewModel::setAccent,
-            )
+                description = "Choosing an accent switches to the Custom accent preset.",
+            ) { accent ->
+                viewModel.save {
+                    setAccent(accent)
+                    setThemePreset(ThemePreset.CUSTOM)
+                }
+            }
             switch(Setting.ARTWORK_COLORS, settings.artworkColors, onChange = viewModel::setArtworkColors)
             dropdown(
                 Setting.PALETTE_STYLE,
@@ -230,6 +243,17 @@ fun AppearancePage(
                 { it.label },
             ) { density -> viewModel.save { setLibraryDensity(density) } }
         }
+    }
+
+    if (showPresets) {
+        ThemePresetSheet(
+            selected = settings.themePreset,
+            accent = settings.accent,
+            artworkColors = settings.artworkColors,
+            onSelect = { preset -> viewModel.save { setThemePreset(preset) } },
+            onArtworkColors = viewModel::setArtworkColors,
+            onDismiss = { showPresets = false },
+        )
     }
 }
 

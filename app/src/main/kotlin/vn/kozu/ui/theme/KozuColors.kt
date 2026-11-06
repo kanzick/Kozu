@@ -13,7 +13,10 @@ fun kozuColorScheme(
     seed: Color,
     dark: Boolean,
     amoled: Boolean = false,
-    style: PaletteStyle = PaletteStyle.TONAL_SPOT
+    style: PaletteStyle = PaletteStyle.TONAL_SPOT,
+    /** Optional hand-picked secondary/tertiary colours (used by the theme presets). */
+    secondarySeed: Color? = null,
+    tertiarySeed: Color? = null,
 ): ColorScheme {
     val lch = Oklch.fromColor(seed)
     val isGray = lch.c < 0.035 || style == PaletteStyle.MONOCHROME
@@ -56,8 +59,20 @@ fun kozuColorScheme(
         else -> 0.012
     }
     val primary = TonalPalette(hue, primaryChroma)
-    val secondary = TonalPalette(secondaryHue, if (isGray) 0.0 else primaryChroma * secondaryFactor)
-    val tertiary = TonalPalette(tertiaryHue, if (isGray) 0.0 else primaryChroma * tertiaryFactor)
+    val secondaryLch = secondarySeed?.let { Oklch.fromColor(it) }
+    val tertiaryLch = tertiarySeed?.let { Oklch.fromColor(it) }
+    val secondary =
+        when {
+            isGray -> TonalPalette(secondaryHue, 0.0)
+            secondaryLch != null -> TonalPalette(secondaryLch.h, secondaryLch.c.coerceIn(0.05, 0.16))
+            else -> TonalPalette(secondaryHue, primaryChroma * secondaryFactor)
+        }
+    val tertiary =
+        when {
+            isGray -> TonalPalette(tertiaryHue, 0.0)
+            tertiaryLch != null -> TonalPalette(tertiaryLch.h, tertiaryLch.c.coerceIn(0.06, 0.18))
+            else -> TonalPalette(tertiaryHue, primaryChroma * tertiaryFactor)
+        }
     val neutral = TonalPalette(hue, neutralChroma)
     val neutralVariant = TonalPalette(hue, neutralChroma * 1.8)
     val error = TonalPalette(29.0, 0.2)

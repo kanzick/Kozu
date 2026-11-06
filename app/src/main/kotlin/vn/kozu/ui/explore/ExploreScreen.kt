@@ -194,7 +194,6 @@ fun ExploreScreen(
                         Spacer(Modifier.height(32.dp))
                         SectionHeader(
                             title = "All beatmaps",
-                            subtitle = "Browse Ranked + Loved maps across all game modes",
                             onAction = onOpenAllBeatmaps,
                         )
                         Spacer(Modifier.height(14.dp))

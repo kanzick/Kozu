@@ -217,6 +217,12 @@ fun MiniPlayer(
     // the mini player stutter during fast swipes (including the Settings preview instance).
     var offsetX by remember { mutableFloatStateOf(0f) }
     var offsetY by remember { mutableFloatStateOf(0f) }
+    // The callbacks are bound references (`playback::clearQueue`), i.e. a new instance on every
+    // parent recomposition. Keying pointerInput on them restarted the gesture mid-drag (most
+    // visible on Settings, which recomposes constantly) and the swipe-down dismiss never fired.
+    val currentOnDismiss by rememberUpdatedState(onDismiss)
+    val currentOnNext by rememberUpdatedState(onNext)
+    val currentOnPrevious by rememberUpdatedState(onPrevious)
     var gestureAnimation by remember { mutableStateOf<Job?>(null) }
     val latestGestureAnimation = rememberUpdatedState(gestureAnimation)
     LaunchedEffect(beatmap.id) {
@@ -251,7 +257,7 @@ fun MiniPlayer(
                     translationX = offsetX
                     translationY = offsetY
                     alpha = 1f - (abs(offsetX) / size.width.coerceAtLeast(1f)).coerceIn(0f, 0.42f)
-                }.pointerInput(prefs.miniSwipeToSkip, onDismiss, onNext, onPrevious) {
+                }.pointerInput(prefs.miniSwipeToSkip) {
                     var axis = 0
                     var dx = 0f
                     var dy = 0f
@@ -293,20 +299,20 @@ fun MiniPlayer(
                                     axis == 1 && dx > skipThreshold -> {
                                         haptics.tick()
                                         animate(initialValue = offsetX, targetValue = width * 0.42f, animationSpec = tween(120)) { value, _ -> offsetX = value }
-                                        onPrevious()
+                                        currentOnPrevious()
                                         offsetX = -width * 0.36f
                                         animate(initialValue = offsetX, targetValue = 0f, animationSpec = settle) { value, _ -> offsetX = value }
                                     }
                                     axis == 1 && dx < -skipThreshold -> {
                                         haptics.tick()
                                         animate(initialValue = offsetX, targetValue = -width * 0.42f, animationSpec = tween(120)) { value, _ -> offsetX = value }
-                                        onNext()
+                                        currentOnNext()
                                         offsetX = width * 0.36f
                                         animate(initialValue = offsetX, targetValue = 0f, animationSpec = settle) { value, _ -> offsetX = value }
                                     }
                                     axis == 2 && dy > dismissThreshold -> {
                                         animate(initialValue = offsetY, targetValue = height, animationSpec = tween(190)) { value, _ -> offsetY = value }
-                                        onDismiss()
+                                        currentOnDismiss()
                                     }
                                     else -> {
                                         launch { animate(initialValue = offsetX, targetValue = 0f, animationSpec = settle) { value, _ -> offsetX = value } }

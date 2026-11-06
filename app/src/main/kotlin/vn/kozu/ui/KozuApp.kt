@@ -21,9 +21,13 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -49,6 +53,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -71,6 +76,7 @@ import vn.kozu.domain.model.AppSettings
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.Playlist
 import vn.kozu.domain.model.StartTab
+import vn.kozu.domain.model.ThemePreset
 import vn.kozu.domain.model.ThemeMode
 import vn.kozu.ui.components.BeatmapInfoSheet
 import vn.kozu.ui.components.DownloadInfo
@@ -81,6 +87,7 @@ import vn.kozu.ui.components.LocalFavoriteIds
 import vn.kozu.ui.components.LocalIsSupporter
 import vn.kozu.ui.components.LocalMetered
 import vn.kozu.ui.components.LocalNowPlaying
+import vn.kozu.ui.components.LocalOverlayBottomInset
 import vn.kozu.ui.components.LocalPerformanceMode
 import vn.kozu.ui.components.LocalTrackActions
 import vn.kozu.ui.components.NowPlayingInfo
@@ -96,6 +103,10 @@ import vn.kozu.ui.home.HomeScreen
 import vn.kozu.ui.library.LibraryScreen
 import vn.kozu.ui.navigation.FloatingNavBar
 import vn.kozu.ui.navigation.KozuTab
+import vn.kozu.ui.onboarding.LocalReplayOnboarding
+import vn.kozu.ui.onboarding.OnboardingScreen
+import vn.kozu.ui.person.PersonKind
+import vn.kozu.ui.person.PersonScreen
 import vn.kozu.ui.player.MiniPlayer
 import vn.kozu.ui.player.PlayerScreen
 import vn.kozu.ui.search.SearchScreen
@@ -117,6 +128,7 @@ fun KozuApp() {
             AppSettings(
                 themeMode = cachedTheme,
                 accent = cachedAccent,
+                themePreset = container.settings.cachedThemePreset,
                 amoled = cachedAmoled,
                 startTab = container.settings.cachedStartTab,
                 appFont = container.settings.cachedAppFont,
@@ -142,7 +154,12 @@ fun KozuApp() {
         artworkSeed = if (settings.artworkColors) ArtworkPalette.seedColor(currentArt) else null
     }
 
-    val seed = if (state.current != null) artworkSeed ?: settings.accent.color else settings.accent.color
+    // Artwork colours (when enabled and something is playing) win; otherwise the chosen preset.
+    val artwork = if (state.current != null) artworkSeed else null
+    val preset = settings.themePreset
+    val seed = artwork ?: if (preset == ThemePreset.CUSTOM) settings.accent.color else preset.seed
+    val paletteStyle = if (artwork != null || preset == ThemePreset.CUSTOM) settings.paletteStyle else preset.style
+    val fixedPreset = artwork == null && preset != ThemePreset.CUSTOM
 
     KozuTheme(
         seed = seed,
@@ -151,7 +168,10 @@ fun KozuApp() {
         appStyle = settings.appStyle,
         appFont = settings.appFont,
         appearance = settings.appearance,
-        paletteStyle = settings.paletteStyle,
+        paletteStyle = paletteStyle,
+        secondarySeed = if (fixedPreset) preset.secondary else null,
+        tertiarySeed = if (fixedPreset) preset.tertiary else null,
+        useSystemDynamic = artwork == null && preset == ThemePreset.DYNAMIC,
     ) {
         val view = LocalView.current
         LaunchedEffect(settings.highRefreshRate) {
@@ -203,7 +223,20 @@ private fun KozuShell(
     var playerOpen by rememberSaveable { mutableStateOf(false) }
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
     var settingsInitialPage by rememberSaveable { mutableStateOf(vn.kozu.ui.settings.SettingsPage.ROOT) }
-    var artistSearchRequest by rememberSaveable { mutableStateOf<String?>(null) }
+    var statsOpen by rememberSaveable { mutableStateOf(false) }
+    var personName by rememberSaveable { mutableStateOf<String?>(null) }
+    var personKindKey by rememberSaveable { mutableStateOf(PersonKind.ARTIST.name) }
+    var lastPersonName by remember { mutableStateOf("") }
+    var lastPersonKind by remember { mutableStateOf(PersonKind.ARTIST) }
+    LaunchedEffect(personName) {
+        personName?.let {
+            lastPersonName = it
+            lastPersonKind = PersonKind.valueOf(personKindKey)
+        }
+    }
+    val showOnboardingFirst =
+        remember { !container.settings.onboardingCompleted && isFreshInstall(context) }
+    var onboardingOpen by rememberSaveable { mutableStateOf(showOnboardingFirst) }
     var allBeatmapsOpen by rememberSaveable { mutableStateOf(false) }
     var gamePlayActive by remember { mutableStateOf(false) }
     var menuTarget by remember { mutableStateOf<Beatmap?>(null) }
@@ -214,6 +247,10 @@ private fun KozuShell(
     val density = LocalDensity.current
     var chromeHeightPx by remember { mutableIntStateOf(0) }
     val bottomPadding = with(density) { chromeHeightPx.toDp() } + 16.dp
+    // Height of the floating mini player while it is drawn over an overlay screen.
+    var overlayMiniPx by remember { mutableIntStateOf(0) }
+    val overlayScreenOpen = settingsOpen || allBeatmapsOpen || statsOpen
+    val overlayMiniInset = if (state.current != null) with(density) { overlayMiniPx.toDp() } else 0.dp
 
     val homeList = rememberLazyListState()
     val exploreList = rememberLazyListState()
@@ -364,10 +401,7 @@ private fun KozuShell(
                             onOpenSettings = { settingsOpen = true },
                             onOpenExplore = { tab = KozuTab.EXPLORE },
                             onOpenLibrary = { tab = KozuTab.LIBRARY },
-                            onOpenStats = {
-                                settingsInitialPage = vn.kozu.ui.settings.SettingsPage.STATS
-                                settingsOpen = true
-                            },
+                            onOpenStats = { statsOpen = true },
                             onRefresh = ::refreshApp,
                             isAppRefreshing = isAppRefreshing,
                         )
@@ -402,8 +436,6 @@ private fun KozuShell(
                             onOpenSettings = { settingsOpen = true },
                             onRefresh = ::refreshApp,
                             isAppRefreshing = isAppRefreshing,
-                            initialQuery = artistSearchRequest,
-                            onInitialQueryConsumed = { artistSearchRequest = null },
                         )
                     }
 
@@ -474,22 +506,87 @@ private fun KozuShell(
                 }
             }
 
-            if (tab == KozuTab.SEARCH && !settingsOpen && !allBeatmapsOpen && !playerOpen) {
+            if (tab == KozuTab.SEARCH && !settingsOpen && !allBeatmapsOpen && !statsOpen && !playerOpen) {
                 BackHandler { tab = lastMainTab }
             }
 
-            AnimatedVisibility(
-                visible = settingsOpen,
-                enter = slideInHorizontally(tween(220, easing = FastOutSlowInEasing)) { it / 6 } + fadeIn(tween(180)),
-                exit = slideOutHorizontally(tween(180, easing = FastOutSlowInEasing)) { it / 6 } + fadeOut(tween(150)),
+
+            CompositionLocalProvider(
+                LocalOverlayBottomInset provides overlayMiniInset,
+                LocalReplayOnboarding provides {
+                    settingsOpen = false
+                    onboardingOpen = true
+                },
             ) {
-                SettingsScreen(
-                    initialPage = settingsInitialPage,
-                    onBack = {
-                        settingsOpen = false
-                        settingsInitialPage = vn.kozu.ui.settings.SettingsPage.ROOT
-                    },
-                    bottomContent = {
+                AnimatedVisibility(
+                    visible = settingsOpen,
+                    enter = slideInHorizontally(tween(220, easing = FastOutSlowInEasing)) { it / 6 } + fadeIn(tween(180)),
+                    exit = slideOutHorizontally(tween(180, easing = FastOutSlowInEasing)) { it / 6 } + fadeOut(tween(150)),
+                ) {
+                    SettingsScreen(
+                        initialPage = settingsInitialPage,
+                        onBack = {
+                            settingsOpen = false
+                            settingsInitialPage = vn.kozu.ui.settings.SettingsPage.ROOT
+                        },
+                    )
+                }
+
+                AnimatedVisibility(
+                    visible = allBeatmapsOpen,
+                    enter = slideInHorizontally(KozuMotion.spatial()) { it } + fadeIn(),
+                    exit = slideOutHorizontally(tween(240)) { it } + fadeOut(),
+                ) {
+                    AllBeatmapsScreen(
+                        onBack = { allBeatmapsOpen = false },
+                        onRetry = ::refreshApp,
+                        isAppRefreshing = isAppRefreshing,
+                    )
+                }
+
+                // Listening stats open as a page of their own, so Back returns to Home.
+                AnimatedVisibility(
+                    visible = statsOpen,
+                    enter = slideInHorizontally(KozuMotion.spatial()) { it } + fadeIn(),
+                    exit = slideOutHorizontally(tween(240)) { it } + fadeOut(),
+                ) {
+                    val settingsViewModel: vn.kozu.ui.settings.SettingsViewModel =
+                        androidx.lifecycle.viewmodel.compose.viewModel(factory = vn.kozu.ui.settings.SettingsViewModel.Factory)
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.surface)
+                            .pointerInput(Unit) { detectTapGestures { } },
+                    ) {
+                        vn.kozu.ui.settings.StatsPage(settingsViewModel) { statsOpen = false }
+                    }
+                }
+            }
+            if (allBeatmapsOpen && !settingsOpen && !statsOpen) BackHandler { allBeatmapsOpen = false }
+            if (statsOpen && !settingsOpen) BackHandler { statsOpen = false }
+
+            // One mini player for every overlay screen. Same composable and same state as the
+            // one above the navigation bar, so swiping either away closes both.
+            AnimatedVisibility(
+                visible = overlayScreenOpen && state.current != null,
+                modifier = Modifier.align(Alignment.BottomCenter),
+                enter = fadeIn(tween(160)) + slideInVertically(KozuMotion.spatial()) { it / 2 },
+                exit = fadeOut(tween(120)) + slideOutVertically { it / 2 },
+            ) {
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .background(
+                                Brush.verticalGradient(
+                                    0f to Color.Transparent,
+                                    0.3f to MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                                    0.5f to MaterialTheme.colorScheme.surface,
+                                ),
+                            ).navigationBarsPadding(),
+                ) {
+                    Spacer(Modifier.height(20.dp))
+                    Box(Modifier.onSizeChanged { overlayMiniPx = it.height }) {
                         state.current?.let { beatmap ->
                             MiniPlayer(
                                 beatmap = beatmap,
@@ -503,31 +600,9 @@ private fun KozuShell(
                                 onDismiss = playback::clearQueue,
                             )
                         }
-                    },
-                )
+                    }
+                }
             }
-
-            AnimatedVisibility(
-                visible = allBeatmapsOpen,
-                enter = slideInHorizontally(KozuMotion.spatial()) { it } + fadeIn(),
-                exit = slideOutHorizontally(tween(240)) { it } + fadeOut(),
-            ) {
-                AllBeatmapsScreen(
-                    onBack = { allBeatmapsOpen = false },
-                    onRetry = ::refreshApp,
-                    isAppRefreshing = isAppRefreshing,
-                    currentBeatmap = state.current,
-                    isPlaying = state.isPlaying,
-                    position = playback.position,
-                    duration = playback.duration,
-                    onOpenPlayer = { playerOpen = true },
-                    onTogglePlayPause = playback::togglePlayPause,
-                    onPrevious = playback::previous,
-                    onNext = playback::next,
-                    onDismissPlayer = playback::clearQueue,
-                )
-            }
-            if (allBeatmapsOpen && !settingsOpen) BackHandler { allBeatmapsOpen = false }
 
             AnimatedVisibility(
                 visible = playerOpen && state.current != null,
@@ -551,9 +626,16 @@ private fun KozuShell(
                         onFavorite = { actions.toggleFavorite(beatmap) },
                         onMore = { menuTarget = beatmap },
                         onArtistClick = { artist ->
-                            artistSearchRequest = artist
-                            tab = KozuTab.SEARCH
-                            playerOpen = false
+                            if (artist.isNotBlank()) {
+                                personKindKey = PersonKind.ARTIST.name
+                                personName = artist
+                            }
+                        },
+                        onMapperClick = { mapper ->
+                            if (mapper.isNotBlank()) {
+                                personKindKey = PersonKind.MAPPER.name
+                                personName = mapper
+                            }
                         },
                         onSkipToQueueItem = playback::skipToQueueItem,
                         onRemoveFromQueue = playback::removeFromQueue,
@@ -577,9 +659,23 @@ private fun KozuShell(
                     )
                 }
             }
-            if (playerOpen && !settingsOpen) BackHandler { playerOpen = false }
+            if (playerOpen) BackHandler { playerOpen = false }
 
-            val overlayOpen = settingsOpen || playerOpen || allBeatmapsOpen
+            // Artist / mapper page: above the player so Back lands exactly where the listener was.
+            AnimatedVisibility(
+                visible = personName != null,
+                enter = slideInHorizontally(KozuMotion.spatial()) { it } + fadeIn(),
+                exit = slideOutHorizontally(tween(240)) { it } + fadeOut(),
+            ) {
+                PersonScreen(
+                    kind = personName?.let { PersonKind.valueOf(personKindKey) } ?: lastPersonKind,
+                    name = personName ?: lastPersonName,
+                    onBack = { personName = null },
+                )
+            }
+            if (personName != null) BackHandler { personName = null }
+
+            val overlayOpen = settingsOpen || playerOpen || allBeatmapsOpen || statsOpen
             SnackbarHost(
                 hostState = snackbar,
                 modifier =
@@ -587,12 +683,30 @@ private fun KozuShell(
                         .align(Alignment.BottomCenter)
                         .then(
                             if (overlayOpen) {
-                                Modifier.navigationBarsPadding().padding(bottom = 16.dp)
+                                Modifier
+                                    .navigationBarsPadding()
+                                    .padding(bottom = 16.dp + if (playerOpen) 0.dp else overlayMiniInset)
                             } else {
                                 Modifier.padding(bottom = bottomPadding)
                             },
                         ),
             )
+
+            // First-run wizard (also reachable from Settings > About > Setup guide).
+            AnimatedVisibility(
+                visible = onboardingOpen,
+                enter = fadeIn(tween(200)),
+                exit = fadeOut(tween(260)),
+            ) {
+                OnboardingScreen(
+                    container = container,
+                    settings = settings,
+                    onFinish = {
+                        container.settings.onboardingCompleted = true
+                        onboardingOpen = false
+                    },
+                )
+            }
         }
 
         menuTarget?.let { beatmap ->
@@ -677,6 +791,14 @@ private fun KozuShell(
         }
     }
 }
+
+/** True only right after a clean install, so people who update never get the welcome wizard. */
+private fun isFreshInstall(context: android.content.Context): Boolean =
+    runCatching {
+        @Suppress("DEPRECATION")
+        val info = context.packageManager.getPackageInfo(context.packageName, 0)
+        info.firstInstallTime == info.lastUpdateTime
+    }.getOrDefault(false)
 
 private fun StartTab.toKozuTab(): KozuTab =
     when (this) {

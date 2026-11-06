@@ -68,6 +68,7 @@ fun FilterAction(
     }
 }
 
+
 @Composable
 internal fun BrowseSearchField(
     query: String,
@@ -75,43 +76,12 @@ internal fun BrowseSearchField(
     onSearch: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    TextField(
-        value = query,
-        onValueChange = onQueryChange,
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .heightIn(min = 56.dp, max = 88.dp),
-        singleLine = false,
-        minLines = 1,
-        maxLines = 2,
-        shape = RoundedCornerShape(24.dp),
-        textStyle = MaterialTheme.typography.bodyLarge,
-        placeholder = {
-            Text(
-                text = "Search title, artist or mapper",
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        },
-        leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
-        trailingIcon = {
-            if (query.isNotEmpty()) {
-                IconButton(onClick = { onQueryChange("") }) {
-                    Icon(Icons.Rounded.Close, contentDescription = kozuUiString("Clear search"))
-                }
-            }
-        },
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-        keyboardActions = KeyboardActions(onSearch = { onSearch() }),
-        colors =
-            TextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent,
-                disabledIndicatorColor = Color.Transparent,
-            ),
+    vn.kozu.ui.components.KozuSearchField(
+        query = query,
+        onQueryChange = onQueryChange,
+        onSearch = onSearch,
+        placeholder = kozuUiString("Search title, artist or mapper"),
+        modifier = modifier,
     )
 }
 

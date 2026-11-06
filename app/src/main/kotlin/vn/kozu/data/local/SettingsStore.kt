@@ -16,6 +16,7 @@ import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import vn.kozu.domain.model.AccentColor
+import vn.kozu.domain.model.ThemePreset
 import vn.kozu.domain.model.AppFont
 import vn.kozu.domain.model.AppearancePrefs
 import vn.kozu.domain.model.AppSettings
@@ -49,6 +50,19 @@ class SettingsStore(
     private val prefsCache = appContext.getSharedPreferences("kozu_theme_sync", Context.MODE_PRIVATE)
 
     val cachedThemeMode: ThemeMode get() = initialThemeMode(appContext)
+    /** People who already had an accent keep it (as the Custom preset); new installs get osu!. */
+    val cachedThemePreset: ThemePreset get() =
+        prefsCache.getString("theme_preset", null)?.let(ThemePreset::fromKey)
+            ?: if (prefsCache.contains("accent")) ThemePreset.CUSTOM else ThemePreset.OSU
+
+    /** Kept apart from the theme cache so "reset all settings" does not replay the welcome wizard. */
+    private val onboardingPrefs = appContext.getSharedPreferences("kozu_onboarding", Context.MODE_PRIVATE)
+    var onboardingCompleted: Boolean
+        get() = onboardingPrefs.getBoolean("completed", false)
+        set(value) {
+            onboardingPrefs.edit().putBoolean("completed", value).apply()
+        }
+
     val cachedAccent: AccentColor get() =
         AccentColor.fromKey(prefsCache.getString("accent", AccentColor.PINK.key))
     val cachedAmoled: Boolean get() = prefsCache.getBoolean("amoled", false)
@@ -69,6 +83,7 @@ class SettingsStore(
         val amoled = booleanPreferencesKey("amoled")
         val artworkColors = booleanPreferencesKey("artwork_colors")
         val accent = stringPreferencesKey("accent")
+        val themePreset = stringPreferencesKey("theme_preset")
         val displayName = stringPreferencesKey("display_name")
         val clientId = stringPreferencesKey("osu_client_id")
         val clientSecret = stringPreferencesKey("osu_client_secret")
@@ -219,6 +234,9 @@ class SettingsStore(
                     amoled = prefs[Keys.amoled] ?: false,
                     artworkColors = prefs[Keys.artworkColors] ?: true,
                     accent = AccentColor.fromKey(prefs[Keys.accent]),
+                    themePreset =
+                        prefs[Keys.themePreset]?.let(ThemePreset::fromKey)
+                            ?: if (prefs[Keys.accent] != null) ThemePreset.CUSTOM else ThemePreset.OSU,
                     displayName = prefs[Keys.displayName].orEmpty(),
                     osuClientId = prefs[Keys.clientId].orEmpty(),
                     osuClientSecret = prefs[Keys.clientSecret].orEmpty(),
@@ -349,6 +367,15 @@ class SettingsStore(
             }
         }
         store.edit { it[Keys.accent] = accent.key }
+    }
+
+    suspend fun setThemePreset(preset: ThemePreset) {
+        withContext(Dispatchers.IO) {
+            check(prefsCache.edit().putString("theme_preset", preset.key).commit()) {
+                "Could not persist the startup theme preset"
+            }
+        }
+        store.edit { it[Keys.themePreset] = preset.key }
     }
 
     suspend fun setDisplayName(name: String) = store.edit { it[Keys.displayName] = name.trim().take(24) }
@@ -562,6 +589,7 @@ class SettingsStore(
             .putString("theme_mode", settings.themeMode.key)
             .putBoolean("amoled", settings.amoled)
             .putString("accent", settings.accent.key)
+            .putString("theme_preset", settings.themePreset.key)
             .putString("start_tab", settings.startTab.key)
             .putString("app_font", settings.appFont.key)
             .putString("palette_style", settings.paletteStyle.key)

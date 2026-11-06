@@ -35,7 +35,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
-import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material3.Icon
@@ -104,7 +103,6 @@ fun HomeScreen(
 ) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val appSettings = LocalAppSettings.current
-    val catalogError = ui.error
     val actions = LocalTrackActions.current
     val pullState = rememberPullToRefreshState()
     val haptics = rememberKozuHaptics()
@@ -193,16 +191,6 @@ fun HomeScreen(
                         Column(Modifier.padding(top = 20.dp)) {
                             OsuPulseCard(profile = profile)
                         }
-                    }
-                }
-
-                if (catalogError != null) {
-                    item(key = "catalog-error") {
-                        CatalogErrorBanner(
-                            error = catalogError,
-                            onRetry = viewModel::refresh,
-                            onSettings = onOpenSettings
-                        )
                     }
                 }
 
@@ -484,42 +472,6 @@ private fun Greeting(name: String) {
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
         )
-    }
-}
-
-@Composable
-private fun CatalogErrorBanner(error: String, onRetry: () -> Unit, onSettings: () -> Unit) {
-    Surface(
-        modifier = Modifier
-            .padding(horizontal = 20.dp)
-            .padding(top = 20.dp)
-            .fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
-        color = MaterialTheme.colorScheme.secondaryContainer
-    ) {
-        Column(Modifier.padding(start = 18.dp, end = 8.dp, top = 12.dp, bottom = 8.dp)) {
-            Row(verticalAlignment = Alignment.Top) {
-                Icon(
-                    Icons.Rounded.CloudOff,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-                Spacer(Modifier.width(12.dp))
-                Text(
-                    text = error,
-                    modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-            }
-            Row(
-                modifier = Modifier.align(Alignment.End),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                TextButton(onClick = onRetry) { Text("Retry") }
-                TextButton(onClick = onSettings) { Text("Settings") }
-            }
-        }
     }
 }
 

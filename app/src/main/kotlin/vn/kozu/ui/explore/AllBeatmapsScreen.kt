@@ -62,7 +62,7 @@ import vn.kozu.ui.components.LocalTrackActions
 import vn.kozu.ui.components.RefreshIndicator
 import vn.kozu.ui.components.TrackRow
 import vn.kozu.ui.components.segmentedShape
-import vn.kozu.ui.player.MiniPlayer
+import vn.kozu.ui.components.LocalOverlayBottomInset
 import java.util.Locale
 
 private const val BEATMAPS_PER_PAGE = 30
@@ -73,15 +73,6 @@ fun AllBeatmapsScreen(
     onBack: () -> Unit,
     onRetry: () -> Unit,
     isAppRefreshing: Boolean,
-    currentBeatmap: Beatmap?,
-    isPlaying: Boolean,
-    position: StateFlow<Long>,
-    duration: StateFlow<Long>,
-    onOpenPlayer: () -> Unit,
-    onTogglePlayPause: () -> Unit,
-    onPrevious: () -> Unit,
-    onNext: () -> Unit,
-    onDismissPlayer: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: BrowseViewModel = viewModel(factory = BrowseViewModel.Factory),
 ) {
@@ -94,7 +85,8 @@ fun AllBeatmapsScreen(
     var showFilters by rememberSaveable { mutableStateOf(false) }
     var currentPage by rememberSaveable { mutableIntStateOf(0) }
     val refreshing = ui.isRefreshing || isAppRefreshing
-    val listBottom = if (WindowInsets.isImeVisible) 16.dp else 12.dp
+    // The floating mini player is drawn by the app shell on top of this screen; leave room for it.
+    val listBottom = if (WindowInsets.isImeVisible) 16.dp else 12.dp + LocalOverlayBottomInset.current
     val pageStart = currentPage * BEATMAPS_PER_PAGE
     val pageItems = ui.items.drop(pageStart).take(BEATMAPS_PER_PAGE)
     val loadedPages = ((ui.items.size + BEATMAPS_PER_PAGE - 1) / BEATMAPS_PER_PAGE).coerceAtLeast(1)
@@ -279,20 +271,6 @@ fun AllBeatmapsScreen(
             }
         }
 
-        currentBeatmap?.let { beatmap ->
-            MiniPlayer(
-                beatmap = beatmap,
-                isPlaying = isPlaying,
-                position = position,
-                duration = duration,
-                onOpen = onOpenPlayer,
-                onPlayPause = onTogglePlayPause,
-                onPrevious = onPrevious,
-                onNext = onNext,
-                onDismiss = onDismissPlayer,
-                modifier = Modifier.padding(bottom = 6.dp),
-            )
-        }
     }
 
     if (showFilters) {

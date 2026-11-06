@@ -155,12 +155,13 @@ fun HeaderAction(
 }
 
 @Composable
-fun SettingsAction(onClick: () -> Unit) {
+fun SettingsAction(onClick: () -> Unit, startPadding: Dp = 8.dp) {
     HeaderAction(
         icon = Icons.Rounded.Settings,
         contentDescription = kozuUiString("Settings"),
         onClick = onClick,
         container = MaterialTheme.colorScheme.surfaceContainerHigh,
-        content = MaterialTheme.colorScheme.onSurface
+        content = MaterialTheme.colorScheme.onSurface,
+        startPadding = startPadding
     )
 }

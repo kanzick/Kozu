@@ -14,6 +14,7 @@ import vn.kozu.data.repository.CatalogSource
 import vn.kozu.di.AppContainer
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.BrowseFilters
+import vn.kozu.domain.model.BrowseSortField
 import vn.kozu.domain.model.BrowseStatus
 import vn.kozu.ui.containerFactory
 
@@ -137,7 +138,7 @@ class BrowseViewModel(
                 cursor = if (exhausted) null else result.nextCursor
                 _ui.update {
                     it.copy(
-                        items = (it.items + result.items).distinctBy { beatmap -> beatmap.id },
+                        items = (it.items + rankForQuery(active, result.items)).distinctBy { beatmap -> beatmap.id },
                         total = result.total ?: it.total,
                         isLoadingMore = false,
                         hasMore = !exhausted,
@@ -186,7 +187,7 @@ class BrowseViewModel(
                 cursor = result.nextCursor
                 _ui.update {
                     it.copy(
-                        items = result.items.distinctBy { beatmap -> beatmap.id },
+                        items = rankForQuery(filters, result.items).distinctBy { beatmap -> beatmap.id },
                         total = result.total,
                         isLoading = false,
                         isRefreshing = false,
@@ -217,6 +218,14 @@ class BrowseViewModel(
     }
 
     private fun BrowseFilters.normalized(): BrowseFilters = copy(query = query.trim())
+
+    /** Same relevance re-ranking as the Search tab so both entry points agree. */
+    private fun rankForQuery(filters: BrowseFilters, items: List<Beatmap>): List<Beatmap> =
+        if (filters.sort.option == BrowseSortField.RELEVANCE && filters.trimmedQuery.isNotEmpty()) {
+            vn.kozu.ui.search.SearchRanker.rank(filters.trimmedQuery, items)
+        } else {
+            items
+        }
 
     companion object {
         private const val QUERY_DEBOUNCE_MS = 400L

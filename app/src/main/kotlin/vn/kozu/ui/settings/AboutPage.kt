@@ -42,6 +42,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import vn.kozu.ui.onboarding.LocalReplayOnboarding
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -72,6 +73,7 @@ fun AboutPage(
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
+    val replayOnboarding = LocalReplayOnboarding.current
     val version = remember { UpdateChecker.installedVersion(context) }
     var privacyOpen by remember { mutableStateOf(false) }
 
@@ -101,6 +103,11 @@ fun AboutPage(
             custom { shape ->
                 LinkItem(shape, Icons.Rounded.Security, "Privacy policy", "How Kozu handles your data", Setting.PRIVACY_ENTRY) {
                     privacyOpen = true
+                }
+            }
+            replayOnboarding?.let { replay ->
+                custom { shape ->
+                    LinkItem(shape, Icons.Rounded.Star, "Setup guide", "Run the welcome wizard again") { replay() }
                 }
             }
             custom { shape ->

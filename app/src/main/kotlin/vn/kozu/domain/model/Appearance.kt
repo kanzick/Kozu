@@ -93,21 +93,6 @@ enum class ArtworkShape(
     }
 }
 
-enum class PlayerLayoutStyle(
-    override val key: String,
-    override val label: String,
-    val description: String,
-) : KeyedOption {
-    BALANCED("balanced", "Balanced", "Large artwork with comfortable, balanced controls"),
-    EDITORIAL("editorial", "Editorial", "Centered typography and a magazine-like layout"),
-    IMMERSIVE("immersive", "Immersive", "Hero artwork with a floating track information panel"),
-    COMPACT("compact", "Compact", "Smaller artwork with more room for playback controls"),
-    ;
-
-    companion object {
-        fun fromKey(key: String?): PlayerLayoutStyle = entries.byKey(key, BALANCED)
-    }
-}
 
 enum class SeekBarStyle(
     override val key: String,
@@ -166,6 +151,42 @@ enum class IconStyle(
     }
 }
 
+/**
+ * Full-player design. Each entry is a genuinely different layout (see `PlayerDesigns.kt`),
+ * modelled on the design picker in ArchiveTune.
+ */
+enum class PlayerLayoutStyle(
+    override val key: String,
+    override val label: String,
+    val description: String,
+) : KeyedOption {
+    CLASSIC("classic", "Classic", "Artwork, track info and a familiar five-button transport row"),
+    MODERN("modern", "Modern", "Rounded pill controls with favourite and more beside the title"),
+    MINIMAL("minimal", "Minimal", "Quiet and light: small type, thin slider, plain icons"),
+    CINEMATIC("cinematic", "Cinematic", "Glowing artwork over a blurred backdrop, centred text"),
+    LITTLE("little", "Little", "Chunky three-button transport with a compact toggle row"),
+    EXPRESSIVE("expressive", "Expressive", "Bold vertical title on a two-tone colour field"),
+    IMMERSIVE("immersive", "Immersive", "Edge-to-edge artwork fading into the controls"),
+    IMMERSIVE_EXTENDED("immersive_extended", "Immersive Extended", "Full-screen artwork with the controls floating over it"),
+    MATERIAL_EXTENDED("material_extended", "Material Extended", "Material 3 layout with format chip and volume bar"),
+    EDITORIAL("editorial", "Editorial", "Cookie artwork and a magazine-style headline"),
+    ;
+
+    /** True for the designs that have room for the optional volume slider. */
+    val supportsVolumeBar: Boolean
+        get() = this == IMMERSIVE || this == IMMERSIVE_EXTENDED || this == MATERIAL_EXTENDED
+
+    companion object {
+        /** Maps the old four layouts onto their closest new design so nobody's choice is lost. */
+        fun fromKey(key: String?): PlayerLayoutStyle =
+            when (key) {
+                "balanced" -> CLASSIC
+                "compact" -> LITTLE
+                else -> entries.byKey(key, CLASSIC)
+            }
+    }
+}
+
 data class AppearancePrefs(
     val density: UiDensity = UiDensity.COMFORTABLE,
     val textScale: Int = 100,
@@ -185,10 +206,11 @@ data class AppearancePrefs(
     val miniSpinArtwork: Boolean = true,
     val miniSwipeToSkip: Boolean = true,
     val seekStyle: SeekBarStyle = SeekBarStyle.WAVY,
-    val playerLayoutStyle: PlayerLayoutStyle = PlayerLayoutStyle.BALANCED,
+    val playerLayoutStyle: PlayerLayoutStyle = PlayerLayoutStyle.CLASSIC,
     val playerArtShape: ArtworkShape = ArtworkShape.DEFAULT,
     val transportShape: TransportShape = TransportShape.PILL,
     val showToggleRow: Boolean = true,
+    val showVolumeBar: Boolean = true,
 ) {
     fun toJson(): String =
         JSONObject()
@@ -214,6 +236,7 @@ data class AppearancePrefs(
             .put("playerArtShape", playerArtShape.key)
             .put("transportShape", transportShape.key)
             .put("showToggleRow", showToggleRow)
+            .put("showVolumeBar", showVolumeBar)
             .toString()
 
     companion object {
@@ -256,6 +279,7 @@ data class AppearancePrefs(
                     playerArtShape = ArtworkShape.fromKey(o.optString("playerArtShape")),
                     transportShape = TransportShape.fromKey(o.optString("transportShape")),
                     showToggleRow = o.optBoolean("showToggleRow", d.showToggleRow),
+                    showVolumeBar = o.optBoolean("showVolumeBar", d.showVolumeBar),
                 )
             } catch (e: Exception) {
                 AppearancePrefs()

@@ -45,6 +45,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import vn.kozu.ui.explore.ActiveFilterChips
@@ -68,6 +69,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import vn.kozu.domain.model.SearchCategory
 import vn.kozu.domain.model.SearchSort
 import vn.kozu.ui.components.EmptyState
+import vn.kozu.ui.components.KozuSearchField
 import vn.kozu.ui.components.KozuLoading
 import vn.kozu.ui.components.LocalTrackActions
 import vn.kozu.ui.components.RefreshIndicator
@@ -109,10 +111,27 @@ fun SearchScreen(
     val recents by viewModel.recentSearches.collectAsStateWithLifecycle()
     val actions = LocalTrackActions.current
     val keyboard = LocalSoftwareKeyboardController.current
+    // Idle (recents / categories) and results are different lists. Sharing one state meant the
+    // results list re-opened at whatever offset the previous list had been scrolled to.
+    val idleListState = rememberLazyListState()
     val listState = rememberLazyListState()
     var showFilters by rememberSaveable { mutableStateOf(false) }
     val pullState = rememberPullToRefreshState()
     val listBottom = if (WindowInsets.isImeVisible) 16.dp else bottomPadding
+    // Any edit to the query, filters or a fresh result set starts again from the first hit,
+    // exactly like All beatmaps does.
+    LaunchedEffect(ui.query, ui.filters) { listState.scrollToItem(0) }
+    LaunchedEffect(ui.phase) {
+        if (ui.phase != SearchPhase.DONE) listState.scrollToItem(0)
+    }
+    LaunchedEffect(ui.results.firstOrNull()?.id, ui.phase) {
+        if (ui.phase == SearchPhase.DONE && !ui.isLoadingMore) listState.scrollToItem(0)
+    }
+    // Scrolling the results hides the keyboard so more of the list is visible.
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.isScrollInProgress }
+            .collect { scrolling -> if (scrolling) keyboard?.hide() }
+    }
     val refreshNow = {
         if (!isAppRefreshing) {
             if (ui.query.isNotBlank() || ui.filters.hasActiveFilters) viewModel.retry()
@@ -140,8 +159,9 @@ fun SearchScreen(
         ) {
         ScreenHeader(
             leading = {
-                SearchField(
+                KozuSearchField(
                     query = ui.query,
+                    placeholder = kozuUiString("Search beatmaps"),
                     onQueryChange = viewModel::onQueryChange,
                     onSearch = {
                         viewModel.remember()
@@ -153,7 +173,7 @@ fun SearchScreen(
                 )
             },
             actions = {
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(10.dp))
                 FilterAction(
                     active = ui.filters.hasActiveFilters,
                     onClick = {
@@ -161,15 +181,14 @@ fun SearchScreen(
                         showFilters = true
                     }
                 )
-                Spacer(Modifier.width(8.dp))
-                SettingsAction(onOpenSettings)
+                SettingsAction(onOpenSettings, startPadding = 10.dp)
             }
         )
 
         val isIdle = ui.isIdle
         if (isIdle) {
             LazyColumn(
-                state = listState,
+                state = idleListState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(top = 8.dp, bottom = listBottom)
             ) {
@@ -267,49 +286,6 @@ fun SearchScreen(
             }
         )
     }
-}
-
-@Composable
-private fun SearchField(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    onSearch: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    TextField(
-        value = query,
-        onValueChange = onQueryChange,
-        modifier = modifier.fillMaxWidth(),
-        singleLine = false,
-        minLines = 1,
-        maxLines = 2,
-        shape = RoundedCornerShape(24.dp),
-        textStyle = MaterialTheme.typography.bodyLarge,
-        placeholder = {
-            Text(
-                text = "Search beatmaps",
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        },
-        leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
-        trailingIcon = {
-            if (query.isNotEmpty()) {
-                IconButton(onClick = { onQueryChange("") }) {
-                    Icon(Icons.Rounded.Close, contentDescription = kozuUiString("Clear search"))
-                }
-            }
-        },
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-        keyboardActions = KeyboardActions(onSearch = { onSearch() }),
-        colors = TextFieldDefaults.colors(
-            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            focusedIndicatorColor = Color.Transparent,
-            unfocusedIndicatorColor = Color.Transparent,
-            disabledIndicatorColor = Color.Transparent
-        )
-    )
 }
 
 @Composable
