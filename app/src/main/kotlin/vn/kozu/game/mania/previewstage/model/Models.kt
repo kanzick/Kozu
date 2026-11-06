@@ -54,6 +54,8 @@ data class SongEntry(
     val songId: Long,
     val folder: File,
     val difficulties: List<DifficultyRecord>,
+    val importedAt: Long = 0L,
+    val collections: List<String> = emptyList(),
 ) {
 
     val defaultPreview: DifficultyRecord?

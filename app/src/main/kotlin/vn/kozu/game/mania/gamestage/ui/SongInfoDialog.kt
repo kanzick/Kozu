@@ -16,6 +16,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -115,6 +119,20 @@ fun SongInfoDialog(
                             Image(it, null, Modifier.matchParentSize(), contentScale = ContentScale.Crop)
                         }
                         Box(Modifier.matchParentSize().background(Color(0x99000000)))
+                        IconButton(
+                            onClick = { onSettingsCommit(settings); onDismiss() },
+                            modifier = Modifier.align(Alignment.TopStart).padding(4.dp),
+                        ) {
+                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = Color.White)
+                        }
+                        Text(
+                            "Player: ${settings.playerName}",
+                            color = Color.White,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.align(Alignment.TopCenter).padding(top = 14.dp, start = 56.dp, end = 56.dp),
+                        )
                         Column(Modifier.align(Alignment.BottomStart).padding(16.dp)) {
                             Text(
                                 difficulty.title, color = Color.White, fontWeight = FontWeight.Bold,
@@ -245,15 +263,6 @@ private fun SettingsPanel(
         onChange = { onChange(s.copy(judgmentOffsetMs = it.roundToInt()).coerced()) },
         onFinished = { onCommit(s) },
         onStep = { dir -> onCommit(s.copy(judgmentOffsetMs = s.judgmentOffsetMs + dir).coerced().also(onChange)) },
-    )
-
-    var name by remember(s.playerName) { mutableStateOf(s.playerName) }
-    OutlinedTextField(
-        value = name,
-        onValueChange = { name = it.take(GameSettings.PLAYER_NAME_MAX); onChange(s.copy(playerName = name)) },
-        label = { Text("Player name") },
-        singleLine = true,
-        modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
     )
 }
 

@@ -98,16 +98,17 @@ class BeatmapRepository(
         )
     }
 
-    suspend fun searchMania(query: String, page: Int): CatalogResult {
+    suspend fun searchMania(query: String, page: Int, status: String? = null, explicit: Boolean = false): CatalogResult {
         require(page >= 0) { "Page must not be negative" }
         return fetchHinaiSearch(
             query = query.trim(),
-            status = null,
+            status = status,
             sort = null,
             genre = null,
             mode = 3,
             page = page,
-            pageSize = MANIA_PAGE_SIZE
+            pageSize = MANIA_PAGE_SIZE,
+            explicit = explicit
         )
     }
 

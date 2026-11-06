@@ -94,6 +94,17 @@ class PreviewStageModule private constructor(
         updated
     }
 
+    suspend fun collectionNames(): List<String> = startLock.withLock {
+        val kozu = kozuDb ?: throw IOException("The chart database is not ready")
+        withContext(Dispatchers.IO) { kozu.collectionNames() }
+    }
+
+    suspend fun setSongCollections(songId: Long, names: List<String>) = startLock.withLock {
+        val kozu = kozuDb ?: throw IOException("The chart database is not ready")
+        withContext(Dispatchers.IO) { kozu.setSongCollections(songId, names) }
+        kozu.loadSong(songId, paths.songs)?.let(catalog::upsert)
+    }
+
     suspend fun deleteSong(songId: Long) = startLock.withLock {
         val kozu = kozuDb ?: throw IOException("The chart database is not ready")
         val songDir = paths.songDir(songId)

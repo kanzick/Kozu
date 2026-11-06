@@ -462,13 +462,7 @@ private fun KozuShell(
                     modifier =
                         Modifier
                             .align(Alignment.BottomCenter)
-                            .background(
-                                Brush.verticalGradient(
-                                    0f to Color.Transparent,
-                                    0.3f to MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-                                    0.5f to MaterialTheme.colorScheme.surface,
-                                ),
-                            ).onSizeChanged { chromeHeightPx = it.height },
+                            .onSizeChanged { chromeHeightPx = it.height },
                 ) {
                     AnimatedVisibility(
                         visible = state.current != null,
