@@ -32,6 +32,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import vn.kozu.game.mania.gamestage.GameStageModule
 import vn.kozu.game.mania.gamestage.chart.ManiaChart
 import vn.kozu.game.mania.gamestage.scoring.GameResult
+import vn.kozu.game.mania.gamestage.settings.GameSettings
 import vn.kozu.game.mania.gamestage.playtype.Portrait
 import vn.kozu.game.mania.gamestage.session.GameSession
 import vn.kozu.game.mania.previewstage.PreviewStageModule
@@ -58,6 +59,11 @@ fun GameStageHost(
     preview: PreviewStageModule,
     game: GameStageModule,
     isActive: Boolean,
+    playerName: String,
+    osuUsername: String,
+    loadRankedAt: suspend (SongEntry) -> Long,
+    requestedMapId: Long?,
+    onMapOpenHandled: (Long) -> Unit,
     onAddMaps: () -> Unit,
     onGameplayChanged: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -76,6 +82,23 @@ fun GameStageHost(
             throw e
         } catch (e: Exception) {
             initializationError = e.message ?: "Could not initialize the game"
+        }
+    }
+
+    LaunchedEffect(game, playerName) {
+        if (playerName.isBlank()) return@LaunchedEffect
+        try {
+            game.start()
+            val current = game.settings
+            if (current.playerName != playerName.trim().take(GameSettings.PLAYER_NAME_MAX)) {
+                val updated = current.copy(playerName = playerName)
+                game.updateSettings(updated)
+                settings = game.settings
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            settingsError = e.message ?: "Could not save game settings"
         }
     }
 
@@ -181,9 +204,16 @@ fun GameStageHost(
             PreviewStageScreen(
                 module = preview,
                 onAddMaps = onAddMaps,
+                contentPadding = contentPadding,
                 onDifficultyClick = { song, diff -> popup = Selection(song, diff) },
                 loadBestScores = game::bestScores,
+                loadLatestPlayedAt = game::latestPlayedAt,
+                loadRankedAt = loadRankedAt,
                 scoresRefreshKey = scoreRefresh,
+                osuUsername = osuUsername,
+                scorePlayerKey = playerName,
+                openSongId = requestedMapId,
+                onOpenSongHandled = onMapOpenHandled,
             )
             initializationError?.let { message ->
                 Surface(

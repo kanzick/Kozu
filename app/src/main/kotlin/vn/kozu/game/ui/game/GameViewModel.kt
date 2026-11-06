@@ -6,7 +6,10 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -42,22 +45,50 @@ class GameViewModel(private val container: AppContainer) : ViewModel() {
     )
     val gameModule: GameStageModule = GameStageModule.get(container.appContext, previewModule)
 
+    val playerName: StateFlow<String> = combine(
+        container.settings.settings,
+        container.accounts.profile,
+        container.accounts.loggedIn,
+    ) { settings, profile, loggedIn ->
+        settings.displayName.trim().ifBlank { if (loggedIn) profile?.username.orEmpty() else "" }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, "")
+
+    val osuUsername: StateFlow<String> = combine(
+        container.accounts.profile,
+        container.accounts.loggedIn,
+    ) { profile, loggedIn ->
+        if (loggedIn) profile?.username.orEmpty() else ""
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, "")
+
+    suspend fun rankedAt(song: vn.kozu.game.mania.previewstage.model.SongEntry): Long =
+        container.catalog.setInfo(song.songId)?.beatmap?.rankedAt ?: 0L
+
     private val _downloads = MutableStateFlow<Map<Long, GameMapDownloadState>>(emptyMap())
     val downloads: StateFlow<Map<Long, GameMapDownloadState>> = _downloads.asStateFlow()
 
     private val _localMapIds = MutableStateFlow(previewModule.catalog.all().map { it.songId }.toSet())
     val localMapIds: StateFlow<Set<Long>> = _localMapIds.asStateFlow()
+    private val _requestedMapId = MutableStateFlow<Long?>(null)
+    val requestedMapId: StateFlow<Long?> = _requestedMapId.asStateFlow()
     private val _previewError = MutableStateFlow<String?>(null)
     val previewError: StateFlow<String?> = _previewError.asStateFlow()
 
     private val jobs = mutableMapOf<Long, Job>()
     private var previewJob: Job? = null
 
-    suspend fun searchMania(query: String, page: Int) =
-        withContext(Dispatchers.IO) { container.catalog.searchMania(query, page) }
+    suspend fun searchMania(query: String, page: Int, status: String? = null, explicit: Boolean = false) =
+        withContext(Dispatchers.IO) { container.catalog.searchMania(query, page, status, explicit) }
 
     suspend fun maniaDifficulties(beatmapSetId: Long): List<BeatmapDifficulty> =
         container.catalog.maniaDifficulties(beatmapSetId)
+
+    fun requestOpenMap(beatmapSetId: Long) {
+        _requestedMapId.value = beatmapSetId
+    }
+
+    fun consumeOpenMapRequest(beatmapSetId: Long) {
+        _requestedMapId.update { if (it == beatmapSetId) null else it }
+    }
 
     fun playSearchPreview(beatmapSetId: Long) {
         previewJob?.cancel()
