@@ -15,7 +15,7 @@ val hasReleaseSigning = listOf(
     releaseKeyAlias,
     releaseKeyPassword
 ).all { !it.isNullOrBlank() }
-val defaultAppVersionName = "0.1.2"
+val defaultAppVersionName = "0.1.3"
 val appVersionName = providers.gradleProperty("appVersion")
     .orElse(defaultAppVersionName)
     .get()
