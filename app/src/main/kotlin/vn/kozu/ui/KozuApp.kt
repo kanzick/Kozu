@@ -37,6 +37,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
@@ -239,6 +240,16 @@ private fun KozuShell(
     var onboardingOpen by rememberSaveable { mutableStateOf(showOnboardingFirst) }
     var allBeatmapsOpen by rememberSaveable { mutableStateOf(false) }
     var gamePlayActive by remember { mutableStateOf(false) }
+
+    // Only one thing may make sound at a time. A Game preview pauses the main player, and
+    // pressing play on the main player (mini player, notification, headset) stops the preview.
+    DisposableEffect(playback) {
+        vn.kozu.game.mania.previewstage.audio.PreviewPlayer.onAudible = { playback.pause() }
+        onDispose { vn.kozu.game.mania.previewstage.audio.PreviewPlayer.onAudible = null }
+    }
+    LaunchedEffect(state.isPlaying) {
+        if (state.isPlaying) vn.kozu.game.mania.previewstage.PreviewStageModule.peek()?.stopPreview()
+    }
     var menuTarget by remember { mutableStateOf<Beatmap?>(null) }
     var playlistTarget by remember { mutableStateOf<Beatmap?>(null) }
     var infoTarget by remember { mutableStateOf<Beatmap?>(null) }
@@ -462,7 +473,13 @@ private fun KozuShell(
                     modifier =
                         Modifier
                             .align(Alignment.BottomCenter)
-                            .onSizeChanged { chromeHeightPx = it.height },
+                            .background(
+                                Brush.verticalGradient(
+                                    0f to Color.Transparent,
+                                    0.3f to MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                                    0.5f to MaterialTheme.colorScheme.surface,
+                                ),
+                            ).onSizeChanged { chromeHeightPx = it.height },
                 ) {
                     AnimatedVisibility(
                         visible = state.current != null,
@@ -615,6 +632,9 @@ private fun KozuShell(
                         onPrevious = playback::previous,
                         onNext = playback::next,
                         onSeek = playback::seekTo,
+                        onToggleAutoplay = {
+                            scope.launch { container.settings.setAutoplay(!settings.autoplay) }
+                        },
                         onShuffle = playback::toggleShuffle,
                         onRepeat = playback::cycleRepeat,
                         onFavorite = { actions.toggleFavorite(beatmap) },

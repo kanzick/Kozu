@@ -17,6 +17,12 @@ class PreviewPlayer(context: Context) {
 
     private var player: MediaPlayer? = null
 
+    companion object {
+        /** Called on the main thread whenever a preview actually starts making sound. */
+        @Volatile
+        var onAudible: (() -> Unit)? = null
+    }
+
     fun play(audio: File, previewTimeMs: Int, onError: (String) -> Unit = {}) {
         playSource(audio.name, previewTimeMs, onError) { player ->
             player.setDataSource(audio.absolutePath)
@@ -51,7 +57,13 @@ class PreviewPlayer(context: Context) {
                     if (player !== p) return@setOnPreparedListener
                     val duration = p.duration
                     val start = if (previewTimeMs in 0 until duration) previewTimeMs else (duration * 0.4).toInt()
-                    p.setOnSeekCompleteListener { sp -> if (player === sp) sp.start() }
+                    p.setOnSeekCompleteListener { sp ->
+                        if (player === sp) {
+                            sp.start()
+                            // Tell the app the preview is audible so it can pause the main player.
+                            mainHandler.post { onAudible?.invoke() }
+                        }
+                    }
                     p.seekTo(start)
                 }
                 mp.setOnCompletionListener { p -> if (player === p) releaseCurrent() }

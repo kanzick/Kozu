@@ -1,5 +1,6 @@
 package vn.kozu.ui.player
 
+import android.content.Intent
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -75,6 +76,7 @@ fun PlayerScreen(
     onClearQueue: () -> Unit = {},
     onMoveQueueItem: (from: Int, to: Int) -> Unit = { _, _ -> },
     onSaveAsPlaylist: (List<Beatmap>) -> Unit = {},
+    onToggleAutoplay: () -> Unit = {},
 ) {
     var showQueue by remember { mutableStateOf(false) }
     var showSleep by remember { mutableStateOf(false) }
@@ -203,6 +205,17 @@ fun PlayerScreen(
                     onShuffle = onShuffle,
                     onRepeat = onRepeat,
                     onFavorite = onFavorite,
+                    onShare = {
+                        val send =
+                            Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(
+                                    Intent.EXTRA_TEXT,
+                                    "${beatmap.displayTitle(settings.preferUnicode)} - $artistName\n${beatmap.webUrl}",
+                                )
+                            }
+                        runCatching { context.startActivity(Intent.createChooser(send, null)) }
+                    },
                     onArtist = { onArtistClick(artistName) },
                     onMapper = { onMapperClick(beatmap.mapper) },
                 )
@@ -219,6 +232,13 @@ fun PlayerScreen(
             onSkipTo = onSkipToQueueItem,
             onRemove = onRemoveFromQueue,
             shuffle = state.shuffle,
+            repeat = state.repeat,
+            autoplay = settings.autoplay,
+            isFavorite = isFavorite,
+            onShuffle = onShuffle,
+            onRepeat = onRepeat,
+            onToggleAutoplay = onToggleAutoplay,
+            onFavorite = onFavorite,
             onClear = onClearQueue,
             onMove = onMoveQueueItem,
             onSaveAsPlaylist = onSaveAsPlaylist,

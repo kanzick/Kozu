@@ -5,6 +5,17 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioManager
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -39,11 +50,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.rememberSliderState
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -81,6 +92,9 @@ import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.PlayerLayoutStyle
 import vn.kozu.domain.model.SeekBarStyle
 import vn.kozu.player.RepeatState
+import androidx.annotation.DrawableRes
+import androidx.compose.ui.res.vectorResource
+import vn.kozu.R
 import vn.kozu.ui.components.BeatmapArt
 import vn.kozu.ui.components.FullBeatmapArt
 import vn.kozu.ui.components.KozuIcons
@@ -131,6 +145,7 @@ class PlayerUi(
     val onShuffle: () -> Unit,
     val onRepeat: () -> Unit,
     val onFavorite: () -> Unit,
+    val onShare: () -> Unit,
     val onArtist: () -> Unit,
     val onMapper: () -> Unit,
 )
@@ -158,7 +173,7 @@ fun PlayerDesignContent(
 fun PlayerLayoutStyle.drawsOwnBackground(): Boolean =
     this == PlayerLayoutStyle.IMMERSIVE ||
         this == PlayerLayoutStyle.IMMERSIVE_EXTENDED ||
-        this == PlayerLayoutStyle.EXPRESSIVE ||
+        this == PlayerLayoutStyle.LITTLE ||
         this == PlayerLayoutStyle.EDITORIAL
 
 // ───────────────────────────── shared building blocks ─────────────────────────────
@@ -426,14 +441,14 @@ private fun QueueSleepPills(
 ) {
     Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         PillAction(
-            icon = Icons.AutoMirrored.Rounded.QueueMusic,
+            icon = at(R.drawable.at_queue_music),
             label = if (withLabels) kozuUiString("Queue") else null,
             description = kozuUiString("Queue"),
             onClick = ui.onQueue,
             modifier = Modifier.weight(1f),
         )
         PillAction(
-            icon = Icons.Rounded.Bedtime,
+            icon = at(R.drawable.at_bedtime),
             label = if (withLabels) kozuUiString("Sleep timer") else null,
             description = kozuUiString("Sleep timer"),
             onClick = ui.onSleep,
@@ -451,7 +466,7 @@ private fun NowPlayingHeader(
 ) {
     Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         RoundButton(
-            icon = Icons.Rounded.KeyboardArrowDown,
+            icon = at(R.drawable.at_expand_more),
             description = kozuUiString("Close player"),
             onClick = ui.onClose,
             size = if (ui.compact) 44.dp else 48.dp,
@@ -537,9 +552,12 @@ private fun PlayerSeek(
     }
 }
 
+/** ArchiveTune's own vector icons, so the designs carry the same glyphs. */
 @Composable
-private fun playIcon(ui: PlayerUi): ImageVector =
-    playbackIconVector(LocalAppSettings.current.playbackIcon, ui.isPlaying)
+private fun at(@DrawableRes id: Int): ImageVector = ImageVector.vectorResource(id)
+
+@Composable
+private fun playIcon(ui: PlayerUi): ImageVector = at(if (ui.isPlaying) R.drawable.at_pause else R.drawable.at_play)
 
 @Composable
 private fun iconStyle() = LocalAppSettings.current.appearance.iconStyle
@@ -580,13 +598,15 @@ private fun PlayButton(
 }
 
 @Composable
-private fun shuffleIcon(): ImageVector = KozuIcons.shuffle(iconStyle())
+private fun shuffleIcon(): ImageVector = at(R.drawable.at_shuffle)
 
 @Composable
-private fun repeatIcon(ui: PlayerUi): ImageVector = KozuIcons.repeat(iconStyle(), ui.repeat == RepeatState.ONE)
+private fun repeatIcon(ui: PlayerUi): ImageVector =
+    at(if (ui.repeat == RepeatState.ONE) R.drawable.at_repeat_one else R.drawable.at_repeat)
 
 @Composable
-private fun favoriteIcon(ui: PlayerUi): ImageVector = KozuIcons.favorite(iconStyle(), ui.isFavorite)
+private fun favoriteIcon(ui: PlayerUi): ImageVector =
+    at(if (ui.isFavorite) R.drawable.at_favorite else R.drawable.at_favorite_border)
 
 @Composable
 private fun ShuffleButton(ui: PlayerUi, modifier: Modifier = Modifier, plain: Boolean = false) {
@@ -625,7 +645,7 @@ private fun FavoriteButton(ui: PlayerUi, modifier: Modifier = Modifier, plain: B
     if (plain) {
         PlainIcon(
             favoriteIcon(ui), "Favorite", ui.onFavorite, modifier, size = size,
-            tint = if (ui.isFavorite) colors.primary else colors.onSurfaceVariant,
+            tint = if (ui.isFavorite) colors.error else colors.onSurface,
         )
     } else {
         RoundButton(
@@ -639,7 +659,7 @@ private fun FavoriteButton(ui: PlayerUi, modifier: Modifier = Modifier, plain: B
 @Composable
 private fun SkipButton(ui: PlayerUi, next: Boolean, modifier: Modifier = Modifier, plain: Boolean = true, size: Dp = 56.dp) {
     val haptics = rememberKozuHaptics()
-    val icon = if (next) KozuIcons.skipNext(iconStyle()) else KozuIcons.skipPrevious(iconStyle())
+    val icon = at(if (next) R.drawable.at_skip_next else R.drawable.at_skip_previous)
     val action = {
         haptics.tick()
         if (next) ui.onNext() else ui.onPrevious()
@@ -668,16 +688,13 @@ fun PlayerVolumeBar(
     val context = LocalContext.current
     val audio = remember { context.getSystemService(Context.AUDIO_SERVICE) as AudioManager }
     val max = remember { audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1) }
-    val sliderState = rememberSliderState(
-        value = audio.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat(),
-        trackRange = 0f..max.toFloat(),
-    )
+    var volume by remember { mutableFloatStateOf(audio.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat()) }
 
-    DisposableEffect(context, sliderState) {
+    DisposableEffect(context) {
         val receiver =
             object : BroadcastReceiver() {
                 override fun onReceive(c: Context?, intent: Intent?) {
-                    sliderState.value = audio.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat()
+                    volume = audio.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat()
                 }
             }
         ContextCompat.registerReceiver(
@@ -690,13 +707,14 @@ fun PlayerVolumeBar(
     }
 
     Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Icon(Icons.AutoMirrored.Rounded.VolumeDown, contentDescription = null, tint = iconTint, modifier = Modifier.size(22.dp))
+        Icon(at(R.drawable.at_volume_off), contentDescription = null, tint = iconTint, modifier = Modifier.size(22.dp))
         Slider(
-            state = sliderState,
+            value = volume,
             onValueChange = {
-                sliderState.value = it
+                volume = it
                 runCatching { audio.setStreamVolume(AudioManager.STREAM_MUSIC, it.roundToInt(), 0) }
             },
+            valueRange = 0f..max.toFloat(),
             modifier = Modifier.weight(1f).padding(horizontal = 6.dp),
             colors =
                 SliderDefaults.colors(
@@ -705,7 +723,7 @@ fun PlayerVolumeBar(
                     inactiveTrackColor = track,
                 ),
         )
-        Icon(Icons.AutoMirrored.Rounded.VolumeUp, contentDescription = null, tint = iconTint, modifier = Modifier.size(22.dp))
+        Icon(at(R.drawable.at_volume_up), contentDescription = null, tint = iconTint, modifier = Modifier.size(22.dp))
     }
 }
 
@@ -713,29 +731,32 @@ fun PlayerVolumeBar(
 
 @Composable
 private fun ClassicDesign(ui: PlayerUi) {
+    val colors = MaterialTheme.colorScheme
     DesignColumn(ui) {
         NowPlayingHeader(ui)
         ArtworkArea(ui, Modifier.weight(1f))
         Row(verticalAlignment = Alignment.CenterVertically) {
             TrackText(ui, Modifier.weight(1f))
-            Spacer(Modifier.width(10.dp))
+            Spacer(Modifier.width(12.dp))
             RoundButton(
-                Icons.Rounded.MoreVert, kozuUiString("More options"), ui.onMore,
-                container = MaterialTheme.colorScheme.secondaryContainer,
-                content = MaterialTheme.colorScheme.onSecondaryContainer,
+                at(R.drawable.at_share), kozuUiString("Share"), ui.onShare, size = 40.dp,
+                container = colors.primary, content = colors.onPrimary, shape = RoundedCornerShape(24.dp),
+            )
+            Spacer(Modifier.width(12.dp))
+            RoundButton(
+                at(R.drawable.at_more_horiz), kozuUiString("More options"), ui.onMore, size = 40.dp,
+                container = colors.primary, content = colors.onPrimary, shape = RoundedCornerShape(24.dp),
             )
         }
         PlayerSeek(ui)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            RepeatButton(ui, plain = true)
-            SkipButton(ui, next = false)
-            PlayButton(ui)
-            SkipButton(ui, next = true)
-            FavoriteButton(ui, plain = true)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { RepeatButton(ui, plain = true) }
+            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { SkipButton(ui, next = false, size = 48.dp) }
+            Spacer(Modifier.width(8.dp))
+            PlayButton(ui, width = 72.dp, height = 72.dp, shape = RoundedCornerShape(36.dp))
+            Spacer(Modifier.width(8.dp))
+            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { SkipButton(ui, next = true, size = 48.dp) }
+            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { FavoriteButton(ui, plain = true) }
         }
         QueueSleepPills(ui)
     }
@@ -745,42 +766,84 @@ private fun ClassicDesign(ui: PlayerUi) {
 
 @Composable
 private fun ModernDesign(ui: PlayerUi) {
+    val colors = MaterialTheme.colorScheme
     DesignColumn(ui) {
         NowPlayingHeader(ui)
         ArtworkArea(ui, Modifier.weight(1f), fraction = 0.94f)
         Row(verticalAlignment = Alignment.CenterVertically) {
             TrackText(ui, Modifier.weight(1f))
             Spacer(Modifier.width(8.dp))
-            FavoriteButton(ui, size = 44.dp)
-            Spacer(Modifier.width(8.dp))
-            RoundButton(Icons.Rounded.MoreVert, kozuUiString("More options"), ui.onMore, size = 44.dp)
+            // Share and favourite are one joined capsule.
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                RoundButton(
+                    at(R.drawable.at_share), kozuUiString("Share"), ui.onShare, size = 42.dp,
+                    container = colors.primary, content = colors.onPrimary,
+                    shape = RoundedCornerShape(topStart = 50.dp, bottomStart = 50.dp, topEnd = 10.dp, bottomEnd = 10.dp),
+                )
+                RoundButton(
+                    favoriteIcon(ui), kozuUiString("Favorite"), ui.onFavorite, size = 42.dp,
+                    container = colors.primary, content = colors.onPrimary,
+                    shape = RoundedCornerShape(topStart = 10.dp, bottomStart = 10.dp, topEnd = 50.dp, bottomEnd = 50.dp),
+                )
+            }
         }
         PlayerSeek(ui)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            ShuffleButton(ui, Modifier.size(46.dp))
-            SkipButton(ui, next = false, plain = false, size = 64.dp, modifier = Modifier.weight(1f).height(64.dp))
-            PlayButton(ui, width = 96.dp, height = 72.dp, shape = RoundedCornerShape(36.dp))
-            SkipButton(ui, next = true, plain = false, size = 64.dp, modifier = Modifier.weight(1f).height(64.dp))
-            RepeatButton(ui, Modifier.size(46.dp))
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val playH = maxWidth / 6f
+            val playW = playH * 1.6f
+            val sideH = playH * 0.8f
+            val sideW = sideH * 1.3f
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                SideKey(at(R.drawable.at_skip_previous), "Previous", sideW, sideH, ui.onPrevious)
+                Spacer(Modifier.width(16.dp))
+                PlayButton(ui, width = playW, height = playH, shape = RoundedCornerShape(32.dp), iconSize = 42.dp)
+                Spacer(Modifier.width(16.dp))
+                SideKey(at(R.drawable.at_skip_next), "Next", sideW, sideH, ui.onNext)
+            }
         }
-        QueueSleepPills(ui, withLabels = false)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
+            PlainIcon(at(R.drawable.at_queue_music), kozuUiString("Queue"), ui.onQueue)
+            PlainIcon(
+                at(R.drawable.at_bedtime), kozuUiString("Sleep timer"), ui.onSleep,
+                tint = if (ui.sleepActive) colors.primary else colors.onSurface,
+            )
+            ShuffleButton(ui, plain = true)
+            RepeatButton(ui, plain = true)
+            PlainIcon(at(R.drawable.at_more_vert), kozuUiString("More options"), ui.onMore)
+        }
     }
+}
+
+@Composable
+private fun SideKey(
+    icon: ImageVector,
+    description: String,
+    width: Dp,
+    height: Dp,
+    onClick: () -> Unit,
+) {
+    val haptics = rememberKozuHaptics()
+    RoundButton(
+        icon, description,
+        onClick = {
+            haptics.tick()
+            onClick()
+        },
+        modifier = Modifier.size(width, height),
+        size = height, iconSize = 32.dp,
+        container = MaterialTheme.colorScheme.primary,
+        content = MaterialTheme.colorScheme.onPrimary,
+        shape = RoundedCornerShape(32.dp),
+    )
 }
 
 // ───────────────────────────── 3. Minimal ─────────────────────────────
 
 @Composable
 private fun MinimalDesign(ui: PlayerUi) {
+    val colors = MaterialTheme.colorScheme
     DesignColumn(ui, horizontal = 28.dp) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            PlainIcon(Icons.Rounded.KeyboardArrowDown, kozuUiString("Close player"), ui.onClose)
-            Spacer(Modifier.weight(1f))
-            PlainIcon(Icons.Rounded.MoreVert, kozuUiString("More options"), ui.onMore)
-        }
+        NowPlayingHeader(ui)
         ArtworkArea(ui, Modifier.weight(1f), fraction = 0.9f)
         Row(verticalAlignment = Alignment.CenterVertically) {
             TrackText(
@@ -790,36 +853,32 @@ private fun MinimalDesign(ui: PlayerUi) {
                 artistStyle = MaterialTheme.typography.bodyLarge,
                 showMapper = false,
             )
-            FavoriteButton(ui, plain = true)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                PlainIcon(at(R.drawable.at_share), kozuUiString("Share"), ui.onShare, size = 36.dp, iconSize = 20.dp, tint = colors.onSurface.copy(alpha = 0.7f))
+                PlainIcon(
+                    favoriteIcon(ui), kozuUiString("Favorite"), ui.onFavorite, size = 36.dp, iconSize = 20.dp,
+                    tint = if (ui.isFavorite) colors.error.copy(alpha = 0.9f) else colors.onSurface.copy(alpha = 0.7f),
+                )
+            }
         }
-        PlayerSeek(
-            ui,
-            style = SeekBarStyle.THIN,
-            inactiveColor = MaterialTheme.colorScheme.outlineVariant,
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            ShuffleButton(ui, plain = true)
-            SkipButton(ui, next = false)
-            PlayButton(
-                ui, width = 64.dp, height = 64.dp,
-                container = MaterialTheme.colorScheme.onSurface,
-                content = MaterialTheme.colorScheme.surface,
-                iconSize = 30.dp,
+        PlayerSeek(ui, style = SeekBarStyle.THIN, inactiveColor = colors.outlineVariant)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
+            ShuffleButton(ui, plain = true, modifier = Modifier.size(40.dp))
+            RoundButton(
+                at(R.drawable.at_skip_previous), "Previous", ui.onPrevious, size = 52.dp, iconSize = 26.dp,
+                container = colors.onSurface.copy(alpha = 0.08f), shape = RoundedCornerShape(14.dp),
             )
-            SkipButton(ui, next = true)
-            RepeatButton(ui, plain = true)
+            PlayButton(ui, width = 70.dp, height = 70.dp, container = colors.onSurface, content = colors.surface, iconSize = 34.dp)
+            RoundButton(
+                at(R.drawable.at_skip_next), "Next", ui.onNext, size = 52.dp, iconSize = 26.dp,
+                container = colors.onSurface.copy(alpha = 0.08f), shape = RoundedCornerShape(14.dp),
+            )
+            RepeatButton(ui, plain = true, modifier = Modifier.size(40.dp))
         }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            TextAction(Icons.AutoMirrored.Rounded.QueueMusic, kozuUiString("Queue"), ui.onQueue, false)
-            TextAction(Icons.Rounded.Bedtime, kozuUiString("Sleep timer"), ui.onSleep, ui.sleepActive)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
+            TextAction(at(R.drawable.at_queue_music), kozuUiString("Queue"), ui.onQueue, false)
+            TextAction(at(R.drawable.at_bedtime), kozuUiString("Sleep timer"), ui.onSleep, ui.sleepActive)
+            TextAction(at(R.drawable.at_more_horiz), kozuUiString("More"), ui.onMore, false)
         }
     }
 }
@@ -842,227 +901,344 @@ private fun TextAction(icon: ImageVector, label: String, onClick: () -> Unit, ac
 @Composable
 private fun CinematicDesign(ui: PlayerUi) {
     val colors = MaterialTheme.colorScheme
+    val glass = colors.onSurface.copy(alpha = 0.12f)
+    val corner by animateDpAsState(
+        targetValue = if (ui.isPlaying) 28.dp else 44.dp,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "cinematicPlayCorner",
+    )
     DesignColumn(ui) {
         NowPlayingHeader(ui)
-        BoxWithConstraints(
-            modifier = Modifier.weight(1f).fillMaxWidth().playerSwipe(ui),
-            contentAlignment = Alignment.Center,
-        ) {
-            val size = minOf(maxWidth * 0.9f, maxHeight * 0.96f)
-            // Soft glow behind the artwork, tinted by the theme (which follows the artwork colours).
-            Box(
-                Modifier
-                    .size(size * 1.12f)
-                    .background(
-                        Brush.radialGradient(
-                            listOf(colors.primary.copy(alpha = 0.38f), Color.Transparent),
-                        ),
-                        CircleShape,
-                    ),
-            )
-            PlayerArt(ui, size)
-        }
-        TrackText(
-            ui,
-            Modifier.fillMaxWidth(),
-            centered = true,
-            titleStyle = MaterialTheme.typography.headlineMedium,
-        )
-        PlayerSeek(ui)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceEvenly,
-        ) {
-            ShuffleButton(ui, plain = true)
-            SkipButton(ui, next = false, plain = false, size = 60.dp)
-            PlayButton(ui, width = 80.dp, height = 80.dp)
-            SkipButton(ui, next = true, plain = false, size = 60.dp)
-            RepeatButton(ui, plain = true)
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            QueueSleepPills(ui, Modifier.weight(1f))
-            FavoriteButton(ui)
-            RoundButton(Icons.Rounded.MoreVert, kozuUiString("More options"), ui.onMore)
-        }
-    }
-}
-
-// ───────────────────────────── 5. Little ─────────────────────────────
-
-@Composable
-private fun LittleDesign(ui: PlayerUi) {
-    val colors = MaterialTheme.colorScheme
-    DesignColumn(ui) {
-        NowPlayingHeader(ui)
-        ArtworkArea(ui, Modifier.weight(1f), fraction = 0.86f)
+        ArtworkArea(ui, Modifier.weight(1f), fraction = 0.94f)
         Row(verticalAlignment = Alignment.CenterVertically) {
-            TrackText(
-                ui,
-                Modifier.weight(1f),
-                titleStyle = MaterialTheme.typography.titleLarge,
-                artistStyle = MaterialTheme.typography.bodyLarge,
-            )
+            TrackText(ui, Modifier.weight(1f))
             Spacer(Modifier.width(8.dp))
-            FavoriteButton(ui, size = 42.dp)
-            Spacer(Modifier.width(6.dp))
-            RoundButton(Icons.Rounded.MoreVert, kozuUiString("More options"), ui.onMore, size = 42.dp)
-        }
-        PlayerSeek(ui)
-        // The signature Kozu transport: three chunky tonal buttons in one rounded tray.
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(36.dp),
-            color = colors.surfaceContainer,
-        ) {
-            Box(Modifier.padding(8.dp)) {
-                TransportControls(
-                    modifier = Modifier.fillMaxWidth(),
-                    isPlaying = ui.isPlaying,
-                    onPrevious = ui.onPrevious,
-                    onPlayPause = ui.onPlayPause,
-                    onNext = ui.onNext,
-                    compact = ui.compact,
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                RoundButton(at(R.drawable.at_share), kozuUiString("Share"), ui.onShare, size = 44.dp, iconSize = 22.dp, container = glass, shape = RoundedCornerShape(14.dp))
+                RoundButton(
+                    favoriteIcon(ui), kozuUiString("Favorite"), ui.onFavorite, size = 44.dp, iconSize = 22.dp,
+                    container = if (ui.isFavorite) colors.error.copy(alpha = 0.25f) else glass,
+                    content = if (ui.isFavorite) colors.error else colors.onSurface,
+                    shape = RoundedCornerShape(14.dp),
                 )
+                RoundButton(at(R.drawable.at_more_horiz), kozuUiString("More options"), ui.onMore, size = 44.dp, iconSize = 22.dp, container = glass, shape = RoundedCornerShape(14.dp))
             }
         }
-        if (ui.showToggleRow) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                ShuffleButton(ui, Modifier.size(44.dp))
-                Spacer(Modifier.width(14.dp))
-                RepeatButton(ui, Modifier.size(44.dp))
+        PlayerSeek(ui)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                ShuffleButtonSq(ui)
+                Spacer(Modifier.width(12.dp))
+                RoundButton(
+                    at(R.drawable.at_skip_previous), "Previous", ui.onPrevious, size = 56.dp, iconSize = 28.dp,
+                    container = colors.onSurface.copy(alpha = 0.15f), shape = RoundedCornerShape(18.dp),
+                )
+            }
+            PlayButton(
+                ui, modifier = Modifier.padding(horizontal = 20.dp), width = 88.dp, height = 88.dp,
+                shape = RoundedCornerShape(corner), iconSize = 44.dp,
+            )
+            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.Start, verticalAlignment = Alignment.CenterVertically) {
+                RoundButton(
+                    at(R.drawable.at_skip_next), "Next", ui.onNext, size = 56.dp, iconSize = 28.dp,
+                    container = colors.onSurface.copy(alpha = 0.15f), shape = RoundedCornerShape(18.dp),
+                )
+                Spacer(Modifier.width(12.dp))
+                RepeatButtonSq(ui)
             }
         }
         QueueSleepPills(ui)
     }
 }
 
-// ───────────────────────────── 6. Expressive ─────────────────────────────
+@Composable
+private fun ShuffleButtonSq(ui: PlayerUi) {
+    val colors = MaterialTheme.colorScheme
+    RoundButton(
+        shuffleIcon(), "Shuffle", ui.onShuffle, size = 46.dp, iconSize = 22.dp,
+        container = if (ui.shuffle) colors.primary.copy(alpha = 0.25f) else colors.onSurface.copy(alpha = 0.08f),
+        content = if (ui.shuffle) colors.primary else colors.onSurface.copy(alpha = 0.7f),
+        shape = RoundedCornerShape(16.dp),
+    )
+}
 
-/** Rotates content a quarter turn anticlockwise and swaps its layout box to match. */
-private fun Modifier.verticalText(): Modifier =
-    this
-        .layout { measurable, constraints ->
-            val placeable =
-                measurable.measure(
-                    Constraints(
-                        minWidth = 0,
-                        maxWidth = constraints.maxHeight.takeIf { it != Constraints.Infinity } ?: 4000,
-                        minHeight = 0,
-                        maxHeight = constraints.maxWidth.takeIf { it != Constraints.Infinity } ?: 4000,
-                    ),
-                )
-            layout(placeable.height, placeable.width) {
-                placeable.place(
-                    x = -(placeable.width / 2 - placeable.height / 2),
-                    y = -(placeable.height / 2 - placeable.width / 2),
+@Composable
+private fun RepeatButtonSq(ui: PlayerUi) {
+    val colors = MaterialTheme.colorScheme
+    val active = ui.repeat != RepeatState.OFF
+    RoundButton(
+        repeatIcon(ui), "Repeat", ui.onRepeat, size = 46.dp, iconSize = 22.dp,
+        container = if (active) colors.primary.copy(alpha = 0.25f) else colors.onSurface.copy(alpha = 0.08f),
+        content = if (active) colors.primary else colors.onSurface.copy(alpha = 0.7f),
+        shape = RoundedCornerShape(16.dp),
+    )
+}
+
+// ───────────────────────────── 5. Little ─────────────────────────────
+
+/**
+ * ArchiveTune's "Little": a landscape layout turned a quarter turn, so the title runs down the
+ * screen. The tinted band is the progress: drag up and down to seek, flick sideways to skip.
+ */
+@Composable
+private fun LittleDesign(ui: PlayerUi) {
+    val colors = MaterialTheme.colorScheme
+    val pos by ui.position.collectAsStateWithLifecycle()
+    val dur by ui.duration.collectAsStateWithLifecycle()
+    var scrub by remember { mutableStateOf<Float?>(null) }
+    val fraction = scrub ?: if (dur > 0L) (pos.toFloat() / dur).coerceIn(0f, 1f) else 0f
+    val latest by rememberUpdatedState(ui)
+    val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+
+    Box(Modifier.fillMaxSize().background(colors.primaryContainer)) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(fraction)
+                .align(Alignment.TopStart)
+                .background(colors.primary.copy(alpha = 0.28f)),
+        )
+        Box(
+            Modifier
+                .fillMaxSize()
+                .pointerInput(dur) {
+                    var dx = 0f
+                    var dy = 0f
+                    detectDragGestures(
+                        onDragStart = {
+                            dx = 0f
+                            dy = 0f
+                        },
+                        onDragEnd = {
+                            val target = scrub
+                            when {
+                                target != null && dur > 0L -> latest.onSeek((target * dur).toLong())
+                                dx > 140f && abs(dx) > abs(dy) -> latest.onPrevious()
+                                dx < -140f && abs(dx) > abs(dy) -> latest.onNext()
+                            }
+                            scrub = null
+                        },
+                        onDragCancel = { scrub = null },
+                        onDrag = { change, amount ->
+                            change.consume()
+                            dx += amount.x
+                            dy += amount.y
+                            if (abs(dy) > abs(dx) && dur > 0L) {
+                                scrub = (change.position.y / size.height.coerceAtLeast(1)).coerceIn(0f, 1f)
+                            }
+                        },
+                    )
+                }.layout { measurable, constraints ->
+                    val w = constraints.maxWidth
+                    val h = constraints.maxHeight
+                    val placeable = measurable.measure(Constraints.fixed(h, w))
+                    layout(w, h) {
+                        placeable.placeWithLayer((w - placeable.width) / 2, (h - placeable.height) / 2) {
+                            rotationZ = 90f
+                        }
+                    }
+                },
+        ) {
+            LittleContent(ui, shownMs = if (scrub != null) (fraction * dur).toLong() else pos, durationMs = dur, startInset = topInset, endInset = bottomInset)
+        }
+    }
+}
+
+@Composable
+private fun LittleContent(
+    ui: PlayerUi,
+    shownMs: Long,
+    durationMs: Long,
+    startInset: Dp,
+    endInset: Dp,
+) {
+    val colors = MaterialTheme.colorScheme
+    val text = colors.onPrimaryContainer
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val scale = minOf(maxWidth / 420.dp, maxHeight / 260.dp).coerceIn(0.78f, 1.15f)
+        val timeText = formatTime(shownMs) + if (durationMs > 0L) "/" + formatTime(durationMs) else ""
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(start = startInset + (18f * scale).dp, end = endInset + (18f * scale).dp, top = (10f * scale).dp, bottom = (10f * scale).dp),
+        ) {
+            Spacer(Modifier.weight(1f))
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.SpaceBetween) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = ui.title,
+                        color = text.copy(alpha = 0.95f),
+                        fontSize = (56f * scale).sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        softWrap = false,
+                        modifier = Modifier.basicMarquee(),
+                    )
+                    Spacer(Modifier.height((10f * scale).dp))
+                    if (ui.mapper.isNotBlank()) {
+                        Text(
+                            text = "Mapped by ${ui.mapper}",
+                            color = text.copy(alpha = 0.6f),
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.clip(RoundedCornerShape(8.dp)).bounceClick(pressedScale = 0.97f, onClick = ui.onMapper),
+                        )
+                    }
+                    Text(
+                        text = "by - ${ui.artist}",
+                        color = text.copy(alpha = 0.6f),
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.clip(RoundedCornerShape(8.dp)).bounceClick(pressedScale = 0.97f, onClick = ui.onArtist),
+                    )
+                }
+                Spacer(Modifier.width((16f * scale).dp))
+                Text(
+                    text = timeText,
+                    color = text.copy(alpha = 0.85f),
+                    fontSize = (44f * scale).sp,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.End,
+                    maxLines = 1,
+                    modifier = Modifier.widthIn(min = (140f * scale).dp),
                 )
             }
-        }.rotate(-90f)
+            Spacer(Modifier.height((20f * scale).dp))
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    at(R.drawable.at_expand_more), contentDescription = "Close player",
+                    tint = text.copy(alpha = 0.8f),
+                    modifier = Modifier.size((28f * scale).dp).bounceClick(onClick = ui.onClose),
+                )
+                Spacer(Modifier.weight(1f))
+                Icon(
+                    favoriteIcon(ui), contentDescription = "Favorite",
+                    tint = if (ui.isFavorite) colors.error.copy(alpha = 0.9f) else text.copy(alpha = 0.78f),
+                    modifier = Modifier.size((26f * scale).dp).bounceClick(onClick = ui.onFavorite),
+                )
+                Spacer(Modifier.width((18f * scale).dp))
+                Icon(
+                    at(R.drawable.at_queue_music), contentDescription = "Queue",
+                    tint = text.copy(alpha = 0.78f),
+                    modifier = Modifier.size((26f * scale).dp).bounceClick(onClick = ui.onQueue),
+                )
+                Spacer(Modifier.width((18f * scale).dp))
+                Icon(
+                    at(R.drawable.at_more_vert), contentDescription = "More options",
+                    tint = text.copy(alpha = 0.78f),
+                    modifier = Modifier.size((26f * scale).dp).bounceClick(onClick = ui.onMore),
+                )
+            }
+        }
+    }
+}
+
+// ───────────────────────────── 6. Expressive ─────────────────────────────
 
 @Composable
 private fun ExpressiveDesign(ui: PlayerUi) {
     val colors = MaterialTheme.colorScheme
-    Box(Modifier.fillMaxSize()) {
-        // Two-tone field: the upper block carries the track, the lower block the controls.
-        Column(Modifier.fillMaxSize()) {
-            Box(Modifier.weight(0.58f).fillMaxWidth().background(colors.primaryContainer))
-            Box(Modifier.weight(0.42f).fillMaxWidth().background(colors.tertiaryContainer))
+    val glass = colors.onSurface.copy(alpha = 0.12f)
+    DesignColumn(ui) {
+        NowPlayingHeader(ui)
+        ArtworkArea(ui, Modifier.weight(1f), fraction = 0.94f)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            TrackText(ui, Modifier.weight(1f))
+            Spacer(Modifier.width(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                RoundButton(
+                    at(R.drawable.at_share), kozuUiString("Share"), ui.onShare, size = 42.dp, iconSize = 20.dp, container = glass,
+                    shape = RoundedCornerShape(topStart = 50.dp, bottomStart = 50.dp, topEnd = 6.dp, bottomEnd = 6.dp),
+                )
+                RoundButton(
+                    favoriteIcon(ui), kozuUiString("Favorite"), ui.onFavorite, size = 42.dp, iconSize = 20.dp,
+                    container = if (ui.isFavorite) colors.error.copy(alpha = 0.18f) else glass,
+                    content = if (ui.isFavorite) colors.error else colors.onSurface,
+                    shape = RoundedCornerShape(50),
+                )
+                RoundButton(
+                    at(R.drawable.at_more_horiz), kozuUiString("More options"), ui.onMore, size = 42.dp, iconSize = 20.dp, container = glass,
+                    shape = RoundedCornerShape(topStart = 6.dp, bottomStart = 6.dp, topEnd = 50.dp, bottomEnd = 50.dp),
+                )
+            }
         }
-        Column(
-            Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                RoundButton(
-                    Icons.Rounded.KeyboardArrowDown, kozuUiString("Close player"), ui.onClose,
-                    container = colors.surface.copy(alpha = 0.55f),
-                )
-                Spacer(Modifier.weight(1f))
-                RoundButton(
-                    Icons.Rounded.Bedtime, kozuUiString("Sleep timer"), ui.onSleep,
-                    container = if (ui.sleepActive) colors.primary else colors.surface.copy(alpha = 0.55f),
-                    content = if (ui.sleepActive) colors.onPrimary else colors.onSurface,
-                )
-                Spacer(Modifier.width(8.dp))
-                RoundButton(
-                    Icons.AutoMirrored.Rounded.QueueMusic, kozuUiString("Queue"), ui.onQueue,
-                    container = colors.surface.copy(alpha = 0.55f),
-                )
-                Spacer(Modifier.width(8.dp))
-                RoundButton(
-                    Icons.Rounded.MoreVert, kozuUiString("More options"), ui.onMore,
-                    container = colors.surface.copy(alpha = 0.55f),
-                )
-            }
-            Row(Modifier.weight(1f).fillMaxWidth().playerSwipe(ui)) {
-                // Vertical headline running up the left edge.
-                Box(Modifier.width(112.dp).fillMaxHeight(), contentAlignment = Alignment.BottomStart) {
-                    Row(
-                        modifier = Modifier.fillMaxHeight().padding(start = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        Text(
-                            text = ui.title,
-                            modifier = Modifier.verticalText(),
-                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                            color = colors.onPrimaryContainer,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            text = ui.artist,
-                            modifier =
-                                Modifier
-                                    .verticalText()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .bounceClick(pressedScale = 0.97f, onClick = ui.onArtist),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = colors.onPrimaryContainer.copy(alpha = 0.78f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-                BoxWithConstraints(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
-                    PlayerArt(
-                        ui,
-                        minOf(maxWidth, maxHeight * 0.98f),
-                        shape = if (ui.useOriginalArtwork) ui.artShape else RoundedCornerShape(36.dp),
-                    )
-                }
-            }
-            PlayerSeek(
-                ui,
-                activeColor = colors.onTertiaryContainer,
-                inactiveColor = colors.onTertiaryContainer.copy(alpha = 0.22f),
-                textColor = colors.onTertiaryContainer.copy(alpha = 0.8f),
-            )
+        PlayerSeek(ui)
+        // The chunky tray: previous and next hug a big play button.
+        Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp), color = colors.onSurface.copy(alpha = 0.08f)) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                Modifier.fillMaxWidth().padding(8.dp),
+                horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                FavoriteButton(ui, Modifier.size(52.dp), size = 52.dp)
-                SkipButton(ui, next = false, plain = false, size = 64.dp, modifier = Modifier.weight(1f).height(64.dp))
-                PlayButton(ui, width = 104.dp, height = 72.dp, shape = RoundedCornerShape(26.dp))
-                SkipButton(ui, next = true, plain = false, size = 64.dp, modifier = Modifier.weight(1f).height(64.dp))
-                ShuffleButton(ui, Modifier.size(52.dp))
+                TrayKey(
+                    at(R.drawable.at_skip_previous), "Previous", ui.onPrevious,
+                    RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp, topEnd = 8.dp, bottomEnd = 8.dp),
+                    Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(6.dp))
+                PlayButton(ui, width = 88.dp, height = 80.dp, shape = RoundedCornerShape(28.dp), iconSize = 44.dp)
+                Spacer(Modifier.width(6.dp))
+                TrayKey(
+                    at(R.drawable.at_skip_next), "Next", ui.onNext,
+                    RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp, topEnd = 28.dp, bottomEnd = 28.dp),
+                    Modifier.weight(1f),
+                )
             }
         }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+            ShuffleSmall(ui)
+            Spacer(Modifier.width(16.dp))
+            RepeatSmall(ui)
+        }
+        QueueSleepPills(ui)
     }
+}
+
+@Composable
+private fun TrayKey(
+    icon: ImageVector,
+    description: String,
+    onClick: () -> Unit,
+    shape: Shape,
+    modifier: Modifier = Modifier,
+) {
+    val haptics = rememberKozuHaptics()
+    RoundButton(
+        icon, description,
+        onClick = {
+            haptics.tick()
+            onClick()
+        },
+        modifier = modifier.height(56.dp),
+        size = 56.dp, iconSize = 28.dp,
+        container = MaterialTheme.colorScheme.secondaryContainer,
+        content = MaterialTheme.colorScheme.onSecondaryContainer,
+        shape = shape,
+    )
+}
+
+@Composable
+private fun ShuffleSmall(ui: PlayerUi) {
+    val colors = MaterialTheme.colorScheme
+    RoundButton(
+        shuffleIcon(), "Shuffle", ui.onShuffle, size = 40.dp, iconSize = 20.dp,
+        container = if (ui.shuffle) colors.primary.copy(alpha = 0.25f) else colors.onSurface.copy(alpha = 0.08f),
+        content = if (ui.shuffle) colors.primary else colors.onSurface.copy(alpha = 0.5f),
+    )
+}
+
+@Composable
+private fun RepeatSmall(ui: PlayerUi) {
+    val colors = MaterialTheme.colorScheme
+    val active = ui.repeat != RepeatState.OFF
+    RoundButton(
+        repeatIcon(ui), "Repeat", ui.onRepeat, size = 40.dp, iconSize = 20.dp,
+        container = if (active) colors.primary.copy(alpha = 0.25f) else colors.onSurface.copy(alpha = 0.08f),
+        content = if (active) colors.primary else colors.onSurface.copy(alpha = 0.5f),
+    )
 }
 
 // ───────────────────────────── 7 & 8. Immersive / Immersive Extended ─────────────────────────────
@@ -1114,7 +1290,7 @@ private fun ImmersiveDesign(ui: PlayerUi, extended: Boolean) {
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 RoundButton(
-                    Icons.Rounded.KeyboardArrowDown, kozuUiString("Close player"), ui.onClose,
+                    at(R.drawable.at_expand_more), kozuUiString("Close player"), ui.onClose,
                     container = Color.Black.copy(alpha = 0.35f), content = Color.White,
                 )
                 Text(
@@ -1127,7 +1303,7 @@ private fun ImmersiveDesign(ui: PlayerUi, extended: Boolean) {
                     overflow = TextOverflow.Ellipsis,
                 )
                 RoundButton(
-                    Icons.Rounded.MoreVert, kozuUiString("More options"), ui.onMore,
+                    at(R.drawable.at_more_vert), kozuUiString("More options"), ui.onMore,
                     container = Color.Black.copy(alpha = 0.35f), content = Color.White,
                 )
             }
@@ -1161,8 +1337,8 @@ private fun ImmersiveDesign(ui: PlayerUi, extended: Boolean) {
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TextAction(Icons.AutoMirrored.Rounded.QueueMusic, kozuUiString("Queue"), ui.onQueue, false)
-                TextAction(Icons.Rounded.Bedtime, kozuUiString("Sleep timer"), ui.onSleep, ui.sleepActive)
+                TextAction(at(R.drawable.at_queue_music), kozuUiString("Queue"), ui.onQueue, false)
+                TextAction(at(R.drawable.at_bedtime), kozuUiString("Sleep timer"), ui.onSleep, ui.sleepActive)
             }
         }
     }
@@ -1190,7 +1366,7 @@ private fun MaterialExtendedDesign(ui: PlayerUi) {
                         content = if (ui.isFavorite) colors.primary else colors.onSurface,
                     )
                     RoundButton(
-                        Icons.Rounded.MoreVert, kozuUiString("More options"), ui.onMore, size = 44.dp,
+                        at(R.drawable.at_more_vert), kozuUiString("More options"), ui.onMore, size = 44.dp,
                         container = colors.surface.copy(alpha = 0.78f),
                     )
                 }
@@ -1246,25 +1422,25 @@ private fun EditorialDesign(ui: PlayerUi) {
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 RoundButton(
-                    Icons.Rounded.KeyboardArrowDown, kozuUiString("Close player"), ui.onClose,
+                    at(R.drawable.at_expand_more), kozuUiString("Close player"), ui.onClose,
                     container = colors.onPrimaryContainer.copy(alpha = 0.14f),
                     content = colors.onPrimaryContainer,
                 )
                 Spacer(Modifier.weight(1f))
                 RoundButton(
-                    Icons.Rounded.Bedtime, kozuUiString("Sleep timer"), ui.onSleep,
+                    at(R.drawable.at_bedtime), kozuUiString("Sleep timer"), ui.onSleep,
                     container = if (ui.sleepActive) colors.primary else colors.onPrimaryContainer.copy(alpha = 0.14f),
                     content = if (ui.sleepActive) colors.onPrimary else colors.onPrimaryContainer,
                 )
                 Spacer(Modifier.width(8.dp))
                 RoundButton(
-                    Icons.AutoMirrored.Rounded.QueueMusic, kozuUiString("Queue"), ui.onQueue,
+                    at(R.drawable.at_queue_music), kozuUiString("Queue"), ui.onQueue,
                     container = colors.onPrimaryContainer.copy(alpha = 0.14f),
                     content = colors.onPrimaryContainer,
                 )
                 Spacer(Modifier.width(8.dp))
                 RoundButton(
-                    Icons.Rounded.MoreVert, kozuUiString("More options"), ui.onMore,
+                    at(R.drawable.at_more_vert), kozuUiString("More options"), ui.onMore,
                     container = colors.onPrimaryContainer.copy(alpha = 0.14f),
                     content = colors.onPrimaryContainer,
                 )
@@ -1280,8 +1456,8 @@ private fun EditorialDesign(ui: PlayerUi) {
             TrackText(
                 ui,
                 Modifier.fillMaxWidth(),
-                titleStyle = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
-                artistStyle = MaterialTheme.typography.titleLarge,
+                titleStyle = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, fontStyle = FontStyle.Italic),
+                artistStyle = MaterialTheme.typography.titleMedium,
                 titleLines = if (ui.compact) 1 else 3,
                 titleColor = colors.onPrimaryContainer,
                 subColor = colors.onPrimaryContainer.copy(alpha = 0.78f),

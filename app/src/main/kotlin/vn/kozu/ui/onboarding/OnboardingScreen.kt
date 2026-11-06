@@ -11,6 +11,19 @@ import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.unit.sp
+import kotlin.math.sin
+import vn.kozu.ui.player.PlayerDesignPreview
+import vn.kozu.ui.player.PlayerDesignSheet
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -66,12 +79,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
-import androidx.compose.material3.rememberSliderState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -152,14 +165,14 @@ fun OnboardingScreen(
             ) { current ->
                 when (current) {
                     0 -> WelcomeStep()
-                    1 -> NotificationsStep()
-                    2 -> BackupStep(container)
+                    1 -> NotificationsStep(next = { step++ })
+                    2 -> BackupStep(container, next = { step++ })
                     3 -> ThemeStep(container, settings)
                     4 -> ColorsStep(container, settings)
                     5 -> LibraryStep(container, settings)
                     6 -> NavigationStep(container, settings)
                     7 -> PlayerStep(container, settings)
-                    8 -> BatteryStep()
+                    8 -> BatteryStep(next = { step++ })
                     else -> DoneStep()
                 }
             }
@@ -180,13 +193,20 @@ private fun BottomBar(
 ) {
     val colors = MaterialTheme.colorScheme
     val last = step >= STEP_COUNT - 1
+    // The arrow button changes shape from step to step, a small nod to PixelMusic's wizard.
+    val corners = remember { listOf(32, 18, 28, 14, 30, 20, 26, 16, 32, 36) }
+    val corner by animateDpAsState(
+        targetValue = corners[step.coerceIn(0, corners.lastIndex)].dp,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "wizardButtonCorner",
+    )
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(topStart = 34.dp, topEnd = 34.dp),
+        shape = RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp),
         color = colors.surfaceContainer,
     ) {
         Row(
-            modifier = Modifier.navigationBarsPadding().padding(horizontal = 24.dp, vertical = 16.dp),
+            modifier = Modifier.navigationBarsPadding().padding(start = 28.dp, end = 20.dp, top = 18.dp, bottom = 18.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -203,8 +223,8 @@ private fun BottomBar(
             )
             Surface(
                 onClick = onNext,
-                modifier = Modifier.size(width = 76.dp, height = 60.dp),
-                shape = RoundedCornerShape(if (last) 30.dp else 22.dp),
+                modifier = Modifier.size(width = 92.dp, height = 68.dp),
+                shape = RoundedCornerShape(corner),
                 color = colors.primaryContainer,
                 contentColor = colors.onPrimaryContainer,
             ) {
@@ -212,7 +232,7 @@ private fun BottomBar(
                     Icon(
                         imageVector = if (last) Icons.Rounded.Check else Icons.AutoMirrored.Rounded.ArrowForward,
                         contentDescription = if (last) "Finish" else "Next",
-                        modifier = Modifier.size(28.dp),
+                        modifier = Modifier.size(30.dp),
                     )
                 }
             }
@@ -262,7 +282,7 @@ private fun StepPage(
     }
 }
 
-/** A big rounded blob with a glyph, orbited by two smaller tiles, standing in for artwork. */
+/** A big rounded blob with a glyph, orbited by tilted tiles and bubbles, standing in for artwork. */
 @Composable
 private fun IconCluster(
     main: ImageVector,
@@ -270,34 +290,63 @@ private fun IconCluster(
     right: ImageVector,
 ) {
     val colors = MaterialTheme.colorScheme
-    Box(Modifier.size(width = 280.dp, height = 220.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(width = 300.dp, height = 240.dp), contentAlignment = Alignment.Center) {
         Surface(
-            modifier = Modifier.size(172.dp),
+            modifier = Modifier.align(Alignment.TopStart).padding(start = 4.dp, top = 22.dp).size(64.dp),
+            shape = CircleShape,
+            color = colors.surfaceContainerHighest,
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(left, contentDescription = null, tint = colors.onSurfaceVariant, modifier = Modifier.size(28.dp))
+            }
+        }
+        Surface(
+            modifier = Modifier.size(180.dp),
             shape = KozuCookies.Soft9,
             color = colors.surfaceContainerHigh,
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(main, contentDescription = null, tint = colors.primary, modifier = Modifier.size(84.dp))
+                Icon(main, contentDescription = null, tint = colors.onSurface.copy(alpha = 0.85f), modifier = Modifier.size(92.dp))
             }
         }
         Surface(
-            modifier = Modifier.align(Alignment.TopStart).padding(top = 8.dp).size(72.dp).rotate(-12f),
+            modifier = Modifier.align(Alignment.CenterEnd).size(width = 96.dp, height = 78.dp).rotate(10f),
             shape = RoundedCornerShape(24.dp),
-            color = colors.secondaryContainer,
+            color = colors.surfaceContainerHighest,
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(left, contentDescription = null, tint = colors.onSecondaryContainer, modifier = Modifier.size(34.dp))
+                Icon(right, contentDescription = null, tint = colors.onSurfaceVariant, modifier = Modifier.size(40.dp))
             }
         }
         Surface(
-            modifier = Modifier.align(Alignment.BottomEnd).size(76.dp).rotate(10f),
-            shape = RoundedCornerShape(28.dp),
+            modifier = Modifier.align(Alignment.BottomStart).padding(start = 18.dp, bottom = 8.dp).size(44.dp),
+            shape = CircleShape,
+            color = colors.primaryContainer,
+        ) {}
+        Surface(
+            modifier = Modifier.align(Alignment.BottomEnd).padding(end = 26.dp).size(26.dp),
+            shape = CircleShape,
             color = colors.tertiaryContainer,
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(right, contentDescription = null, tint = colors.onTertiaryContainer, modifier = Modifier.size(36.dp))
-            }
+        ) {}
+    }
+}
+
+/** Wavy line used under the welcome illustration. */
+@Composable
+private fun WaveLine(modifier: Modifier = Modifier) {
+    val color = MaterialTheme.colorScheme.primary
+    Canvas(modifier.fillMaxWidth().height(24.dp)) {
+        val path = Path()
+        val amplitude = size.height * 0.32f
+        val mid = size.height / 2f
+        val wavelength = size.width / 9f
+        path.moveTo(0f, mid)
+        var x = 0f
+        while (x <= size.width) {
+            path.lineTo(x, mid + amplitude * sin((x / wavelength) * 2f * Math.PI.toFloat()))
+            x += 4f
         }
+        drawPath(path, color, style = Stroke(width = 5f, cap = StrokeCap.Round))
     }
 }
 
@@ -349,7 +398,22 @@ private fun OptionCard(
                     color = if (selected) colors.onPrimaryContainer.copy(alpha = 0.8f) else colors.onSurfaceVariant,
                 )
             }
-            RadioButton(selected = selected, onClick = null)
+            Spacer(Modifier.width(8.dp))
+            if (selected) {
+                Surface(shape = CircleShape, color = colors.primary, contentColor = colors.onPrimary, modifier = Modifier.size(28.dp)) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                    }
+                }
+            } else {
+                Box(Modifier.size(28.dp), contentAlignment = Alignment.Center) {
+                    Surface(
+                        shape = CircleShape,
+                        color = colors.onSurface.copy(alpha = 0.18f),
+                        modifier = Modifier.size(12.dp),
+                    ) {}
+                }
+            }
         }
     }
 }
@@ -396,30 +460,82 @@ private fun SkipHint(text: String = "You can change this later in Settings") {
 @Composable
 private fun WelcomeStep() {
     val context = LocalContext.current
+    val colors = MaterialTheme.colorScheme
     val version = remember { UpdateChecker.installedVersion(context) }
-    StepPage(
-        title = "Welcome to",
-        illustration = { IconCluster(Icons.Rounded.MusicNote, Icons.Rounded.Headphones, Icons.Rounded.Album) },
+    Column(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp),
     ) {
+        Spacer(Modifier.height(36.dp))
+        Text(
+            text = "Welcome\nto",
+            style = MaterialTheme.typography.displayMedium,
+            fontWeight = FontWeight.ExtraBold,
+            lineHeight = 52.sp,
+        )
         Text(
             text = "Kozu",
             style = MaterialTheme.typography.displayLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-        )
-        Text(
-            text = "v$version",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp),
+            fontWeight = FontWeight.ExtraBold,
+            color = colors.primary,
         )
         Spacer(Modifier.height(20.dp))
+        Surface(
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+            shape = RoundedCornerShape(20.dp),
+            color = colors.surfaceContainerHigh,
+        ) {
+            Text(
+                text = "v$version",
+                style = MaterialTheme.typography.labelLarge,
+                color = colors.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
+            )
+        }
+        Spacer(Modifier.height(24.dp))
+        Surface(
+            modifier = Modifier.fillMaxWidth().height(250.dp),
+            shape = RoundedCornerShape(28.dp),
+            color = colors.surfaceContainerLowest,
+        ) {
+            Box(Modifier.fillMaxSize()) {
+                Surface(
+                    modifier = Modifier.align(Alignment.Center).padding(bottom = 20.dp).size(150.dp),
+                    shape = KozuCookies.Soft9,
+                    color = colors.surfaceContainerHigh,
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(Icons.Rounded.Headphones, null, tint = colors.primary, modifier = Modifier.size(84.dp))
+                    }
+                }
+                Icon(
+                    Icons.Rounded.MusicNote, null, tint = colors.tertiary,
+                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 30.dp, end = 44.dp).size(46.dp).rotate(12f),
+                )
+                Icon(
+                    Icons.Rounded.Album, null, tint = colors.secondary,
+                    modifier = Modifier.align(Alignment.TopStart).padding(top = 40.dp, start = 36.dp).size(40.dp).rotate(-14f),
+                )
+                Icon(
+                    Icons.Rounded.MusicNote, null, tint = colors.primary.copy(alpha = 0.7f),
+                    modifier = Modifier.align(Alignment.CenterEnd).padding(end = 22.dp, top = 40.dp).size(30.dp),
+                )
+                WaveLine(Modifier.align(Alignment.BottomCenter).padding(horizontal = 12.dp, vertical = 14.dp))
+            }
+        }
+        Spacer(Modifier.height(22.dp))
         Text(
             text = "Let's get everything set up for you.",
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = colors.onSurface,
             textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
         )
+        Spacer(Modifier.height(16.dp))
     }
 }
 
@@ -428,7 +544,7 @@ private fun notificationsGranted(context: Context): Boolean =
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
 @Composable
-private fun NotificationsStep() {
+private fun NotificationsStep(next: () -> Unit) {
     val context = LocalContext.current
     var granted by remember { mutableStateOf(notificationsGranted(context)) }
     val launcher =
@@ -444,13 +560,16 @@ private fun NotificationsStep() {
             Text("Notifications are enabled", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
         } else {
             Button(onClick = { launcher.launch(Manifest.permission.POST_NOTIFICATIONS) }) { Text("Enable Notifications") }
-            SkipHint("You can skip this and enable it later")
+            TextButton(onClick = next) { Text("Skip for now") }
         }
     }
 }
 
 @Composable
-private fun BackupStep(container: AppContainer) {
+private fun BackupStep(
+    container: AppContainer,
+    next: () -> Unit,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }
@@ -493,7 +612,7 @@ private fun BackupStep(container: AppContainer) {
             Spacer(Modifier.height(12.dp))
             Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center)
         }
-        SkipHint("Skip / Not now: just continue")
+        TextButton(onClick = next) { Text("Skip / Not now") }
     }
 }
 
@@ -577,60 +696,93 @@ private fun LibraryStep(
     settings: AppSettings,
 ) {
     val scope = rememberCoroutineScope()
+    val colors = MaterialTheme.colorScheme
+    val compact = settings.libraryNavigationMode == LibraryNavigationMode.COMPACT
     StepPage(
         title = "Library Layout",
-        subtitle = "Choose how you move around your library.",
-        illustration = { IconCluster(Icons.Rounded.LibraryMusic, Icons.Rounded.Album, Icons.AutoMirrored.Rounded.QueueMusic) },
+        subtitle = "Choose your preferred way to navigate your library.",
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            LibraryNavigationMode.entries.forEach { mode ->
-                OptionCard(
-                    icon = Icons.Rounded.LibraryMusic,
-                    title = mode.label,
-                    subtitle =
-                        if (mode == LibraryNavigationMode.COMPACT) {
-                            "Minimal pill navigation, swipe between tabs."
-                        } else {
-                            "Standard tab row, always visible."
-                        },
-                    selected = settings.libraryNavigationMode == mode,
-                    onClick = { scope.launch { container.settings.setLibraryNavigationMode(mode) } },
-                )
+        // A live miniature of the Library header in the chosen layout.
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(28.dp),
+            color = colors.surfaceContainerLow,
+        ) {
+            Box(
+                Modifier
+                    .background(Brush.verticalGradient(listOf(colors.primaryContainer.copy(alpha = 0.55f), Color.Transparent)))
+                    .padding(horizontal = 20.dp, vertical = 22.dp),
+            ) {
+                Column {
+                    Text("Library", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, color = colors.primary)
+                    Spacer(Modifier.height(14.dp))
+                    if (compact) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Surface(shape = CircleShape, color = colors.primaryContainer, contentColor = colors.onPrimaryContainer) {
+                                Text("SONGS", style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+                            }
+                            Surface(shape = CircleShape, color = colors.surfaceContainerHigh) {
+                                Text("PLAYLISTS", style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+                            }
+                            Surface(shape = CircleShape, color = colors.surfaceContainerHigh) {
+                                Text("FAVORITES", style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+                            }
+                        }
+                    } else {
+                        Row(horizontalArrangement = Arrangement.spacedBy(22.dp)) {
+                            Column {
+                                Text("SONGS", style = MaterialTheme.typography.labelLarge, color = colors.primary)
+                                Box(Modifier.padding(top = 6.dp).size(width = 44.dp, height = 3.dp).background(colors.primary, CircleShape))
+                            }
+                            Text("PLAYLISTS", style = MaterialTheme.typography.labelLarge, color = colors.onSurfaceVariant)
+                            Text("FAVORITES", style = MaterialTheme.typography.labelLarge, color = colors.onSurfaceVariant)
+                        }
+                    }
+                }
             }
         }
-        SkipHint("You can change this later in Settings > Appearance")
+        Spacer(Modifier.height(16.dp))
+        SwitchCard(
+            title = "Compact Mode",
+            subtitle = if (compact) "Using minimal pill navigation" else "Using standard tab row",
+            checked = compact,
+            onChange = { on ->
+                scope.launch {
+                    container.settings.setLibraryNavigationMode(
+                        if (on) LibraryNavigationMode.COMPACT else LibraryNavigationMode.TAB_ROW,
+                    )
+                }
+            },
+        )
+        SkipHint("You can change this later in Settings > Appearance > Library")
     }
 }
-
 @Composable
 private fun NavigationStep(
     container: AppContainer,
     settings: AppSettings,
 ) {
     val scope = rememberCoroutineScope()
-    val radiusState = rememberSliderState(
-        value = settings.navCornerRadius.toFloat(),
-        trackRange = 0f..32f,
-    )
-    val radius = radiusState.value
+    var radius by remember { mutableFloatStateOf(settings.navCornerRadius.toFloat()) }
     val floating = settings.navigationStyle == NavigationStyle.FLOATING
     StepPage(
         title = "App Navigation",
         subtitle = "Choose the style of the bottom navigation bar.",
-        illustration = { NavPreview(floating = floating, radius = radius) },
     ) {
+        NavPreview(floating = floating, radius = radius)
+        Spacer(Modifier.height(14.dp))
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             OptionCard(
                 icon = Icons.Rounded.ViewCarousel,
-                title = "Expressive pill",
+                title = "Expressive Pill",
                 subtitle = "Floating capsule with a custom corner radius.",
                 selected = floating,
                 onClick = { scope.launch { container.settings.setNavigationStyle(NavigationStyle.FLOATING) } },
             )
             OptionCard(
                 icon = Icons.Rounded.Tune,
-                title = "Classic",
-                subtitle = "Edge-to-edge bar across the bottom.",
+                title = "Classic Bar",
+                subtitle = "Edge-to-edge navigation bar across the bottom.",
                 selected = !floating,
                 onClick = { scope.launch { container.settings.setNavigationStyle(NavigationStyle.CLASSIC) } },
             )
@@ -646,11 +798,10 @@ private fun NavigationStep(
                             Text("${radius.toInt()} dp", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                         }
                         Slider(
-                            state = radiusState,
-                            onValueChange = { radiusState.value = it },
-                            onValueChangeFinished = {
-                                scope.launch { container.settings.setNavCornerRadius(radiusState.value.toInt()) }
-                            },
+                            value = radius,
+                            onValueChange = { radius = it },
+                            onValueChangeFinished = { scope.launch { container.settings.setNavCornerRadius(radius.toInt()) } },
+                            valueRange = 0f..32f,
                         )
                     }
                 }
@@ -659,7 +810,6 @@ private fun NavigationStep(
         SkipHint("You can change this later in Settings > Appearance > Navigation bar")
     }
 }
-
 /** A tiny mock-up of the screen with the chosen navigation bar at the bottom. */
 @Composable
 private fun NavPreview(
@@ -711,42 +861,61 @@ private fun PlayerStep(
     settings: AppSettings,
 ) {
     val scope = rememberCoroutineScope()
+    val colors = MaterialTheme.colorScheme
     val current = settings.appearance.playerLayoutStyle
+    var sheetOpen by remember { mutableStateOf(false) }
     StepPage(
         title = "Player Design",
-        subtitle = "Pick how the full player looks. Tap one to try it.",
-        illustration = { IconCluster(Icons.Rounded.ViewCarousel, Icons.Rounded.Palette, Icons.Rounded.MusicNote) },
+        subtitle = "Pick how the full player looks. You can try them all.",
     ) {
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+        Surface(
+            onClick = { sheetOpen = true },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(28.dp),
+            color = colors.surfaceContainer,
         ) {
-            PlayerLayoutStyle.entries.forEach { style ->
-                FilterChip(
-                    selected = style == current,
-                    onClick = { scope.launch { container.settings.updateAppearance { copy(playerLayoutStyle = style) } } },
-                    label = { Text(style.label) },
-                )
+            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = colors.surface,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, colors.outlineVariant),
+                ) {
+                    PlayerDesignPreview(current, Modifier.width(112.dp))
+                }
+                Spacer(Modifier.width(18.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(current.label, style = MaterialTheme.typography.titleLarge)
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        current.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colors.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(14.dp))
+                    FilledTonalButton(onClick = { sheetOpen = true }) { Text("Change design") }
+                }
             }
         }
-        Spacer(Modifier.height(10.dp))
-        Text(
-            text = current.description,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
         SkipHint("You can change this later in Settings > Appearance > Player")
     }
+    if (sheetOpen) {
+        PlayerDesignSheet(
+            selected = current,
+            onSelect = { style ->
+                scope.launch { container.settings.updateAppearance { copy(playerLayoutStyle = style) } }
+                sheetOpen = false
+            },
+            onDismiss = { sheetOpen = false },
+        )
+    }
 }
-
 private fun batteryUnrestricted(context: Context): Boolean =
     runCatching {
         (context.getSystemService(Context.POWER_SERVICE) as PowerManager).isIgnoringBatteryOptimizations(context.packageName)
     }.getOrDefault(false)
 
 @Composable
-private fun BatteryStep() {
+private fun BatteryStep(next: () -> Unit) {
     val context = LocalContext.current
     var unrestricted by remember { mutableStateOf(batteryUnrestricted(context)) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { unrestricted = batteryUnrestricted(context) }
@@ -770,7 +939,7 @@ private fun BatteryStep() {
                     }
                 },
             ) { Text("Disable Optimization") }
-            SkipHint("You can skip this for now")
+            TextButton(onClick = next) { Text("Skip for now") }
         }
     }
 }

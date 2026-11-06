@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -151,6 +152,7 @@ fun PlayerStylePage(
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val appearance = settings.appearance
+    var showDesigns by remember { mutableStateOf(false) }
 
     SettingsScaffold(title = "Player & mini player", onBack = onBack) {
         SettingsSection("Live preview") {
@@ -204,13 +206,12 @@ fun PlayerStylePage(
             }
         }
         SettingsSection("Full player") {
-            dropdown(
+            navigation(
                 Setting.PLAYER_LAYOUT,
-                appearance.playerLayoutStyle,
-                PlayerLayoutStyle.entries.toList(),
-                { it.label },
+                value = appearance.playerLayoutStyle.label,
                 description = appearance.playerLayoutStyle.description,
-            ) { value -> viewModel.updateAppearance { copy(playerLayoutStyle = value) } }
+                onClick = { showDesigns = true },
+            )
             dropdown(
                 Setting.SEEK_STYLE,
                 appearance.seekStyle,
@@ -300,6 +301,17 @@ fun PlayerStylePage(
                 }
             }
         }
+    }
+
+    if (showDesigns) {
+        vn.kozu.ui.player.PlayerDesignSheet(
+            selected = appearance.playerLayoutStyle,
+            onSelect = { style ->
+                viewModel.updateAppearance { copy(playerLayoutStyle = style) }
+                showDesigns = false
+            },
+            onDismiss = { showDesigns = false },
+        )
     }
 }
 
