@@ -3,7 +3,12 @@ package vn.kozu.ui.theme
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import android.content.Context
+import android.os.Build
 import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MaterialTheme
@@ -30,11 +35,20 @@ fun KozuTheme(
     appFont: AppFont = AppFont.GOOGLE_SANS_FLEX,
     appearance: AppearancePrefs = AppearancePrefs(),
     paletteStyle: PaletteStyle = PaletteStyle.TONAL_SPOT,
+    secondarySeed: Color? = null,
+    tertiarySeed: Color? = null,
+    useSystemDynamic: Boolean = false,
     content: @Composable () -> Unit,
 ) {
+    val context = LocalContext.current
+    val dynamicAvailable = useSystemDynamic && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val target =
-        remember(seed, darkTheme, amoled, paletteStyle) {
-            kozuColorScheme(seed, darkTheme, amoled, paletteStyle)
+        remember(seed, darkTheme, amoled, paletteStyle, secondarySeed, tertiarySeed, dynamicAvailable) {
+            if (dynamicAvailable) {
+                systemDynamicScheme(context, darkTheme, amoled)
+            } else {
+                kozuColorScheme(seed, darkTheme, amoled, paletteStyle, secondarySeed, tertiarySeed)
+            }
         }
     val animated = rememberAnimatedColorScheme(target)
     val typography =
@@ -59,6 +73,28 @@ fun KozuTheme(
             ProvideKozuDensity(appearance, content)
         }
     }
+}
+
+/** Wallpaper-derived Material You colours (Android 12+), with the app's pure-black AMOLED option. */
+@androidx.annotation.RequiresApi(Build.VERSION_CODES.S)
+private fun systemDynamicScheme(
+    context: Context,
+    dark: Boolean,
+    amoled: Boolean,
+): ColorScheme {
+    if (!dark) return dynamicLightColorScheme(context)
+    val scheme = dynamicDarkColorScheme(context)
+    if (!amoled) return scheme
+    return scheme.copy(
+        background = Color.Black,
+        surface = Color.Black,
+        surfaceDim = Color.Black,
+        surfaceContainerLowest = Color.Black,
+        surfaceContainerLow = Color(0xFF0A0A0A),
+        surfaceContainer = Color(0xFF121212),
+        surfaceContainerHigh = Color(0xFF1B1B1B),
+        surfaceContainerHighest = Color(0xFF242424),
+    )
 }
 
 @Composable

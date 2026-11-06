@@ -393,9 +393,9 @@ enum class Setting(
     PLAYER_LAYOUT(
         SettingsPage.PLAYER_STYLE,
         Icons.Rounded.ViewCarousel,
-        "Now Playing layout",
-        "Choose a Balanced, Editorial, Immersive or Compact player design.",
-        "now playing layout design editorial immersive compact balanced",
+        "Player design style",
+        "Choose how the full player looks: Classic, Modern, Minimal, Cinematic, Little, Expressive, Immersive, Material Extended or Editorial.",
+        "now playing layout design style classic modern minimal cinematic little expressive immersive extended material editorial",
     ),
     SEEK_STYLE(
         SettingsPage.PLAYER_STYLE,
@@ -424,6 +424,13 @@ enum class Setting(
         "Shuffle, repeat and like row",
         "Show quick controls in the player.",
         "shuffle repeat favorite",
+    ),
+    VOLUME_BAR(
+        SettingsPage.PLAYER_STYLE,
+        Icons.AutoMirrored.Rounded.VolumeUp,
+        "Show volume bar",
+        "Adds a media volume slider. Available with the Immersive, Immersive Extended and Material Extended designs.",
+        "volume slider loudness sound bar",
     ),
     RESET_PLAYER_STYLE(
         SettingsPage.PLAYER_STYLE,
@@ -460,6 +467,13 @@ enum class Setting(
         "App style",
         "Choose how Kozu looks and feels.",
         "expressive classic material",
+    ),
+    THEME_PRESET(
+        SettingsPage.APPEARANCE,
+        Icons.Rounded.Palette,
+        "Theme preset",
+        "Pick a ready-made palette: osu!, Dynamic, Sage Green, Sunset Orange, Purple Pink, Ocean Blue, Sunny Yellow or Dark & Grey.",
+        "theme preset palette color scheme dynamic wallpaper material you osu sage sunset ocean sunny grey",
     ),
     ACCENT_COLOR(SettingsPage.APPEARANCE, Icons.Rounded.Palette, "Accent color", "Used when nothing is playing.", "theme color seed"),
     ARTWORK_COLORS(

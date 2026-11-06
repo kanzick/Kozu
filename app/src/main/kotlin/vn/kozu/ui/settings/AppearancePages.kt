@@ -249,6 +249,13 @@ fun PlayerStylePage(
                     )
                 },
             ) { icon -> viewModel.save { setPlaybackIcon(icon) } }
+            switch(
+                Setting.VOLUME_BAR,
+                appearance.showVolumeBar,
+                enabled = appearance.playerLayoutStyle.supportsVolumeBar,
+            ) { enabled ->
+                viewModel.updateAppearance { copy(showVolumeBar = enabled) }
+            }
             switch(Setting.TOGGLE_ROW, appearance.showToggleRow) { enabled ->
                 viewModel.updateAppearance { copy(showToggleRow = enabled) }
             }
@@ -283,7 +290,8 @@ fun PlayerStylePage(
                         miniSpinArtwork = true,
                         miniSwipeToSkip = true,
                         seekStyle = SeekBarStyle.WAVY,
-                        playerLayoutStyle = PlayerLayoutStyle.BALANCED,
+                        playerLayoutStyle = PlayerLayoutStyle.CLASSIC,
+                        showVolumeBar = true,
                         playerArtShape = ArtworkShape.DEFAULT,
                         transportShape = TransportShape.PILL,
                         iconStyle = vn.kozu.domain.model.IconStyle.ROUNDED,

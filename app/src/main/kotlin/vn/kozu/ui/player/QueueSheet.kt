@@ -2,6 +2,8 @@ package vn.kozu.ui.player
 
 import vn.kozu.ui.i18n.kozuUiString
 
+import android.os.SystemClock
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.rounded.ClearAll
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.DragIndicator
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material3.ButtonDefaults
@@ -36,6 +39,15 @@ import vn.kozu.ui.i18n.KozuText as Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -65,11 +77,41 @@ fun QueueSheet(
 ) {
     val showHistory = LocalAppSettings.current.showQueueHistory
     val haptics = rememberKozuHaptics()
-    val firstShown = if (shuffle || showHistory || currentIndex < 0) 0 else currentIndex.coerceAtMost(queue.size)
-    val shownCount = (queue.size - firstShown).coerceAtLeast(0)
+
+    // The list is edited locally while a song is being dragged so it follows the finger at once;
+    // every step is also pushed to the real queue so playback order changes with it.
+    val uidCounter = remember { LongArray(1) { queue.size.toLong() } }
+    var entries by remember { mutableStateOf(queue.mapIndexed { i, b -> QueueEntry(i.toLong(), b) }) }
+    var currentUid by remember { mutableLongStateOf(entries.getOrNull(currentIndex)?.uid ?: -1L) }
+    var dragging by remember { mutableStateOf(false) }
+    var droppedAt by remember { mutableLongStateOf(0L) }
+    var frozenFirst by remember { mutableStateOf<Int?>(null) }
+
+    LaunchedEffect(queue, currentIndex, dragging) {
+        if (dragging) return@LaunchedEffect
+        // Give the player a moment to apply the last move so we do not briefly snap back.
+        val wait = 350L - (SystemClock.uptimeMillis() - droppedAt)
+        if (wait > 0) delay(wait)
+        val same = entries.size == queue.size && entries.indices.all { entries[it].beatmap.id == queue[it].id }
+        if (!same) {
+            val pool = entries.toMutableList()
+            entries =
+                queue.map { beatmap ->
+                    val found = pool.indexOfFirst { it.beatmap.id == beatmap.id }
+                    if (found >= 0) pool.removeAt(found) else QueueEntry(uidCounter[0]++, beatmap)
+                }
+        }
+        currentUid = entries.getOrNull(currentIndex)?.uid ?: -1L
+        frozenFirst = null
+    }
+
+    val baseFirst = if (shuffle || showHistory || currentIndex < 0) 0 else currentIndex.coerceAtMost(entries.size)
+    val firstShown = frozenFirst ?: baseFirst
+    val shownCount = (entries.size - firstShown).coerceAtLeast(0)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        sheetGesturesEnabled = !dragging,
         sheetState =
             rememberBottomSheetState(
                 initialValue = SheetValue.Hidden,
@@ -127,100 +169,108 @@ fun QueueSheet(
                 rememberLazyListState(
                     initialFirstVisibleItemIndex = (currentIndex - firstShown - 1).coerceAtLeast(0),
                 )
+            val reorderableState =
+                rememberReorderableLazyListState(
+                    lazyListState = listState,
+                    onMove = { from, to ->
+                        val fromIndex = firstShown + from.index
+                        val toIndex = firstShown + to.index
+                        if (fromIndex in entries.indices && toIndex in entries.indices && fromIndex != toIndex) {
+                            entries = entries.toMutableList().apply { add(toIndex, removeAt(fromIndex)) }
+                            haptics.tick()
+                            onMove(fromIndex, toIndex)
+                        }
+                    },
+                )
             LazyColumn(
                 state = listState,
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
             ) {
-                items(shownCount) { offset ->
+                items(
+                    count = shownCount,
+                    key = { offset -> entries.getOrNull(firstShown + offset)?.uid ?: (-1L - offset) },
+                ) { offset ->
                     val index = firstShown + offset
-                    val beatmap = queue[index]
-                    val isCurrent = index == currentIndex
+                    val entry = entries.getOrNull(index) ?: return@items
+                    val beatmap = entry.beatmap
+                    val isCurrent = entry.uid == currentUid
                     val isPast = !shuffle && showHistory && index < currentIndex
-                    Surface(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 3.dp)
-                                .alpha(if (isPast) 0.55f else 1f)
-                                .bounceClick(pressedScale = 0.98f) { onSkipTo(index) },
-                        shape = RoundedCornerShape(22.dp),
-                        color =
-                            if (isCurrent) {
-                                MaterialTheme.colorScheme.primaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.surfaceContainer
-                            },
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(start = 10.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
-                                BeatmapArt(beatmap, Modifier.size(48.dp), shape = RoundedCornerShape(15.dp))
+                    ReorderableItem(reorderableState, key = entry.uid) { isDragging ->
+                        val elevation by animateDpAsState(if (isDragging) 10.dp else 0.dp, label = "queueDragElevation")
+                        Surface(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 3.dp)
+                                    .alpha(if (isPast && !isDragging) 0.55f else 1f)
+                                    .bounceClick(pressedScale = 0.98f) { onSkipTo(index) },
+                            shape = RoundedCornerShape(22.dp),
+                            shadowElevation = elevation,
+                            color =
                                 if (isCurrent) {
-                                    EqualizerBars(
-                                        isPlaying = isPlaying,
-                                        color = Color.White,
-                                        modifier = Modifier.size(20.dp),
+                                    MaterialTheme.colorScheme.primaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceContainer
+                                },
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(start = 10.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                                    BeatmapArt(beatmap, Modifier.size(48.dp), shape = RoundedCornerShape(15.dp))
+                                    if (isCurrent) {
+                                        EqualizerBars(
+                                            isPlaying = isPlaying,
+                                            color = Color.White,
+                                            modifier = Modifier.size(20.dp),
+                                        )
+                                    }
+                                }
+                                Spacer(Modifier.width(12.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(
+                                        beatmap.title,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    Text(
+                                        beatmap.artist,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
                                     )
                                 }
-                            }
-                            Spacer(Modifier.width(12.dp))
-                            Column(Modifier.weight(1f)) {
-                                Text(
-                                    beatmap.title,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                Text(
-                                    beatmap.artist,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                            if (queue.size > 1) {
-                                Column {
-                                    IconButton(
-                                        onClick = {
-                                            haptics.tick()
-                                            onMove(index, index - 1)
-                                        },
-                                        enabled = index > firstShown,
-                                        modifier = Modifier.size(32.dp),
-                                    ) {
+                                if (!isCurrent) {
+                                    IconButton(onClick = { onRemove(index) }) {
                                         Icon(
-                                            Icons.Rounded.KeyboardArrowUp,
-                                            contentDescription = kozuUiString("Move up"),
+                                            Icons.Rounded.Close,
+                                            contentDescription = kozuUiString("Remove from queue"),
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(22.dp),
-                                        )
-                                    }
-                                    IconButton(
-                                        onClick = {
-                                            haptics.tick()
-                                            onMove(index, index + 1)
-                                        },
-                                        enabled = index < queue.lastIndex,
-                                        modifier = Modifier.size(32.dp),
-                                    ) {
-                                        Icon(
-                                            Icons.Rounded.KeyboardArrowDown,
-                                            contentDescription = kozuUiString("Move down"),
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(22.dp),
                                         )
                                     }
                                 }
-                            }
-                            if (!isCurrent) {
-                                IconButton(onClick = { onRemove(index) }) {
+                                if (entries.size > 1) {
                                     Icon(
-                                        Icons.Rounded.Close,
-                                        contentDescription = kozuUiString("Remove from queue"),
+                                        Icons.Rounded.DragIndicator,
+                                        contentDescription = kozuUiString("Reorder song"),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier =
+                                            Modifier
+                                                .draggableHandle(
+                                                    onDragStarted = {
+                                                        frozenFirst = baseFirst
+                                                        dragging = true
+                                                        haptics.press()
+                                                    },
+                                                    onDragStopped = {
+                                                        droppedAt = SystemClock.uptimeMillis()
+                                                        dragging = false
+                                                    },
+                                                ).padding(horizontal = 8.dp, vertical = 12.dp)
+                                                .size(24.dp),
                                     )
                                 }
                             }
@@ -232,3 +282,8 @@ fun QueueSheet(
         }
     }
 }
+
+private class QueueEntry(
+    val uid: Long,
+    val beatmap: Beatmap,
+)

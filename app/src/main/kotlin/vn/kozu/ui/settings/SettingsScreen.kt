@@ -71,7 +71,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.layout.onSizeChanged
+import vn.kozu.ui.components.scrollReveal
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -121,7 +121,6 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     initialPage: SettingsPage = SettingsPage.ROOT,
     viewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory),
-    bottomContent: (@Composable () -> Unit)? = null,
 ) {
     var page by rememberSaveable(initialPage) { mutableStateOf(initialPage) }
     val pageStateHolder = rememberSaveableStateHolder()
@@ -152,15 +151,11 @@ fun SettingsScreen(
         highlight = null
     }
 
-    val density = LocalDensity.current
-    var bottomContentHeightPx by remember { mutableIntStateOf(0) }
-    val bottomContentHeight = with(density) { bottomContentHeightPx.toDp() }
-
     Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         CompositionLocalProvider(LocalSettingsHighlight provides highlight) {
             AnimatedContent(
                 targetState = page,
-                modifier = Modifier.fillMaxSize().padding(bottom = bottomContentHeight),
+                modifier = Modifier.fillMaxSize(),
                 transitionSpec = {
                     val forward = (initialState == SettingsPage.ROOT && targetState != SettingsPage.ROOT) ||
                         targetState == SettingsPage.LICENSES ||
@@ -249,18 +244,6 @@ fun SettingsScreen(
             )
         }
 
-        if (bottomContent != null) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .onSizeChanged { bottomContentHeightPx = it.height }
-                    .zIndex(20f),
-            ) {
-                bottomContent()
-            }
-        }
     }
 }
 
@@ -337,6 +320,7 @@ private fun SettingsGroupCard(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .scrollReveal()
                             .bounceClick(pressedScale = 0.99f) { onOpen(page) }
                             .padding(horizontal = 16.dp, vertical = 13.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -475,7 +459,7 @@ private fun SettingsSearchOverlay(onClose: () -> Unit, onPick: (Setting) -> Unit
             LazyColumn(
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
-                modifier = Modifier.navigationBarsPadding()
+                modifier = Modifier.navigationBarsPadding().padding(bottom = vn.kozu.ui.components.LocalOverlayBottomInset.current)
             ) {
                 items(results, key = { it.name }) { setting ->
                     val index = results.indexOf(setting)

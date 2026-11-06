@@ -337,6 +337,7 @@ data class AppSettings(
     val amoled: Boolean = false,
     val artworkColors: Boolean = true,
     val accent: AccentColor = AccentColor.PINK,
+    val themePreset: ThemePreset = ThemePreset.OSU,
     val displayName: String = "",
     val osuClientId: String = "",
     val osuClientSecret: String = "",

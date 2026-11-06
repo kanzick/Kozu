@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -79,7 +80,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import vn.kozu.ui.components.KozuSlider
+import vn.kozu.ui.components.LocalOverlayBottomInset
+import vn.kozu.ui.components.LocalScrollViewport
+import vn.kozu.ui.components.ScrollViewport
+import vn.kozu.ui.components.scrollReveal
 import vn.kozu.ui.components.LocalPerformanceMode
 import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.rememberKozuHaptics
@@ -146,25 +154,37 @@ fun SettingsPageScaffold(
     val fraction = ((maxPx - headerPx) / (maxPx - minPx)).coerceIn(0f, 1f)
     val headerDp = with(density) { headerPx.toDp() }
 
+    val viewport = remember { ScrollViewport() }
+    val overlayInset = LocalOverlayBottomInset.current
+    val navBottomPx = WindowInsets.navigationBars.getBottom(density)
+    val overlayInsetPx = with(density) { overlayInset.toPx() }
+
     Box(
         modifier =
             modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.surface)
-                .nestedScroll(connection),
+                .nestedScroll(connection)
+                .onGloballyPositioned {
+                    viewport.bottomPx =
+                        it.positionInWindow().y + it.size.height - navBottomPx - overlayInsetPx
+                },
     ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(top = headerDp)
-                    .imePadding()
-                    .verticalScroll(scroll)
-                    .navigationBarsPadding()
-                    .padding(horizontal = 16.dp)
-                    .padding(top = 4.dp, bottom = 32.dp),
-        ) {
-            content()
+        CompositionLocalProvider(LocalScrollViewport provides viewport) {
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(top = headerDp)
+                        .imePadding()
+                        .verticalScroll(scroll)
+                        .navigationBarsPadding()
+                        .padding(bottom = overlayInset)
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 4.dp, bottom = 32.dp),
+            ) {
+                content()
+            }
         }
 
         CollapsingHeader(
@@ -378,6 +398,7 @@ internal fun SettingCard(
         Modifier
             .fillMaxWidth()
             .bringIntoViewRequester(bring)
+            .scrollReveal()
 
     if (onClick != null) {
         Surface(

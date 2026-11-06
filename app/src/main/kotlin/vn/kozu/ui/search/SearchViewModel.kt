@@ -17,6 +17,7 @@ import vn.kozu.di.AppContainer
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.BrowseFilters
 import vn.kozu.domain.model.BrowseGenre
+import vn.kozu.domain.model.BrowseSortField
 import vn.kozu.domain.model.SearchCategory
 import vn.kozu.ui.containerFactory
 
@@ -133,7 +134,7 @@ class SearchViewModel(
             cursor = if (exhausted) null else result.nextCursor
             _ui.update {
                 it.copy(
-                    results = (it.results + result.items).distinctBy { beatmap -> beatmap.id },
+                    results = (it.results + rankPage(filters, result.items)).distinctBy { beatmap -> beatmap.id },
                     isLoadingMore = false,
                     hasMore = !exhausted,
                 )
@@ -155,13 +156,14 @@ class SearchViewModel(
             viewModelScope.launch {
                 if (delayMs > 0) delay(delayMs)
                 _ui.update { it.copy(phase = SearchPhase.LOADING, error = null, hasMore = false, isLoadingMore = false) }
-                val result = container.catalog.browse(_ui.value.filters, null)
+                val requested = _ui.value.filters
+                val result = container.catalog.browse(requested, null)
                 if (token != generation) return@launch
                 cursor = result.nextCursor
                 _ui.update {
                     it.copy(
                         phase = SearchPhase.DONE,
-                        results = result.items.distinctBy { beatmap -> beatmap.id },
+                        results = rankPage(requested, result.items).distinctBy { beatmap -> beatmap.id },
                         total = result.total,
                         source = result.source,
                         error = result.error,
@@ -170,6 +172,14 @@ class SearchViewModel(
                 }
             }
     }
+
+    /** Only relevance searches are re-ranked; any explicit sort order is respected as-is. */
+    private fun rankPage(filters: BrowseFilters, items: List<Beatmap>): List<Beatmap> =
+        if (filters.sort.option == BrowseSortField.RELEVANCE && filters.trimmedQuery.isNotEmpty()) {
+            SearchRanker.rank(filters.trimmedQuery, items)
+        } else {
+            items
+        }
 
     companion object {
         val Factory = containerFactory { SearchViewModel(it) }
