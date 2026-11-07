@@ -12,18 +12,25 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -77,11 +84,14 @@ import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Slider
+import androidx.compose.material3.rememberSliderState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -119,6 +129,8 @@ import vn.kozu.domain.model.NavigationStyle
 import vn.kozu.domain.model.StartTab
 import vn.kozu.domain.model.ThemeMode
 import vn.kozu.domain.model.ThemePreset
+import vn.kozu.ui.navigation.KozuTab
+import vn.kozu.ui.theme.KozuMotion
 import vn.kozu.ui.components.FitText
 import vn.kozu.ui.i18n.KozuText as Text
 import vn.kozu.ui.player.PlayerDesignSheet
@@ -1044,6 +1056,7 @@ private fun LibraryPreview(compact: Boolean) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun NavigationStep(
     container: AppContainer,
@@ -1059,6 +1072,14 @@ private fun NavigationStep(
     }
     var radius by remember(settings.navCornerRadius) {
         mutableFloatStateOf(settings.navCornerRadius.toFloat().coerceIn(0f, 32f))
+    }
+    val radiusSliderState = rememberSliderState(
+        value = radius,
+        trackRange = 0f..32f,
+    )
+    // Keep the slider in sync if the saved setting is reloaded while this step is visible.
+    LaunchedEffect(settings.navCornerRadius) {
+        radiusSliderState.value = settings.navCornerRadius.toFloat().coerceIn(0f, 32f)
     }
 
     fun selectNavigation(style: Int) {
@@ -1109,6 +1130,7 @@ private fun NavigationStep(
                         TextButton(
                             onClick = {
                                 radius = 32f
+                                radiusSliderState.value = 32f
                                 scope.launch { container.settings.setNavCornerRadius(32) }
                             },
                         ) {
@@ -1121,12 +1143,15 @@ private fun NavigationStep(
                         )
                     }
                     Slider(
-                        value = radius,
-                        onValueChange = { radius = it.coerceIn(0f, 32f) },
+                        state = radiusSliderState,
+                        onValueChange = { value ->
+                            val clampedValue = value.coerceIn(0f, 32f)
+                            radiusSliderState.value = clampedValue
+                            radius = clampedValue
+                        },
                         onValueChangeFinished = {
                             scope.launch { container.settings.setNavCornerRadius(radius.toInt()) }
                         },
-                        valueRange = 0f..32f,
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Text(
@@ -1170,77 +1195,137 @@ private fun NavPreview(
     radius: Float,
 ) {
     val colors = MaterialTheme.colorScheme
+    var previewSelected by rememberSaveable { mutableStateOf(0) }
+    val barHeight by animateDpAsState(
+        targetValue = if (compact) 56.dp else 64.dp,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "wizardNavBarHeight",
+    )
+    val animatedRadius by animateFloatAsState(
+        targetValue = radius.coerceIn(0f, 32f),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMediumLow,
+        ),
+        label = "wizardNavRadius",
+    )
+    val searchSize by animateDpAsState(
+        targetValue = if (compact) 48.dp else 56.dp,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "wizardNavSearchSize",
+    )
+    val barShape = RoundedCornerShape((barHeight.value * animatedRadius / 64f).dp)
+    val itemShape = RoundedCornerShape(((barHeight.value - 18f) * animatedRadius / 64f).dp)
+
     Surface(
         modifier = Modifier.fillMaxWidth().height(200.dp),
         shape = RoundedCornerShape(24.dp),
         color = colors.surfaceContainerHigh,
     ) {
         Box(Modifier.fillMaxSize()) {
-            Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                Modifier.fillMaxWidth().padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 Box(Modifier.fillMaxWidth().height(12.dp).clip(CircleShape).background(colors.surfaceContainerHighest))
                 Box(Modifier.fillMaxWidth(0.72f).height(12.dp).clip(CircleShape).background(colors.surfaceContainerHighest))
                 Box(Modifier.fillMaxWidth(0.9f).height(12.dp).clip(CircleShape).background(colors.surfaceContainerHighest))
             }
             if (floating) {
+                val tabs = KozuTab.entries.filter { it.inPill }
                 Row(
-                    modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(horizontal = 14.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Surface(
-                        modifier = Modifier.weight(1f).height(if (compact) 56.dp else 64.dp),
-                        shape = RoundedCornerShape(radius.dp.coerceIn(0.dp, 32.dp)),
-                        color = colors.surfaceContainer,
-                        tonalElevation = 5.dp,
+                        modifier = Modifier.weight(1f).height(barHeight),
+                        shape = barShape,
+                        color = colors.surfaceContainerHigh,
                     ) {
                         Row(
-                            Modifier.fillMaxSize().padding(horizontal = 8.dp),
+                            modifier = Modifier.fillMaxSize().padding(horizontal = 9.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            val navItems = listOf(
-                                Icons.Rounded.Home to "Home",
-                                Icons.Rounded.Explore to "Explore",
-                                Icons.Rounded.LibraryMusic to "Library",
-                                Icons.Rounded.SportsEsports to "Game",
-                            )
-                            navItems.forEachIndexed { index, (icon, label) ->
-                                val selected = index == 0
-                                Row(
+                            tabs.forEachIndexed { index, tab ->
+                                val selected = previewSelected == index
+                                val itemWeight by animateFloatAsState(
+                                    targetValue = if (selected && !compact) 2.4f else 1f,
+                                    animationSpec = KozuMotion.spatial(),
+                                    label = "wizardNavItemWeight$index",
+                                )
+                                val itemContainer by animateColorAsState(
+                                    targetValue = if (selected) colors.primary else Color.Transparent,
+                                    animationSpec = tween(200),
+                                    label = "wizardNavItemContainer$index",
+                                )
+                                val itemContent by animateColorAsState(
+                                    targetValue = if (selected) colors.onPrimary else colors.primary,
+                                    animationSpec = tween(200),
+                                    label = "wizardNavItemContent$index",
+                                )
+                                Box(
                                     modifier = Modifier
-                                        .weight(if (selected && !compact) 2.2f else 1f)
-                                        .clip(RoundedCornerShape(18.dp))
-                                        .background(if (selected) colors.primary else Color.Transparent)
-                                        .padding(horizontal = 5.dp, vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center,
+                                        .weight(itemWeight.coerceAtLeast(0.2f))
+                                        .height(barHeight - 18.dp)
+                                        .clickable { previewSelected = index }
+                                        .clip(itemShape)
+                                        .background(itemContainer),
+                                    contentAlignment = Alignment.Center,
                                 ) {
-                                    Icon(
-                                        icon,
-                                        contentDescription = null,
-                                        tint = if (selected) colors.onPrimary else colors.primary,
-                                        modifier = Modifier.size(22.dp),
-                                    )
-                                    if (selected && !compact) {
-                                        Text(
-                                            label,
-                                            style = MaterialTheme.typography.labelLarge,
-                                            color = colors.onPrimary,
-                                            maxLines = 1,
-                                            modifier = Modifier.padding(start = 5.dp),
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = if (selected) tab.icon else tab.outlinedIcon,
+                                            contentDescription = null,
+                                            tint = itemContent,
+                                            modifier = Modifier.size(24.dp),
                                         )
+                                        AnimatedVisibility(
+                                            visible = selected && !compact,
+                                            enter = fadeIn(tween(160)) + expandHorizontally(KozuMotion.spatial()),
+                                            exit = fadeOut(tween(90)) + shrinkHorizontally(tween(160)),
+                                        ) {
+                                            Text(
+                                                text = tab.title,
+                                                modifier = Modifier.padding(start = 8.dp),
+                                                style = MaterialTheme.typography.labelLarge,
+                                                color = itemContent,
+                                                maxLines = 1,
+                                                softWrap = false,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                        }
                                     }
                                 }
                             }
                         }
                     }
+                    val searchSelected = previewSelected == tabs.size
+                    val searchContainer by animateColorAsState(
+                        targetValue = if (searchSelected) colors.primary else colors.surfaceContainerHigh,
+                        animationSpec = tween(200),
+                        label = "wizardNavSearchContainer",
+                    )
+                    val searchContent by animateColorAsState(
+                        targetValue = if (searchSelected) colors.onPrimary else colors.primary,
+                        animationSpec = tween(200),
+                        label = "wizardNavSearchContent",
+                    )
                     Surface(
-                        modifier = Modifier.size(if (compact) 48.dp else 54.dp),
-                        shape = RoundedCornerShape(radius.dp.coerceIn(0.dp, 32.dp)),
-                        color = colors.surfaceContainer,
-                        tonalElevation = 5.dp,
+                        modifier = Modifier.size(searchSize).clickable { previewSelected = tabs.size },
+                        shape = RoundedCornerShape((searchSize.value * animatedRadius / 64f).dp),
+                        color = searchContainer,
                     ) {
                         Box(contentAlignment = Alignment.Center) {
-                            Icon(Icons.Rounded.Search, null, tint = colors.primary, modifier = Modifier.size(22.dp))
+                            Icon(
+                                imageVector = if (searchSelected) KozuTab.SEARCH.icon else KozuTab.SEARCH.outlinedIcon,
+                                contentDescription = null,
+                                tint = searchContent,
+                                modifier = Modifier.size(26.dp),
+                            )
                         }
                     }
                 }
@@ -1265,7 +1350,7 @@ private fun NavPreview(
                         )
                         navItems.forEachIndexed { index, (icon, label) ->
                             Column(
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier.weight(1f).clickable { previewSelected = index },
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(3.dp),
                             ) {
@@ -1289,7 +1374,6 @@ private fun NavPreview(
         }
     }
 }
-
 
 @Composable
 private fun PlayerStep(
