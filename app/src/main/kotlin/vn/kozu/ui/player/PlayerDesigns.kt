@@ -46,6 +46,7 @@ import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -148,6 +149,7 @@ class PlayerUi(
     val onShare: () -> Unit,
     val onArtist: () -> Unit,
     val onMapper: () -> Unit,
+    val previewMode: Boolean = false,
 )
 
 @Composable
@@ -189,8 +191,7 @@ private fun DesignColumn(
         modifier =
             modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
+                .then(if (ui.previewMode) Modifier else Modifier.statusBarsPadding().navigationBarsPadding())
                 .padding(horizontal = horizontal, vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(if (ui.compact) 6.dp else 12.dp),
         content = content,
@@ -282,15 +283,29 @@ private fun FullBleedArt(
                 .crossfade(300)
                 .build()
         }
-    AsyncImage(
-        model = request,
-        contentDescription = null,
-        contentScale = ContentScale.Crop,
-        modifier = modifier.graphicsLayer {
-            scaleX = ui.coverScale
-            scaleY = ui.coverScale
-        },
-    )
+    val colors = MaterialTheme.colorScheme
+    Box(modifier = modifier) {
+        Box(
+            Modifier.fillMaxSize().background(
+                Brush.linearGradient(listOf(colors.primaryContainer, colors.tertiaryContainer)),
+            ),
+        )
+        Icon(
+            imageVector = Icons.Rounded.MusicNote,
+            contentDescription = null,
+            tint = colors.onPrimaryContainer.copy(alpha = 0.45f),
+            modifier = Modifier.align(Alignment.Center).size(64.dp),
+        )
+        AsyncImage(
+            model = request,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize().graphicsLayer {
+                scaleX = ui.coverScale
+                scaleY = ui.coverScale
+            },
+        )
+    }
 }
 
 @Composable
@@ -788,17 +803,31 @@ private fun ModernDesign(ui: PlayerUi) {
             }
         }
         PlayerSeek(ui)
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
-            val playH = maxWidth / 6f
-            val playW = playH * 1.6f
-            val sideH = playH * 0.8f
-            val sideW = sideH * 1.3f
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                SideKey(at(R.drawable.at_skip_previous), "Previous", sideW, sideH, ui.onPrevious)
-                Spacer(Modifier.width(16.dp))
-                PlayButton(ui, width = playW, height = playH, shape = RoundedCornerShape(32.dp), iconSize = 42.dp)
-                Spacer(Modifier.width(16.dp))
-                SideKey(at(R.drawable.at_skip_next), "Next", sideW, sideH, ui.onNext)
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(32.dp),
+            color = colors.surfaceContainerHigh,
+        ) {
+            Row(
+                Modifier.fillMaxWidth().padding(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    SkipButton(ui, next = false, plain = false, size = 56.dp)
+                }
+                PlayButton(
+                    ui,
+                    width = 104.dp,
+                    height = 72.dp,
+                    shape = RoundedCornerShape(28.dp),
+                    container = colors.surface,
+                    content = colors.onSurface,
+                    iconSize = 40.dp,
+                )
+                Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    SkipButton(ui, next = true, plain = false, size = 56.dp)
+                }
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
@@ -812,29 +841,6 @@ private fun ModernDesign(ui: PlayerUi) {
             PlainIcon(at(R.drawable.at_more_vert), kozuUiString("More options"), ui.onMore)
         }
     }
-}
-
-@Composable
-private fun SideKey(
-    icon: ImageVector,
-    description: String,
-    width: Dp,
-    height: Dp,
-    onClick: () -> Unit,
-) {
-    val haptics = rememberKozuHaptics()
-    RoundButton(
-        icon, description,
-        onClick = {
-            haptics.tick()
-            onClick()
-        },
-        modifier = Modifier.size(width, height),
-        size = height, iconSize = 32.dp,
-        container = MaterialTheme.colorScheme.primary,
-        content = MaterialTheme.colorScheme.onPrimary,
-        shape = RoundedCornerShape(32.dp),
-    )
 }
 
 // ───────────────────────────── 3. Minimal ─────────────────────────────
@@ -988,8 +994,8 @@ private fun LittleDesign(ui: PlayerUi) {
     var scrub by remember { mutableStateOf<Float?>(null) }
     val fraction = scrub ?: if (dur > 0L) (pos.toFloat() / dur).coerceIn(0f, 1f) else 0f
     val latest by rememberUpdatedState(ui)
-    val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val topInset = if (ui.previewMode) 0.dp else WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val bottomInset = if (ui.previewMode) 0.dp else WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
     Box(Modifier.fillMaxSize().background(colors.primaryContainer)) {
         Box(
@@ -1056,7 +1062,7 @@ private fun LittleContent(
     val colors = MaterialTheme.colorScheme
     val text = colors.onPrimaryContainer
     BoxWithConstraints(Modifier.fillMaxSize()) {
-        val scale = minOf(maxWidth / 420.dp, maxHeight / 260.dp).coerceIn(0.78f, 1.15f)
+        val scale = minOf(maxWidth / 420.dp, maxHeight / 260.dp).coerceIn(0.90f, 1.20f)
         val timeText = formatTime(shownMs) + if (durationMs > 0L) "/" + formatTime(durationMs) else ""
         Column(
             Modifier
@@ -1069,7 +1075,7 @@ private fun LittleContent(
                     Text(
                         text = ui.title,
                         color = text.copy(alpha = 0.95f),
-                        fontSize = (56f * scale).sp,
+                        fontSize = (62f * scale).sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
                         softWrap = false,
@@ -1099,7 +1105,7 @@ private fun LittleContent(
                 Text(
                     text = timeText,
                     color = text.copy(alpha = 0.85f),
-                    fontSize = (44f * scale).sp,
+                    fontSize = (48f * scale).sp,
                     fontWeight = FontWeight.Medium,
                     textAlign = TextAlign.End,
                     maxLines = 1,
@@ -1283,8 +1289,7 @@ private fun ImmersiveDesign(ui: PlayerUi, extended: Boolean) {
         Column(
             Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
+                .then(if (ui.previewMode) Modifier else Modifier.statusBarsPadding().navigationBarsPadding())
                 .padding(horizontal = 20.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(if (ui.compact) 6.dp else 10.dp),
         ) {
@@ -1415,8 +1420,7 @@ private fun EditorialDesign(ui: PlayerUi) {
         Column(
             Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
+                .then(if (ui.previewMode) Modifier else Modifier.statusBarsPadding().navigationBarsPadding())
                 .padding(horizontal = 24.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(if (ui.compact) 6.dp else 12.dp),
         ) {
@@ -1456,9 +1460,9 @@ private fun EditorialDesign(ui: PlayerUi) {
             TrackText(
                 ui,
                 Modifier.fillMaxWidth(),
-                titleStyle = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, fontStyle = FontStyle.Italic),
+                titleStyle = MaterialTheme.typography.headlineLarge.copy(fontSize = 44.sp, fontWeight = FontWeight.Bold, fontStyle = FontStyle.Italic),
                 artistStyle = MaterialTheme.typography.titleMedium,
-                titleLines = if (ui.compact) 1 else 3,
+                titleLines = if (ui.compact) 1 else 2,
                 titleColor = colors.onPrimaryContainer,
                 subColor = colors.onPrimaryContainer.copy(alpha = 0.78f),
                 accent = colors.onPrimaryContainer,
@@ -1472,15 +1476,39 @@ private fun EditorialDesign(ui: PlayerUi) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Surface(
+                    modifier = Modifier.weight(1f).height(76.dp).bounceClick(pressedScale = 0.96f, onClick = ui.onPlayPause),
+                    shape = CircleShape,
+                    color = colors.onPrimaryContainer,
+                    contentColor = colors.primaryContainer,
+                ) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = if (ui.isPlaying) "PAUSE" else "PLAY",
+                            style = MaterialTheme.typography.headlineSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 3.sp,
+                            ),
+                        )
+                    }
+                }
+                RoundButton(
+                    at(R.drawable.at_skip_next), "Next", ui.onNext,
+                    size = 76.dp, iconSize = 32.dp,
+                    container = colors.onPrimaryContainer,
+                    content = colors.primaryContainer,
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
                 ShuffleButton(ui, plain = true)
-                SkipButton(ui, next = false, plain = false, size = 60.dp)
-                PlayButton(
-                    ui, width = 84.dp, height = 84.dp,
-                    container = colors.onPrimaryContainer, content = colors.primaryContainer,
-                )
-                SkipButton(ui, next = true, plain = false, size = 60.dp)
+                SkipButton(ui, next = false, plain = false, size = 56.dp)
+                RepeatButton(ui, plain = true)
                 FavoriteButton(ui, plain = true)
             }
         }

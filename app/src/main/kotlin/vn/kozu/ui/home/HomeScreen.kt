@@ -455,9 +455,9 @@ private fun OsuRankHistoryChart(values: List<Int>) {
 private fun Greeting(name: String) {
     val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
     val line = when (hour) {
-        in 5..11 -> "Good morning,"
-        in 12..17 -> "Good afternoon,"
-        in 18..22 -> "Good evening,"
+        in 5..11 -> "Good morning"
+        in 12..17 -> "Good afternoon"
+        in 18..22 -> "Good evening"
         else -> "Still up?"
     }
     Column(Modifier.padding(horizontal = 20.dp)) {
@@ -467,7 +467,7 @@ private fun Greeting(name: String) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
-            text = "${name.ifBlank { "osu! Player" }} 👋",
+            text = "${name.ifBlank { "osu! Player" }}",
             style = MaterialTheme.typography.displaySmall,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
