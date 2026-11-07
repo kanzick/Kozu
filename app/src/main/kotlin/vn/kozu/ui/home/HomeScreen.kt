@@ -69,6 +69,7 @@ import coil3.compose.AsyncImage
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.ListeningStats
 import vn.kozu.domain.model.OsuProfile
+import vn.kozu.ui.components.softTopEdge
 import vn.kozu.ui.components.BeatmapArt
 import vn.kozu.ui.components.rememberKozuHaptics
 import vn.kozu.ui.components.LocalAppSettings
@@ -76,6 +77,7 @@ import vn.kozu.ui.components.RefreshIndicator
 import vn.kozu.ui.components.LocalTrackActions
 import vn.kozu.ui.components.ScreenHeader
 import vn.kozu.ui.components.SectionHeader
+import vn.kozu.ui.components.NewsAction
 import vn.kozu.ui.components.SettingsAction
 import vn.kozu.ui.components.TrackPill
 import vn.kozu.ui.components.TrackRow
@@ -93,6 +95,7 @@ fun HomeScreen(
     listState: LazyListState,
     bottomPadding: Dp,
     onOpenSettings: () -> Unit,
+    onOpenNews: () -> Unit = {},
     onOpenExplore: () -> Unit,
     onOpenLibrary: () -> Unit,
     onOpenStats: () -> Unit,
@@ -162,6 +165,7 @@ fun HomeScreen(
                 }
             },
             actions = {
+                NewsAction(onOpenNews)
                 SettingsAction(onOpenSettings)
             }
         )
@@ -181,7 +185,7 @@ fun HomeScreen(
         ) {
             LazyColumn(
                 state = listState,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().softTopEdge(listState),
                 contentPadding = PaddingValues(top = 24.dp, bottom = bottomPadding)
             ) {
                 item(key = "greeting") { Greeting(name = ui.displayName) }

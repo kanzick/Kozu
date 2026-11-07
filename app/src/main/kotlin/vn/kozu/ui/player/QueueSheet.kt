@@ -1,6 +1,7 @@
 package vn.kozu.ui.player
 
 import android.os.SystemClock
+import vn.kozu.ui.components.KozuSheetHandle
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -143,7 +144,9 @@ fun QueueSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetGesturesEnabled = !dragging,
+        dragHandle = { KozuSheetHandle() },
+        // While the queue is unlocked it is being edited, so the sheet must not steal the drag.
+        sheetGesturesEnabled = locked,
         sheetState =
             rememberBottomSheetState(
                 initialValue = SheetValue.Hidden,
@@ -151,160 +154,22 @@ fun QueueSheet(
             ),
         containerColor = colors.surface,
     ) {
-        Column(Modifier.fillMaxSize().navigationBarsPadding()) {
-            // ── now playing header ──
-            if (current != null) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    BeatmapArt(current, Modifier.size(96.dp), shape = RoundedCornerShape(24.dp))
-                    Spacer(Modifier.width(20.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            text = current.displayTitle(settings.preferUnicode),
-                            style = MaterialTheme.typography.headlineMedium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            text = current.displayArtist(settings.preferUnicode),
-                            style = MaterialTheme.typography.titleLarge,
-                            color = colors.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    IconButton(onClick = onFavorite) {
-                        Icon(
-                            at(if (isFavorite) R.drawable.at_favorite else R.drawable.at_favorite_border),
-                            contentDescription = kozuUiString("Favorite"),
-                            tint = if (isFavorite) colors.error else colors.onSurface,
-                            modifier = Modifier.size(32.dp),
-                        )
-                    }
-                }
-                Spacer(Modifier.height(12.dp))
-            }
-
-            // ── toolbar: lock, more, clear, summary ──
-            Surface(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(32.dp),
-                color = colors.surfaceContainerHigh,
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    IconButton(
-                        onClick = {
-                            haptics.tick()
-                            locked = !locked
-                        },
-                    ) {
-                        Icon(
-                            at(if (locked) R.drawable.at_lock else R.drawable.at_lock_open),
-                            contentDescription = kozuUiString(if (locked) "Unlock queue" else "Lock queue"),
-                            tint = if (locked) colors.onSurface else colors.primary,
-                        )
-                    }
-                    Box {
-                        IconButton(onClick = { menuOpen = true }) {
-                            Icon(at(R.drawable.at_more_vert), contentDescription = kozuUiString("More options"))
-                        }
-                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                            DropdownMenuItem(
-                                text = { Text("Save as playlist") },
-                                enabled = queue.isNotEmpty(),
-                                leadingIcon = { Icon(at(R.drawable.at_playlist_play), contentDescription = null) },
-                                onClick = {
-                                    menuOpen = false
-                                    onSaveAsPlaylist(queue)
-                                },
-                            )
-                        }
-                    }
-                    IconButton(
-                        onClick = {
-                            haptics.press()
-                            onClear()
-                            onDismiss()
-                        },
-                        enabled = queue.isNotEmpty(),
-                    ) {
-                        Icon(
-                            at(R.drawable.at_delete),
-                            contentDescription = kozuUiString("Clear queue"),
-                            tint = colors.error,
-                        )
-                    }
-                    Spacer(Modifier.weight(1f))
-                    Text(
-                        text = "${queue.size} ${if (queue.size == 1) "song" else "songs"}",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = colors.onSurfaceVariant,
-                        modifier = Modifier.padding(end = 16.dp),
-                    )
-                }
-            }
-            Spacer(Modifier.height(10.dp))
-
-            // ── shuffle · repeat · autoplay ──
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                QueueKey(
-                    icon = at(R.drawable.at_shuffle),
-                    description = "Shuffle",
-                    active = shuffle,
-                    shape = RoundedCornerShape(topStart = 36.dp, bottomStart = 36.dp, topEnd = 10.dp, bottomEnd = 10.dp),
-                    onClick = onShuffle,
-                    modifier = Modifier.weight(1f),
-                )
-                QueueKey(
-                    icon = at(if (repeat == RepeatState.ONE) R.drawable.at_repeat_one else R.drawable.at_repeat),
-                    description = "Repeat",
-                    active = repeat != RepeatState.OFF,
-                    shape = RoundedCornerShape(10.dp),
-                    onClick = onRepeat,
-                    modifier = Modifier.weight(1f),
-                )
-                QueueKey(
-                    icon = at(R.drawable.at_all_inclusive),
-                    description = "Autoplay",
-                    active = autoplay,
-                    shape = RoundedCornerShape(topStart = 10.dp, bottomStart = 10.dp, topEnd = 36.dp, bottomEnd = 36.dp),
-                    onClick = onToggleAutoplay,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-            Spacer(Modifier.height(18.dp))
-
-            Column(Modifier.padding(horizontal = 16.dp)) {
-                Text("Continue Playing", style = MaterialTheme.typography.headlineSmall)
-                Text(
-                    text = if (autoplay) "Autoplaying similar music" else "Playing from your queue",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = colors.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(10.dp))
-                HorizontalDivider(color = colors.outlineVariant)
-            }
-
+        Box(Modifier.fillMaxSize()) {
             // ── list ──
             val listState =
                 rememberLazyListState(
-                    initialFirstVisibleItemIndex = (currentIndex - firstShown - 1).coerceAtLeast(0),
+                    // Start on the header unless the playing song is far down the list.
+                    initialFirstVisibleItemIndex =
+                        (currentIndex - firstShown).let { if (it <= 3) 0 else 3 + it - 1 },
                 )
             val reorderableState =
                 rememberReorderableLazyListState(
                     lazyListState = listState,
                     onMove = { from, to ->
-                        val fromIndex = firstShown + from.index
-                        val toIndex = firstShown + to.index
-                        if (fromIndex in entries.indices && toIndex in entries.indices && fromIndex != toIndex) {
+                        // Match rows by key: the header items above shift the lazy-list indexes.
+                        val fromIndex = entries.indexOfFirst { it.uid == from.key }
+                        val toIndex = entries.indexOfFirst { it.uid == to.key }
+                        if (fromIndex >= 0 && toIndex >= 0 && fromIndex != toIndex) {
                             entries = entries.toMutableList().apply { add(toIndex, removeAt(fromIndex)) }
                             haptics.tick()
                             onMove(fromIndex, toIndex)
@@ -313,9 +178,159 @@ fun QueueSheet(
                 )
             LazyColumn(
                 state = listState,
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                modifier = Modifier.fillMaxSize().navigationBarsPadding(),
+                contentPadding = PaddingValues(bottom = 16.dp),
             ) {
+                item(key = "queue-head-0") {
+                    Column {
+                    // ── now playing header ──
+                    if (current != null) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            BeatmapArt(current, Modifier.size(96.dp), shape = RoundedCornerShape(24.dp))
+                            Spacer(Modifier.width(20.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    text = current.displayTitle(settings.preferUnicode),
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                Text(
+                                    text = current.displayArtist(settings.preferUnicode),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = colors.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                            IconButton(onClick = onFavorite) {
+                                Icon(
+                                    at(if (isFavorite) R.drawable.at_favorite else R.drawable.at_favorite_border),
+                                    contentDescription = kozuUiString("Favorite"),
+                                    tint = if (isFavorite) colors.error else colors.onSurface,
+                                    modifier = Modifier.size(32.dp),
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(12.dp))
+                    }
+                    }
+                }
+                item(key = "queue-head-1") {
+                    Column {
+                    // ── toolbar: lock, more, clear, summary ──
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        shape = RoundedCornerShape(32.dp),
+                        color = colors.surfaceContainerHigh,
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    haptics.tick()
+                                    locked = !locked
+                                },
+                            ) {
+                                Icon(
+                                    at(if (locked) R.drawable.at_lock else R.drawable.at_lock_open),
+                                    contentDescription = kozuUiString(if (locked) "Unlock queue" else "Lock queue"),
+                                    tint = if (locked) colors.onSurface else colors.primary,
+                                )
+                            }
+                            Box {
+                                IconButton(onClick = { menuOpen = true }) {
+                                    Icon(at(R.drawable.at_more_vert), contentDescription = kozuUiString("More options"))
+                                }
+                                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                                    DropdownMenuItem(
+                                        text = { Text("Save as playlist") },
+                                        enabled = queue.isNotEmpty(),
+                                        leadingIcon = { Icon(at(R.drawable.at_playlist_play), contentDescription = null) },
+                                        onClick = {
+                                            menuOpen = false
+                                            onSaveAsPlaylist(queue)
+                                        },
+                                    )
+                                }
+                            }
+                            IconButton(
+                                onClick = {
+                                    haptics.press()
+                                    onClear()
+                                    onDismiss()
+                                },
+                                enabled = queue.isNotEmpty(),
+                            ) {
+                                Icon(
+                                    at(R.drawable.at_delete),
+                                    contentDescription = kozuUiString("Clear queue"),
+                                    tint = colors.error,
+                                )
+                            }
+                            Spacer(Modifier.weight(1f))
+                            Text(
+                                text = "${queue.size} ${if (queue.size == 1) "song" else "songs"}",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = colors.onSurfaceVariant,
+                                modifier = Modifier.padding(end = 16.dp),
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    }
+                }
+                item(key = "queue-head-2") {
+                    Column {
+                    // ── shuffle · repeat · autoplay ──
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        QueueKey(
+                            icon = at(R.drawable.at_shuffle),
+                            description = "Shuffle",
+                            active = shuffle,
+                            shape = RoundedCornerShape(topStart = 36.dp, bottomStart = 36.dp, topEnd = 10.dp, bottomEnd = 10.dp),
+                            onClick = onShuffle,
+                            modifier = Modifier.weight(1f),
+                        )
+                        QueueKey(
+                            icon = at(if (repeat == RepeatState.ONE) R.drawable.at_repeat_one else R.drawable.at_repeat),
+                            description = "Repeat",
+                            active = repeat != RepeatState.OFF,
+                            shape = RoundedCornerShape(10.dp),
+                            onClick = onRepeat,
+                            modifier = Modifier.weight(1f),
+                        )
+                        QueueKey(
+                            icon = at(R.drawable.at_all_inclusive),
+                            description = "Autoplay",
+                            active = autoplay,
+                            shape = RoundedCornerShape(topStart = 10.dp, bottomStart = 10.dp, topEnd = 36.dp, bottomEnd = 36.dp),
+                            onClick = onToggleAutoplay,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    Spacer(Modifier.height(18.dp))
+
+                    Column(Modifier.padding(horizontal = 16.dp)) {
+                        Text("Continue Playing", style = MaterialTheme.typography.headlineSmall)
+                        Text(
+                            text = if (autoplay) "Autoplaying similar music" else "Playing from your queue",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = colors.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        HorizontalDivider(color = colors.outlineVariant)
+                    }
+                    }
+                }
                 items(
                     count = shownCount,
                     key = { offset -> entries.getOrNull(firstShown + offset)?.uid ?: (-1L - offset) },
@@ -327,10 +342,6 @@ fun QueueSheet(
                     val isPast = !shuffle && showHistory && index < currentIndex
                     ReorderableItem(reorderableState, key = entry.uid) { isDragging ->
                         val elevation by animateDpAsState(if (isDragging) 10.dp else 0.dp, label = "queueDragElevation")
-                        val swipe = rememberSwipeToDismissBoxState(positionalThreshold = { it * 0.8f })
-                        LaunchedEffect(swipe.currentValue) {
-                            if (swipe.currentValue != SwipeToDismissBoxValue.Settled) removeEntryAt(index)
-                        }
                         val row: @Composable () -> Unit = {
                             Surface(
                                 modifier =
@@ -374,12 +385,11 @@ fun QueueSheet(
                                             overflow = TextOverflow.Ellipsis,
                                         )
                                     }
-                                    if (locked) {
-                                        QueueRowMenu(
-                                            canRemove = !isCurrent,
-                                            onRemove = { removeEntryAt(index) },
-                                        )
-                                    } else {
+                                    QueueRowMenu(
+                                        canRemove = !isCurrent,
+                                        onRemove = { removeEntryAt(index) },
+                                    )
+                                    if (!locked) {
                                         Icon(
                                             at(R.drawable.at_drag_handle),
                                             contentDescription = kozuUiString("Reorder song"),
@@ -403,33 +413,7 @@ fun QueueSheet(
                                 }
                             }
                         }
-                        if (locked || isDragging || isCurrent) {
-                            row()
-                        } else {
-                            SwipeToDismissBox(
-                                state = swipe,
-                                backgroundContent = {
-                                    if (swipe.dismissDirection != SwipeToDismissBoxValue.Settled) {
-                                        Box(
-                                            modifier =
-                                                Modifier
-                                                    .fillMaxSize()
-                                                    .clip(RoundedCornerShape(28.dp))
-                                                    .background(colors.errorContainer)
-                                                    .padding(20.dp),
-                                            contentAlignment =
-                                                if (swipe.dismissDirection == SwipeToDismissBoxValue.StartToEnd) {
-                                                    Alignment.CenterStart
-                                                } else {
-                                                    Alignment.CenterEnd
-                                                },
-                                        ) {
-                                            Icon(at(R.drawable.at_delete), contentDescription = null, tint = colors.onErrorContainer)
-                                        }
-                                    }
-                                },
-                            ) { row() }
-                        }
+                        row()
                     }
                 }
             }

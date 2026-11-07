@@ -1,6 +1,7 @@
 package vn.kozu.ui.player
 
 import android.os.SystemClock
+import vn.kozu.ui.components.KozuSheetHandle
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -77,6 +78,7 @@ fun SleepTimerSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        dragHandle = { KozuSheetHandle() },
         sheetState = rememberBottomSheetState(
             initialValue = SheetValue.Hidden,
             enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)

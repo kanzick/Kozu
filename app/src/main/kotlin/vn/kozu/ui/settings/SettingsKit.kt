@@ -1,6 +1,7 @@
 package vn.kozu.ui.settings
 
 import vn.kozu.ui.i18n.kozuUiString
+import vn.kozu.ui.components.KozuSheetHandle
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
@@ -88,6 +89,7 @@ import vn.kozu.ui.components.LocalOverlayBottomInset
 import vn.kozu.ui.components.LocalScrollViewport
 import vn.kozu.ui.components.ScrollViewport
 import vn.kozu.ui.components.scrollReveal
+import vn.kozu.ui.components.softTopEdge
 import vn.kozu.ui.components.LocalPerformanceMode
 import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.rememberKozuHaptics
@@ -177,6 +179,7 @@ fun SettingsPageScaffold(
                         .fillMaxSize()
                         .padding(top = headerDp)
                         .imePadding()
+                        .softTopEdge(scroll)
                         .verticalScroll(scroll)
                         .navigationBarsPadding()
                         .padding(bottom = overlayInset)
@@ -599,6 +602,7 @@ fun <T> OptionSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        dragHandle = { KozuSheetHandle() },
         sheetState =
             rememberBottomSheetState(
                 initialValue = SheetValue.Hidden,

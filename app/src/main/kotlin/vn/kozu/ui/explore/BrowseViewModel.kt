@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import vn.kozu.data.repository.BeatmapRepository
 import vn.kozu.data.repository.CatalogSource
 import vn.kozu.di.AppContainer
 import vn.kozu.domain.model.Beatmap
@@ -22,6 +23,8 @@ data class BrowseUiState(
     val filters: BrowseFilters = BrowseFilters(),
     val items: List<Beatmap> = emptyList(),
     val total: Int? = null,
+    /** Index (in the whole result list) of `items[0]`; non-zero after jumping straight to a page. */
+    val baseOffset: Int = 0,
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
     val isLoadingMore: Boolean = false,
@@ -139,12 +142,39 @@ class BrowseViewModel(
                 _ui.update {
                     it.copy(
                         items = (it.items + rankForQuery(active, result.items)).distinctBy { beatmap -> beatmap.id },
-                        total = result.total ?: it.total,
+                        // Deeper pages of the public index report a capped total; never shrink it.
+                        total = maxOf(it.total ?: 0, result.total ?: 0).takeIf { total -> total > 0 },
                         isLoadingMore = false,
                         hasMore = !exhausted,
                     )
                 }
             }
+    }
+
+    /**
+     * Jump straight to the page that contains [startIndex] instead of paging through everything
+     * before it. Only the public mirror can do that (the official API is cursor based).
+     */
+    fun jumpToIndex(startIndex: Int) {
+        val state = _ui.value
+        val active = applied ?: return
+        if (state.source != CatalogSource.PUBLIC_MIRROR || state.isLoading || state.isRefreshing) return
+        if (startIndex >= state.baseOffset && startIndex < state.baseOffset + state.items.size) return
+        val serverPage = (startIndex / BeatmapRepository.CATALOG_PAGE_SIZE).coerceAtLeast(0)
+        pageJob?.cancel()
+        generation++
+        cursor = BeatmapRepository.hinaiPageCursor(serverPage)
+        _ui.update {
+            it.copy(
+                items = emptyList(),
+                baseOffset = serverPage * BeatmapRepository.CATALOG_PAGE_SIZE,
+                isLoadingMore = false,
+                loadMoreError = null,
+                hasMore = true,
+            )
+        }
+        // `active` is only needed to be sure a search is applied.
+        if (active == applied) loadMore()
     }
 
     private fun reload(keepItems: Boolean = false) {
@@ -159,6 +189,7 @@ class BrowseViewModel(
             it.copy(
                 items = if (hasItems) it.items else emptyList(),
                 total = if (hasItems) it.total else null,
+                baseOffset = if (hasItems) it.baseOffset else 0,
                 hasMore = hasItems && it.hasMore,
                 isLoading = !hasItems,
                 isRefreshing = hasItems,
@@ -188,6 +219,7 @@ class BrowseViewModel(
                 _ui.update {
                     it.copy(
                         items = rankForQuery(filters, result.items).distinctBy { beatmap -> beatmap.id },
+                        baseOffset = 0,
                         total = result.total,
                         isLoading = false,
                         isRefreshing = false,
@@ -222,7 +254,7 @@ class BrowseViewModel(
     /** Same relevance re-ranking as the Search tab so both entry points agree. */
     private fun rankForQuery(filters: BrowseFilters, items: List<Beatmap>): List<Beatmap> =
         if (filters.sort.option == BrowseSortField.RELEVANCE && filters.trimmedQuery.isNotEmpty()) {
-            vn.kozu.ui.search.SearchRanker.rank(filters.trimmedQuery, items)
+            vn.kozu.ui.search.SearchRanker.rank(vn.kozu.data.repository.OsuSearchSyntax.parse(filters.trimmedQuery).text, items)
         } else {
             items
         }

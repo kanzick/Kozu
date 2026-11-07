@@ -176,7 +176,7 @@ class SearchViewModel(
     /** Only relevance searches are re-ranked; any explicit sort order is respected as-is. */
     private fun rankPage(filters: BrowseFilters, items: List<Beatmap>): List<Beatmap> =
         if (filters.sort.option == BrowseSortField.RELEVANCE && filters.trimmedQuery.isNotEmpty()) {
-            SearchRanker.rank(filters.trimmedQuery, items)
+            SearchRanker.rank(vn.kozu.data.repository.OsuSearchSyntax.parse(filters.trimmedQuery).text, items)
         } else {
             items
         }

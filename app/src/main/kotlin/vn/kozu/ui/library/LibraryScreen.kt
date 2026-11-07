@@ -1,6 +1,8 @@
 package vn.kozu.ui.library
 
 import vn.kozu.ui.i18n.kozuUiString
+import vn.kozu.ui.components.softTopEdge
+import vn.kozu.ui.components.KozuSheetHandle
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -820,6 +822,7 @@ private fun SortSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        dragHandle = { KozuSheetHandle() },
         containerColor = MaterialTheme.colorScheme.surface,
     ) {
         Column(
@@ -938,7 +941,7 @@ private fun LibraryTabsSheet(
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface,
         scrimColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.56f),
-        dragHandle = { BottomSheetDefaults.DragHandle() },
+        dragHandle = { KozuSheetHandle() },
     ) {
         Column(
             modifier =
@@ -1066,7 +1069,7 @@ private fun ReorderLibraryTabsSheet(
         containerColor = MaterialTheme.colorScheme.surface,
         scrimColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.56f),
         sheetGesturesEnabled = false,
-        dragHandle = { BottomSheetDefaults.DragHandle() },
+        dragHandle = { KozuSheetHandle() },
     ) {
         Column(
             modifier =
@@ -1280,7 +1283,7 @@ private fun TrackCollection(
         )
         LazyColumn(
             state = listState,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().softTopEdge(listState),
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = bottomPadding),
             verticalArrangement = Arrangement.spacedBy(if (compactRows) 4.dp else 10.dp),
         ) {
@@ -1613,7 +1616,7 @@ private fun DownloadsPane(
 
     LazyColumn(
         state = listState,
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().softTopEdge(listState),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = bottomPadding),
         verticalArrangement = Arrangement.spacedBy(3.dp),
     ) {

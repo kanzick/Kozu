@@ -571,7 +571,42 @@ class BeatmapRepository(
         return hinai ?: mirrorDetails(id)
     }
 
+    /**
+     * Browse or search the catalog. The query may use osu!'s search syntax (`stars<8 ranked=2025`);
+     * both the Search tab and All beatmaps come through here, so they behave identically.
+     */
     suspend fun browse(filters: BrowseFilters, cursor: String? = null): CatalogResult {
+        val parsed = OsuSearchSyntax.parse(filters.query)
+        if (!parsed.hasSyntax) return browseCore(filters, cursor, null)
+
+        val mapped = parsed.applyTo(filters)
+        val first = browseCore(mapped, cursor, parsed.passthroughQuery())
+        if (first.source != CatalogSource.PUBLIC_MIRROR || first.error != null) return first
+        val unsupported = parsed.unsupportedLabels()
+        if (!parsed.needsClientFilter) {
+            return first.copy(ignoredFilters = (first.ignoredFilters + unsupported).distinct())
+        }
+
+        // The mirror does not understand the keywords: filter here, reading a few pages if the
+        // first one is mostly filtered out so a page is never empty while more results exist.
+        var kept = first.items.filter(parsed::matches)
+        var last = first
+        var pages = 1
+        while (kept.size < MIN_FILTERED_PAGE && last.nextCursor != null && pages < MAX_FILTER_PAGES) {
+            val next = browseCore(mapped, last.nextCursor, null)
+            if (next.error != null) break
+            last = next
+            pages++
+            kept = (kept + next.items.filter(parsed::matches)).distinctBy { it.id }
+        }
+        return last.copy(
+            items = kept,
+            total = null,
+            ignoredFilters = (first.ignoredFilters + unsupported).distinct(),
+        )
+    }
+
+    private suspend fun browseCore(filters: BrowseFilters, cursor: String?, officialQuery: String?): CatalogResult {
         val signedIn = try {
             auth.loggedIn.first()
         } catch (e: CancellationException) {
@@ -592,7 +627,7 @@ class BeatmapRepository(
             return hinaiBrowse(effective, cursor, stripped)
         }
 
-        val official = officialBrowse(effective, cursor)
+        val official = officialBrowse(effective, cursor, officialQuery)
         if (official != null && official.error == null) {
             return official.copy(ignoredFilters = stripped)
         }
@@ -627,7 +662,7 @@ class BeatmapRepository(
         if (filters.ranks.isNotEmpty()) add("Rank achieved")
     }
 
-    private suspend fun officialBrowse(filters: BrowseFilters, cursor: String?): CatalogResult? {
+    private suspend fun officialBrowse(filters: BrowseFilters, cursor: String?, officialQuery: String? = null): CatalogResult? {
         val bearer = try {
             auth.bearer()
         } catch (e: CancellationException) {
@@ -638,11 +673,11 @@ class BeatmapRepository(
 
         return try {
             val response = try {
-                searchOfficial(bearer, filters, cursor)
+                searchOfficial(bearer, filters, cursor, officialQuery)
             } catch (e: HttpException) {
                 if (e.code() != 401) throw e
                 val fresh = auth.bearer(force = true) ?: throw e
-                searchOfficial(fresh, filters, cursor)
+                searchOfficial(fresh, filters, cursor, officialQuery)
             }
             CatalogResult(
                 items = response.beatmapsets.orEmpty().mapNotNull { it.toBeatmap() }.distinctBy { it.id },
@@ -662,10 +697,10 @@ class BeatmapRepository(
         }
     }
 
-    private suspend fun searchOfficial(bearer: String, filters: BrowseFilters, cursor: String?) =
+    private suspend fun searchOfficial(bearer: String, filters: BrowseFilters, cursor: String?, officialQuery: String? = null) =
         api.searchBeatmapsets(
             authorization = "Bearer $bearer",
-            query = filters.trimmedQuery,
+            query = officialQuery ?: filters.trimmedQuery,
             status = filters.statusParam,
             sort = filters.sortParam,
             genre = filters.genreParam,
@@ -1383,6 +1418,15 @@ class BeatmapRepository(
     }
 
     companion object {
+        /** Cursor that makes the public mirror open a given 0-based page directly. */
+        fun hinaiPageCursor(page: Int): String = "$HINAI_OFFSET_PREFIX$page"
+
+        /** Results per request, which the browse paging maths has to agree with. */
+        const val CATALOG_PAGE_SIZE = 50
+
+        /** The public mirror (an Elasticsearch index) stops at this many results. */
+        const val MIRROR_RESULT_WINDOW = 10_000
+
         private const val HINAI_HOST = "mirror.hinamizawa.ai"
         private const val RESULT_LIMIT = 30
         private const val MANIA_PAGE_SIZE = 20
@@ -1394,6 +1438,8 @@ class BeatmapRepository(
         private const val HINAI_MIX_CURSOR_PREFIX = "hinai-ranked-loved:"
         private const val MIX_STATUS_PAGE_SIZE = 50
         private const val BROWSE_PAGE_SIZE = 50
+        private const val MIN_FILTERED_PAGE = 20
+        private const val MAX_FILTER_PAGES = 6
         private const val HINAI_LEADERBOARD_PREFIX = "hinai-leaderboard:"
         private const val SET_INFO_TTL_MS = 3L * 60L * 1000L
         private const val MAX_SET_INFO_ENTRIES = 24

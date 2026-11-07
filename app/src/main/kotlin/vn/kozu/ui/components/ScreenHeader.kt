@@ -1,5 +1,7 @@
 package vn.kozu.ui.components
 
+import androidx.compose.foundation.layout.height
+import androidx.compose.material.icons.rounded.AutoAwesome
 import vn.kozu.ui.i18n.kozuUiString
 
 import androidx.compose.foundation.layout.Box
@@ -164,4 +166,28 @@ fun SettingsAction(onClick: () -> Unit, startPadding: Dp = 8.dp) {
         content = MaterialTheme.colorScheme.onSurface,
         startPadding = startPadding
     )
+}
+
+/** "New" pill beside the settings button: opens osu!'s news. */
+@Composable
+fun NewsAction(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier.padding(start = 8.dp).height(46.dp),
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Rounded.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+            Text(kozuUiString("New"), style = MaterialTheme.typography.labelLarge)
+        }
+    }
 }

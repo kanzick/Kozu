@@ -80,7 +80,7 @@ internal fun BrowseSearchField(
         query = query,
         onQueryChange = onQueryChange,
         onSearch = onSearch,
-        placeholder = kozuUiString("Search title, artist or mapper"),
+        placeholder = kozuUiString("Search, or try stars<8 ranked=2025"),
         modifier = modifier,
     )
 }

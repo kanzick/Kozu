@@ -1,6 +1,7 @@
 package vn.kozu.ui.settings
 
 import vn.kozu.ui.i18n.kozuUiString
+import vn.kozu.ui.components.KozuSheetHandle
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -225,6 +226,7 @@ fun <T> ChoiceRow(
         )
         ModalBottomSheet(
             onDismissRequest = { showOptions = false },
+            dragHandle = { KozuSheetHandle() },
             containerColor = MaterialTheme.colorScheme.surface,
             sheetState = sheetState
         ) {

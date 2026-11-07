@@ -1,6 +1,7 @@
 package vn.kozu.ui.player
 
 import androidx.compose.foundation.layout.Arrangement
+import vn.kozu.ui.components.KozuSheetHandle
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -133,6 +134,7 @@ fun PlayerDesignSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        dragHandle = { KozuSheetHandle() },
         sheetState = androidx.compose.material3.rememberBottomSheetState(
             initialValue = SheetValue.Hidden,
             enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),

@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import vn.kozu.domain.model.Beatmap
+import vn.kozu.ui.components.softTopEdge
 import vn.kozu.ui.components.BeatmapArt
 import vn.kozu.ui.components.CoverCard
 import vn.kozu.ui.components.EmptyState
@@ -123,7 +124,7 @@ fun ExploreScreen(
         ) {
             LazyColumn(
                 state = listState,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().softTopEdge(listState),
                 contentPadding = PaddingValues(top = 24.dp, bottom = bottomPadding),
             ) {
                 item(key = "library") {

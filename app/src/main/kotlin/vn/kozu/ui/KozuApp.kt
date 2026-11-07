@@ -225,6 +225,7 @@ private fun KozuShell(
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
     var settingsInitialPage by rememberSaveable { mutableStateOf(vn.kozu.ui.settings.SettingsPage.ROOT) }
     var statsOpen by rememberSaveable { mutableStateOf(false) }
+    var newsOpen by rememberSaveable { mutableStateOf(false) }
     var personName by rememberSaveable { mutableStateOf<String?>(null) }
     var personKindKey by rememberSaveable { mutableStateOf(PersonKind.ARTIST.name) }
     var lastPersonName by remember { mutableStateOf("") }
@@ -260,7 +261,7 @@ private fun KozuShell(
     val bottomPadding = with(density) { chromeHeightPx.toDp() } + 16.dp
     // Height of the floating mini player while it is drawn over an overlay screen.
     var overlayMiniPx by remember { mutableIntStateOf(0) }
-    val overlayScreenOpen = settingsOpen || allBeatmapsOpen || statsOpen
+    val overlayScreenOpen = settingsOpen || allBeatmapsOpen || statsOpen || newsOpen
     val overlayMiniInset = if (state.current != null) with(density) { overlayMiniPx.toDp() } else 0.dp
 
     val homeList = rememberLazyListState()
@@ -413,6 +414,7 @@ private fun KozuShell(
                             onOpenExplore = { tab = KozuTab.EXPLORE },
                             onOpenLibrary = { tab = KozuTab.LIBRARY },
                             onOpenStats = { statsOpen = true },
+                            onOpenNews = { newsOpen = true },
                             onRefresh = ::refreshApp,
                             isAppRefreshing = isAppRefreshing,
                         )
@@ -517,7 +519,7 @@ private fun KozuShell(
                 }
             }
 
-            if (tab == KozuTab.SEARCH && !settingsOpen && !allBeatmapsOpen && !statsOpen && !playerOpen) {
+            if (tab == KozuTab.SEARCH && !settingsOpen && !allBeatmapsOpen && !statsOpen && !newsOpen && !playerOpen) {
                 BackHandler { tab = lastMainTab }
             }
 
@@ -571,6 +573,15 @@ private fun KozuShell(
                     ) {
                         vn.kozu.ui.settings.StatsPage(settingsViewModel) { statsOpen = false }
                     }
+                }
+
+                // osu! news: the real site in a WebView, opened from the "New" button on Home.
+                AnimatedVisibility(
+                    visible = newsOpen,
+                    enter = slideInHorizontally(KozuMotion.spatial()) { it } + fadeIn(),
+                    exit = slideOutHorizontally(tween(240)) { it } + fadeOut(),
+                ) {
+                    vn.kozu.ui.news.NewsScreen(onBack = { newsOpen = false })
                 }
             }
             if (allBeatmapsOpen && !settingsOpen && !statsOpen) BackHandler { allBeatmapsOpen = false }
@@ -689,7 +700,7 @@ private fun KozuShell(
             }
             if (personName != null) BackHandler { personName = null }
 
-            val overlayOpen = settingsOpen || playerOpen || allBeatmapsOpen || statsOpen
+            val overlayOpen = settingsOpen || playerOpen || allBeatmapsOpen || statsOpen || newsOpen
             SnackbarHost(
                 hostState = snackbar,
                 modifier =

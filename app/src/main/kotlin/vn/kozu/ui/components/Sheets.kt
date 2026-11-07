@@ -113,6 +113,7 @@ fun TrackMenuSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        dragHandle = { KozuSheetHandle() },
         sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden),
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow
     ) {
@@ -154,6 +155,7 @@ fun PlaylistPickerSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        dragHandle = { KozuSheetHandle() },
         sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden),
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow
     ) {

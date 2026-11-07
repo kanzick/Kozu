@@ -132,6 +132,7 @@ import vn.kozu.domain.model.ThemePreset
 import vn.kozu.ui.navigation.KozuTab
 import vn.kozu.ui.theme.KozuMotion
 import vn.kozu.ui.components.FitText
+import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.i18n.KozuText as Text
 import vn.kozu.ui.player.PlayerDesignSheet
 import vn.kozu.ui.settings.SwatchDots
@@ -1271,8 +1272,8 @@ private fun NavPreview(
                                     modifier = Modifier
                                         .weight(itemWeight.coerceAtLeast(0.2f))
                                         .height(barHeight - 18.dp)
-                                        .clickable { previewSelected = index }
                                         .clip(itemShape)
+                                        .bounceClick(pressedScale = 0.96f) { previewSelected = index }
                                         .background(itemContainer),
                                     contentAlignment = Alignment.Center,
                                 ) {

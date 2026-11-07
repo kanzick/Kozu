@@ -1,6 +1,7 @@
 package vn.kozu.ui.settings
 
 import android.os.Build
+import vn.kozu.ui.components.KozuSheetHandle
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -142,6 +143,7 @@ fun ThemePresetSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        dragHandle = { KozuSheetHandle() },
         sheetState =
             rememberBottomSheetState(
                 initialValue = SheetValue.Hidden,
