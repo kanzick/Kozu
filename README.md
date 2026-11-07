@@ -17,6 +17,8 @@
 
 Kozu lets you listen to the music from your osu! collection on your phone without launching the base game. It aims to be small, fast and pleasant to use. 
 
+Kozu also intergrated Osu! mania mode to be playable on your mobile devices. Give it a try!
+
 **Technology stack used**
 
 - Kotlin
@@ -92,7 +94,7 @@ Please read the [Code of Conduct](CODE_OF_CONDUCT.md) before participating.
 
 ## License
 
-Kozu is licensed under the **GNU General Public License v3.0**. See [LICENSE](LICENSE) for the full text.
+Kozu is licensed under the **GNU General Public License v3.0**. See [LICENSE](https://github.com/kanzick/Kozu?tab=GPL-3.0-1-ov-file) for the full text.
 
 ## Disclaimer
 
