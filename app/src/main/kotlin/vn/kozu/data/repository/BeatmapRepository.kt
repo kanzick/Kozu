@@ -1260,7 +1260,8 @@ class BeatmapRepository(
             rankedAt = parseInstant(rankedDate),
             submittedAt = parseInstant(submittedDate),
             minStars = stars.minOrNull() ?: 0.0,
-            maxStars = stars.maxOrNull() ?: 0.0
+            maxStars = stars.maxOrNull() ?: 0.0,
+            difficultyStars = stars.sorted()
         )
     }
 

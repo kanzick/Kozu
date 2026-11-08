@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -37,8 +38,9 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.DownloadDone
-import androidx.compose.material.icons.rounded.ExpandMore
-import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SearchOff
 import androidx.compose.material3.CircularProgressIndicator
@@ -61,9 +63,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -81,6 +85,8 @@ import vn.kozu.ui.components.HeaderAction
 import vn.kozu.ui.components.KozuLoading
 import vn.kozu.ui.components.LocalTrackActions
 import vn.kozu.ui.components.LocalDownloads
+import vn.kozu.ui.components.LocalFavoriteIds
+import vn.kozu.ui.components.LocalAppSettings
 import vn.kozu.ui.components.RefreshIndicator
 import vn.kozu.ui.components.TrackRow
 import vn.kozu.ui.components.segmentedShape
@@ -376,17 +382,24 @@ private fun BrowseRow(
 ) {
     val actions = LocalTrackActions.current
     val downloads = LocalDownloads.current
+    val favorites = LocalFavoriteIds.current
+    val showMapper = LocalAppSettings.current.showMapper
     var expanded by rememberSaveable(beatmap.id) { mutableStateOf(false) }
     var attempt by remember(beatmap.id) { mutableIntStateOf(0) }
     var difficultyInfo by remember(beatmap.id) { mutableStateOf<BeatmapSetInfo?>(null) }
     var loadingDifficulties by remember(beatmap.id) { mutableStateOf(false) }
     var difficultyError by remember(beatmap.id) { mutableStateOf<String?>(null) }
+    val difficultyStars = remember(beatmap.difficultyStars, difficultyInfo) {
+        beatmap.difficultyStars.ifEmpty {
+            difficultyInfo?.difficulties.orEmpty().map { it.stars }.filter { it > 0.0 }.sorted()
+        }
+    }
     val isDownloaded = beatmap.id in downloads.downloaded
     val isOutdated = beatmap.id in downloads.outdated
     val isDownloading = beatmap.id in downloads.active
 
     LaunchedEffect(beatmap.id, expanded, attempt) {
-        if (expanded && difficultyInfo == null) {
+        if ((expanded || beatmap.difficultyStars.isEmpty()) && difficultyInfo == null) {
             loadingDifficulties = true
             difficultyError = null
             try {
@@ -415,11 +428,50 @@ private fun BrowseRow(
                 shape = segmentedShape(index, count, large = 22.dp),
                 modifier = Modifier.weight(1f),
                 onClick = { expanded = !expanded },
-                showDownloadBadge = !formgamepage,
+                onArtworkClick = if (formgamepage) null else onPlay,
+                subtitleSuffix = if (showMapper && beatmap.mapper.isNotBlank()) {
+                    " · Mapped by ${beatmap.mapper}"
+                } else {
+                    null
+                },
+                compact = true,
+                showDownloadBadge = false,
+                trailing = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { actions.toggleFavorite(beatmap) }) {
+                            Icon(
+                                imageVector = if (beatmap.id in favorites) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                                contentDescription = if (beatmap.id in favorites) "Remove from liked" else "Add to liked",
+                                tint = if (beatmap.id in favorites) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        IconButton(onClick = { actions.openMenu(beatmap) }) {
+                            Icon(
+                                imageVector = Icons.Rounded.MoreVert,
+                                contentDescription = kozuUiString("More options"),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        BrowseDownloadButton(
+                            formgamepage = formgamepage,
+                            isDownloaded = isDownloaded,
+                            isOutdated = isOutdated,
+                            isDownloading = isDownloading,
+                            gameDownload = gameDownload,
+                            isGameMapAdded = isGameMapAdded,
+                            onDownload = {
+                                if (formgamepage) onGameDownload()
+                                else actions.download(beatmap, force = isOutdated)
+                            },
+                            onPlayGameMap = { onPlayGameMap(beatmap.id) },
+                        )
+                    }
+                },
                 details = {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
@@ -429,33 +481,8 @@ private fun BrowseRow(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
-                            starRange(beatmap)?.let { range ->
-                                Text(
-                                    text = range,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
+                            DifficultyDots(difficultyStars)
                             Spacer(Modifier.weight(1f))
-                            IconButton(onClick = { expanded = !expanded }) {
-                                Icon(
-                                    imageVector = Icons.Rounded.ExpandMore,
-                                    contentDescription = if (expanded) "Hide difficulties" else "Show difficulties",
-                                    modifier = Modifier.graphicsLayer { rotationZ = if (expanded) 180f else 0f },
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            if (!formgamepage) {
-                                IconButton(onClick = onPlay) {
-                                    Icon(
-                                        Icons.Rounded.PlayArrow,
-                                        contentDescription = "Play beatmap",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                    )
-                                }
-                            }
                         }
                         if (formgamepage) {
                             gameDownload?.error?.let {
@@ -464,70 +491,10 @@ private fun BrowseRow(
                             gameDownload?.ratingWarning?.let {
                                 Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                             }
-                            if (gameDownload != null && gameDownload.error == null && !isGameMapAdded) {
-                                val progress = gameDownload.progress
-                                Text(
-                                    if (progress != null && progress >= 1f) "Importing map…"
-                                    else if (progress == null || progress < 0f) "Downloading…"
-                                    else "Downloading ${(progress.coerceIn(0f, 1f) * 100).toInt()}%",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
                         }
                     }
                 },
             )
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                IconButton(onClick = { actions.openInfo(beatmap) }) {
-                    Icon(
-                        imageVector = Icons.Rounded.Info,
-                        contentDescription = "Beatmap info",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                if (formgamepage) {
-                    when {
-                        isGameMapAdded -> IconButton(onClick = { onPlayGameMap(beatmap.id) }) {
-                            Icon(Icons.Rounded.PlayArrow, contentDescription = "Go to map", tint = MaterialTheme.colorScheme.primary)
-                        }
-                        gameDownload != null && gameDownload.error == null -> {
-                            if (gameDownload.progress == null || gameDownload.progress < 0f) {
-                                CircularProgressIndicator(modifier = Modifier.padding(12.dp))
-                            } else {
-                                CircularProgressIndicator(
-                                    progress = { gameDownload.progress.coerceIn(0f, 1f) },
-                                    modifier = Modifier.padding(12.dp),
-                                )
-                            }
-                        }
-                        else -> IconButton(onClick = onGameDownload) {
-                            Icon(
-                                imageVector = Icons.Rounded.Download,
-                                contentDescription = if (gameDownload?.error != null) "Retry map download" else "Download and import Mania map",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                } else {
-                    IconButton(
-                        onClick = { actions.download(beatmap, force = isOutdated) },
-                        enabled = !isDownloading && (!isDownloaded || isOutdated),
-                    ) {
-                        Icon(
-                            imageVector = if (isDownloaded && !isOutdated) Icons.Rounded.DownloadDone else Icons.Rounded.Download,
-                            contentDescription = when {
-                                isDownloading -> "Downloading"
-                                isOutdated -> "Update offline copy"
-                                isDownloaded -> "Downloaded"
-                                else -> "Download for offline"
-                            },
-                            tint = if (isDownloaded && !isOutdated) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
         }
         AnimatedVisibility(
             visible = expanded,
@@ -542,6 +509,92 @@ private fun BrowseRow(
             )
         }
     }
+}
+
+@Composable
+private fun BrowseDownloadButton(
+    formgamepage: Boolean,
+    isDownloaded: Boolean,
+    isOutdated: Boolean,
+    isDownloading: Boolean,
+    gameDownload: GameMapDownloadState?,
+    isGameMapAdded: Boolean,
+    onDownload: () -> Unit,
+    onPlayGameMap: () -> Unit,
+) {
+    val gameDownloadInProgress = formgamepage && gameDownload != null && gameDownload.error == null && !isGameMapAdded
+    val downloading = isDownloading || gameDownloadInProgress
+    val enabled = when {
+        formgamepage -> !isGameMapAdded && !gameDownloadInProgress
+        else -> !isDownloading && (!isDownloaded || isOutdated)
+    }
+
+    IconButton(
+        onClick = if (formgamepage && isGameMapAdded) onPlayGameMap else onDownload,
+        enabled = if (formgamepage && isGameMapAdded) true else enabled,
+    ) {
+        when {
+            downloading -> {
+                val progress = if (formgamepage) gameDownload?.progress else null
+                if (progress == null || progress < 0f) {
+                    CircularProgressIndicator(modifier = Modifier.padding(12.dp).size(18.dp), strokeWidth = 2.dp)
+                } else {
+                    CircularProgressIndicator(
+                        progress = { progress.coerceIn(0f, 1f) },
+                        modifier = Modifier.padding(12.dp).size(18.dp),
+                        strokeWidth = 2.dp,
+                    )
+                }
+            }
+            formgamepage && isGameMapAdded -> Icon(
+                Icons.Rounded.PlayArrow,
+                contentDescription = "Go to map",
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            !formgamepage && isDownloaded && !isOutdated -> Icon(
+                Icons.Rounded.DownloadDone,
+                contentDescription = "Downloaded",
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            else -> Icon(
+                Icons.Rounded.Download,
+                contentDescription = when {
+                    formgamepage && gameDownload?.error != null -> "Retry map download"
+                    formgamepage -> "Download and import Mania map"
+                    isOutdated -> "Update offline copy"
+                    else -> "Download for offline"
+                },
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DifficultyDots(stars: List<Double>) {
+    if (stars.isEmpty()) return
+    Row(
+        modifier = Modifier.semantics { contentDescription = "${stars.size} difficulties" },
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        stars.forEach { rating ->
+            Box(
+                modifier = Modifier
+                    .size(7.dp)
+                    .background(osuDifficultyColor(rating), CircleShape),
+            )
+        }
+    }
+}
+
+private fun osuDifficultyColor(stars: Double): Color = when {
+    stars < 1.5 -> Color(0xFF66CCFF)
+    stars < 2.5 -> Color(0xFF66FF66)
+    stars < 3.5 -> Color(0xFFFFCC22)
+    stars < 4.5 -> Color(0xFFFF8844)
+    stars < 5.5 -> Color(0xFFFF6688)
+    else -> Color(0xFFCC66FF)
 }
 
 @Composable
@@ -736,13 +789,6 @@ private fun visiblePages(current: Int, total: Int): List<Int?> {
     if (end < total - 1) pages.add(null)
     pages.add(total)
     return pages.toList()
-}
-
-private fun starRange(beatmap: Beatmap): String? {
-    if (beatmap.maxStars <= 0.0) return null
-    val low = String.format(Locale.US, "%.1f", beatmap.minStars)
-    val high = String.format(Locale.US, "%.1f", beatmap.maxStars)
-    return if (low == high) "★ $high" else "★ $low–$high"
 }
 
 private fun compact(value: Double): String =
