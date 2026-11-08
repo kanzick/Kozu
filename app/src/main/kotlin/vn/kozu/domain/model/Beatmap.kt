@@ -24,6 +24,7 @@ data class Beatmap(
     val submittedAt: Long = 0L,
     val minStars: Double = 0.0,
     val maxStars: Double = 0.0,
+    val difficultyStars: List<Double> = emptyList(),
 ) {
     val thumbUrl: String get() = "https://assets.ppy.sh/beatmaps/$id/covers/list@2x.jpg"
     val artUrl: String get() = "https://assets.ppy.sh/beatmaps/$id/covers/cover@2x.jpg"
