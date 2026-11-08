@@ -47,7 +47,9 @@ fun TrackRow(
     shape: Shape = RoundedCornerShape(24.dp),
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
     compact: Boolean = isCompactLayout,
-    trailing: (@Composable () -> Unit)? = null
+    trailing: (@Composable () -> Unit)? = null,
+    details: (@Composable () -> Unit)? = null,
+    showDownloadBadge: Boolean = true,
 ) {
     val nowPlaying = LocalNowPlaying.current
     val favorites = LocalFavoriteIds.current
@@ -107,14 +109,14 @@ fun TrackRow(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                if (!compact) {
+                if (showDownloadBadge && !compact) {
                     DownloadBadge(
                         isDownloaded = beatmap.id in downloads.downloaded,
                         isOutdated = beatmap.id in downloads.outdated,
                         status = downloads.active[beatmap.id],
                         mapper = if (LocalAppSettings.current.showMapper) beatmap.mapper else ""
                     )
-                } else if (downloads.active[beatmap.id] != null || beatmap.id in downloads.downloaded) {
+                } else if (showDownloadBadge && (downloads.active[beatmap.id] != null || beatmap.id in downloads.downloaded)) {
                     DownloadBadge(
                         isDownloaded = beatmap.id in downloads.downloaded,
                         isOutdated = beatmap.id in downloads.outdated,
@@ -122,6 +124,7 @@ fun TrackRow(
                         mapper = ""
                     )
                 }
+                details?.invoke()
             }
             if (trailing != null) {
                 trailing()

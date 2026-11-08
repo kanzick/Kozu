@@ -99,6 +99,7 @@ import vn.kozu.ui.i18n.localizeUiString
 import vn.kozu.ui.explore.AllBeatmapsScreen
 import vn.kozu.ui.explore.ExploreScreen
 import vn.kozu.ui.game.GameScreen
+import vn.kozu.game.ui.game.GameViewModel
 import vn.kozu.ui.home.HomeScreen
 import vn.kozu.ui.library.LibraryScreen
 import vn.kozu.ui.navigation.FloatingNavBar
@@ -238,6 +239,8 @@ private fun KozuShell(
         remember { !container.settings.onboardingCompleted && isFreshInstall(context) }
     var onboardingOpen by rememberSaveable { mutableStateOf(showOnboardingFirst) }
     var allBeatmapsOpen by rememberSaveable { mutableStateOf(false) }
+    var formgamepage by rememberSaveable { mutableStateOf(false) }
+    var gameMapPickerViewModel by remember { mutableStateOf<GameViewModel?>(null) }
     var gamePlayActive by remember { mutableStateOf(false) }
     var menuTarget by remember { mutableStateOf<Beatmap?>(null) }
     var playlistTarget by remember { mutableStateOf<Beatmap?>(null) }
@@ -251,6 +254,10 @@ private fun KozuShell(
     var overlayMiniPx by remember { mutableIntStateOf(0) }
     val overlayScreenOpen = settingsOpen || allBeatmapsOpen || statsOpen
     val overlayMiniInset = if (state.current != null) with(density) { overlayMiniPx.toDp() } else 0.dp
+    fun closeAllBeatmaps() {
+        allBeatmapsOpen = false
+        formgamepage = false
+    }
 
     val homeList = rememberLazyListState()
     val exploreList = rememberLazyListState()
@@ -322,6 +329,10 @@ private fun KozuShell(
 
                 override fun openMenu(beatmap: Beatmap) {
                     menuTarget = beatmap
+                }
+
+                override fun openInfo(beatmap: Beatmap) {
+                    infoTarget = beatmap
                 }
 
                 override fun download(
@@ -414,7 +425,10 @@ private fun KozuShell(
                             onOpenSettings = { settingsOpen = true },
                             onOpenLibrary = { tab = KozuTab.LIBRARY },
                             onOpenSearch = { tab = KozuTab.SEARCH },
-                            onOpenAllBeatmaps = { allBeatmapsOpen = true },
+                            onOpenAllBeatmaps = {
+                                formgamepage = false
+                                allBeatmapsOpen = true
+                            },
                             onRefresh = ::refreshApp,
                             isAppRefreshing = isAppRefreshing,
                         )
@@ -451,6 +465,11 @@ private fun KozuShell(
                                     gamePlayActive = active
                                     if (active) playback.pause()
                                 }
+                            },
+                            onOpenAllBeatmapsFromPreview = { gameViewModel ->
+                                gameMapPickerViewModel = gameViewModel
+                                formgamepage = true
+                                allBeatmapsOpen = true
                             },
                         )
                     }
@@ -532,9 +551,15 @@ private fun KozuShell(
                     exit = slideOutHorizontally(tween(240)) { it } + fadeOut(),
                 ) {
                     AllBeatmapsScreen(
-                        onBack = { allBeatmapsOpen = false },
+                        onBack = ::closeAllBeatmaps,
                         onRetry = ::refreshApp,
                         isAppRefreshing = isAppRefreshing,
+                        formgamepage = formgamepage,
+                        gameViewModel = if (formgamepage) gameMapPickerViewModel else null,
+                        onPlayGameMap = { beatmapSetId ->
+                            gameMapPickerViewModel?.requestOpenMap(beatmapSetId)
+                            closeAllBeatmaps()
+                        },
                     )
                 }
 
@@ -556,7 +581,7 @@ private fun KozuShell(
                     }
                 }
             }
-            if (allBeatmapsOpen && !settingsOpen && !statsOpen) BackHandler { allBeatmapsOpen = false }
+            if (allBeatmapsOpen && !settingsOpen && !statsOpen) BackHandler { closeAllBeatmaps() }
             if (statsOpen && !settingsOpen) BackHandler { statsOpen = false }
 
             // One mini player for every overlay screen. Same composable and same state as the
