@@ -13,9 +13,11 @@ import kotlinx.coroutines.launch
 import vn.kozu.data.repository.CatalogSource
 import vn.kozu.di.AppContainer
 import vn.kozu.domain.model.Beatmap
+import vn.kozu.domain.model.BeatmapSetInfo
 import vn.kozu.domain.model.BrowseFilters
 import vn.kozu.domain.model.BrowseSortField
 import vn.kozu.domain.model.BrowseStatus
+import vn.kozu.domain.model.ModeFilter
 import vn.kozu.ui.containerFactory
 
 data class BrowseUiState(
@@ -46,6 +48,8 @@ class BrowseViewModel(
     private var generation = 0
     private var lastLoadedAt = 0L
     private var applied: BrowseFilters? = null
+    private var formgamepage = false
+    private var modeBeforeGame: ModeFilter? = null
 
     init {
         viewModelScope.launch {
@@ -61,14 +65,22 @@ class BrowseViewModel(
         }
     }
 
-    fun onEnter() {
+    fun onEnter(formgamepage: Boolean = false) {
+        val wasGamePage = this.formgamepage
+        if (formgamepage && !wasGamePage && started) {
+            modeBeforeGame = _ui.value.filters.mode
+        }
+        this.formgamepage = formgamepage
+
         if (!started) {
             started = true
             viewModelScope.launch {
                 val settings = container.settings.settings.first()
+                val isGamePage = this@BrowseViewModel.formgamepage
+                if (isGamePage) modeBeforeGame = settings.modeFilter
                 val initial =
                     BrowseFilters(
-                        mode = settings.modeFilter,
+                        mode = if (isGamePage) ModeFilter.MANIA else settings.modeFilter,
                         status = BrowseStatus.from(settings.statusFilter),
                         explicit = settings.showExplicit,
                     )
@@ -77,6 +89,20 @@ class BrowseViewModel(
             }
             return
         }
+
+        if (formgamepage && _ui.value.filters.mode != ModeFilter.MANIA) {
+            applyFilters(_ui.value.filters.copy(mode = ModeFilter.MANIA))
+            return
+        }
+        if (wasGamePage && !formgamepage) {
+            val restoreMode = modeBeforeGame
+            modeBeforeGame = null
+            if (restoreMode != null && _ui.value.filters.mode != restoreMode) {
+                applyFilters(_ui.value.filters.copy(mode = restoreMode))
+                return
+            }
+        }
+
         val state = _ui.value
         if (state.isLoading || state.isRefreshing) return
         val stale = System.currentTimeMillis() - lastLoadedAt > STALE_AFTER_MS
@@ -102,10 +128,14 @@ class BrowseViewModel(
     fun applyFilters(filters: BrowseFilters) {
         queryJob?.cancel()
         val previous = _ui.value.filters
-        val next = filters.copy(query = previous.query).withNormalizedSort()
+        val next =
+            filters.copy(
+                query = previous.query,
+                mode = if (formgamepage) ModeFilter.MANIA else filters.mode,
+            ).withNormalizedSort()
         val unchanged = next.normalized() == applied && _ui.value.error == null
         _ui.update { it.copy(filters = next) }
-        syncSettings(previous, next)
+        syncSettings(previous, next, syncMode = !formgamepage)
         if (!unchanged) reload()
     }
 
@@ -116,6 +146,8 @@ class BrowseViewModel(
     fun retry() = reload()
 
     fun refresh() = reload(keepItems = true)
+
+    suspend fun loadBeatmapInfo(id: Long): BeatmapSetInfo? = container.catalog.setInfo(id)
 
     fun loadMore() {
         val state = _ui.value
@@ -203,11 +235,12 @@ class BrowseViewModel(
     private fun syncSettings(
         previous: BrowseFilters,
         next: BrowseFilters,
+        syncMode: Boolean,
     ) {
         if (previous.explicit != next.explicit) {
             viewModelScope.launch { container.settings.setShowExplicit(next.explicit) }
         }
-        if (previous.mode != next.mode) {
+        if (syncMode && previous.mode != next.mode) {
             viewModelScope.launch { container.settings.setModeFilter(next.mode) }
         }
         if (previous.status != next.status) {

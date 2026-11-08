@@ -28,6 +28,8 @@ interface TrackActions {
 
     fun openMenu(beatmap: Beatmap)
 
+    fun openInfo(beatmap: Beatmap)
+
     fun download(
         beatmap: Beatmap,
         force: Boolean = false,
