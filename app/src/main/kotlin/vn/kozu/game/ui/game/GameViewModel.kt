@@ -76,6 +76,20 @@ class GameViewModel(private val container: AppContainer) : ViewModel() {
     private val jobs = mutableMapOf<Long, Job>()
     private var previewJob: Job? = null
 
+    init {
+        viewModelScope.launch {
+            previewModule.catalog.entries.collect { entries ->
+                val localIds = entries.mapTo(mutableSetOf()) { it.songId }
+                _localMapIds.value = localIds
+                _downloads.update { states ->
+                    states.filter { (songId, state) ->
+                        songId in localIds || state.progress != 1f || state.error != null
+                    }
+                }
+            }
+        }
+    }
+
     suspend fun searchMania(query: String, page: Int, status: String? = null, explicit: Boolean = false) =
         withContext(Dispatchers.IO) { container.catalog.searchMania(query, page, status, explicit) }
 

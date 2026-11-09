@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DownloadDone
@@ -20,6 +21,7 @@ import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -47,7 +49,11 @@ fun TrackRow(
     shape: Shape = RoundedCornerShape(24.dp),
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
     compact: Boolean = isCompactLayout,
-    trailing: (@Composable () -> Unit)? = null
+    trailing: (@Composable () -> Unit)? = null,
+    details: (@Composable () -> Unit)? = null,
+    showDownloadBadge: Boolean = true,
+    subtitleSuffix: String? = null,
+    onArtworkClick: (() -> Unit)? = null,
 ) {
     val nowPlaying = LocalNowPlaying.current
     val favorites = LocalFavoriteIds.current
@@ -90,6 +96,23 @@ fun TrackRow(
                         )
                     }
                 }
+                if (onArtworkClick != null) {
+                    Surface(
+                        onClick = onArtworkClick,
+                        modifier = Modifier.align(Alignment.BottomEnd).padding(2.dp).size(24.dp),
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Rounded.PlayArrow,
+                                contentDescription = "Play beatmap",
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    }
+                }
             }
             Spacer(Modifier.width(if (compact) 10.dp else 14.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(if (compact) 1.dp else 2.dp)) {
@@ -101,20 +124,20 @@ fun TrackRow(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = beatmap.displayArtist(LocalAppSettings.current.preferUnicode),
+                    text = beatmap.displayArtist(LocalAppSettings.current.preferUnicode) + subtitleSuffix.orEmpty(),
                     style = if (compact) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                if (!compact) {
+                if (showDownloadBadge && !compact) {
                     DownloadBadge(
                         isDownloaded = beatmap.id in downloads.downloaded,
                         isOutdated = beatmap.id in downloads.outdated,
                         status = downloads.active[beatmap.id],
                         mapper = if (LocalAppSettings.current.showMapper) beatmap.mapper else ""
                     )
-                } else if (downloads.active[beatmap.id] != null || beatmap.id in downloads.downloaded) {
+                } else if (showDownloadBadge && (downloads.active[beatmap.id] != null || beatmap.id in downloads.downloaded)) {
                     DownloadBadge(
                         isDownloaded = beatmap.id in downloads.downloaded,
                         isOutdated = beatmap.id in downloads.outdated,
@@ -122,6 +145,7 @@ fun TrackRow(
                         mapper = ""
                     )
                 }
+                details?.invoke()
             }
             if (trailing != null) {
                 trailing()

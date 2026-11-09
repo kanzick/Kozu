@@ -56,10 +56,13 @@ import vn.kozu.ui.components.LocalIsSupporter
 fun BrowseFilterSheet(
     initial: BrowseFilters,
     isLoggedIn: Boolean,
+    modeLocked: Boolean = false,
     onDismiss: () -> Unit,
     onApply: (BrowseFilters) -> Unit,
 ) {
-    var draft by remember { mutableStateOf(initial) }
+    var draft by remember(initial, modeLocked) {
+        mutableStateOf(if (modeLocked) initial.copy(mode = ModeFilter.MANIA) else initial)
+    }
     val isSupporter = LocalIsSupporter.current
     val sheetState =
         rememberBottomSheetState(
@@ -89,7 +92,7 @@ fun BrowseFilterSheet(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 FilterSection("Mode") {
-                    SingleChoiceChips(ModeFilter.entries, draft.mode, { it.label }) {
+                    SingleChoiceChips(ModeFilter.entries, draft.mode, { it.label }, enabled = !modeLocked) {
                         draft = draft.copy(mode = it)
                     }
                 }
@@ -175,11 +178,17 @@ fun BrowseFilterSheet(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     TextButton(
-                        onClick = { draft = draft.resetFilters() },
+                        onClick = {
+                            draft = draft.resetFilters().let {
+                                if (modeLocked) it.copy(mode = ModeFilter.MANIA) else it
+                            }
+                        },
                         enabled = draft.hasActiveFilters,
                     ) { Text("Reset") }
                     Button(
-                        onClick = { onApply(draft) },
+                        onClick = {
+                            onApply(if (modeLocked) draft.copy(mode = ModeFilter.MANIA) else draft)
+                        },
                         modifier = Modifier.weight(1f),
                     ) { Text("Apply") }
                 }
@@ -220,6 +229,7 @@ private fun <T> SingleChoiceChips(
     options: List<T>,
     selected: T,
     label: (T) -> String,
+    enabled: Boolean = true,
     onSelect: (T) -> Unit,
 ) {
     FlowRow(
@@ -227,7 +237,7 @@ private fun <T> SingleChoiceChips(
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         options.forEach { option ->
-            ChoiceChip(label(option), option == selected) { onSelect(option) }
+            ChoiceChip(label(option), option == selected, enabled) { onSelect(option) }
         }
     }
 }
@@ -254,11 +264,13 @@ private fun <T> MultiChoiceChips(
 private fun ChoiceChip(
     label: String,
     selected: Boolean,
+    enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
     FilterChip(
         selected = selected,
         onClick = onClick,
+        enabled = enabled,
         label = { Text(label) },
         leadingIcon =
             if (selected) {
