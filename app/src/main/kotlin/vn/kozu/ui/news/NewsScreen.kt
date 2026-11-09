@@ -320,7 +320,7 @@ fun NewsScreen(
                             ) {
                                 item(key = "title") {
                                     Text(
-                                        kozuUiString("osu! News"),
+                                        kozuUiString("News"),
                                         style = MaterialTheme.typography.displaySmall,
                                         modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 10.dp),
                                     )
