@@ -15,7 +15,7 @@ val hasReleaseSigning = listOf(
     releaseKeyAlias,
     releaseKeyPassword
 ).all { !it.isNullOrBlank() }
-val defaultAppVersionName = "0.1.3"
+val defaultAppVersionName = "0.1.4"
 val appVersionName = providers.gradleProperty("appVersion")
     .orElse(defaultAppVersionName)
     .get()
@@ -136,6 +136,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.media3.session)
     implementation(libs.androidx.media3.datasource.okhttp)
     implementation(libs.androidx.media3.database)
@@ -156,6 +157,7 @@ dependencies {
     implementation(libs.androidx.profileinstaller)
     implementation(libs.reorderables)
     implementation(libs.aboutlibraries.core)
+    implementation(libs.jsoup)
     implementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.junit)
     debugImplementation(libs.androidx.compose.ui.tooling)

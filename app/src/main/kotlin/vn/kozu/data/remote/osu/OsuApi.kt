@@ -1,12 +1,18 @@
 package vn.kozu.data.remote.osu
 
+import retrofit2.http.Body
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
 import retrofit2.http.Header
+import retrofit2.http.Headers
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
+import vn.kozu.data.news.NewsCommentBundleDto
+import vn.kozu.data.news.NewsCommentCreateRequest
+import vn.kozu.data.news.NewsListingDto
+import vn.kozu.data.news.NewsPostDto
 
 interface OsuApi {
     @FormUrlEncoded
@@ -36,6 +42,46 @@ interface OsuApi {
         @Field("refresh_token") refreshToken: String,
         @Field("grant_type") grantType: String = "refresh_token",
     ): TokenDto
+
+
+    // Public guest endpoints: reading news/comments does not require an osu! user login.
+    // Explicit JSON headers match osu! API v2 request requirements.
+    @Headers("Accept: application/json", "Content-Type: application/json")
+    @GET("news")
+    suspend fun news(
+        @Query("limit") limit: Int = 21,
+    ): NewsListingDto
+
+    @Headers("Accept: application/json", "Content-Type: application/json")
+    @GET("news/{news}")
+    suspend fun newsPost(
+        @Path("news") slug: String,
+        @Query("content_formats[]") contentFormats: List<String> = listOf("html"),
+    ): NewsPostDto
+
+    // The public website JSON route is intentionally used here instead of /api/v2/comments.
+    // It is the same route used by osu!'s own comments UI and allows guest reads.
+    @Headers(
+        "Accept: application/json",
+        "Content-Type: application/json",
+        "X-Requested-With: XMLHttpRequest",
+    )
+    @GET("/comments")
+    suspend fun newsComments(
+        @Query("commentable_type") commentableType: String,
+        @Query("commentable_id") commentableId: Long,
+        @Query("sort") sort: String = "new",
+        @Query("parent_id") parentId: Long? = null,
+        @Query("after") after: String? = null,
+    ): NewsCommentBundleDto
+
+    /** Posts a comment through the authenticated osu! API session. */
+    @Headers("Accept: application/json", "Content-Type: application/json")
+    @POST("comments")
+    suspend fun postNewsComment(
+        @Header("Authorization") authorization: String,
+        @Body request: NewsCommentCreateRequest,
+    ): NewsCommentBundleDto
 
     @GET("me")
     suspend fun me(

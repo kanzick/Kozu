@@ -1,6 +1,8 @@
 package vn.kozu.ui.library
 
 import vn.kozu.ui.i18n.kozuUiString
+import vn.kozu.ui.components.softTopEdge
+import vn.kozu.ui.components.KozuSheetHandle
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -147,6 +149,7 @@ import vn.kozu.ui.components.MosaicCover
 import vn.kozu.ui.components.NamePlaylistDialog
 import vn.kozu.ui.components.RefreshIndicator
 import vn.kozu.ui.components.SettingsAction
+import vn.kozu.ui.components.NewsAction
 import vn.kozu.ui.components.TrackRow
 import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.playbackIconVector
@@ -172,6 +175,7 @@ fun LibraryScreen(
     listState: LazyListState,
     bottomPadding: Dp,
     onOpenSettings: () -> Unit,
+    onOpenNews: () -> Unit,
     onSyncError: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: LibraryViewModel = viewModel(factory = LibraryViewModel.Factory),
@@ -261,6 +265,7 @@ fun LibraryScreen(
             sheetOpen = showTabMenu,
             onOpenTabs = { showTabMenu = true },
             onOpenSettings = onOpenSettings,
+            onOpenNews = onOpenNews,
         )
 
         if (compactNavigation && ui.openedPlaylist == null) {
@@ -503,6 +508,7 @@ private fun LibraryHeader(
     sheetOpen: Boolean,
     onOpenTabs: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenNews: () -> Unit,
 ) {
     Row(
         modifier =
@@ -523,6 +529,7 @@ private fun LibraryHeader(
                 )
             }
         }
+        NewsAction(onOpenNews)
         SettingsAction(onOpenSettings)
     }
 }
@@ -820,6 +827,7 @@ private fun SortSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        dragHandle = { KozuSheetHandle() },
         containerColor = MaterialTheme.colorScheme.surface,
     ) {
         Column(
@@ -938,7 +946,7 @@ private fun LibraryTabsSheet(
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface,
         scrimColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.56f),
-        dragHandle = { BottomSheetDefaults.DragHandle() },
+        dragHandle = { KozuSheetHandle() },
     ) {
         Column(
             modifier =
@@ -1066,7 +1074,7 @@ private fun ReorderLibraryTabsSheet(
         containerColor = MaterialTheme.colorScheme.surface,
         scrimColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.56f),
         sheetGesturesEnabled = false,
-        dragHandle = { BottomSheetDefaults.DragHandle() },
+        dragHandle = { KozuSheetHandle() },
     ) {
         Column(
             modifier =
@@ -1280,7 +1288,7 @@ private fun TrackCollection(
         )
         LazyColumn(
             state = listState,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().softTopEdge(listState),
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = bottomPadding),
             verticalArrangement = Arrangement.spacedBy(if (compactRows) 4.dp else 10.dp),
         ) {
@@ -1613,7 +1621,7 @@ private fun DownloadsPane(
 
     LazyColumn(
         state = listState,
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().softTopEdge(listState),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = bottomPadding),
         verticalArrangement = Arrangement.spacedBy(3.dp),
     ) {

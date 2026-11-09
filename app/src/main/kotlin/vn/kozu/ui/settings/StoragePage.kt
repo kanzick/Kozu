@@ -1,6 +1,7 @@
 package vn.kozu.ui.settings
 
 import vn.kozu.ui.i18n.kozuUiString
+import vn.kozu.ui.components.KozuSheetHandle
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -333,6 +334,7 @@ private fun ForgottenSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        dragHandle = { KozuSheetHandle() },
         sheetState = rememberBottomSheetState(
             initialValue = SheetValue.Hidden,
             enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)

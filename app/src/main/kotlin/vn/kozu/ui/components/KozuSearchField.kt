@@ -1,5 +1,6 @@
 package vn.kozu.ui.components
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -27,6 +28,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import vn.kozu.data.repository.OsuSearchSyntax
 import vn.kozu.ui.i18n.KozuText as Text
 import vn.kozu.ui.i18n.kozuUiString
 
@@ -106,3 +108,43 @@ fun KozuSearchField(
         }
     }
 }
+
+/**
+ * Shows which parts of the query were understood as osu! search keywords (`stars<8`,
+ * `ranked=2025`, `status=r`…), so people can see the syntax is being applied.
+ */
+@Composable
+fun SearchSyntaxChips(
+    query: String,
+    modifier: Modifier = Modifier,
+) {
+    val recognised = androidx.compose.runtime.remember(query) { OsuSearchSyntax.parse(query).recognised }
+    if (recognised.isEmpty()) return
+    androidx.compose.foundation.layout.Row(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .androidx_horizontalScroll()
+                .padding(horizontal = 24.dp, vertical = 4.dp),
+        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp),
+    ) {
+        recognised.forEach { token ->
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            ) {
+                Text(
+                    text = token,
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun Modifier.androidx_horizontalScroll(): Modifier =
+    this.horizontalScroll(androidx.compose.foundation.rememberScrollState())

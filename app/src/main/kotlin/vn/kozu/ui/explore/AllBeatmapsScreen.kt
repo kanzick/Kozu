@@ -72,9 +72,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import vn.kozu.data.repository.BeatmapRepository
+import vn.kozu.data.repository.CatalogSource
+import vn.kozu.domain.model.Beatmap
+import vn.kozu.ui.components.softTopEdge
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
-import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.BeatmapDifficultyInfo
 import vn.kozu.domain.model.BeatmapSetInfo
 import vn.kozu.game.ui.game.GameMapDownloadState
@@ -129,13 +132,17 @@ fun AllBeatmapsScreen(
     // The floating mini player is drawn by the app shell on top of this screen; leave room for it.
     val listBottom = if (WindowInsets.isImeVisible) 16.dp else 12.dp + LocalOverlayBottomInset.current
     val pageStart = currentPage * BEATMAPS_PER_PAGE
-    val pageItems = ui.items.drop(pageStart).take(BEATMAPS_PER_PAGE)
-    val loadedPages = ((ui.items.size + BEATMAPS_PER_PAGE - 1) / BEATMAPS_PER_PAGE).coerceAtLeast(1)
-    val estimatedPages = ui.total?.let { ((it + BEATMAPS_PER_PAGE - 1) / BEATMAPS_PER_PAGE).coerceAtLeast(1) }
-    val pageCount = if (ui.hasMore) {
-        maxOf(loadedPages + 1, estimatedPages ?: 0)
-    } else {
-        loadedPages
+    val pageItems = ui.items.drop((pageStart - ui.baseOffset).coerceAtLeast(0)).take(BEATMAPS_PER_PAGE)
+    val loadedEnd = ui.baseOffset + ui.items.size
+    val loadedPages = ((loadedEnd + BEATMAPS_PER_PAGE - 1) / BEATMAPS_PER_PAGE).coerceAtLeast(1)
+    // The public mirror cannot go past its result window, so do not offer pages it cannot serve.
+    val reachableTotal =
+        ui.total?.let { if (ui.source == CatalogSource.PUBLIC_MIRROR) minOf(it, BeatmapRepository.MIRROR_RESULT_WINDOW) else it }
+    val estimatedPages = reachableTotal?.let { ((it + BEATMAPS_PER_PAGE - 1) / BEATMAPS_PER_PAGE).coerceAtLeast(1) }
+    val pageCount = when {
+        ui.hasMore && ui.source == CatalogSource.PUBLIC_MIRROR && estimatedPages != null -> maxOf(estimatedPages, loadedPages)
+        ui.hasMore -> maxOf(loadedPages + 1, estimatedPages ?: 0)
+        else -> loadedPages
     }
 
     LaunchedEffect(viewModel, formgamepage) { viewModel.onEnter(formgamepage) }
@@ -158,12 +165,17 @@ fun AllBeatmapsScreen(
         listState.scrollToItem(0)
     }
     LaunchedEffect(currentPage) { listState.scrollToItem(0) }
-    LaunchedEffect(currentPage, ui.items.size, ui.hasMore, ui.isLoadingMore, ui.loadMoreError) {
-        val requiredItems = (currentPage + 1) * BEATMAPS_PER_PAGE
-        if (ui.items.size < requiredItems && ui.hasMore && !ui.isLoadingMore && ui.loadMoreError == null) {
-            viewModel.loadMore()
-        } else if (ui.items.size < requiredItems && !ui.hasMore && !ui.isLoadingMore && currentPage > 0) {
-            currentPage = ((ui.items.size - 1).coerceAtLeast(0) / BEATMAPS_PER_PAGE)
+    LaunchedEffect(currentPage, ui.items.size, ui.baseOffset, ui.hasMore, ui.isLoadingMore, ui.loadMoreError, ui.source) {
+        val start = currentPage * BEATMAPS_PER_PAGE
+        val requiredEnd = start + BEATMAPS_PER_PAGE
+        val loadedEndNow = ui.baseOffset + ui.items.size
+        val outsideWindow = start < ui.baseOffset || start > loadedEndNow + BEATMAPS_PER_PAGE * 2
+        when {
+            // Public mirror: go straight to the page rather than loading everything before it.
+            outsideWindow && ui.source == CatalogSource.PUBLIC_MIRROR && !ui.isLoadingMore -> viewModel.jumpToIndex(start)
+            loadedEndNow < requiredEnd && ui.hasMore && !ui.isLoadingMore && ui.loadMoreError == null -> viewModel.loadMore()
+            loadedEndNow < requiredEnd && !ui.hasMore && !ui.isLoadingMore && currentPage > 0 && ui.items.isNotEmpty() ->
+                currentPage = ((loadedEndNow - 1).coerceAtLeast(0) / BEATMAPS_PER_PAGE)
         }
     }
 
@@ -208,6 +220,7 @@ fun AllBeatmapsScreen(
         )
         Spacer(Modifier.height(10.dp))
         BrowseSummary(ui, Modifier.padding(horizontal = 24.dp))
+        vn.kozu.ui.components.SearchSyntaxChips(ui.filters.query)
         if (ui.filters.hasActiveFilters) {
             Spacer(Modifier.height(4.dp))
             ActiveFilterChips(
@@ -240,7 +253,7 @@ fun AllBeatmapsScreen(
         ) {
             LazyColumn(
                 state = listState,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().softTopEdge(listState),
                 contentPadding = PaddingValues(
                     start = 20.dp,
                     end = 20.dp,

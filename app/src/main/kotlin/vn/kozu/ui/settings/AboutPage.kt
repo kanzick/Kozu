@@ -73,9 +73,10 @@ fun AboutPage(
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
-    val replayOnboarding = LocalReplayOnboarding.current
     val version = remember { UpdateChecker.installedVersion(context) }
     var privacyOpen by remember { mutableStateOf(false) }
+    // CompositionLocals can only be read in composable code, not inside the settings DSL below.
+    val replayOnboarding = LocalReplayOnboarding.current
 
     SettingsScaffold(title = "About", onBack = onBack) {
         SettingsSection(null) {
@@ -105,9 +106,9 @@ fun AboutPage(
                     privacyOpen = true
                 }
             }
-            replayOnboarding?.let { replay ->
+            if (replayOnboarding != null) {
                 custom { shape ->
-                    LinkItem(shape, Icons.Rounded.Star, "Setup guide", "Run the welcome wizard again") { replay() }
+                    LinkItem(shape, Icons.Rounded.Star, "Setup guide", "Run the welcome wizard again") { replayOnboarding() }
                 }
             }
             custom { shape ->

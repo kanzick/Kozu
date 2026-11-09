@@ -93,6 +93,7 @@ fun BeatmapInfoSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        dragHandle = { KozuSheetHandle() },
         sheetState = rememberBottomSheetState(
             initialValue = SheetValue.Hidden,
             enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)

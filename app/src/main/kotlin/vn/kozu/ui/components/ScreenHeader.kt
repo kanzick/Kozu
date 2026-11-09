@@ -1,19 +1,20 @@
 package vn.kozu.ui.components
 
+import androidx.compose.ui.res.vectorResource
 import vn.kozu.ui.i18n.kozuUiString
+import vn.kozu.data.news.NewsReadState
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.animation.core.LinearEasing
@@ -164,4 +165,37 @@ fun SettingsAction(onClick: () -> Unit, startPadding: Dp = 8.dp) {
         content = MaterialTheme.colorScheme.onSurface,
         startPadding = startPadding
     )
+}
+
+/** Icon-only action that opens osu!'s news. */
+@Composable
+fun NewsAction(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier.padding(start = 8.dp).size(46.dp),
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = androidx.compose.ui.graphics.vector.ImageVector.vectorResource(vn.kozu.R.drawable.at_newspaper),
+                contentDescription = kozuUiString("osu! Updates"),
+                modifier = Modifier.size(22.dp),
+            )
+            if (NewsReadState.hasUnread) {
+                Box(
+                    Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 6.dp, end = 6.dp)
+                        .size(10.dp)
+                        .background(MaterialTheme.colorScheme.error, CircleShape)
+                        .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape),
+                )
+            }
+        }
+    }
 }

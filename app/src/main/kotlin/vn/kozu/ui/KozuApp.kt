@@ -37,6 +37,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
@@ -62,6 +63,9 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -69,6 +73,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import vn.kozu.KozuApplication
 import vn.kozu.data.local.DownloadedSet
+import vn.kozu.data.news.NewsReadState
 import vn.kozu.data.update.UpdateResult
 import vn.kozu.data.update.checkIfDue
 import vn.kozu.di.AppContainer
@@ -224,7 +229,9 @@ private fun KozuShell(
     var playerOpen by rememberSaveable { mutableStateOf(false) }
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
     var settingsInitialPage by rememberSaveable { mutableStateOf(vn.kozu.ui.settings.SettingsPage.ROOT) }
+    var reopenNewsAfterAccountSettings by rememberSaveable { mutableStateOf(false) }
     var statsOpen by rememberSaveable { mutableStateOf(false) }
+    var newsOpen by rememberSaveable { mutableStateOf(false) }
     var personName by rememberSaveable { mutableStateOf<String?>(null) }
     var personKindKey by rememberSaveable { mutableStateOf(PersonKind.ARTIST.name) }
     var lastPersonName by remember { mutableStateOf("") }
@@ -242,6 +249,16 @@ private fun KozuShell(
     var formgamepage by rememberSaveable { mutableStateOf(false) }
     var gameMapPickerViewModel by remember { mutableStateOf<GameViewModel?>(null) }
     var gamePlayActive by remember { mutableStateOf(false) }
+
+    // Only one thing may make sound at a time. A Game preview pauses the main player, and
+    // pressing play on the main player (mini player, notification, headset) stops the preview.
+    DisposableEffect(playback) {
+        vn.kozu.game.mania.previewstage.audio.PreviewPlayer.onAudible = { playback.pause() }
+        onDispose { vn.kozu.game.mania.previewstage.audio.PreviewPlayer.onAudible = null }
+    }
+    LaunchedEffect(state.isPlaying) {
+        if (state.isPlaying) vn.kozu.game.mania.previewstage.PreviewStageModule.peek()?.stopPreview()
+    }
     var menuTarget by remember { mutableStateOf<Beatmap?>(null) }
     var playlistTarget by remember { mutableStateOf<Beatmap?>(null) }
     var infoTarget by remember { mutableStateOf<Beatmap?>(null) }
@@ -252,7 +269,7 @@ private fun KozuShell(
     val bottomPadding = with(density) { chromeHeightPx.toDp() } + 16.dp
     // Height of the floating mini player while it is drawn over an overlay screen.
     var overlayMiniPx by remember { mutableIntStateOf(0) }
-    val overlayScreenOpen = settingsOpen || allBeatmapsOpen || statsOpen
+    val overlayScreenOpen = settingsOpen || allBeatmapsOpen || statsOpen || newsOpen
     val overlayMiniInset = if (state.current != null) with(density) { overlayMiniPx.toDp() } else 0.dp
     fun closeAllBeatmaps() {
         allBeatmapsOpen = false
@@ -353,6 +370,20 @@ private fun KozuShell(
             }
         }
 
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, container) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_START) {
+                NewsReadState.initialize(context)
+                scope.launch {
+                    runCatching { container.news.load() }
+                        .onSuccess { posts -> NewsReadState.updateLatest(context, posts) }
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     LaunchedEffect(playback) { playback.messages.collect { notify(it) } }
     LaunchedEffect(container) { container.downloads.events.collect { notify(it) } }
     LaunchedEffect(container) { container.accounts.events.collect { notify(it) } }
@@ -413,6 +444,7 @@ private fun KozuShell(
                             onOpenExplore = { tab = KozuTab.EXPLORE },
                             onOpenLibrary = { tab = KozuTab.LIBRARY },
                             onOpenStats = { statsOpen = true },
+                            onOpenNews = { newsOpen = true },
                             onRefresh = ::refreshApp,
                             isAppRefreshing = isAppRefreshing,
                         )
@@ -423,6 +455,7 @@ private fun KozuShell(
                             listState = exploreList,
                             bottomPadding = bottomPadding,
                             onOpenSettings = { settingsOpen = true },
+                            onOpenNews = { newsOpen = true },
                             onOpenLibrary = { tab = KozuTab.LIBRARY },
                             onOpenSearch = { tab = KozuTab.SEARCH },
                             onOpenAllBeatmaps = {
@@ -439,6 +472,7 @@ private fun KozuShell(
                             listState = libraryList,
                             bottomPadding = bottomPadding,
                             onOpenSettings = { settingsOpen = true },
+                            onOpenNews = { newsOpen = true },
                             onSyncError = ::notify,
                         )
                     }
@@ -481,7 +515,13 @@ private fun KozuShell(
                     modifier =
                         Modifier
                             .align(Alignment.BottomCenter)
-                            .onSizeChanged { chromeHeightPx = it.height },
+                            .background(
+                                Brush.verticalGradient(
+                                    0f to Color.Transparent,
+                                    0.3f to MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                                    0.5f to MaterialTheme.colorScheme.surface,
+                                ),
+                            ).onSizeChanged { chromeHeightPx = it.height },
                 ) {
                     AnimatedVisibility(
                         visible = state.current != null,
@@ -519,7 +559,7 @@ private fun KozuShell(
                 }
             }
 
-            if (tab == KozuTab.SEARCH && !settingsOpen && !allBeatmapsOpen && !statsOpen && !playerOpen) {
+            if (tab == KozuTab.SEARCH && !settingsOpen && !allBeatmapsOpen && !statsOpen && !newsOpen && !playerOpen) {
                 BackHandler { tab = lastMainTab }
             }
 
@@ -541,6 +581,10 @@ private fun KozuShell(
                         onBack = {
                             settingsOpen = false
                             settingsInitialPage = vn.kozu.ui.settings.SettingsPage.ROOT
+                            if (reopenNewsAfterAccountSettings) {
+                                newsOpen = true
+                                reopenNewsAfterAccountSettings = false
+                            }
                         },
                     )
                 }
@@ -580,48 +624,27 @@ private fun KozuShell(
                         vn.kozu.ui.settings.StatsPage(settingsViewModel) { statsOpen = false }
                     }
                 }
+
+                // osu! news: native Compose content backed by osu! API v2.
+                AnimatedVisibility(
+                    visible = newsOpen,
+                    enter = slideInHorizontally(KozuMotion.spatial()) { it } + fadeIn(),
+                    exit = slideOutHorizontally(tween(240)) { it } + fadeOut(),
+                ) {
+                    vn.kozu.ui.news.NewsScreen(
+                        onBack = { newsOpen = false },
+                        onOpenAccountSettings = {
+                            reopenNewsAfterAccountSettings = true
+                            newsOpen = false
+                            settingsInitialPage = vn.kozu.ui.settings.SettingsPage.ACCOUNT
+                            settingsOpen = true
+                        },
+                        container = container,
+                    )
+                }
             }
             if (allBeatmapsOpen && !settingsOpen && !statsOpen) BackHandler { closeAllBeatmaps() }
             if (statsOpen && !settingsOpen) BackHandler { statsOpen = false }
-
-            // One mini player for every overlay screen. Same composable and same state as the
-            // one above the navigation bar, so swiping either away closes both.
-            AnimatedVisibility(
-                visible = overlayScreenOpen && state.current != null,
-                modifier = Modifier.align(Alignment.BottomCenter),
-                enter = fadeIn(tween(160)) + slideInVertically(KozuMotion.spatial()) { it / 2 },
-                exit = fadeOut(tween(120)) + slideOutVertically { it / 2 },
-            ) {
-                Column(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .background(
-                                Brush.verticalGradient(
-                                    0f to Color.Transparent,
-                                    0.3f to MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-                                    0.5f to MaterialTheme.colorScheme.surface,
-                                ),
-                            ).navigationBarsPadding(),
-                ) {
-                    Spacer(Modifier.height(20.dp))
-                    Box(Modifier.onSizeChanged { overlayMiniPx = it.height }) {
-                        state.current?.let { beatmap ->
-                            MiniPlayer(
-                                beatmap = beatmap,
-                                isPlaying = state.isPlaying,
-                                position = playback.position,
-                                duration = playback.duration,
-                                onOpen = { playerOpen = true },
-                                onPlayPause = playback::togglePlayPause,
-                                onPrevious = playback::previous,
-                                onNext = playback::next,
-                                onDismiss = playback::clearQueue,
-                            )
-                        }
-                    }
-                }
-            }
 
             AnimatedVisibility(
                 visible = playerOpen && state.current != null,
@@ -640,6 +663,9 @@ private fun KozuShell(
                         onPrevious = playback::previous,
                         onNext = playback::next,
                         onSeek = playback::seekTo,
+                        onToggleAutoplay = {
+                            scope.launch { container.settings.setAutoplay(!settings.autoplay) }
+                        },
                         onShuffle = playback::toggleShuffle,
                         onRepeat = playback::cycleRepeat,
                         onFavorite = { actions.toggleFavorite(beatmap) },
@@ -686,15 +712,61 @@ private fun KozuShell(
                 enter = slideInHorizontally(KozuMotion.spatial()) { it } + fadeIn(),
                 exit = slideOutHorizontally(tween(240)) { it } + fadeOut(),
             ) {
-                PersonScreen(
-                    kind = personName?.let { PersonKind.valueOf(personKindKey) } ?: lastPersonKind,
-                    name = personName ?: lastPersonName,
-                    onBack = { personName = null },
-                )
+                CompositionLocalProvider(LocalOverlayBottomInset provides overlayMiniInset) {
+                    PersonScreen(
+                        kind = personName?.let { PersonKind.valueOf(personKindKey) } ?: lastPersonKind,
+                        name = personName ?: lastPersonName,
+                        onBack = { personName = null },
+                    )
+                }
             }
             if (personName != null) BackHandler { personName = null }
 
-            val overlayOpen = settingsOpen || playerOpen || allBeatmapsOpen || statsOpen
+            // One mini player for every overlay screen. Same composable and same state as the
+            // one above the navigation bar, so swiping either away closes both. It sits on top of the
+            // artist / mapper pages too.
+            AnimatedVisibility(
+                visible = state.current != null && (personName != null || (overlayScreenOpen && !playerOpen)),
+                modifier = Modifier.align(Alignment.BottomCenter),
+                enter = fadeIn(tween(160)) + slideInVertically(KozuMotion.spatial()) { it / 2 },
+                exit = fadeOut(tween(120)) + slideOutVertically { it / 2 },
+            ) {
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .background(
+                                Brush.verticalGradient(
+                                    0f to Color.Transparent,
+                                    0.3f to MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                                    0.5f to MaterialTheme.colorScheme.surface,
+                                ),
+                            ).navigationBarsPadding(),
+                ) {
+                    Spacer(Modifier.height(20.dp))
+                    Box(Modifier.onSizeChanged { overlayMiniPx = it.height }) {
+                        state.current?.let { beatmap ->
+                            MiniPlayer(
+                                beatmap = beatmap,
+                                isPlaying = state.isPlaying,
+                                position = playback.position,
+                                duration = playback.duration,
+                                onOpen = {
+                                    personName = null
+                                    playerOpen = true
+                                },
+                                onPlayPause = playback::togglePlayPause,
+                                onPrevious = playback::previous,
+                                onNext = playback::next,
+                                onDismiss = playback::clearQueue,
+                            )
+                        }
+                    }
+                }
+            }
+
+
+            val overlayOpen = settingsOpen || playerOpen || allBeatmapsOpen || statsOpen || newsOpen
             SnackbarHost(
                 hostState = snackbar,
                 modifier =

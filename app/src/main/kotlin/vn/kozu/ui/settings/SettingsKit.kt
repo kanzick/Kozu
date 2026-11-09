@@ -1,6 +1,8 @@
 package vn.kozu.ui.settings
 
+import androidx.compose.ui.draw.drawBehind
 import vn.kozu.ui.i18n.kozuUiString
+import vn.kozu.ui.components.KozuSheetHandle
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
@@ -22,8 +24,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -88,6 +90,7 @@ import vn.kozu.ui.components.LocalOverlayBottomInset
 import vn.kozu.ui.components.LocalScrollViewport
 import vn.kozu.ui.components.ScrollViewport
 import vn.kozu.ui.components.scrollReveal
+import vn.kozu.ui.components.softTopEdge
 import vn.kozu.ui.components.LocalPerformanceMode
 import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.rememberKozuHaptics
@@ -177,6 +180,7 @@ fun SettingsPageScaffold(
                         .fillMaxSize()
                         .padding(top = headerDp)
                         .imePadding()
+                        .softTopEdge(scroll)
                         .verticalScroll(scroll)
                         .navigationBarsPadding()
                         .padding(bottom = overlayInset)
@@ -211,7 +215,22 @@ private fun CollapsingHeader(
             Modifier
                 .fillMaxWidth()
                 .height(height)
-                .background(lerp(colors.surface, colors.surfaceContainer, fraction)),
+                // Same colour as the page (no lighter rectangle) with a soft fade below it, so
+                // content scrolls away under the title the way it does under the navigation bar.
+                .background(colors.surface)
+                .drawBehind {
+                    val tail = 24.dp.toPx()
+                    drawRect(
+                        brush =
+                            androidx.compose.ui.graphics.Brush.verticalGradient(
+                                colors = listOf(colors.surface.copy(alpha = fraction), androidx.compose.ui.graphics.Color.Transparent),
+                                startY = size.height,
+                                endY = size.height + tail,
+                            ),
+                        topLeft = Offset(0f, size.height),
+                        size = androidx.compose.ui.geometry.Size(size.width, tail),
+                    )
+                },
     ) {
         Surface(
             modifier =
@@ -599,6 +618,7 @@ fun <T> OptionSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        dragHandle = { KozuSheetHandle() },
         sheetState =
             rememberBottomSheetState(
                 initialValue = SheetValue.Hidden,

@@ -87,13 +87,6 @@ class PreviewStageModule private constructor(
         buildReport(summary, catalog.all(), t0).also { report = it }
     }
 
-    suspend fun updateStarRatings(songId: Long, ratings: Map<Long, Double>): Int = startLock.withLock {
-        val kozu = kozuDb ?: throw IOException("The chart database is not ready")
-        val updated = withContext(Dispatchers.IO) { kozu.updateStarRatings(songId, ratings) }
-        if (updated > 0) kozu.loadSong(songId, paths.songs)?.let(catalog::upsert)
-        updated
-    }
-
     suspend fun collectionNames(): List<String> = startLock.withLock {
         val kozu = kozuDb ?: throw IOException("The chart database is not ready")
         withContext(Dispatchers.IO) { kozu.collectionNames() }
@@ -101,8 +94,17 @@ class PreviewStageModule private constructor(
 
     suspend fun setSongCollections(songId: Long, names: List<String>) = startLock.withLock {
         val kozu = kozuDb ?: throw IOException("The chart database is not ready")
-        withContext(Dispatchers.IO) { kozu.setSongCollections(songId, names) }
-        kozu.loadSong(songId, paths.songs)?.let(catalog::upsert)
+        withContext(Dispatchers.IO) {
+            kozu.setSongCollections(songId, names)
+            kozu.loadSong(songId, paths.songs)?.let(catalog::upsert)
+        }
+    }
+
+    suspend fun updateStarRatings(songId: Long, ratings: Map<Long, Double>): Int = startLock.withLock {
+        val kozu = kozuDb ?: throw IOException("The chart database is not ready")
+        val updated = withContext(Dispatchers.IO) { kozu.updateStarRatings(songId, ratings) }
+        if (updated > 0) kozu.loadSong(songId, paths.songs)?.let(catalog::upsert)
+        updated
     }
 
     suspend fun deleteSong(songId: Long) = startLock.withLock {
@@ -216,6 +218,9 @@ class PreviewStageModule private constructor(
         private const val TAG = "PreviewStage"
 
         @Volatile private var instance: PreviewStageModule? = null
+
+        /** The module if the Game tab has created it already, without creating it. */
+        fun peek(): PreviewStageModule? = instance
 
         fun get(context: Context, config: PreviewStageConfig = PreviewStageConfig()): PreviewStageModule =
             instance ?: synchronized(this) {

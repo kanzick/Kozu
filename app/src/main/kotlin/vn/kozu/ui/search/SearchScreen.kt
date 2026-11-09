@@ -68,6 +68,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import vn.kozu.domain.model.SearchCategory
 import vn.kozu.domain.model.SearchSort
+import vn.kozu.ui.components.softTopEdge
 import vn.kozu.ui.components.EmptyState
 import vn.kozu.ui.components.KozuSearchField
 import vn.kozu.ui.components.KozuLoading
@@ -161,7 +162,7 @@ fun SearchScreen(
             leading = {
                 KozuSearchField(
                     query = ui.query,
-                    placeholder = kozuUiString("Search beatmaps"),
+                    placeholder = kozuUiString("Search, or try stars<8 ranked=2025"),
                     onQueryChange = viewModel::onQueryChange,
                     onSearch = {
                         viewModel.remember()
@@ -189,7 +190,7 @@ fun SearchScreen(
         if (isIdle) {
             LazyColumn(
                 state = idleListState,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().softTopEdge(idleListState),
                 contentPadding = PaddingValues(top = 8.dp, bottom = listBottom)
             ) {
                 if (recents.isNotEmpty()) {
@@ -223,6 +224,7 @@ fun SearchScreen(
                     onReset = viewModel::resetFilters
                 )
             }
+            vn.kozu.ui.components.SearchSyntaxChips(ui.query)
             val nearEnd by remember {
                 derivedStateOf {
                     val info = listState.layoutInfo
@@ -249,7 +251,7 @@ fun SearchScreen(
                     } else {
                         LazyColumn(
                             state = listState,
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier.fillMaxSize().softTopEdge(listState),
                             contentPadding = PaddingValues(start = 20.dp, top = 12.dp, end = 20.dp, bottom = listBottom),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {

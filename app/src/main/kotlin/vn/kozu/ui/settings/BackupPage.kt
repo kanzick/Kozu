@@ -1,6 +1,7 @@
 package vn.kozu.ui.settings
 
 import vn.kozu.ui.i18n.kozuUiString
+import vn.kozu.ui.components.KozuSheetHandle
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -288,6 +289,7 @@ private fun SectionSheet(
     var selected by remember { mutableStateOf(available.toSet()) }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        dragHandle = { KozuSheetHandle() },
         sheetState =
             rememberBottomSheetState(
                 initialValue = SheetValue.Hidden,

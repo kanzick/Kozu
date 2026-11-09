@@ -422,7 +422,6 @@ internal object UiStringIds {
         "Mini player style" to "ui_04fa521d0f19e4",
         "Mirrors" to "ui_c92a133e8e92ff",
         "Mix" to "ui_fd7391b6720b80",
-        "Mix all beatmaps" to "ui_130e06f5413a3c",
         "mix shuffle queue songs count" to "ui_76f903ba8e8efe",
         "Mixed picks" to "ui_28a39985f2b554",
         "Mobile artwork quality" to "ui_8dbc6e2375c249",

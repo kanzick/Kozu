@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
@@ -55,3 +56,46 @@ fun Modifier.scrollReveal(zone: Dp = 80.dp, travel: Dp = 20.dp): Modifier {
             translationY = (1f - eased) * travelPx
         }
 }
+
+/**
+ * Lets scrolling content melt into the page just under the header instead of being cut off by a
+ * hard rectangle. [strength] runs while drawing (0 = no fade, 1 = full), so it follows the scroll
+ * without recomposing. Nothing is dimmed while the list sits at the very top.
+ */
+fun Modifier.softTopEdge(
+    height: Dp = 26.dp,
+    strength: () -> Float,
+): Modifier =
+    this
+        .graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }
+        .drawWithContent {
+            drawContent()
+            val s = strength().coerceIn(0f, 1f)
+            if (s > 0f) {
+                val h = height.toPx()
+                drawRect(
+                    brush =
+                        androidx.compose.ui.graphics.Brush.verticalGradient(
+                            0f to androidx.compose.ui.graphics.Color.Black.copy(alpha = 1f - s),
+                            1f to androidx.compose.ui.graphics.Color.Black,
+                            startY = 0f,
+                            endY = h,
+                        ),
+                    size = androidx.compose.ui.geometry.Size(size.width, h),
+                    blendMode = androidx.compose.ui.graphics.BlendMode.DstIn,
+                )
+            }
+        }
+
+fun Modifier.softTopEdge(
+    state: androidx.compose.foundation.lazy.LazyListState,
+    height: Dp = 26.dp,
+): Modifier =
+    softTopEdge(height) {
+        if (state.firstVisibleItemIndex > 0) 1f else (state.firstVisibleItemScrollOffset / 60f).coerceIn(0f, 1f)
+    }
+
+fun Modifier.softTopEdge(
+    state: androidx.compose.foundation.ScrollState,
+    height: Dp = 26.dp,
+): Modifier = softTopEdge(height) { (state.value / 60f).coerceIn(0f, 1f) }

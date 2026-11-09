@@ -199,12 +199,14 @@ private fun RowScope.PillItem(
                 enter = fadeIn(tween(160)) + expandHorizontally(KozuMotion.spatial()),
                 exit = fadeOut(tween(90)) + shrinkHorizontally(tween(160)),
             ) {
-                FitText(
+                Text(
                     text = tab.title,
                     modifier = Modifier.padding(start = 8.dp),
                     style = MaterialTheme.typography.labelLarge,
                     color = content,
-                    minScale = 0.7f,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }

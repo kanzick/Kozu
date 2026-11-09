@@ -1,6 +1,7 @@
 package vn.kozu.ui.explore
 
 import androidx.compose.foundation.layout.Arrangement
+import vn.kozu.ui.components.KozuSheetHandle
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -71,6 +72,7 @@ fun BrowseFilterSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        dragHandle = { KozuSheetHandle() },
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {

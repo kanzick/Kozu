@@ -1,5 +1,6 @@
 package vn.kozu.ui.settings
 
+import androidx.compose.foundation.layout.heightIn
 import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -54,9 +55,9 @@ fun LanguagePage(onBack: () -> Unit) {
         Spacer(Modifier.height(12.dp))
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            languageOptions.forEach { language ->
+            languageOptions.forEachIndexed { index, language ->
                 val selected = selectedTag == language.tag
                 Surface(
                     onClick = {
@@ -68,16 +69,16 @@ fun LanguagePage(onBack: () -> Unit) {
                             }
                         }
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 62.dp),
+                    shape = groupShape(index, languageOptions.size),
                     color = if (selected) {
-                        MaterialTheme.colorScheme.secondaryContainer
+                        MaterialTheme.colorScheme.primaryContainer
                     } else {
-                        MaterialTheme.colorScheme.surfaceContainer
+                        MaterialTheme.colorScheme.surfaceContainerHigh
                     },
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
@@ -85,7 +86,7 @@ fun LanguagePage(onBack: () -> Unit) {
                             modifier = Modifier.weight(1f),
                             style = MaterialTheme.typography.titleMedium,
                             color = if (selected) {
-                                MaterialTheme.colorScheme.onSecondaryContainer
+                                MaterialTheme.colorScheme.onPrimaryContainer
                             } else {
                                 MaterialTheme.colorScheme.onSurface
                             },
@@ -94,8 +95,8 @@ fun LanguagePage(onBack: () -> Unit) {
                             Icon(
                                 imageVector = Icons.Rounded.Check,
                                 contentDescription = stringResource(R.string.language_selected),
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(24.dp),
                             )
                         }
                     }

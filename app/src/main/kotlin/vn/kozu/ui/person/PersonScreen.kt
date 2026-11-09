@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import vn.kozu.ui.components.softTopEdge
 import vn.kozu.ui.components.CenteredHeader
 import vn.kozu.ui.components.EmptyState
 import vn.kozu.ui.components.HeaderAction
@@ -117,8 +118,12 @@ fun PersonScreen(
             else ->
                 LazyColumn(
                     state = listState,
-                    modifier = Modifier.fillMaxSize().navigationBarsPadding(),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 20.dp, end = 20.dp, bottom = 28.dp),
+                    modifier = Modifier.fillMaxSize().navigationBarsPadding().softTopEdge(listState),
+                    contentPadding =
+                        androidx.compose.foundation.layout.PaddingValues(
+                            start = 20.dp, end = 20.dp,
+                            bottom = 28.dp + vn.kozu.ui.components.LocalOverlayBottomInset.current,
+                        ),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     item(key = "hero") {

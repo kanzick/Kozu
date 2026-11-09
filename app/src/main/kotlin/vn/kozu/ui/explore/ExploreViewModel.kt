@@ -8,7 +8,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
-import vn.kozu.data.repository.CatalogSource
 import vn.kozu.di.AppContainer
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.ui.containerFactory
@@ -27,15 +26,9 @@ data class ExploreUiState(
     val trending: List<Beatmap> = emptyList(),
     val loved: List<Beatmap> = emptyList(),
     val mix: List<Beatmap> = emptyList(),
-    val mixSource: CatalogSource = CatalogSource.NONE,
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
-    val isLoadingMoreMix: Boolean = false,
-    val hasMoreMix: Boolean = false,
-) {
-    val surprisePool: List<Beatmap>
-        get() = mix
-}
+)
 
 class ExploreViewModel(
     private val container: AppContainer,
@@ -67,19 +60,14 @@ class ExploreViewModel(
                 trending = discover.trending.filter { it.status.equals("ranked", true) },
                 loved = discover.loved.filter { it.status.equals("loved", true) },
                 mix = discover.mix.filter { it.isRankedOrLoved() },
-                mixSource = discover.mixSource,
                 isLoading = discover.isLoading,
                 isRefreshing = discover.isRefreshing,
-                isLoadingMoreMix = discover.isLoadingMoreMix,
-                hasMoreMix = discover.hasMoreMix,
             )
         }.flowOn(Dispatchers.Default).stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5_000),
             ExploreUiState(),
         )
-
-    fun loadMoreMix() = container.discover.loadMoreMix()
 
     companion object {
         val Factory = containerFactory { ExploreViewModel(it) }

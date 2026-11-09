@@ -52,6 +52,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -262,17 +263,24 @@ fun MiniPlayer(
                     var dx = 0f
                     var dy = 0f
                     val skipThreshold = 96.dp.toPx()
-                    val dismissThreshold = 80.dp.toPx()
+                    // The player can sit right on the bottom edge of the screen (over Settings,
+                    // All beatmaps…) where there is barely any room below it to drag into, so the
+                    // distance has to be small and a quick downward flick must count as well.
+                    val dismissThreshold = 36.dp.toPx()
+                    val flingThreshold = 650.dp.toPx()
+                    val tracker = VelocityTracker()
                     detectDragGestures(
                         onDragStart = {
                             gestureAnimation?.cancel()
                             axis = 0
                             dx = 0f
                             dy = 0f
+                            tracker.resetTracking()
                         },
                         onDrag = { change, drag ->
                             dx += drag.x
                             dy += drag.y
+                            tracker.addPosition(change.uptimeMillis, Offset(dx, dy))
                             if (axis == 0 && (abs(dx) > 14f || abs(dy) > 14f)) {
                                 axis = if (abs(dx) > abs(dy) && prefs.miniSwipeToSkip) 1 else 2
                             }
@@ -290,6 +298,7 @@ fun MiniPlayer(
                         onDragEnd = {
                             val width = size.width.toFloat().coerceAtLeast(1f)
                             val height = size.height.toFloat().coerceAtLeast(1f)
+                            val flingY = tracker.calculateVelocity().y
                             gestureAnimation = scope.launch {
                                 val settle = spring<Float>(
                                     dampingRatio = Spring.DampingRatioNoBouncy,
@@ -310,7 +319,7 @@ fun MiniPlayer(
                                         offsetX = width * 0.36f
                                         animate(initialValue = offsetX, targetValue = 0f, animationSpec = settle) { value, _ -> offsetX = value }
                                     }
-                                    axis == 2 && dy > dismissThreshold -> {
+                                    axis == 2 && (dy > dismissThreshold || (dy > 12.dp.toPx() && flingY > flingThreshold)) -> {
                                         animate(initialValue = offsetY, targetValue = height, animationSpec = tween(190)) { value, _ -> offsetY = value }
                                         currentOnDismiss()
                                     }

@@ -1,5 +1,6 @@
 package vn.kozu.ui.settings
 
+import androidx.compose.foundation.clickable
 import vn.kozu.ui.i18n.kozuUiString
 
 import androidx.compose.foundation.horizontalScroll
@@ -63,7 +64,8 @@ fun UpdatesPage(
     val container = viewModel.appContainer
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val version = remember { vn.kozu.data.update.UpdateChecker.installedVersion(context) }
-    val channel = settings.updateChannel
+    // Releases and history follow `main` only; the Dev channel is gone.
+    val channel = UpdateChannel.STABLE
     val checked = settings.lastUpdateCheckAt.takeIf { it > 0L }?.let(::formatDateTime) ?: "Not checked"
 
     var checking by remember { mutableStateOf(false) }
@@ -120,17 +122,6 @@ fun UpdatesPage(
                 )
             }
         }
-        SettingsSection("Channel") {
-            custom { shape ->
-                ChannelSelector(
-                    selected = channel,
-                    onSelected = { selected ->
-                        message = null
-                        viewModel.save { setUpdateChannel(selected) }
-                    },
-                )
-            }
-        }
         SettingsSection("Commit history · ${commits.branch}") {
             if (loadingCommits) {
                 custom { shape -> SettingsNote(shape, "Loading history…") }
@@ -139,8 +130,8 @@ fun UpdatesPage(
                 if (commits.commits.isEmpty()) {
                     custom { shape -> SettingsNote(shape, "No commits found.") }
                 } else {
-                    commits.commits.forEach { commit ->
-                        custom { shape -> CommitCard(shape, commit) { context.openLink(commit.url) } }
+                    commits.commits.groupBy { it.date.take(10) }.forEach { (day, group) ->
+                        custom { shape -> CommitDayCard(shape, day, group) { url -> context.openLink(url) } }
                     }
                     if (commits.totalPages > 1) {
                         custom { shape ->
@@ -164,7 +155,7 @@ fun UpdatesPage(
             title = { Text("Kozu v${update.version} is available") },
             text = {
                 Text(
-                    update.notes.ifBlank { "A new ${channel.label} release is available." }.take(1_000),
+                    update.notes.ifBlank { "A new release is available." }.take(1_000),
                     style = MaterialTheme.typography.bodyMedium,
                 )
             },
@@ -224,81 +215,103 @@ private fun UpdateSummaryCard(
 }
 
 @Composable
-private fun ChannelSelector(
-    selected: UpdateChannel,
-    onSelected: (UpdateChannel) -> Unit,
+private fun CommitDayCard(
+    shape: androidx.compose.ui.graphics.Shape,
+    day: String,
+    commits: List<RecentCommit>,
+    onOpen: (String) -> Unit,
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            UpdateChannel.entries.forEach { channel ->
-                val active = channel == selected
-                Surface(
-                    onClick = { onSelected(channel) },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(22.dp),
-                    color = if (active) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
-                    contentColor = if (active) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface,
-                ) {
-                    Text(
-                        text = channel.label,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 14.dp),
-                        style = MaterialTheme.typography.titleSmall,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+    SettingCard(setting = null, shape = shape, onClick = null) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp)) {
+            Text(
+                text = dayLabel(day),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            )
+            commits.forEachIndexed { index, commit ->
+                if (index > 0) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
                     )
                 }
+                CommitRow(commit) { onOpen(commit.url) }
             }
         }
-        Text(
-            if (selected == UpdateChannel.STABLE) "Public releases" else "Prerelease builds",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 4.dp),
-        )
     }
 }
 
 @Composable
-private fun CommitCard(
-    shape: androidx.compose.ui.graphics.Shape,
+private fun CommitRow(
     commit: RecentCommit,
     onClick: () -> Unit,
 ) {
-    SettingCard(setting = null, shape = shape, onClick = onClick) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (!commit.avatarUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = commit.avatarUrl,
-                    contentDescription = kozuUiString("${commit.author} avatar"),
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.size(44.dp).clip(CircleShape),
-                )
-            } else {
-                IconBadge(Icons.Rounded.Code)
-            }
-            Spacer(Modifier.width(14.dp))
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(commit.title, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Text(commit.sha.take(8), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .clickable(onClick = onClick)
+                .padding(horizontal = 8.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        if (!commit.avatarUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = commit.avatarUrl,
+                contentDescription = kozuUiString("${commit.author} avatar"),
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.size(38.dp).clip(CircleShape),
+            )
+        } else {
+            IconBadge(Icons.Rounded.Code)
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Text(
+                commit.title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    listOf(commit.author, commit.date.take(10)).filter(String::isNotBlank).joinToString(" · "),
-                    style = MaterialTheme.typography.bodySmall,
+                    commit.author,
+                    style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
+                Spacer(Modifier.width(8.dp))
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ) {
+                    Text(
+                        commit.sha.take(7),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+                    )
+                }
             }
         }
     }
 }
+
+private fun dayLabel(day: String): String =
+    runCatching {
+        val date = java.time.LocalDate.parse(day)
+        val today = java.time.LocalDate.now()
+        when (date) {
+            today -> "Today"
+            today.minusDays(1) -> "Yesterday"
+            else -> date.format(java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy", java.util.Locale.getDefault()))
+        }
+    }.getOrDefault(day)
 
 @Composable
 private fun CommitPagination(

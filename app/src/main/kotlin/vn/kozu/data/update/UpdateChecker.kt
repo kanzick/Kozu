@@ -53,44 +53,101 @@ class UpdateChecker(
     private val appContext = context.applicationContext
     private val currentVersion: String get() = installedVersion(appContext)
 
+    /**
+     * Looks for a newer release. There is a single track now (the `main` branch), so the channel
+     * argument is kept only for old callers and is ignored. The GitHub API is tried first; if it
+     * is rate limited or unreachable, the public releases feed answers instead.
+     */
+    @Suppress("UNUSED_PARAMETER")
     suspend fun check(channel: UpdateChannel = UpdateChannel.STABLE): UpdateResult =
         withContext(Dispatchers.IO) {
-            val request =
-                Request
-                    .Builder()
-                    .url(RELEASES_URL_API)
-                    .header("Accept", "application/vnd.github+json")
-                    .header("X-GitHub-Api-Version", "2022-11-28")
-                    .build()
-            try {
-                client.newCall(request).execute().use { response ->
-                    when {
-                        response.code == 403 || response.code == 429 -> {
-                            UpdateResult.Failed("GitHub is rate limiting requests. Try again later.")
-                        }
-
-                        !response.isSuccessful -> {
-                            UpdateResult.Failed("GitHub returned HTTP ${response.code}")
-                        }
-
-                        else -> parseReleases(response.body.string(), channel)
-                    }
-                }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: IOException) {
-                UpdateResult.Failed("Could not reach GitHub. Check your connection.")
-            } catch (e: Exception) {
-                UpdateResult.Failed(e.message ?: "Update check failed")
-            }
+            val viaApi = checkViaApi()
+            if (viaApi !is UpdateResult.Failed) return@withContext viaApi
+            checkViaFeed() ?: viaApi
         }
+
+    private fun checkViaApi(): UpdateResult {
+        val request =
+            Request
+                .Builder()
+                .url(RELEASES_URL_API)
+                .header("Accept", "application/vnd.github+json")
+                .header("X-GitHub-Api-Version", "2022-11-28")
+                .build()
+        return try {
+            client.newCall(request).execute().use { response ->
+                when {
+                    response.code == 403 || response.code == 429 -> {
+                        UpdateResult.Failed("GitHub is rate limiting requests. Try again later.")
+                    }
+
+                    !response.isSuccessful -> {
+                        UpdateResult.Failed("GitHub returned HTTP ${response.code}")
+                    }
+
+                    else -> parseReleases(response.body.string())
+                }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: IOException) {
+            UpdateResult.Failed("Could not reach GitHub. Check your connection.")
+        } catch (e: Exception) {
+            UpdateResult.Failed(e.message ?: "Update check failed")
+        }
+    }
+
+    /** `releases.atom` is a plain page, so it works when the API quota is used up. */
+    private fun checkViaFeed(): UpdateResult? =
+        try {
+            val request = Request.Builder().url(RELEASES_FEED_URL).header("Accept", "application/atom+xml").build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@use null
+                val body = response.body.string()
+                val entries = Regex("<entry>([\\s\\S]*?)</entry>").findAll(body).map { it.groupValues[1] }.toList()
+                val best =
+                    entries
+                        .mapNotNull { entry ->
+                            val title = Regex("<title>([^<]*)</title>").find(entry)?.groupValues?.get(1)?.trim()
+                            if (title.isNullOrBlank()) null else title to entry
+                        }.maxWithOrNull { x, y -> compareVersions(x.first, y.first) }
+                    ?: return@use null
+                val latest = best.first.removePrefix("v").removePrefix("V")
+                if (compareVersions(latest, currentVersion) > 0) {
+                    val link =
+                        Regex("<link[^>]*href=\"([^\"]*/releases/tag/[^\"]+)\"").find(best.second)?.groupValues?.get(1)
+                            ?: RELEASES_URL
+                    val notes =
+                        Regex("<content[^>]*>([\\s\\S]*?)</content>").find(best.second)?.groupValues?.get(1).orEmpty()
+                    UpdateResult.Available(latest, link, htmlToText(notes))
+                } else {
+                    UpdateResult.UpToDate(currentVersion)
+                }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            null
+        }
+
+    private fun htmlToText(escaped: String): String =
+        escaped
+            .replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"")
+            .replace("&#39;", "'").replace("&amp;", "&")
+            .replace(Regex("<li[^>]*>"), "• ")
+            .replace(Regex("</(p|h[1-6]|li|ul|ol)>"), "\n")
+            .replace(Regex("<[^>]+>"), "")
+            .replace(Regex("\\n{3,}"), "\n\n")
+            .trim()
 
     suspend fun recentCommits(
         channel: UpdateChannel,
         page: Int = 1,
     ): RecentCommitsResult =
         withContext(Dispatchers.IO) {
-            val requestedBranch = channel.branch
+            // One track only: the main branch.
+            @Suppress("UNUSED_VARIABLE") val ignored = channel
+            val requestedBranch = DEFAULT_BRANCH
             loadRecentPage(requestedBranch, page)?.let { return@withContext it }
 
             if (requestedBranch == DEFAULT_BRANCH) {
@@ -203,23 +260,23 @@ class UpdateChecker(
             .coerceIn(1, MAX_COMMIT_PAGES)
     }
 
-    private fun parseReleases(body: String, channel: UpdateChannel): UpdateResult {
+    private fun parseReleases(body: String): UpdateResult {
         val releases =
             try {
                 JSONArray(body)
             } catch (_: Exception) {
                 return UpdateResult.Failed("Unexpected response from GitHub")
             }
+        // Whether a release is flagged "pre-release" no longer matters: the newest published
+        // version wins. (Filtering on it hid 0.1.3 from anyone on 0.1.2.)
         val release =
             (0 until releases.length())
                 .mapNotNull { releases.optJSONObject(it) }
-                .firstOrNull { candidate ->
-                    !candidate.optBoolean("draft") && candidate.optBoolean("prerelease") == channel.isPrerelease
-                }
+                .filter { !it.optBoolean("draft") && it.optString("tag_name").isNotBlank() }
+                .maxWithOrNull { x, y -> compareVersions(x.optString("tag_name"), y.optString("tag_name")) }
                 ?: return UpdateResult.UpToDate(currentVersion)
 
         val tag = release.optString("tag_name").trim()
-        if (tag.isEmpty()) return UpdateResult.Failed("GitHub returned a release without a version tag")
         val latest = tag.removePrefix("v").removePrefix("V")
         val url = release.optString("html_url").ifBlank { RELEASES_URL }
         return if (compareVersions(latest, currentVersion) > 0) {
@@ -236,6 +293,7 @@ class UpdateChecker(
         const val MAX_COMMIT_PAGES = 1_000
         const val REPOSITORY_URL = "https://github.com/kanzick/Kozu"
         const val RELEASES_URL = "https://github.com/kanzick/Kozu/releases"
+        const val RELEASES_FEED_URL = "https://github.com/kanzick/Kozu/releases.atom"
         const val DAY_MS = 24L * 60L * 60L * 1000L
         const val DEFAULT_BRANCH = "main"
 

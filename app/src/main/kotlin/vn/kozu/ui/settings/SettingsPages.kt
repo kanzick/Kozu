@@ -211,14 +211,15 @@ fun AppearancePage(
             switch(Setting.COMPACT_NAV, settings.compactNavigation, enabled = floating) { enabled ->
                 viewModel.save { setCompactNavigation(enabled) }
             }
-            slider(
-                Setting.NAV_RADIUS,
-                settings.navCornerRadius.toFloat(),
-                0f..32f,
-                valueLabel = { "${it.toInt()} dp" },
-                enabled = floating,
-                unit = 1f,
-            ) { value -> viewModel.save { setNavCornerRadius(value.toInt()) } }
+            if (floating) {
+                slider(
+                    Setting.NAV_RADIUS,
+                    settings.navCornerRadius.toFloat(),
+                    0f..32f,
+                    valueLabel = { "${it.toInt()} dp" },
+                    unit = 1f,
+                ) { value -> viewModel.save { setNavCornerRadius(value.toInt()) } }
+            }
         }
         SettingsSection("App navigation") {
             dropdown(

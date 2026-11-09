@@ -12,43 +12,59 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
-import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.BatteryChargingFull
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.DarkMode
+import androidx.compose.material.icons.rounded.Explore
 import androidx.compose.material.icons.rounded.Headphones
+import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.MusicNote
@@ -56,23 +72,28 @@ import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.PhoneAndroid
 import androidx.compose.material.icons.rounded.Restore
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.ViewCarousel
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Slider
 import androidx.compose.material3.rememberSliderState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -80,13 +101,19 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -99,204 +126,400 @@ import vn.kozu.di.AppContainer
 import vn.kozu.domain.model.AppSettings
 import vn.kozu.domain.model.LibraryNavigationMode
 import vn.kozu.domain.model.NavigationStyle
-import vn.kozu.domain.model.PlayerLayoutStyle
+import vn.kozu.domain.model.StartTab
 import vn.kozu.domain.model.ThemeMode
 import vn.kozu.domain.model.ThemePreset
+import vn.kozu.ui.navigation.KozuTab
+import vn.kozu.ui.theme.KozuMotion
+import vn.kozu.ui.components.FitText
+import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.i18n.KozuText as Text
-import vn.kozu.ui.settings.ThemePresetRow
-import vn.kozu.ui.theme.KozuCookies
+import vn.kozu.ui.player.PlayerDesignSheet
+import vn.kozu.ui.settings.SwatchDots
+import vn.kozu.ui.settings.rememberPresetSwatches
 
 /** Lets Settings > About reopen the wizard; provided by the app shell. */
 val LocalReplayOnboarding = androidx.compose.runtime.compositionLocalOf<(() -> Unit)?> { null }
 
+/** Ten numbered setup steps plus the welcome page. The radius editor is a modal-like page. */
 private const val STEP_COUNT = 10
 private const val MAX_BACKUP_BYTES = 32 * 1024 * 1024
 
-/**
- * First-run wizard: a handful of full-screen steps that set the app up the way the person
- * likes it before they ever see the home screen. Every step can be skipped, and every choice
- * is applied live so the wizard itself previews the theme.
- */
 @Composable
 fun OnboardingScreen(
     container: AppContainer,
     settings: AppSettings,
     onFinish: () -> Unit,
 ) {
-    var step by rememberSaveable { mutableIntStateOf(0) }
+    OnboardingContent(container = container, settings = settings, onFinish = onFinish)
+}
+
+@Composable
+private fun OnboardingContent(
+    container: AppContainer,
+    settings: AppSettings,
+    onFinish: () -> Unit,
+) {
+    var step by rememberSaveable { androidx.compose.runtime.mutableIntStateOf(0) }
     BackHandler(enabled = step > 0) { step-- }
 
     val finish = {
         container.settings.onboardingCompleted = true
         onFinish()
     }
+    // Permissions are optional during setup; every step can advance like Pixel Music.
+    val nextEnabled = true
 
-    Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-                .pointerInput(Unit) { detectTapGestures { } },
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface),
     ) {
-        Box(Modifier.weight(1f).fillMaxWidth()) {
-            AnimatedContent(
-                targetState = step,
-                modifier = Modifier.fillMaxSize(),
-                transitionSpec = {
-                    val forward = targetState > initialState
-                    val enter = slideInHorizontally(tween(260, easing = FastOutSlowInEasing)) { if (forward) it / 5 else -it / 5 }
-                    val exit = slideOutHorizontally(tween(200, easing = FastOutSlowInEasing)) { if (forward) -it / 5 else it / 5 }
-                    (enter + fadeIn(tween(220))) togetherWith (exit + fadeOut(tween(140)))
-                },
-                label = "onboardingStep",
-            ) { current ->
-                when (current) {
-                    0 -> WelcomeStep()
-                    1 -> NotificationsStep()
-                    2 -> BackupStep(container)
-                    3 -> ThemeStep(container, settings)
-                    4 -> ColorsStep(container, settings)
-                    5 -> LibraryStep(container, settings)
-                    6 -> NavigationStep(container, settings)
-                    7 -> PlayerStep(container, settings)
-                    8 -> BatteryStep()
-                    else -> DoneStep()
+        Column(Modifier.fillMaxSize()) {
+            Box(Modifier.weight(1f).fillMaxWidth()) {
+                AnimatedContent(
+                    targetState = step,
+                    modifier = Modifier.fillMaxSize(),
+                    transitionSpec = {
+                        val forward = targetState > initialState
+                        val enter =
+                            slideInHorizontally(
+                                animationSpec = tween(360, easing = FastOutSlowInEasing),
+                            ) { width -> if (forward) width / 6 else -width / 6 } +
+                                fadeIn(tween(250))
+                        val exit =
+                            slideOutHorizontally(
+                                animationSpec = tween(300, easing = FastOutSlowInEasing),
+                            ) { width -> if (forward) -width / 8 else width / 8 } +
+                                fadeOut(tween(190))
+                        enter togetherWith exit
+                    },
+                    label = "pixelStyleSetupPager",
+                ) { current ->
+                    when (current) {
+                        0 -> WelcomeStep()
+                        1 -> NotificationsStep(next = { step++ })
+                        2 -> BackupStep(container, next = { step++ })
+                        3 -> ThemeStep(container, settings)
+                        4 -> PaletteStep(container, settings)
+                        5 -> LibraryStep(container, settings)
+                        6 -> NavigationStep(
+                            container = container,
+                            settings = settings,
+                        )
+                        7 -> PlayerStep(container, settings)
+                        8 -> StartScreenStep(container, settings)
+                        9 -> BatteryStep(next = { step++ })
+                        else -> DoneStep()
+                    }
                 }
             }
+            BottomBar(
+                step = step,
+                enabled = nextEnabled,
+                onNext = {
+                    if (step >= STEP_COUNT) finish() else step++
+                },
+            )
         }
-        BottomBar(
-            step = step,
-            onNext = { if (step >= STEP_COUNT - 1) finish() else step++ },
-        )
     }
 }
 
-// ───────────────────────────── chrome ─────────────────────────────
+// ───────────────────────────── wizard footer ─────────────────────────────
 
 @Composable
 private fun BottomBar(
     step: Int,
+    enabled: Boolean,
     onNext: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
-    val last = step >= STEP_COUNT - 1
+    val isWelcome = step == 0
+    val isLast = step >= STEP_COUNT
+    val shapeIndex = step % 3
+    val targetCorners = when (shapeIndex) {
+        0 -> listOf(50f, 50f, 50f, 50f)
+        1 -> listOf(26f, 26f, 26f, 26f)
+        else -> listOf(18f, 50f, 18f, 50f)
+    }
+    val topStart by animateDpAsState(targetCorners[0].dp, tween(600, easing = FastOutSlowInEasing), label = "wizardFabTopStart")
+    val topEnd by animateDpAsState(targetCorners[1].dp, tween(600, easing = FastOutSlowInEasing), label = "wizardFabTopEnd")
+    val bottomStart by animateDpAsState(targetCorners[2].dp, tween(600, easing = FastOutSlowInEasing), label = "wizardFabBottomStart")
+    val bottomEnd by animateDpAsState(targetCorners[3].dp, tween(600, easing = FastOutSlowInEasing), label = "wizardFabBottomEnd")
+    val rotation by animateFloatAsState(
+        targetValue = step * 360f,
+        animationSpec = tween(900, easing = FastOutSlowInEasing),
+        label = "wizardFabRotation",
+    )
+    val actionEnabled = enabled || isLast || isWelcome
+    val buttonColor = if (actionEnabled) colors.primaryContainer else colors.surfaceContainerHighest
+    val iconColor = if (actionEnabled) colors.onPrimaryContainer else colors.onSurfaceVariant.copy(alpha = 0.65f)
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(topStart = 34.dp, topEnd = 34.dp),
+        shape = RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp),
         color = colors.surfaceContainer,
+        shadowElevation = 8.dp,
     ) {
         Row(
-            modifier = Modifier.navigationBarsPadding().padding(horizontal = 24.dp, vertical = 16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(start = 28.dp, end = 18.dp, top = 18.dp, bottom = 18.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text =
-                    when {
-                        step == 0 -> "Let's Go!"
-                        last -> "All set"
-                        else -> "Step ${step + 1} of $STEP_COUNT"
-                    },
-                style = if (step == 0) MaterialTheme.typography.titleLarge else MaterialTheme.typography.bodyLarge,
-                fontWeight = if (step == 0) FontWeight.Bold else FontWeight.Normal,
-                color = if (step == 0) colors.primary else colors.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
+                text = if (isWelcome) "Let's Go!" else "Step $step of $STEP_COUNT",
+                modifier = Modifier.weight(1f).padding(end = 12.dp),
+                style = if (isWelcome) MaterialTheme.typography.titleLarge else MaterialTheme.typography.bodyLarge,
+                fontWeight = if (isWelcome) FontWeight.Bold else FontWeight.Medium,
+                color = if (isWelcome) colors.primary else colors.onSurfaceVariant,
+                maxLines = 1,
             )
-            Surface(
-                onClick = onNext,
-                modifier = Modifier.size(width = 76.dp, height = 60.dp),
-                shape = RoundedCornerShape(if (last) 30.dp else 22.dp),
-                color = colors.primaryContainer,
-                contentColor = colors.onPrimaryContainer,
+
+            FloatingActionButton(
+                onClick = { if (actionEnabled) onNext() },
+                shape = RoundedCornerShape(
+                    topStart = topStart,
+                    topEnd = topEnd,
+                    bottomStart = bottomStart,
+                    bottomEnd = bottomEnd,
+                ),
+                elevation = FloatingActionButtonDefaults.elevation(0.dp),
+                containerColor = buttonColor,
+                contentColor = iconColor,
+                modifier = Modifier
+                    .size(88.dp)
+                    .rotate(rotation)
+                    .then(if (actionEnabled) Modifier else Modifier.semantics { disabled() }),
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = if (last) Icons.Rounded.Check else Icons.AutoMirrored.Rounded.ArrowForward,
-                        contentDescription = if (last) "Finish" else "Next",
-                        modifier = Modifier.size(28.dp),
-                    )
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.rotate(-rotation)) {
+                    AnimatedContent(
+                        targetState = !isLast,
+                        transitionSpec = {
+                            (fadeIn(tween(220, delayMillis = 70)) + scaleIn(initialScale = 0.9f, animationSpec = tween(220, delayMillis = 70))) togetherWith
+                                (fadeOut(tween(90)) + scaleOut(targetScale = 0.9f, animationSpec = tween(90)))
+                        },
+                        label = "wizardFabIcon",
+                    ) { hasNext ->
+                        Icon(
+                            imageVector = if (hasNext) Icons.AutoMirrored.Rounded.ArrowForward else Icons.Rounded.Check,
+                            contentDescription = if (hasNext) "Next step" else "Finish setup",
+                            modifier = Modifier.size(34.dp),
+                        )
+                    }
                 }
             }
         }
     }
 }
 
+// ───────────────────────────── shared setup visuals ─────────────────────────────
+
 @Composable
-private fun StepPage(
+private fun SetupHeading(
     title: String,
     subtitle: String? = null,
-    illustration: (@Composable () -> Unit)? = null,
-    content: @Composable ColumnScope.() -> Unit = {},
+    alignment: Alignment.Horizontal = Alignment.CenterHorizontally,
 ) {
     Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+        horizontalAlignment = alignment,
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Spacer(Modifier.height(28.dp))
         Text(
             text = title,
-            style = MaterialTheme.typography.headlineLarge,
+            style = MaterialTheme.typography.displayMedium.copy(fontSize = 32.sp, lineHeight = 38.sp),
             fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
+            textAlign = if (alignment == Alignment.Start) TextAlign.Start else TextAlign.Center,
         )
         if (subtitle != null) {
-            Spacer(Modifier.height(8.dp))
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
+                textAlign = if (alignment == Alignment.Start) TextAlign.Start else TextAlign.Center,
             )
         }
-        if (illustration != null) {
-            Spacer(Modifier.height(28.dp))
-            illustration()
-        }
-        Spacer(Modifier.height(24.dp))
-        content()
-        Spacer(Modifier.height(16.dp))
     }
 }
 
-/** A big rounded blob with a glyph, orbited by two smaller tiles, standing in for artwork. */
+/** Static layered icon collage. Page motion is reserved for the wizard pager and Next button. */
 @Composable
-private fun IconCluster(
-    main: ImageVector,
-    left: ImageVector,
-    right: ImageVector,
+private fun PermissionCollage(
+    icons: List<ImageVector>,
+    modifier: Modifier = Modifier,
+    height: androidx.compose.ui.unit.Dp = 220.dp,
 ) {
     val colors = MaterialTheme.colorScheme
-    Box(Modifier.size(width = 280.dp, height = 220.dp), contentAlignment = Alignment.Center) {
+    BoxWithConstraints(
+        modifier = modifier.fillMaxWidth().height(height),
+        contentAlignment = Alignment.Center,
+    ) {
+        val unit = minOf(200.dp, maxHeight)
+        val centerSize = unit * 0.8f
+
+        // The central tile and four surrounding tiles follow PixelMusic's collage geometry.
         Surface(
-            modifier = Modifier.size(172.dp),
-            shape = KozuCookies.Soft9,
+            modifier = Modifier.size(centerSize).rotate(-15f),
+            shape = RoundedCornerShape(20.dp),
             color = colors.surfaceContainerHigh,
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(main, contentDescription = null, tint = colors.primary, modifier = Modifier.size(84.dp))
+                Icon(
+                    imageVector = icons.getOrElse(0) { Icons.Rounded.MusicNote },
+                    contentDescription = null,
+                    tint = colors.secondary,
+                    modifier = Modifier.size(centerSize * 0.46f),
+                )
             }
         }
-        Surface(
-            modifier = Modifier.align(Alignment.TopStart).padding(top = 8.dp).size(72.dp).rotate(-12f),
-            shape = RoundedCornerShape(24.dp),
-            color = colors.secondaryContainer,
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(left, contentDescription = null, tint = colors.onSecondaryContainer, modifier = Modifier.size(34.dp))
-            }
+
+        if (icons.size > 1) {
+            FloatingIcon(
+                icon = icons[1],
+                modifier = Modifier.align(Alignment.TopStart)
+                    .offset(x = maxWidth * 0.05f, y = maxHeight * 0.05f)
+                    .size(unit * 0.4f),
+                background = colors.surfaceContainerHigh,
+                tint = colors.onSurface.copy(alpha = 0.8f),
+                rotation = 15f,
+                shape = CircleShape,
+            )
         }
-        Surface(
-            modifier = Modifier.align(Alignment.BottomEnd).size(76.dp).rotate(10f),
-            shape = RoundedCornerShape(28.dp),
-            color = colors.tertiaryContainer,
+        if (icons.size > 2) {
+            FloatingIcon(
+                icon = icons[2],
+                modifier = Modifier.align(Alignment.BottomEnd)
+                    .offset(x = -(maxWidth * 0.05f), y = -(maxHeight * 0.05f))
+                    .size(unit * 0.4f),
+                background = colors.surfaceContainerHigh,
+                tint = colors.primary,
+                rotation = 5f,
+                shape = CircleShape,
+            )
+        }
+        if (icons.size > 3) {
+            FloatingIcon(
+                icon = icons[3],
+                modifier = Modifier.align(Alignment.TopEnd)
+                    .offset(x = -(maxWidth * 0.10f), y = maxHeight * 0.10f)
+                    .size(unit * 0.5f),
+                background = colors.surfaceContainerHigh,
+                tint = colors.onSurface.copy(alpha = 0.5f),
+                rotation = -20f,
+                shape = RoundedCornerShape(20.dp),
+            )
+        }
+        if (icons.size > 4) {
+            FloatingIcon(
+                icon = icons[4],
+                modifier = Modifier.align(Alignment.BottomStart)
+                    .offset(x = maxWidth * 0.10f, y = -(maxHeight * 0.10f))
+                    .size(unit * 0.35f),
+                background = colors.surfaceContainerHigh,
+                tint = colors.tertiary,
+                rotation = 10f,
+                shape = RoundedStarShape,
+            )
+        }
+    }
+}
+
+private val RoundedStarShape = GenericShape { size, _ ->
+    val count = 16
+    val centerX = size.width / 2f
+    val centerY = size.height / 2f
+    val outerRadius = minOf(size.width, size.height) / 2f
+    val innerRadius = outerRadius * 0.45f
+    val vertices = (0 until count).map { index ->
+        val angle = -Math.PI.toFloat() / 2f + index * Math.PI.toFloat() / 8f
+        val radius = if (index % 2 == 0) outerRadius else innerRadius
+        androidx.compose.ui.geometry.Offset(
+            x = centerX + kotlin.math.cos(angle) * radius,
+            y = centerY + kotlin.math.sin(angle) * radius,
+        )
+    }
+    val smooth = 0.18f
+    fun toward(from: androidx.compose.ui.geometry.Offset, to: androidx.compose.ui.geometry.Offset) =
+        androidx.compose.ui.geometry.Offset(
+            from.x + (to.x - from.x) * smooth,
+            from.y + (to.y - from.y) * smooth,
+        )
+    val firstEntry = toward(vertices[0], vertices[count - 1])
+    moveTo(firstEntry.x, firstEntry.y)
+    vertices.forEachIndexed { index, vertex ->
+        val next = vertices[(index + 1) % count]
+        val exit = toward(vertex, next)
+        val nextEntry = toward(next, vertex)
+        quadraticTo(vertex.x, vertex.y, exit.x, exit.y)
+        lineTo(nextEntry.x, nextEntry.y)
+    }
+    close()
+}
+
+@Composable
+private fun FloatingIcon(
+    icon: ImageVector,
+    modifier: Modifier,
+    background: Color,
+    tint: Color,
+    rotation: Float,
+    shape: Shape,
+) {
+    Surface(modifier = modifier.rotate(rotation), shape = shape, color = background) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.padding(16.dp).fillMaxSize())
+        }
+    }
+}
+
+@Composable
+private fun PermissionStepLayout(
+    title: String,
+    description: String,
+    icons: List<ImageVector>,
+    actionText: String,
+    actionEnabled: Boolean = true,
+    granted: Boolean = false,
+    onAction: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit = {},
+) {
+    Column(
+        modifier = Modifier.fillMaxSize().statusBarsPadding().padding(horizontal = 24.dp, vertical = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Spacer(Modifier.height(16.dp))
+            SetupHeading(title, description)
+        }
+        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+            PermissionCollage(icons = icons, height = 230.dp)
+        }
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth(),
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(right, contentDescription = null, tint = colors.onTertiaryContainer, modifier = Modifier.size(36.dp))
+            content()
+            Spacer(Modifier.height(14.dp))
+            Button(
+                onClick = onAction,
+                enabled = actionEnabled,
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 30.dp, vertical = 15.dp),
+                shape = CircleShape,
+            ) {
+                if (granted) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(Icons.Rounded.Check, contentDescription = null)
+                        Text(actionText, style = MaterialTheme.typography.titleMedium)
+                    }
+                } else {
+                    Text(actionText, style = MaterialTheme.typography.titleMedium)
+                }
             }
+            Spacer(Modifier.height(16.dp))
         }
     }
 }
@@ -311,45 +534,39 @@ private fun OptionCard(
     badge: String? = null,
 ) {
     val colors = MaterialTheme.colorScheme
-    Surface(
+    val background = if (selected) colors.primaryContainer else colors.surfaceContainer
+    val tile = if (selected) colors.primary else colors.surfaceContainerHighest
+    Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(26.dp),
-        color = if (selected) colors.primaryContainer else colors.surfaceContainer,
-        contentColor = if (selected) colors.onPrimaryContainer else colors.onSurface,
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = background),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 17.dp, vertical = 15.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Surface(
-                modifier = Modifier.size(46.dp),
-                shape = CircleShape,
-                color = if (selected) colors.primary else colors.surfaceContainerHighest,
-                contentColor = if (selected) colors.onPrimary else colors.onSurfaceVariant,
-            ) {
-                Box(contentAlignment = Alignment.Center) { Icon(icon, contentDescription = null, modifier = Modifier.size(24.dp)) }
+            Surface(modifier = Modifier.size(46.dp), shape = RoundedCornerShape(16.dp), color = tile) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(icon, contentDescription = null, tint = if (selected) colors.onPrimary else colors.onSurfaceVariant, modifier = Modifier.size(23.dp))
+                }
             }
-            Spacer(Modifier.width(14.dp))
-            Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 if (badge != null) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = colors.primary,
-                        contentColor = colors.onPrimary,
-                        modifier = Modifier.padding(vertical = 2.dp),
-                    ) {
-                        Text(badge, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
+                    Surface(shape = CircleShape, color = if (selected) colors.primary else colors.primaryContainer, contentColor = if (selected) colors.onPrimary else colors.onPrimaryContainer) {
+                        Text(badge, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp))
                     }
                 }
-                Text(
-                    subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (selected) colors.onPrimaryContainer.copy(alpha = 0.8f) else colors.onSurfaceVariant,
-                )
+                Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
             }
-            RadioButton(selected = selected, onClick = null)
+            Surface(shape = CircleShape, color = if (selected) colors.primary else Color.Transparent, modifier = Modifier.size(28.dp).then(if (!selected) Modifier.border(2.dp, colors.outline, CircleShape) else Modifier)) {
+                Box(contentAlignment = Alignment.Center) {
+                    if (selected) Icon(Icons.Rounded.Check, contentDescription = "Selected", tint = colors.onPrimary, modifier = Modifier.size(18.dp))
+                }
+            }
         }
     }
 }
@@ -364,15 +581,12 @@ private fun SwitchCard(
     Surface(
         onClick = { onChange(!checked) },
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(24.dp),
         color = MaterialTheme.colorScheme.surfaceContainer,
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium)
+        Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 15.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Switch(checked = checked, onCheckedChange = onChange)
@@ -381,119 +595,211 @@ private fun SwitchCard(
 }
 
 @Composable
-private fun SkipHint(text: String = "You can change this later in Settings") {
+private fun SkipHint(text: String) {
     Text(
         text = text,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
         textAlign = TextAlign.Center,
-        modifier = Modifier.padding(top = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
     )
 }
 
-// ───────────────────────────── steps ─────────────────────────────
+// ───────────────────────────── setup steps ─────────────────────────────
 
 @Composable
 private fun WelcomeStep() {
     val context = LocalContext.current
+    val colors = MaterialTheme.colorScheme
     val version = remember { UpdateChecker.installedVersion(context) }
-    StepPage(
-        title = "Welcome to",
-        illustration = { IconCluster(Icons.Rounded.MusicNote, Icons.Rounded.Headphones, Icons.Rounded.Album) },
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .padding(horizontal = 24.dp)
+            .padding(top = 34.dp, bottom = 18.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Kozu",
-            style = MaterialTheme.typography.displayLarge,
+            text = "Welcome to",
+            style = MaterialTheme.typography.displaySmall.copy(fontSize = 36.sp, lineHeight = 44.sp),
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
+            color = colors.onSurface,
+            textAlign = TextAlign.Center,
+        )
+
+        Spacer(Modifier.height(24.dp))
+
+        WelcomeMusicArtwork(
+            modifier = Modifier.fillMaxWidth().height(280.dp),
+        )
+
+        Spacer(Modifier.height(20.dp))
+
+        Text(
+            text = "Kozu",
+            style = MaterialTheme.typography.displayLarge.copy(fontSize = 58.sp, lineHeight = 66.sp),
+            fontWeight = FontWeight.ExtraBold,
+            color = colors.primary,
+            textAlign = TextAlign.Center,
         )
         Text(
             text = "v$version",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp),
-        )
-        Spacer(Modifier.height(20.dp))
-        Text(
-            text = "Let's get everything set up for you.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.titleMedium.copy(fontSize = 19.sp),
+            fontWeight = FontWeight.SemiBold,
+            color = colors.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
+
+        Spacer(Modifier.height(42.dp))
+
+        Text(
+            text = "Let's get everything set up for you.",
+            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp),
+            color = colors.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+        )
+        Spacer(Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun WelcomeMusicArtwork(modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.Center) {
+        val tileSize = minOf(88.dp, maxHeight * 0.34f)
+        val discSize = minOf(224.dp, maxHeight * 0.82f)
+
+        Canvas(Modifier.size(discSize)) {
+            val path = androidx.compose.ui.graphics.Path()
+            val centerX = size.width / 2f
+            val centerY = size.height / 2f
+            val radius = size.minDimension * 0.48f
+            val steps = 120
+            for (index in 0..steps) {
+                val angle = (index.toFloat() / steps) * (2f * Math.PI.toFloat())
+                val ripple = 0.93f + 0.07f * kotlin.math.cos(angle * 7f + 0.35f)
+                val x = centerX + radius * ripple * kotlin.math.cos(angle)
+                val y = centerY + radius * ripple * kotlin.math.sin(angle)
+                if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+            }
+            path.close()
+            drawPath(path, colors.surfaceContainerHigh)
+        }
+
+        Icon(
+            imageVector = Icons.Rounded.MusicNote,
+            contentDescription = null,
+            tint = colors.primary,
+            modifier = Modifier.size(72.dp),
+        )
+
+        Surface(
+            modifier = Modifier.align(Alignment.TopStart)
+                .offset(x = maxWidth * 0.07f, y = maxHeight * 0.13f)
+                .size(tileSize)
+                .rotate(-10f),
+            shape = RoundedCornerShape(27.dp),
+            color = colors.secondaryContainer,
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(Icons.Rounded.Headphones, null, tint = colors.onSecondaryContainer, modifier = Modifier.size(tileSize * 0.48f))
+            }
+        }
+
+        Surface(
+            modifier = Modifier.align(Alignment.BottomEnd)
+                .offset(x = -(maxWidth * 0.07f), y = -(maxHeight * 0.12f))
+                .size(tileSize)
+                .rotate(9f),
+            shape = RoundedCornerShape(27.dp),
+            color = colors.tertiaryContainer,
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(Icons.Rounded.Album, null, tint = colors.onTertiaryContainer, modifier = Modifier.size(tileSize * 0.48f))
+            }
+        }
     }
 }
 
 private fun notificationsGranted(context: Context): Boolean =
-    Build.VERSION.SDK_INT < 33 ||
+    Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
 @Composable
-private fun NotificationsStep() {
+private fun NotificationsStep(next: () -> Unit) {
     val context = LocalContext.current
     var granted by remember { mutableStateOf(notificationsGranted(context)) }
-    val launcher =
-        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted = it || notificationsGranted(context) }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { result ->
+        granted = result || notificationsGranted(context)
+    }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { granted = notificationsGranted(context) }
 
-    StepPage(
+    PermissionStepLayout(
         title = "Notifications",
-        subtitle = "Control your music from the lock screen and notification shade.",
-        illustration = { IconCluster(Icons.Rounded.Notifications, Icons.Rounded.MusicNote, Icons.AutoMirrored.Rounded.QueueMusic) },
+        description = "Enable notifications to control Kozu from the lock screen and notification shade.",
+        icons = listOf(Icons.Rounded.Notifications, Icons.Rounded.MusicNote, Icons.Rounded.LibraryMusic, Icons.Rounded.Album, Icons.Rounded.Headphones),
+        actionText = if (granted) "Permission granted" else "Enable Notifications",
+        granted = granted,
+        actionEnabled = !granted,
+        onAction = { if (!granted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) launcher.launch(Manifest.permission.POST_NOTIFICATIONS) },
     ) {
         if (granted) {
-            Text("Notifications are enabled", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            Text("Notifications are enabled", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
         } else {
-            Button(onClick = { launcher.launch(Manifest.permission.POST_NOTIFICATIONS) }) { Text("Enable Notifications") }
-            SkipHint("You can skip this and enable it later")
+            TextButton(onClick = next) { Text("Skip for now") }
         }
     }
 }
 
 @Composable
-private fun BackupStep(container: AppContainer) {
+private fun BackupStep(
+    container: AppContainer,
+    next: () -> Unit,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }
     var result by remember { mutableStateOf<String?>(null) }
-    val launcher =
-        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
-            if (uri == null) return@rememberLauncherForActivityResult
-            scope.launch {
-                busy = true
-                result =
-                    try {
-                        val json =
-                            withContext(Dispatchers.IO) {
-                                val bytes =
-                                    context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                                        ?: throw java.io.IOException("Could not open the selected file")
-                                if (bytes.size > MAX_BACKUP_BYTES) throw BackupException("That file is too large to be a backup")
-                                String(bytes, Charsets.UTF_8)
-                            }
-                        val info = container.backup.inspect(json)
-                        container.backup.restore(json, info.sections)
-                    } catch (e: BackupException) {
-                        e.message ?: "Invalid backup"
-                    } catch (e: Exception) {
-                        "Could not restore: ${e.message ?: "unknown error"}"
-                    }
-                busy = false
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            busy = true
+            result = try {
+                val json = withContext(Dispatchers.IO) {
+                    val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                        ?: throw java.io.IOException("Could not open the selected file")
+                    if (bytes.size > MAX_BACKUP_BYTES) throw BackupException("That file is too large to be a backup")
+                    String(bytes, Charsets.UTF_8)
+                }
+                val info = container.backup.inspect(json)
+                container.backup.restore(json, info.sections)
+            } catch (e: BackupException) {
+                e.message ?: "Invalid backup"
+            } catch (e: Exception) {
+                "Could not restore: ${e.message ?: "unknown error"}"
             }
+            busy = false
         }
+    }
 
-    StepPage(
+    PermissionStepLayout(
         title = "Do you have a backup?",
-        subtitle = "Restore an existing Kozu backup to skip setup on this device.",
-        illustration = { IconCluster(Icons.Rounded.Restore, Icons.Rounded.LibraryMusic, Icons.Rounded.Tune) },
+        description = "Restore an existing Kozu backup to bring your settings and library preferences to this device.",
+        icons = listOf(Icons.Rounded.Restore, Icons.Rounded.LibraryMusic, Icons.Rounded.Tune, Icons.Rounded.Palette, Icons.Rounded.MusicNote),
+        actionText = when {
+            busy -> "Restoring…"
+            else -> "Import backup"
+        },
+        actionEnabled = !busy,
+        onAction = { launcher.launch(arrayOf("*/*")) },
     ) {
-        Button(onClick = { launcher.launch(arrayOf("*/*")) }, enabled = !busy) {
-            Text(if (busy) "Restoring…" else "Import backup")
-        }
         result?.let {
-            Spacer(Modifier.height(12.dp))
-            Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center)
+            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center)
         }
-        SkipHint("Skip / Not now: just continue")
+        TextButton(onClick = next, enabled = !busy) { Text("Skip / Not now") }
     }
 }
 
@@ -503,71 +809,90 @@ private fun ThemeStep(
     settings: AppSettings,
 ) {
     val scope = rememberCoroutineScope()
-    StepPage(
-        title = "App Theme",
-        subtitle = "Pick the look you want before you start exploring.",
+    Column(
+        modifier = Modifier.fillMaxSize().statusBarsPadding().padding(horizontal = 24.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.SpaceBetween,
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            OptionCard(
-                icon = Icons.Rounded.DarkMode,
-                title = "Dark",
-                subtitle = "Easy on the eyes, great for late-night listening.",
-                selected = settings.themeMode == ThemeMode.DARK,
-                badge = "Recommended",
-                onClick = { scope.launch { container.settings.setThemeMode(ThemeMode.DARK) } },
-            )
-            OptionCard(
-                icon = Icons.Rounded.LightMode,
-                title = "Light",
-                subtitle = "A brighter Material 3 look across the app.",
-                selected = settings.themeMode == ThemeMode.LIGHT,
-                onClick = { scope.launch { container.settings.setThemeMode(ThemeMode.LIGHT) } },
-            )
-            OptionCard(
-                icon = Icons.Rounded.PhoneAndroid,
-                title = "Follow system",
-                subtitle = "Match your phone's appearance setting.",
-                selected = settings.themeMode == ThemeMode.SYSTEM,
-                onClick = { scope.launch { container.settings.setThemeMode(ThemeMode.SYSTEM) } },
-            )
-            SwitchCard(
-                title = "AMOLED",
-                subtitle = "Pure black dark theme",
-                checked = settings.amoled,
-                onChange = { scope.launch { container.settings.setAmoled(it) } },
-            )
+        SetupHeading("App Theme", "Pick the look you want before exploring Kozu.")
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+            OptionCard(Icons.Rounded.DarkMode, "Dark", "A comfortable low-light look.", settings.themeMode == ThemeMode.DARK, { scope.launch { container.settings.setThemeMode(ThemeMode.DARK) } }, "Recommended")
+            OptionCard(Icons.Rounded.LightMode, "Light", "A brighter look across the app.", settings.themeMode == ThemeMode.LIGHT, { scope.launch { container.settings.setThemeMode(ThemeMode.LIGHT) } })
+            OptionCard(Icons.Rounded.PhoneAndroid, "Follow system", "Match your device appearance.", settings.themeMode == ThemeMode.SYSTEM, { scope.launch { container.settings.setThemeMode(ThemeMode.SYSTEM) } })
+            SwitchCard("AMOLED", "Pure black dark theme.", settings.amoled) {
+                scope.launch { container.settings.setAmoled(it) }
+            }
+            SkipHint("You can change this later in Settings  >  Appearance")
         }
-        SkipHint("You can change this later in Settings > Appearance")
     }
 }
 
 @Composable
-private fun ColorsStep(
+private fun PaletteStep(
     container: AppContainer,
     settings: AppSettings,
 ) {
     val scope = rememberCoroutineScope()
-    StepPage(
-        title = "Theme Preset",
-        subtitle = "Choose a color palette. osu! is the default.",
+    val paletteOptions = remember { ThemePreset.entries.toList() }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            ThemePreset.entries.filter { it != ThemePreset.CUSTOM }.forEach { preset ->
-                ThemePresetRow(
-                    preset = preset,
-                    accent = settings.accent,
-                    selected = settings.themePreset == preset,
-                    onClick = { scope.launch { container.settings.setThemePreset(preset) } },
-                )
-            }
-            SwitchCard(
-                title = "Adapt to artwork",
-                subtitle = "While a song plays, colors follow its cover.",
-                checked = settings.artworkColors,
-                onChange = { scope.launch { container.settings.setArtworkColors(it) } },
+        SetupHeading("Theme preset", "Choose one of Kozu's built-in colour palettes.")
+        paletteOptions.forEach { preset ->
+            OnboardingThemePresetRow(
+                preset = preset,
+                accent = settings.accent,
+                selected = settings.themePreset == preset,
+                onClick = { scope.launch { container.settings.setThemePreset(preset) } },
             )
         }
-        SkipHint("You can change this later in Settings > Appearance > Colors")
+        SwitchCard("Adapt to artwork", "While music plays, player colours can follow its cover art.", settings.artworkColors) {
+            scope.launch { container.settings.setArtworkColors(it) }
+        }
+        SkipHint("You can change this later in Settings  >  Appearance  >  Colors")
+    }
+}
+
+@Composable
+private fun OnboardingThemePresetRow(
+    preset: ThemePreset,
+    accent: vn.kozu.domain.model.AccentColor,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val colors = MaterialTheme.colorScheme
+    val unavailable = preset == ThemePreset.DYNAMIC && Build.VERSION.SDK_INT < Build.VERSION_CODES.S
+    Surface(
+        onClick = onClick,
+        enabled = !unavailable,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        color = if (selected) colors.primaryContainer else colors.surfaceContainer,
+        contentColor = if (selected) colors.onPrimaryContainer else colors.onSurface,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(preset.label, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = if (unavailable) "Requires Android 12 or newer" else preset.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (selected) colors.onPrimaryContainer.copy(alpha = 0.8f) else colors.onSurfaceVariant,
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            SwatchDots(rememberPresetSwatches(preset, accent))
+            Box(Modifier.width(36.dp), contentAlignment = Alignment.CenterEnd) {
+                if (selected) Icon(Icons.Rounded.Check, contentDescription = "Selected", modifier = Modifier.size(21.dp))
+            }
+        }
     }
 }
 
@@ -577,126 +902,473 @@ private fun LibraryStep(
     settings: AppSettings,
 ) {
     val scope = rememberCoroutineScope()
-    StepPage(
-        title = "Library Layout",
-        subtitle = "Choose how you move around your library.",
-        illustration = { IconCluster(Icons.Rounded.LibraryMusic, Icons.Rounded.Album, Icons.AutoMirrored.Rounded.QueueMusic) },
+    val compact = settings.libraryNavigationMode == LibraryNavigationMode.COMPACT
+    Column(
+        modifier = Modifier.fillMaxSize().statusBarsPadding().padding(horizontal = 24.dp, vertical = 14.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween,
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            LibraryNavigationMode.entries.forEach { mode ->
-                OptionCard(
-                    icon = Icons.Rounded.LibraryMusic,
-                    title = mode.label,
-                    subtitle =
-                        if (mode == LibraryNavigationMode.COMPACT) {
-                            "Minimal pill navigation, swipe between tabs."
-                        } else {
-                            "Standard tab row, always visible."
-                        },
-                    selected = settings.libraryNavigationMode == mode,
-                    onClick = { scope.launch { container.settings.setLibraryNavigationMode(mode) } },
-                )
-            }
+        SetupHeading("Library Layout", "Choose your preferred way to navigate your library.")
+        Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+            LibraryPreview(compact = compact)
         }
-        SkipHint("You can change this later in Settings > Appearance")
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+            Surface(
+                onClick = { scope.launch { container.settings.setLibraryNavigationMode(if (compact) LibraryNavigationMode.TAB_ROW else LibraryNavigationMode.COMPACT) } },
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                shape = RoundedCornerShape(24.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(Modifier.padding(horizontal = 20.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Compact Mode", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(if (compact) "Using minimal pill navigation" else "Using a standard tab row", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(checked = compact, onCheckedChange = { enabled -> scope.launch { container.settings.setLibraryNavigationMode(if (enabled) LibraryNavigationMode.COMPACT else LibraryNavigationMode.TAB_ROW) } })
+                }
+            }
+            SkipHint("You can change this later in Settings  >  Appearance  >  Library")
+        }
     }
 }
 
+@Composable
+private fun LibraryPreview(compact: Boolean) {
+    val colors = MaterialTheme.colorScheme
+    Surface(
+        modifier = Modifier.fillMaxWidth().height(180.dp),
+        shape = RoundedCornerShape(
+            topStart = 24.dp,
+            topEnd = 24.dp,
+            bottomStart = 0.dp,
+            bottomEnd = 0.dp,
+        ),
+        color = colors.surface,
+    ) {
+        Box(
+            Modifier.fillMaxSize().background(
+                androidx.compose.ui.graphics.Brush.verticalGradient(
+                    listOf(
+                        colors.primaryContainer.copy(alpha = 0.5f),
+                        colors.primaryContainer.copy(alpha = 0.25f),
+                        Color.Transparent,
+                    ),
+                ),
+            ),
+        ) {
+            if (compact) {
+                // Match LibraryScreen.SplitTitle: content-sized title + fixed 52dp chevron.
+                // Only the heights are equal; the title keeps its natural width.
+                Row(
+                    modifier = Modifier.align(Alignment.TopStart).padding(start = 16.dp, top = 24.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Surface(
+                        modifier = Modifier.heightIn(min = 52.dp),
+                        shape = RoundedCornerShape(
+                            topStart = 28.dp,
+                            bottomStart = 28.dp,
+                            topEnd = 6.dp,
+                            bottomEnd = 6.dp,
+                        ),
+                        color = colors.primaryContainer,
+                        contentColor = colors.onPrimaryContainer,
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(start = 16.dp, end = 18.dp, top = 8.dp, bottom = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Icon(Icons.Rounded.MusicNote, contentDescription = null, modifier = Modifier.size(22.dp))
+                            FitText(
+                                text = "Songs",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = colors.onPrimaryContainer,
+                                minScale = 0.7f,
+                            )
+                        }
+                    }
+                    Surface(
+                        modifier = Modifier.size(width = 52.dp, height = 52.dp),
+                        shape = RoundedCornerShape(
+                            topStart = 6.dp,
+                            bottomStart = 6.dp,
+                            topEnd = 28.dp,
+                            bottomEnd = 28.dp,
+                        ),
+                        color = colors.primaryContainer,
+                        contentColor = colors.onPrimaryContainer,
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null)
+                        }
+                    }
+                }
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(top = 18.dp, start = 20.dp, end = 20.dp),
+                ) {
+                    Text(
+                        text = "Library",
+                        fontWeight = FontWeight.ExtraBold,
+                        color = colors.primary,
+                        style = MaterialTheme.typography.displaySmall.copy(fontSize = 40.sp),
+                        letterSpacing = 1.sp,
+                    )
+                    Spacer(Modifier.height(18.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        listOf("SONGS", "LIKED", "PLAYLISTS", "DOWNLOADS").forEachIndexed { index, label ->
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = CircleShape,
+                                    color = colors.surfaceContainerLowest,
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(
+                                            text = label,
+                                            style = MaterialTheme.typography.labelMedium.copy(fontSize = 10.sp),
+                                            fontWeight = if (index == 0) FontWeight.Bold else FontWeight.Medium,
+                                            color = if (index == 0) colors.primary else colors.onSurfaceVariant,
+                                            maxLines = 1,
+                                            modifier = Modifier.padding(vertical = 10.dp, horizontal = 2.dp),
+                                        )
+                                    }
+                                }
+                                Box(
+                                    Modifier.width(20.dp).height(3.dp).clip(CircleShape)
+                                        .background(if (index == 0) colors.primary else Color.Transparent),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun NavigationStep(
     container: AppContainer,
     settings: AppSettings,
 ) {
     val scope = rememberCoroutineScope()
-    val radiusState = rememberSliderState(
-        value = settings.navCornerRadius.toFloat(),
+    val floating = settings.navigationStyle == NavigationStyle.FLOATING
+    val compact = settings.compactNavigation
+    val selectedStyle = when {
+        !floating -> 2
+        compact -> 1
+        else -> 0
+    }
+    var radius by remember(settings.navCornerRadius) {
+        mutableFloatStateOf(settings.navCornerRadius.toFloat().coerceIn(0f, 32f))
+    }
+    val radiusSliderState = rememberSliderState(
+        value = radius,
         trackRange = 0f..32f,
     )
-    val radius = radiusState.value
-    val floating = settings.navigationStyle == NavigationStyle.FLOATING
-    StepPage(
-        title = "App Navigation",
-        subtitle = "Choose the style of the bottom navigation bar.",
-        illustration = { NavPreview(floating = floating, radius = radius) },
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            OptionCard(
-                icon = Icons.Rounded.ViewCarousel,
-                title = "Expressive pill",
-                subtitle = "Floating capsule with a custom corner radius.",
-                selected = floating,
-                onClick = { scope.launch { container.settings.setNavigationStyle(NavigationStyle.FLOATING) } },
-            )
-            OptionCard(
-                icon = Icons.Rounded.Tune,
-                title = "Classic",
-                subtitle = "Edge-to-edge bar across the bottom.",
-                selected = !floating,
-                onClick = { scope.launch { container.settings.setNavigationStyle(NavigationStyle.CLASSIC) } },
-            )
-            if (floating) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(26.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                ) {
-                    Column(Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Corner radius", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                            Text("${radius.toInt()} dp", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                        }
-                        Slider(
-                            state = radiusState,
-                            onValueChange = { radiusState.value = it },
-                            onValueChangeFinished = {
-                                scope.launch { container.settings.setNavCornerRadius(radiusState.value.toInt()) }
-                            },
-                        )
-                    }
+    // Keep the slider in sync if the saved setting is reloaded while this step is visible.
+    LaunchedEffect(settings.navCornerRadius) {
+        radiusSliderState.value = settings.navCornerRadius.toFloat().coerceIn(0f, 32f)
+    }
+
+    fun selectNavigation(style: Int) {
+        scope.launch {
+            when (style) {
+                0 -> {
+                    container.settings.setNavigationStyle(NavigationStyle.FLOATING)
+                    container.settings.setCompactNavigation(false)
+                }
+                1 -> {
+                    container.settings.setNavigationStyle(NavigationStyle.FLOATING)
+                    container.settings.setCompactNavigation(true)
+                }
+                else -> {
+                    container.settings.setNavigationStyle(NavigationStyle.CLASSIC)
+                    container.settings.setCompactNavigation(false)
                 }
             }
         }
-        SkipHint("You can change this later in Settings > Appearance > Navigation bar")
+    }
+
+    Column(
+        modifier = Modifier.fillMaxSize().statusBarsPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp, vertical = 14.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        SetupHeading("App Navigation", "Choose the style of Kozu's bottom navigation.")
+        NavPreview(floating = floating, compact = compact, radius = radius)
+        if (floating) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.surfaceContainer,
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "Corner Radius",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.weight(1f),
+                        )
+                        TextButton(
+                            onClick = {
+                                radius = 32f
+                                radiusSliderState.value = 32f
+                                scope.launch { container.settings.setNavCornerRadius(32) }
+                            },
+                        ) {
+                            Text("Reset")
+                        }
+                        Text(
+                            "${radius.toInt()} dp",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    Slider(
+                        state = radiusSliderState,
+                        onValueChange = { value ->
+                            val clampedValue = value.coerceIn(0f, 32f)
+                            radiusSliderState.value = clampedValue
+                            radius = clampedValue
+                        },
+                        onValueChangeFinished = {
+                            scope.launch { container.settings.setNavCornerRadius(radius.toInt()) }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Text(
+                        "Adjust the preview above. Your choice is saved for the floating navigation style.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+        OptionCard(
+            icon = Icons.Rounded.ViewCarousel,
+            title = "Expressive Pill",
+            subtitle = "A spacious floating bar with a separate search button.",
+            selected = selectedStyle == 0,
+            onClick = { selectNavigation(0) },
+        )
+        OptionCard(
+            icon = Icons.Rounded.Tune,
+            title = "Classic Pill",
+            subtitle = "A compact floating bar with the same detached search action.",
+            selected = selectedStyle == 1,
+            onClick = { selectNavigation(1) },
+        )
+        OptionCard(
+            icon = Icons.Rounded.PhoneAndroid,
+            title = "Full Width Bar",
+            subtitle = "Edge-to-edge navigation along the bottom.",
+            selected = selectedStyle == 2,
+            onClick = { selectNavigation(2) },
+        )
+
+        SkipHint("You can change this later in Settings  >  Appearance  >  Navigation")
     }
 }
 
-/** A tiny mock-up of the screen with the chosen navigation bar at the bottom. */
 @Composable
 private fun NavPreview(
     floating: Boolean,
+    compact: Boolean,
     radius: Float,
 ) {
     val colors = MaterialTheme.colorScheme
+    var previewSelected by rememberSaveable { mutableStateOf(0) }
+    val barHeight by animateDpAsState(
+        targetValue = if (compact) 56.dp else 64.dp,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "wizardNavBarHeight",
+    )
+    val animatedRadius by animateFloatAsState(
+        targetValue = radius.coerceIn(0f, 32f),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMediumLow,
+        ),
+        label = "wizardNavRadius",
+    )
+    val searchSize by animateDpAsState(
+        targetValue = if (compact) 48.dp else 56.dp,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "wizardNavSearchSize",
+    )
+    val barShape = RoundedCornerShape((barHeight.value * animatedRadius / 64f).dp)
+    val itemShape = RoundedCornerShape(((barHeight.value - 18f) * animatedRadius / 64f).dp)
+
     Surface(
-        modifier = Modifier.fillMaxWidth().height(132.dp),
-        shape = RoundedCornerShape(26.dp),
+        modifier = Modifier.fillMaxWidth().height(200.dp),
+        shape = RoundedCornerShape(24.dp),
         color = colors.surfaceContainerHigh,
     ) {
-        Box(Modifier.padding(14.dp)) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(Modifier.fillMaxWidth(0.55f).height(10.dp).background(colors.surfaceContainerHighest, CircleShape))
-                Box(Modifier.fillMaxWidth(0.8f).height(10.dp).background(colors.surfaceContainerHighest, CircleShape))
-            }
-            Surface(
-                modifier =
-                    Modifier
-                        .align(Alignment.BottomCenter)
-                        .then(if (floating) Modifier.fillMaxWidth(0.82f) else Modifier.fillMaxWidth())
-                        .height(44.dp),
-                shape = if (floating) RoundedCornerShape((14 + radius).dp.coerceAtMost(22.dp)) else RoundedCornerShape(10.dp),
-                color = colors.surfaceContainerHighest,
+        Box(Modifier.fillMaxSize()) {
+            Column(
+                Modifier.fillMaxWidth().padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                Box(Modifier.fillMaxWidth().height(12.dp).clip(CircleShape).background(colors.surfaceContainerHighest))
+                Box(Modifier.fillMaxWidth(0.72f).height(12.dp).clip(CircleShape).background(colors.surfaceContainerHighest))
+                Box(Modifier.fillMaxWidth(0.9f).height(12.dp).clip(CircleShape).background(colors.surfaceContainerHighest))
+            }
+            if (floating) {
+                val tabs = KozuTab.entries.filter { it.inPill }
                 Row(
-                    Modifier.fillMaxSize().padding(horizontal = 18.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    repeat(4) { i ->
-                        Box(
-                            Modifier
-                                .size(if (i == 0) 24.dp else 16.dp)
-                                .background(if (i == 0) colors.primary else colors.onSurfaceVariant.copy(alpha = 0.5f), CircleShape),
+                    Surface(
+                        modifier = Modifier.weight(1f).height(barHeight),
+                        shape = barShape,
+                        color = colors.surfaceContainerHigh,
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxSize().padding(horizontal = 9.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            tabs.forEachIndexed { index, tab ->
+                                val selected = previewSelected == index
+                                val itemWeight by animateFloatAsState(
+                                    targetValue = if (selected && !compact) 2.4f else 1f,
+                                    animationSpec = KozuMotion.spatial(),
+                                    label = "wizardNavItemWeight$index",
+                                )
+                                val itemContainer by animateColorAsState(
+                                    targetValue = if (selected) colors.primary else Color.Transparent,
+                                    animationSpec = tween(200),
+                                    label = "wizardNavItemContainer$index",
+                                )
+                                val itemContent by animateColorAsState(
+                                    targetValue = if (selected) colors.onPrimary else colors.primary,
+                                    animationSpec = tween(200),
+                                    label = "wizardNavItemContent$index",
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .weight(itemWeight.coerceAtLeast(0.2f))
+                                        .height(barHeight - 18.dp)
+                                        .clip(itemShape)
+                                        .bounceClick(pressedScale = 0.96f) { previewSelected = index }
+                                        .background(itemContainer),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = if (selected) tab.icon else tab.outlinedIcon,
+                                            contentDescription = null,
+                                            tint = itemContent,
+                                            modifier = Modifier.size(24.dp),
+                                        )
+                                        AnimatedVisibility(
+                                            visible = selected && !compact,
+                                            enter = fadeIn(tween(160)) + expandHorizontally(KozuMotion.spatial()),
+                                            exit = fadeOut(tween(90)) + shrinkHorizontally(tween(160)),
+                                        ) {
+                                            Text(
+                                                text = tab.title,
+                                                modifier = Modifier.padding(start = 8.dp),
+                                                style = MaterialTheme.typography.labelLarge,
+                                                color = itemContent,
+                                                maxLines = 1,
+                                                softWrap = false,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    val searchSelected = previewSelected == tabs.size
+                    val searchContainer by animateColorAsState(
+                        targetValue = if (searchSelected) colors.primary else colors.surfaceContainerHigh,
+                        animationSpec = tween(200),
+                        label = "wizardNavSearchContainer",
+                    )
+                    val searchContent by animateColorAsState(
+                        targetValue = if (searchSelected) colors.onPrimary else colors.primary,
+                        animationSpec = tween(200),
+                        label = "wizardNavSearchContent",
+                    )
+                    Surface(
+                        modifier = Modifier.size(searchSize).clickable { previewSelected = tabs.size },
+                        shape = RoundedCornerShape((searchSize.value * animatedRadius / 64f).dp),
+                        color = searchContainer,
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = if (searchSelected) KozuTab.SEARCH.icon else KozuTab.SEARCH.outlinedIcon,
+                                contentDescription = null,
+                                tint = searchContent,
+                                modifier = Modifier.size(26.dp),
+                            )
+                        }
+                    }
+                }
+            } else {
+                Surface(
+                    modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(78.dp),
+                    shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp, bottomStart = 0.dp, bottomEnd = 0.dp),
+                    color = colors.surfaceContainer,
+                    tonalElevation = 5.dp,
+                ) {
+                    Row(
+                        Modifier.fillMaxSize().padding(horizontal = 5.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        val navItems = listOf(
+                            Icons.Rounded.Home to "Home",
+                            Icons.Rounded.Explore to "Explore",
+                            Icons.Rounded.Search to "Search",
+                            Icons.Rounded.LibraryMusic to "Library",
+                            Icons.Rounded.SportsEsports to "Game",
                         )
+                        navItems.forEachIndexed { index, (icon, label) ->
+                            Column(
+                                modifier = Modifier.weight(1f).clickable { previewSelected = index },
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(3.dp),
+                            ) {
+                                Icon(
+                                    icon,
+                                    contentDescription = null,
+                                    tint = if (index == 0) colors.primary else colors.onSurfaceVariant,
+                                    modifier = Modifier.size(21.dp),
+                                )
+                                Text(
+                                    label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (index == 0) colors.primary else colors.onSurfaceVariant,
+                                    maxLines = 1,
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -704,39 +1376,63 @@ private fun NavPreview(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun PlayerStep(
     container: AppContainer,
     settings: AppSettings,
 ) {
     val scope = rememberCoroutineScope()
+    val colors = MaterialTheme.colorScheme
     val current = settings.appearance.playerLayoutStyle
-    StepPage(
-        title = "Player Design",
-        subtitle = "Pick how the full player looks. Tap one to try it.",
-        illustration = { IconCluster(Icons.Rounded.ViewCarousel, Icons.Rounded.Palette, Icons.Rounded.MusicNote) },
+    var sheetOpen by remember { mutableStateOf(false) }
+    Column(
+        modifier = Modifier.fillMaxSize().statusBarsPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            PlayerLayoutStyle.entries.forEach { style ->
-                FilterChip(
-                    selected = style == current,
-                    onClick = { scope.launch { container.settings.updateAppearance { copy(playerLayoutStyle = style) } } },
-                    label = { Text(style.label) },
-                )
-            }
-        }
-        Spacer(Modifier.height(10.dp))
-        Text(
-            text = current.description,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
+        SetupHeading("Player Design", "Preview the full player, then choose the layout you like.")
+        vn.kozu.ui.player.PlayerDesignLivePreview(
+            style = current,
+            modifier = Modifier.fillMaxWidth().height(340.dp),
         )
-        SkipHint("You can change this later in Settings > Appearance > Player")
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(current.label, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(current.description, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+        }
+        FilledTonalButton(onClick = { sheetOpen = true }, modifier = Modifier.fillMaxWidth(), shape = CircleShape) {
+            Text("Choose player design")
+        }
+        SkipHint("You can change this later in Settings  >  Appearance  >  Player")
+    }
+    if (sheetOpen) {
+        PlayerDesignSheet(
+            selected = current,
+            onSelect = { style ->
+                scope.launch { container.settings.updateAppearance { copy(playerLayoutStyle = style) } }
+                sheetOpen = false
+            },
+            onDismiss = { sheetOpen = false },
+        )
+    }
+}
+
+@Composable
+private fun StartScreenStep(
+    container: AppContainer,
+    settings: AppSettings,
+) {
+    val scope = rememberCoroutineScope()
+    Column(
+        modifier = Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        SetupHeading("Start Page", "Choose which Kozu page opens first.")
+        OptionCard(Icons.Rounded.Home, "Home", "Your personalized overview.", settings.startTab == StartTab.HOME, { scope.launch { container.settings.setStartTab(StartTab.HOME) } }, "Recommended")
+        OptionCard(Icons.Rounded.Explore, "Explore", "Discover new beatmaps and music.", settings.startTab == StartTab.EXPLORE, { scope.launch { container.settings.setStartTab(StartTab.EXPLORE) } })
+        OptionCard(Icons.Rounded.LibraryMusic, "Library", "Jump straight to your saved collection.", settings.startTab == StartTab.LIBRARY, { scope.launch { container.settings.setStartTab(StartTab.LIBRARY) } })
+        OptionCard(Icons.Rounded.SportsEsports, "Game", "Open your rhythm-game workspace.", settings.startTab == StartTab.GAME, { scope.launch { container.settings.setStartTab(StartTab.GAME) } })
+        SkipHint("You can change this later in Settings  >  General")
     }
 }
 
@@ -746,40 +1442,45 @@ private fun batteryUnrestricted(context: Context): Boolean =
     }.getOrDefault(false)
 
 @Composable
-private fun BatteryStep() {
+private fun BatteryStep(next: () -> Unit) {
     val context = LocalContext.current
     var unrestricted by remember { mutableStateOf(batteryUnrestricted(context)) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { unrestricted = batteryUnrestricted(context) }
-    StepPage(
+    PermissionStepLayout(
         title = "Battery Optimization",
-        subtitle = "Turn off battery optimization to prevent playback interruptions in the background.",
-        illustration = { IconCluster(Icons.Rounded.BatteryChargingFull, Icons.Rounded.MusicNote, Icons.Rounded.Headphones) },
+        description = "Some Android devices restrict background apps. Adjust battery settings to help keep playback reliable.",
+        icons = listOf(Icons.Rounded.BatteryChargingFull, Icons.Rounded.MusicNote, Icons.Rounded.Headphones, Icons.Rounded.Check, Icons.Rounded.Album),
+        actionText = if (unrestricted) "Optimization disabled" else "Open Battery Settings",
+        granted = unrestricted,
+        actionEnabled = !unrestricted,
+        onAction = {
+            val intents = listOf(
+                Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS),
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")),
+            )
+            for (intent in intents) if (runCatching { context.startActivity(intent) }.isSuccess) break
+        },
     ) {
         if (unrestricted) {
-            Text("Battery optimization is already off", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            Text("Kozu is unrestricted", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
         } else {
-            FilledTonalButton(
-                onClick = {
-                    val intents =
-                        listOf(
-                            Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS),
-                            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")),
-                        )
-                    for (intent in intents) {
-                        if (runCatching { context.startActivity(intent) }.isSuccess) break
-                    }
-                },
-            ) { Text("Disable Optimization") }
-            SkipHint("You can skip this for now")
+            TextButton(onClick = next) { Text("Skip for now") }
         }
     }
 }
 
 @Composable
 private fun DoneStep() {
-    StepPage(
-        title = "You're all set",
-        subtitle = "Search for a song, tap play and enjoy. Everything here lives in Settings whenever you want to tweak it.",
-        illustration = { IconCluster(Icons.Rounded.Check, Icons.Rounded.Headphones, Icons.Rounded.MusicNote) },
-    )
+    Column(
+        modifier = Modifier.fillMaxSize().statusBarsPadding().padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        SetupHeading("All Set!", "You're ready to explore Kozu and enjoy your music.")
+        Spacer(Modifier.height(24.dp))
+        PermissionCollage(
+            icons = listOf(Icons.Rounded.Check, Icons.Rounded.Headphones, Icons.Rounded.MusicNote, Icons.Rounded.Album, Icons.Rounded.LibraryMusic),
+            height = 230.dp,
+        )
+    }
 }

@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import vn.kozu.data.backup.BackupManager
 import vn.kozu.data.download.DownloadManager
+import vn.kozu.data.news.NewsFeed
 import vn.kozu.data.local.AccountStore
 import vn.kozu.data.local.DownloadsStore
 import vn.kozu.data.local.FavoritesStore
@@ -43,6 +44,7 @@ class AppContainer(
     val httpClient = OsuApiFactory.client()
     private val api = OsuApiFactory.create(httpClient)
     val auth = OsuAuth(api, settings, accountStore)
+    val news = NewsFeed(api)
 
     val accounts = AccountRepository(auth, api, accountStore)
     val catalog = BeatmapRepository(api, auth, settings, httpClient)
