@@ -26,17 +26,11 @@ data class DiscoverState(
     val newReleases: List<Beatmap> = emptyList(),
     val loved: List<Beatmap> = emptyList(),
     val mix: List<Beatmap> = emptyList(),
-    val mixNewestCursor: String? = null,
-    val mixOldestCursor: String? = null,
     val mixSource: CatalogSource = CatalogSource.NONE,
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
-    val isLoadingMoreMix: Boolean = false,
     val error: String? = null,
-) {
-    val hasMoreMix: Boolean
-        get() = mixNewestCursor != null || mixOldestCursor != null
-}
+)
 
 class DiscoverFeed(
     private val catalog: BeatmapRepository,
@@ -45,12 +39,10 @@ class DiscoverFeed(
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val refreshTrigger = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-    private val mixLoadInProgress = AtomicBoolean(false)
     private val manualRefreshPending = AtomicBoolean(false)
     private val _state = MutableStateFlow(DiscoverState())
     val state: StateFlow<DiscoverState> = _state.asStateFlow()
 
-    @Volatile private var nextMixNewest = true
 
     init {
 
@@ -74,64 +66,6 @@ class DiscoverFeed(
         manualRefreshPending.set(true)
         _state.update { it.copy(isRefreshing = true) }
         refreshTrigger.tryEmit(Unit)
-    }
-
-    fun loadMoreMix() {
-        val snapshot = _state.value
-        if (snapshot.isLoading || snapshot.isLoadingMoreMix) return
-        if (!snapshot.hasMoreMix) return
-        if (!mixLoadInProgress.compareAndSet(false, true)) return
-
-        scope.launch {
-            _state.update { it.copy(isLoadingMoreMix = true, error = null) }
-            try {
-                val current = _state.value
-                val useNewest =
-                    when {
-                        nextMixNewest && current.mixNewestCursor != null -> true
-                        current.mixOldestCursor != null -> false
-                        current.mixNewestCursor != null -> true
-                        else -> return@launch
-                    }
-
-                val cursor =
-                    if (useNewest) {
-                        current.mixNewestCursor
-                    } else {
-                        current.mixOldestCursor
-                    } ?: return@launch
-
-                val page =
-                    catalog.mixPage(
-                        cursor = cursor,
-                        sort = if (useNewest) "updated_desc" else "updated_asc",
-                    )
-                val leaderboardItems = page.items.filter { it.isRankedOrLoved() }
-
-                _state.update { state ->
-                    if (page.error != null) {
-                        state.copy(
-                            isLoadingMoreMix = false,
-                            error = page.error,
-                        )
-                    } else {
-                        state.copy(
-                            mix = (state.mix + leaderboardItems).distinctBy { it.id },
-                            mixNewestCursor = if (useNewest) page.nextCursor else state.mixNewestCursor,
-                            mixOldestCursor = if (useNewest) state.mixOldestCursor else page.nextCursor,
-                            mixSource = page.source,
-                            isLoadingMoreMix = false,
-                            error = null,
-                        )
-                    }
-                }
-
-                nextMixNewest = !useNewest
-            } finally {
-                _state.update { it.copy(isLoadingMoreMix = false) }
-                mixLoadInProgress.set(false)
-            }
-        }
     }
 
     private suspend fun load() =
@@ -168,8 +102,6 @@ class DiscoverFeed(
                         newReleases = latest.items.filter { it.isRankedOrLoved() }.take(12),
                         loved = l.items.filter { it.status.equals("loved", true) },
                         mix = mixItems,
-                        mixNewestCursor = latest.nextCursor,
-                        mixOldestCursor = archive.nextCursor,
                         mixSource =
                             when {
                                 latest.source == archive.source -> latest.source
@@ -181,7 +113,6 @@ class DiscoverFeed(
                         isRefreshing = false,
                         error = t.error ?: l.error ?: latest.error ?: archive.error,
                     )
-                nextMixNewest = true
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {

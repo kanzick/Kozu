@@ -1,5 +1,6 @@
 package vn.kozu.ui.settings
 
+import androidx.compose.ui.draw.drawBehind
 import vn.kozu.ui.i18n.kozuUiString
 import vn.kozu.ui.components.KozuSheetHandle
 
@@ -214,7 +215,22 @@ private fun CollapsingHeader(
             Modifier
                 .fillMaxWidth()
                 .height(height)
-                .background(lerp(colors.surface, colors.surfaceContainer, fraction)),
+                // Same colour as the page (no lighter rectangle) with a soft fade below it, so
+                // content scrolls away under the title the way it does under the navigation bar.
+                .background(colors.surface)
+                .drawBehind {
+                    val tail = 24.dp.toPx()
+                    drawRect(
+                        brush =
+                            androidx.compose.ui.graphics.Brush.verticalGradient(
+                                colors = listOf(colors.surface.copy(alpha = fraction), androidx.compose.ui.graphics.Color.Transparent),
+                                startY = size.height,
+                                endY = size.height + tail,
+                            ),
+                        topLeft = Offset(0f, size.height),
+                        size = androidx.compose.ui.geometry.Size(size.width, tail),
+                    )
+                },
     ) {
         Surface(
             modifier =

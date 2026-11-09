@@ -23,7 +23,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
-import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -47,7 +46,6 @@ import vn.kozu.ui.components.softTopEdge
 import vn.kozu.ui.components.BeatmapArt
 import vn.kozu.ui.components.CoverCard
 import vn.kozu.ui.components.EmptyState
-import vn.kozu.ui.components.HeaderAction
 import vn.kozu.ui.components.HeaderTitle
 import vn.kozu.ui.components.KozuLoading
 import vn.kozu.ui.components.LocalAppSettings
@@ -57,6 +55,7 @@ import vn.kozu.ui.components.RefreshIndicator
 import vn.kozu.ui.components.ScreenHeader
 import vn.kozu.ui.components.SectionHeader
 import vn.kozu.ui.components.SettingsAction
+import vn.kozu.ui.components.NewsAction
 import vn.kozu.ui.components.TrackRow
 import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.playbackIconVector
@@ -70,6 +69,7 @@ fun ExploreScreen(
     listState: LazyListState,
     bottomPadding: Dp,
     onOpenSettings: () -> Unit,
+    onOpenNews: () -> Unit,
     onOpenLibrary: () -> Unit,
     onOpenSearch: () -> Unit,
     onOpenAllBeatmaps: () -> Unit,
@@ -94,17 +94,7 @@ fun ExploreScreen(
         ScreenHeader(
             leading = { HeaderTitle("Explore") },
             actions = {
-                HeaderAction(
-                    icon = Icons.Rounded.AutoAwesome,
-                    contentDescription = kozuUiString("Mix all beatmaps"),
-                    onClick = {
-                        if (ui.surprisePool.isNotEmpty()) {
-                            actions.playShuffled(ui.surprisePool.shuffled())
-                        }
-
-                        viewModel.loadMoreMix()
-                    },
-                )
+                NewsAction(onOpenNews)
                 SettingsAction(onOpenSettings)
             },
         )

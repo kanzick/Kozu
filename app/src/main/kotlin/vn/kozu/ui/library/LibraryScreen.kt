@@ -149,6 +149,7 @@ import vn.kozu.ui.components.MosaicCover
 import vn.kozu.ui.components.NamePlaylistDialog
 import vn.kozu.ui.components.RefreshIndicator
 import vn.kozu.ui.components.SettingsAction
+import vn.kozu.ui.components.NewsAction
 import vn.kozu.ui.components.TrackRow
 import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.playbackIconVector
@@ -174,6 +175,7 @@ fun LibraryScreen(
     listState: LazyListState,
     bottomPadding: Dp,
     onOpenSettings: () -> Unit,
+    onOpenNews: () -> Unit,
     onSyncError: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: LibraryViewModel = viewModel(factory = LibraryViewModel.Factory),
@@ -263,6 +265,7 @@ fun LibraryScreen(
             sheetOpen = showTabMenu,
             onOpenTabs = { showTabMenu = true },
             onOpenSettings = onOpenSettings,
+            onOpenNews = onOpenNews,
         )
 
         if (compactNavigation && ui.openedPlaylist == null) {
@@ -505,6 +508,7 @@ private fun LibraryHeader(
     sheetOpen: Boolean,
     onOpenTabs: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenNews: () -> Unit,
 ) {
     Row(
         modifier =
@@ -525,6 +529,7 @@ private fun LibraryHeader(
                 )
             }
         }
+        NewsAction(onOpenNews)
         SettingsAction(onOpenSettings)
     }
 }

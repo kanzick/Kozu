@@ -121,85 +121,22 @@ fun PlayerDesignLivePreview(
     }
 }
 
-/** Text-first design picker. The large preview updates before a layout is applied. */
-@OptIn(ExperimentalMaterial3Api::class)
+/** Plain list of designs: tapping one applies it and closes, like every other option popup. */
 @Composable
 fun PlayerDesignSheet(
     selected: PlayerLayoutStyle,
     onSelect: (PlayerLayoutStyle) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val colors = MaterialTheme.colorScheme
-    var previewStyle by remember(selected) { mutableStateOf(selected) }
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        dragHandle = { KozuSheetHandle() },
-        sheetState = androidx.compose.material3.rememberBottomSheetState(
-            initialValue = SheetValue.Hidden,
-            enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
-        ),
-        containerColor = colors.surface,
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text("Player design", style = MaterialTheme.typography.headlineSmall)
-            PlayerDesignLivePreview(
-                style = previewStyle,
-                modifier = Modifier.fillMaxWidth().height(340.dp),
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(previewStyle.label, style = MaterialTheme.typography.titleLarge)
-                Text(
-                    previewStyle.description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colors.onSurfaceVariant,
-                )
-            }
-            Text("Choose a layout", style = MaterialTheme.typography.titleMedium)
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                PlayerLayoutStyle.entries.forEach { style ->
-                    val isSelected = style == previewStyle
-                    Surface(
-                        modifier = Modifier.fillMaxWidth().bounceClick(pressedScale = 0.985f) { previewStyle = style },
-                        shape = RoundedCornerShape(16.dp),
-                        color = if (isSelected) colors.secondaryContainer else colors.surfaceContainer,
-                        contentColor = if (isSelected) colors.onSecondaryContainer else colors.onSurface,
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Text(style.label, style = MaterialTheme.typography.titleMedium)
-                                Text(
-                                    style.description,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = if (isSelected) colors.onSecondaryContainer.copy(alpha = 0.8f) else colors.onSurfaceVariant,
-                                )
-                            }
-                            Spacer(Modifier.width(8.dp))
-                            RadioButton(selected = isSelected, onClick = { previewStyle = style })
-                        }
-                    }
-                }
-            }
-            Button(
-                onClick = { onSelect(previewStyle) },
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                shape = RoundedCornerShape(18.dp),
-            ) {
-                Icon(Icons.Rounded.Check, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("Use ${previewStyle.label}")
-            }
-        }
-    }
+    vn.kozu.ui.settings.OptionSheet(
+        title = "Player design",
+        options = PlayerLayoutStyle.entries.toList(),
+        selected = selected,
+        label = { it.label },
+        onSelect = { style ->
+            onSelect(style)
+            onDismiss()
+        },
+        onDismiss = onDismiss,
+    )
 }

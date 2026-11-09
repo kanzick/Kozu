@@ -206,14 +206,6 @@ fun PlayerStylePage(
             }
         }
         SettingsSection("Full player") {
-            custom { shape ->
-                SettingCard(setting = null, shape = shape, onClick = null) {
-                    vn.kozu.ui.player.PlayerDesignLivePreview(
-                        style = appearance.playerLayoutStyle,
-                        modifier = Modifier.fillMaxWidth().height(320.dp),
-                    )
-                }
-            }
             navigation(
                 Setting.PLAYER_LAYOUT,
                 value = appearance.playerLayoutStyle.label,

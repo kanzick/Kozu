@@ -119,7 +119,11 @@ fun PersonScreen(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize().navigationBarsPadding().softTopEdge(listState),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 20.dp, end = 20.dp, bottom = 28.dp),
+                    contentPadding =
+                        androidx.compose.foundation.layout.PaddingValues(
+                            start = 20.dp, end = 20.dp,
+                            bottom = 28.dp + vn.kozu.ui.components.LocalOverlayBottomInset.current,
+                        ),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     item(key = "hero") {

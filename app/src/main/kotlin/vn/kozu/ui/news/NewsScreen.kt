@@ -1,180 +1,487 @@
 package vn.kozu.ui.news
 
-import android.annotation.SuppressLint
 import android.content.Intent
-import android.graphics.Bitmap
 import android.net.Uri
-import android.webkit.CookieManager
-import android.webkit.WebChromeClient
-import android.webkit.WebResourceRequest
-import android.webkit.WebSettings
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import vn.kozu.ui.components.LocalOverlayBottomInset
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.automirrored.rounded.OpenInNew
-import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
-import vn.kozu.ui.components.CenteredHeader
-import vn.kozu.ui.components.HeaderAction
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
+import vn.kozu.R
+import vn.kozu.data.news.NewsFeed
+import vn.kozu.data.news.NewsPost
+import vn.kozu.data.news.NewsReadState
+import vn.kozu.di.AppContainer
+import vn.kozu.ui.components.KozuSearchField
+import vn.kozu.ui.components.LocalOverlayBottomInset
+import vn.kozu.ui.components.RefreshIndicator
+import vn.kozu.ui.components.bounceClick
+import vn.kozu.ui.components.softTopEdge
+import vn.kozu.ui.i18n.KozuText as Text
 import vn.kozu.ui.i18n.kozuUiString
 
-private const val NEWS_URL = "https://osu.ppy.sh/home"
+private sealed interface NewsState {
+    data object Loading : NewsState
+    data class Ready(val posts: List<NewsPost>) : NewsState
+    data class Failed(val message: String) : NewsState
+}
 
-/**
- * osu!'s own news, exactly as the website shows it. It is the real page in a WebView, so every
- * post, link, comment thread and login behaves as it does in a browser. Back steps through the
- * pages visited before leaving.
- */
-@SuppressLint("SetJavaScriptEnabled")
+private enum class NewsHeaderMode { List, Search, Detail }
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewsScreen(
     onBack: () -> Unit,
+    container: AppContainer,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    var web by remember { mutableStateOf<WebView?>(null) }
-    var progress by remember { mutableIntStateOf(0) }
-    var canGoBack by remember { mutableStateOf(false) }
-    var title by remember { mutableStateOf("") }
-    var currentUrl by remember { mutableStateOf(NEWS_URL) }
+    val feed = container.news
+    val signedIn by container.auth.loggedIn.collectAsStateWithLifecycle(initialValue = false)
+    var reload by remember { mutableIntStateOf(0) }
+    var searching by rememberSaveable { mutableStateOf(false) }
+    var query by rememberSaveable { mutableStateOf("") }
+    var openId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var detail by remember(openId) { mutableStateOf<NewsPost?>(null) }
+    var detailLoading by remember(openId) { mutableStateOf(false) }
+
+    var state by remember { mutableStateOf<NewsState>(NewsState.Loading) }
+    var refreshing by remember { mutableStateOf(false) }
+
+    LaunchedEffect(reload) {
+        val hadContent = state is NewsState.Ready
+        refreshing = hadContent
+        if (!hadContent) state = NewsState.Loading
+        try {
+            val loadedPosts = feed.load()
+            NewsReadState.updateLatest(context, loadedPosts)
+            state = NewsState.Ready(loadedPosts)
+        } catch (error: Exception) {
+            // Keep the existing feed visible when a pull-to-refresh fails.
+            if (!hadContent) {
+                state = NewsState.Failed(error.message ?: "Could not load the news")
+            }
+        } finally {
+            refreshing = false
+        }
+    }
+    val posts = (state as? NewsState.Ready)?.posts.orEmpty()
+    val opened = posts.firstOrNull { it.id == openId }
+    val visible =
+        remember(posts, query) {
+            val q = query.trim()
+            if (q.isEmpty()) posts else posts.filter { post ->
+                post.title.contains(q, true) || post.author.contains(q, true) || post.summary.contains(q, true)
+            }
+        }
+
+    LaunchedEffect(openId, opened?.slug) {
+        if (opened != null) {
+            NewsReadState.markSeen(context, opened.id)
+            detailLoading = true
+            detail = opened
+            try {
+                detail = feed.loadDetail(opened)
+            } catch (_: Exception) {
+                detail = opened
+            } finally {
+                detailLoading = false
+            }
+        } else {
+            detail = null
+            detailLoading = false
+        }
+    }
 
     BackHandler {
-        val view = web
-        if (view != null && view.canGoBack()) view.goBack() else onBack()
+        when {
+            openId != null -> openId = null
+            searching -> {
+                searching = false
+                query = ""
+            }
+            else -> onBack()
+        }
+    }
+
+    val openExternal: (String) -> Unit = { url ->
+        runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+    }
+    val openArticleComments: () -> Unit = {
+        val url = detail?.url ?: opened?.url
+        url?.let { openExternal("$it#comments") }
     }
 
     Column(
-        modifier =
-            modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-                // Keep touches on this page from reaching what is underneath.
-                .pointerInput(Unit) { detectTapGestures { } },
+        modifier = modifier.fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface),
     ) {
-        CenteredHeader(
-            title = title.ifBlank { kozuUiString("osu! news") },
-            leading = {
-                HeaderAction(
-                    icon = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = kozuUiString("Back"),
-                    onClick = {
-                        val view = web
-                        if (view != null && view.canGoBack()) view.goBack() else onBack()
-                    },
-                    startPadding = 0.dp,
+        Column(
+            Modifier.fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.surface,
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.28f),
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.0f),
+                        ),
+                    ),
                 )
-            },
-            trailing = {
-                Row {
-                    HeaderAction(
-                        icon = Icons.Rounded.Refresh,
-                        contentDescription = kozuUiString("Refresh"),
-                        onClick = { web?.reload() },
-                        startPadding = 0.dp,
-                    )
-                    HeaderAction(
-                        icon = Icons.AutoMirrored.Rounded.OpenInNew,
-                        contentDescription = kozuUiString("Open in browser"),
-                        onClick = { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(currentUrl))) } },
-                        startPadding = 8.dp,
-                    )
+                .statusBarsPadding(),
+        ) {
+            val headerMode = when {
+                searching && openId == null -> NewsHeaderMode.Search
+                openId != null -> NewsHeaderMode.Detail
+                else -> NewsHeaderMode.List
+            }
+            AnimatedContent(
+                targetState = headerMode,
+                transitionSpec = {
+                    (slideInHorizontally(tween(230)) { it / 3 } + fadeIn(tween(180))) togetherWith
+                        (slideOutHorizontally(tween(180)) { -it / 4 } + fadeOut(tween(140)))
+                },
+                label = "news-header-transition",
+            ) { mode ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TopIcon(R.drawable.at_arrow_back, kozuUiString("Back")) {
+                        when (mode) {
+                            NewsHeaderMode.Search -> {
+                                searching = false
+                                query = ""
+                            }
+                            NewsHeaderMode.Detail -> openId = null
+                            NewsHeaderMode.List -> onBack()
+                        }
+                    }
+                    if (mode == NewsHeaderMode.Search) {
+                        Spacer(Modifier.width(8.dp))
+                        KozuSearchField(
+                            query = query,
+                            onQueryChange = { query = it },
+                            onSearch = {},
+                            placeholder = kozuUiString("Search news"),
+                            modifier = Modifier.weight(1f),
+                        )
+                    } else {
+                        Spacer(Modifier.weight(1f))
+                        when (mode) {
+                            NewsHeaderMode.List -> TopIcon(R.drawable.at_search, kozuUiString("Search")) { searching = true }
+                            NewsHeaderMode.Detail -> TopIcon(R.drawable.at_share, kozuUiString("Open on osu!")) {
+                                detail?.url?.let(openExternal)
+                            }
+                            NewsHeaderMode.Search -> Unit
+                        }
+                    }
                 }
-            },
-        )
-        Box(Modifier.fillMaxWidth().height(3.dp)) {
-            if (progress in 1..99) {
-                LinearProgressIndicator(progress = { progress / 100f }, modifier = Modifier.fillMaxWidth())
             }
         }
-        AndroidView(
-            modifier = Modifier.fillMaxSize().navigationBarsPadding().padding(bottom = LocalOverlayBottomInset.current),
-            factory = { ctx ->
-                WebView(ctx).apply {
-                    setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                    settings.apply {
-                        javaScriptEnabled = true
-                        domStorageEnabled = true
-                        loadWithOverviewMode = true
-                        useWideViewPort = true
-                        builtInZoomControls = false
-                        displayZoomControls = false
-                        mediaPlaybackRequiresUserGesture = true
-                        cacheMode = WebSettings.LOAD_DEFAULT
-                        mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
-                    }
-                    CookieManager.getInstance().setAcceptCookie(true)
-                    CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
-                    webViewClient =
-                        object : WebViewClient() {
-                            override fun shouldOverrideUrlLoading(
-                                view: WebView,
-                                request: WebResourceRequest,
-                            ): Boolean {
-                                val uri = request.url
-                                val host = uri.host.orEmpty()
-                                val inApp =
-                                    uri.scheme == "https" &&
-                                        (host == "ppy.sh" || host.endsWith(".ppy.sh") || host.endsWith("osu.ppy.sh"))
-                                if (inApp) return false
-                                // Anything off osu! (YouTube, Twitter, Discord…) opens in the browser.
-                                runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW, uri)) }
-                                return true
-                            }
 
-                            override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
-                                url?.let { currentUrl = it }
-                                canGoBack = view.canGoBack()
-                            }
-
-                            override fun onPageFinished(view: WebView, url: String?) {
-                                url?.let { currentUrl = it }
-                                canGoBack = view.canGoBack()
-                            }
-                        }
-                    webChromeClient =
-                        object : WebChromeClient() {
-                            override fun onProgressChanged(view: WebView, newProgress: Int) {
-                                progress = newProgress
-                            }
-
-                            override fun onReceivedTitle(view: WebView, received: String?) {
-                                title = received.orEmpty().substringBefore(" | ").ifBlank { "osu!" }
-                            }
-                        }
-                    loadUrl(NEWS_URL)
-                    web = this
+        AnimatedContent(
+            targetState = openId != null,
+            transitionSpec = {
+                (slideInHorizontally(tween(260)) { it / 5 } + fadeIn(tween(200))) togetherWith
+                    (slideOutHorizontally(tween(220)) { -it / 6 } + fadeOut(tween(160)))
+            },
+            label = "news-page-content",
+            modifier = Modifier.fillMaxSize(),
+        ) { showDetail ->
+            if (showDetail) {
+                val article = detail
+                if (article == null || (detailLoading && article.contentHtml.isNullOrBlank())) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                } else {
+                    NewsDetail(
+                        post = article,
+                        feed = feed,
+                        signedIn = signedIn,
+                        onOpenPost = openArticleComments,
+                        onOpenUrl = openExternal,
+                    )
                 }
-            },
-            onRelease = {
-                web = null
-                it.stopLoading()
-                it.destroy()
-            },
-        )
+            } else {
+                when (val current = state) {
+                    NewsState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                    is NewsState.Failed -> NewsMessage(
+                        title = kozuUiString("Couldn't load the news"),
+                        message = current.message,
+                        onRetry = { reload++ },
+                        onOpenSite = { openExternal(NewsFeed.SITE_URL) },
+                    )
+                    is NewsState.Ready -> {
+                        val listState = rememberLazyListState()
+                        val pullState = rememberPullToRefreshState()
+                        PullToRefreshBox(
+                            isRefreshing = refreshing,
+                            onRefresh = { reload++ },
+                            state = pullState,
+                            modifier = Modifier.fillMaxSize(),
+                            indicator = {
+                                RefreshIndicator(
+                                    state = pullState,
+                                    isRefreshing = refreshing,
+                                    modifier = Modifier.align(Alignment.TopCenter),
+                                )
+                            },
+                        ) {
+                            LazyColumn(
+                                state = listState,
+                                modifier = Modifier.fillMaxSize().softTopEdge(listState),
+                                contentPadding = PaddingValues(
+                                    start = 16.dp,
+                                    end = 16.dp,
+                                    top = 4.dp,
+                                    bottom = 24.dp + LocalOverlayBottomInset.current,
+                                ),
+                                verticalArrangement = Arrangement.spacedBy(14.dp),
+                            ) {
+                                item(key = "title") {
+                                    Text(
+                                        kozuUiString("osu! News"),
+                                        style = MaterialTheme.typography.displaySmall,
+                                        modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 10.dp),
+                                    )
+                                }
+                                if (visible.isEmpty()) {
+                                    item(key = "empty") {
+                                        Text(
+                                            kozuUiString(if (query.isBlank()) "No news yet." else "Nothing matches your search."),
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(24.dp),
+                                        )
+                                    }
+                                }
+                                items(visible, key = { it.id }) { post ->
+                                    NewsCard(post) { openId = post.id }
+                                }
+                                item(key = "site") {
+                                    FilledTonalButton(
+                                        onClick = { openExternal(NewsFeed.SITE_URL) },
+                                        modifier = Modifier.fillMaxWidth().navigationBarsPadding(),
+                                    ) { Text("Read more on osu.ppy.sh") }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TopIcon(
+    icon: Int,
+    description: String,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier.size(48.dp).clip(CircleShape).bounceClick(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(ImageVector.vectorResource(icon), contentDescription = description, modifier = Modifier.size(26.dp))
+    }
+}
+
+@Composable
+private fun NewsChips(post: NewsPost) {
+    val colors = MaterialTheme.colorScheme
+    val fresh = post.dateMillis > 0 && System.currentTimeMillis() - post.dateMillis < 7L * 24 * 3600 * 1000
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Surface(
+            shape = CircleShape,
+            color = if (fresh) colors.tertiary else colors.secondaryContainer,
+            contentColor = if (fresh) colors.onTertiary else colors.onSecondaryContainer,
+        ) {
+            Text(
+                if (fresh) "New" else "News",
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 1,
+                modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
+            )
+        }
+        Surface(Modifier.weight(1f, fill = false), shape = CircleShape, color = colors.surfaceContainerHighest) {
+            Text(
+                listOf(post.author, post.dateLabel).filter { it.isNotBlank() }.joinToString(" · "),
+                style = MaterialTheme.typography.titleSmall,
+                color = colors.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun NewsCard(
+    post: NewsPost,
+    onClick: () -> Unit,
+) {
+    val colors = MaterialTheme.colorScheme
+    Surface(
+        modifier = Modifier.fillMaxWidth().bounceClick(pressedScale = 0.985f, onClick = onClick),
+        shape = RoundedCornerShape(36.dp),
+        color = colors.surfaceContainerHigh,
+    ) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            post.imageUrl?.let { url ->
+                AsyncImage(
+                    model = url,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxWidth().aspectRatio(16f / 8f).clip(RoundedCornerShape(24.dp)),
+                )
+            }
+            NewsChips(post)
+            Text(post.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Medium, maxLines = 3, overflow = TextOverflow.Ellipsis)
+            if (post.summary.isNotBlank()) {
+                Text(
+                    post.summary,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = colors.onSurfaceVariant,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun NewsDetail(
+    post: NewsPost,
+    feed: NewsFeed,
+    signedIn: Boolean,
+    onOpenPost: () -> Unit,
+    onOpenUrl: (String) -> Unit,
+) {
+    val listState = rememberLazyListState()
+    LazyColumn(
+        state = listState,
+        modifier = Modifier.fillMaxSize().softTopEdge(listState),
+        contentPadding = PaddingValues(
+            start = 20.dp,
+            end = 20.dp,
+            top = 8.dp,
+            bottom = 24.dp + LocalOverlayBottomInset.current,
+        ),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        item(key = "article-image") {
+            post.imageUrl?.let { url ->
+                AsyncImage(
+                    model = url,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxWidth().aspectRatio(16f / 8f).clip(RoundedCornerShape(28.dp)),
+                )
+            }
+        }
+        item(key = "article-meta") { NewsChips(post) }
+        item(key = "article-title") {
+            Text(post.title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        }
+        item(key = "article-body") {
+            if (!post.contentHtml.isNullOrBlank()) {
+                NewsHtmlContent(post.contentHtml, onOpenUrl)
+            } else {
+                Text(post.summary, style = MaterialTheme.typography.bodyLarge)
+            }
+        }
+        item(key = "comments") {
+            NewsComments(
+                post = post,
+                feed = feed,
+                signedIn = signedIn,
+                onOpenPost = onOpenPost,
+                onOpenUrl = onOpenUrl,
+            )
+        }
+        item(key = "article-open-site") {
+            FilledTonalButton(onClick = { onOpenUrl(post.url) }, modifier = Modifier.fillMaxWidth()) {
+                Text("Open on osu.ppy.sh")
+            }
+        }
+    }
+}
+
+@Composable
+private fun NewsMessage(
+    title: String,
+    message: String,
+    onRetry: () -> Unit,
+    onOpenSite: () -> Unit,
+) {
+    Column(
+        Modifier.fillMaxSize().padding(32.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(title, style = MaterialTheme.typography.headlineSmall)
+        Spacer(Modifier.height(8.dp))
+        Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(20.dp))
+        FilledTonalButton(onClick = onRetry) { Text("Retry") }
+        Spacer(Modifier.height(8.dp))
+        FilledTonalButton(onClick = onOpenSite) { Text("Open osu.ppy.sh") }
     }
 }

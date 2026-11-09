@@ -63,13 +63,16 @@ import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -624,6 +627,7 @@ private fun rememberSeek(ui: PlayerUi): SeekState {
 }
 
 /** The standard Material 3 expressive slider: pill track, vertical handle. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SeekM3(
     seek: SeekState,
@@ -631,9 +635,19 @@ private fun SeekM3(
     hPad: Dp = 24.dp,
     modifier: Modifier = Modifier,
 ) {
+    val sliderState = rememberSliderState(value = seek.fraction)
+    // Follow playback progress as well as external seek updates. During dragging,
+    // seek.fraction reflects the scrub value, so the thumb remains under the user's control.
+    LaunchedEffect(seek.fraction) {
+        sliderState.value = seek.fraction
+    }
+
     Slider(
-        value = seek.fraction,
-        onValueChange = seek.onScrub,
+        state = sliderState,
+        onValueChange = { value ->
+            sliderState.value = value
+            seek.onScrub(value)
+        },
         onValueChangeFinished = seek.onFinish,
         modifier = modifier.fillMaxWidth().padding(horizontal = hPad),
         colors =
