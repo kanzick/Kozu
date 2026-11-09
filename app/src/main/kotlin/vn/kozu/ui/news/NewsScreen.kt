@@ -2,6 +2,7 @@ package vn.kozu.ui.news
 
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -44,6 +45,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
@@ -54,12 +56,14 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import kotlinx.coroutines.launch
 import vn.kozu.R
 import vn.kozu.data.news.NewsFeed
 import vn.kozu.data.news.NewsPost
@@ -85,12 +89,16 @@ private enum class NewsHeaderMode { List, Search, Detail }
 @Composable
 fun NewsScreen(
     onBack: () -> Unit,
+    onOpenAccountSettings: () -> Unit,
     container: AppContainer,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
+    val scope = rememberCoroutineScope()
     val feed = container.news
     val signedIn by container.auth.loggedIn.collectAsStateWithLifecycle(initialValue = false)
+    val accountProfile by container.accounts.profile.collectAsStateWithLifecycle(initialValue = null)
     var reload by remember { mutableIntStateOf(0) }
     var searching by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
@@ -160,9 +168,25 @@ fun NewsScreen(
     val openExternal: (String) -> Unit = { url ->
         runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
     }
-    val openArticleComments: () -> Unit = {
-        val url = detail?.url ?: opened?.url
-        url?.let { openExternal("$it#comments") }
+    // Reuse Kozu's existing osu! OAuth flow. The browser is only used for osu!'s
+    // authorization screen; comment composition and posting remain inside Kozu.
+    val signInToComment: () -> Unit = {
+        scope.launch {
+            try {
+                val authorizeUrl = container.accounts.beginLogin()
+                if (authorizeUrl == null) {
+                    onOpenAccountSettings()
+                } else {
+                    uriHandler.openUri(authorizeUrl)
+                }
+            } catch (error: Exception) {
+                Toast.makeText(
+                    context,
+                    error.message ?: "Could not start osu! sign-in",
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
+        }
     }
 
     Column(
@@ -251,8 +275,10 @@ fun NewsScreen(
                     NewsDetail(
                         post = article,
                         feed = feed,
+                        auth = container.auth,
                         signedIn = signedIn,
-                        onOpenPost = openArticleComments,
+                        signedInUsername = accountProfile?.username,
+                        onSignIn = signInToComment,
                         onOpenUrl = openExternal,
                     )
                 }
@@ -410,8 +436,10 @@ private fun NewsCard(
 private fun NewsDetail(
     post: NewsPost,
     feed: NewsFeed,
+    auth: vn.kozu.data.remote.osu.OsuAuth,
     signedIn: Boolean,
-    onOpenPost: () -> Unit,
+    signedInUsername: String?,
+    onSignIn: () -> Unit,
     onOpenUrl: (String) -> Unit,
 ) {
     val listState = rememberLazyListState()
@@ -451,8 +479,10 @@ private fun NewsDetail(
             NewsComments(
                 post = post,
                 feed = feed,
+                auth = auth,
                 signedIn = signedIn,
-                onOpenPost = onOpenPost,
+                signedInUsername = signedInUsername,
+                onSignIn = onSignIn,
                 onOpenUrl = onOpenUrl,
             )
         }

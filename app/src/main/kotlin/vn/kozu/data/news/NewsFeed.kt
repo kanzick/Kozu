@@ -93,6 +93,29 @@ class NewsFeed(
             after = after,
         )
 
+    /** Posts a comment or reply using the user's OAuth access token, never the client token. */
+    suspend fun postComment(
+        accessToken: String,
+        postId: Long,
+        message: String,
+        parentId: Long? = null,
+    ): NewsCommentBundleDto {
+        val cleanMessage = message.trim()
+        require(cleanMessage.isNotEmpty()) { "Write a comment first." }
+        require(cleanMessage.length <= 1000) { "Comments must be 1000 characters or fewer." }
+        return api.postNewsComment(
+            authorization = "Bearer $accessToken",
+            request = NewsCommentCreateRequest(
+                comment = NewsCommentCreateDto(
+                    commentableId = postId.takeIf { parentId == null },
+                    commentableType = "news_post".takeIf { parentId == null },
+                    message = cleanMessage,
+                    parentId = parentId,
+                ),
+            ),
+        )
+    }
+
     private suspend fun loadAtomFeed(): List<NewsPost> = withContext(Dispatchers.IO) {
         val connection = URL(FEED_URL).openConnection() as HttpURLConnection
         try {

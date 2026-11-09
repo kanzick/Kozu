@@ -17,6 +17,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -40,14 +41,17 @@ import vn.kozu.data.news.NewsCommentDto
 import vn.kozu.data.news.NewsCommentUserDto
 import vn.kozu.data.news.NewsFeed
 import vn.kozu.data.news.NewsPost
+import vn.kozu.data.remote.osu.OsuAuth
 import vn.kozu.ui.i18n.KozuText as Text
 
 @Composable
 internal fun NewsComments(
     post: NewsPost,
     feed: NewsFeed,
+    auth: OsuAuth,
     signedIn: Boolean,
-    onOpenPost: () -> Unit,
+    signedInUsername: String?,
+    onSignIn: () -> Unit,
     onOpenUrl: (String) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
@@ -61,6 +65,9 @@ internal fun NewsComments(
     var expandedReplies by remember(post.id) { mutableStateOf(setOf<Long>()) }
     var loadingMore by remember(post.id) { mutableStateOf(false) }
     var actionError by remember(post.id) { mutableStateOf<String?>(null) }
+    var draft by remember(post.id) { mutableStateOf("") }
+    var posting by remember(post.id) { mutableStateOf(false) }
+    var replyTarget by remember(post.id) { mutableStateOf<NewsCommentDto?>(null) }
     val commentableId = post.commentableId
 
     LaunchedEffect(post.id, commentableId, sort, reload) {
@@ -115,23 +122,90 @@ internal fun NewsComments(
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (signedIn) {
                         Text(
-                            "Comments are shown here, but osu! does not currently allow third-party OAuth apps to post them. Open this article on osu! to write or reply; your browser may ask you to sign in there.",
+                            text = if (signedInUsername.isNullOrBlank()) "Comment as your osu! account" else "Comment as $signedInUsername",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.labelMedium,
+                        )
+                        if (replyTarget != null) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                val replyName = users[replyTarget?.userId]?.username ?: "osu! user"
+                                Text(
+                                    "Replying to $replyName",
+                                    modifier = Modifier.weight(1f),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    style = MaterialTheme.typography.labelLarge,
+                                )
+                                TextButton(onClick = { replyTarget = null }) { Text("Cancel") }
+                            }
+                        }
+                        OutlinedTextField(
+                            value = draft,
+                            onValueChange = { draft = it.take(1000) },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !posting,
+                            minLines = 2,
+                            maxLines = 6,
+                            shape = RoundedCornerShape(14.dp),
+                            placeholder = { Text("Write a comment…") },
+                            supportingText = { Text("${draft.length}/1000") },
                         )
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                            Button(onClick = onOpenPost) { Text("Open osu! comments") }
+                            Button(
+                                enabled = !posting && draft.isNotBlank() && commentableId != null,
+                                onClick = {
+                                    if (posting) return@Button
+                                    posting = true
+                                    actionError = null
+                                    scope.launch {
+                                        try {
+                                            val token = auth.userBearer()
+                                                ?: throw IllegalStateException("Your osu! session has expired. Sign in again to comment.")
+                                            val postId = commentableId
+                                                ?: throw IllegalStateException("This news post has no comment thread.")
+                                            val target = replyTarget
+                                            feed.postComment(
+                                                accessToken = token,
+                                                postId = postId,
+                                                message = draft,
+                                                parentId = target?.id,
+                                            )
+                                            draft = ""
+                                            replyTarget = null
+                                            replyBundles.clear()
+                                            expandedReplies = emptySet()
+                                            runCatching { feed.loadComments(postId, sort, 0L) }
+                                                .onSuccess { bundle = it }
+                                                .onFailure {
+                                                    actionError = "Your comment was posted, but the list could not refresh. Pull down to refresh."
+                                                }
+                                        } catch (error: Exception) {
+                                            actionError = error.message ?: "Couldn't post your comment"
+                                        } finally {
+                                            posting = false
+                                        }
+                                    }
+                                },
+                            ) {
+                                if (posting) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                                else Text(if (replyTarget == null) "Post comment" else "Post reply")
+                            }
                         }
                     } else {
-                        Text("Please sign in to proceed.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Sign in with your osu! account to write a comment or reply. You can still read all comments without signing in.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                            Button(onClick = onOpenPost) { Text("Sign in to comment") }
+                            Button(onClick = onSignIn) { Text("Sign in to comment") }
                         }
                     }
                 }
             }
 
             actionError?.let { error ->
-                Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    if (error.contains("session", ignoreCase = true) || error.contains("401")) {
+                        TextButton(onClick = onSignIn) { Text("Sign in again") }
+                    }
+                }
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -154,7 +228,7 @@ internal fun NewsComments(
                         NewsCommentRow(
                             comment = comment,
                             user = user,
-                            onReply = onOpenPost,
+                            onReply = { if (signedIn) replyTarget = comment else onSignIn() },
                             onOpenUrl = onOpenUrl,
                         )
                         if (comment.repliesCount > 0) {
@@ -190,7 +264,7 @@ internal fun NewsComments(
                                     NewsCommentRow(
                                         comment = reply,
                                         user = replyUsers[reply.userId],
-                                        onReply = onOpenPost,
+                                        onReply = { if (signedIn) replyTarget = reply else onSignIn() },
                                         onOpenUrl = onOpenUrl,
                                         nested = true,
                                     )
@@ -296,7 +370,7 @@ private fun NewsCommentRow(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("+${comment.votesCount}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.width(10.dp))
-                TextButton(onClick = onReply) { Text("reply on osu!") }
+                TextButton(onClick = onReply) { Text("Reply") }
             }
         }
     }

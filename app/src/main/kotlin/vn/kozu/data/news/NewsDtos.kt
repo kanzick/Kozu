@@ -51,3 +51,15 @@ data class NewsCommentUserDto(
     @SerializedName("avatar_url") val avatarUrl: String? = null,
 )
 
+/** Request body used by osu! API v2 when an authenticated user posts a comment. */
+data class NewsCommentCreateRequest(
+    @SerializedName("comment") val comment: NewsCommentCreateDto,
+)
+
+data class NewsCommentCreateDto(
+    @SerializedName("commentable_id") val commentableId: Long? = null,
+    @SerializedName("commentable_type") val commentableType: String? = null,
+    @SerializedName("message") val message: String,
+    @SerializedName("parent_id") val parentId: Long? = null,
+)
+

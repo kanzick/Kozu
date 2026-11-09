@@ -228,6 +228,7 @@ private fun KozuShell(
     var playerOpen by rememberSaveable { mutableStateOf(false) }
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
     var settingsInitialPage by rememberSaveable { mutableStateOf(vn.kozu.ui.settings.SettingsPage.ROOT) }
+    var reopenNewsAfterAccountSettings by rememberSaveable { mutableStateOf(false) }
     var statsOpen by rememberSaveable { mutableStateOf(false) }
     var newsOpen by rememberSaveable { mutableStateOf(false) }
     var personName by rememberSaveable { mutableStateOf<String?>(null) }
@@ -561,6 +562,10 @@ private fun KozuShell(
                         onBack = {
                             settingsOpen = false
                             settingsInitialPage = vn.kozu.ui.settings.SettingsPage.ROOT
+                            if (reopenNewsAfterAccountSettings) {
+                                newsOpen = true
+                                reopenNewsAfterAccountSettings = false
+                            }
                         },
                     )
                 }
@@ -601,7 +606,16 @@ private fun KozuShell(
                     enter = slideInHorizontally(KozuMotion.spatial()) { it } + fadeIn(),
                     exit = slideOutHorizontally(tween(240)) { it } + fadeOut(),
                 ) {
-                    vn.kozu.ui.news.NewsScreen(onBack = { newsOpen = false }, container = container)
+                    vn.kozu.ui.news.NewsScreen(
+                        onBack = { newsOpen = false },
+                        onOpenAccountSettings = {
+                            reopenNewsAfterAccountSettings = true
+                            newsOpen = false
+                            settingsInitialPage = vn.kozu.ui.settings.SettingsPage.ACCOUNT
+                            settingsOpen = true
+                        },
+                        container = container,
+                    )
                 }
             }
             if (allBeatmapsOpen && !settingsOpen && !statsOpen) BackHandler { allBeatmapsOpen = false }

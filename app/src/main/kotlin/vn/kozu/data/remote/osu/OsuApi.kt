@@ -1,5 +1,6 @@
 package vn.kozu.data.remote.osu
 
+import retrofit2.http.Body
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
@@ -9,6 +10,7 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
 import vn.kozu.data.news.NewsCommentBundleDto
+import vn.kozu.data.news.NewsCommentCreateRequest
 import vn.kozu.data.news.NewsListingDto
 import vn.kozu.data.news.NewsPostDto
 
@@ -71,6 +73,14 @@ interface OsuApi {
         @Query("sort") sort: String = "new",
         @Query("parent_id") parentId: Long? = null,
         @Query("after") after: String? = null,
+    ): NewsCommentBundleDto
+
+    /** Posts a comment through the authenticated osu! API session. */
+    @Headers("Accept: application/json", "Content-Type: application/json")
+    @POST("comments")
+    suspend fun postNewsComment(
+        @Header("Authorization") authorization: String,
+        @Body request: NewsCommentCreateRequest,
     ): NewsCommentBundleDto
 
     @GET("me")
