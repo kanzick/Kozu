@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import vn.kozu.ui.i18n.KozuText as Text
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,8 +28,7 @@ fun HitCircle(
         shadowElevation = 3.dp,
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Text(
-                text = number.toString(),
+            Text(text = number.toString(),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onPrimary,
             )

@@ -1,24 +1,17 @@
 package vn.kozu.ui.settings
 
-import androidx.compose.ui.draw.drawBehind
-import vn.kozu.ui.i18n.kozuUiString
-import vn.kozu.ui.components.KozuSheetHandle
-
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -27,19 +20,22 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -48,53 +44,57 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.rememberBottomSheetState
+import androidx.compose.material3.rememberSliderState
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
-import vn.kozu.ui.i18n.KozuText as Text
-import androidx.compose.material3.rememberBottomSheetState
-import androidx.compose.material3.rememberSliderState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp as lerpDp
 import kotlinx.coroutines.delay
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInWindow
+import vn.kozu.R
+import vn.kozu.ui.components.bounceClick
+import vn.kozu.ui.components.KozuSheetHandle
 import vn.kozu.ui.components.KozuSlider
 import vn.kozu.ui.components.LocalOverlayBottomInset
-import vn.kozu.ui.components.LocalScrollViewport
-import vn.kozu.ui.components.ScrollViewport
-import vn.kozu.ui.components.scrollReveal
-import vn.kozu.ui.components.softTopEdge
 import vn.kozu.ui.components.LocalPerformanceMode
-import vn.kozu.ui.components.bounceClick
+import vn.kozu.ui.components.LocalScrollViewport
 import vn.kozu.ui.components.rememberKozuHaptics
-import androidx.compose.ui.unit.lerp as lerpDp
+import vn.kozu.ui.components.scrollReveal
+import vn.kozu.ui.components.ScrollViewport
+import vn.kozu.ui.components.softTopEdge
 
 val LocalSettingsHighlight = compositionLocalOf<String?> { null }
 
@@ -215,8 +215,8 @@ private fun CollapsingHeader(
             Modifier
                 .fillMaxWidth()
                 .height(height)
-                // Same colour as the page (no lighter rectangle) with a soft fade below it, so
-                // content scrolls away under the title the way it does under the navigation bar.
+
+
                 .background(colors.surface)
                 .drawBehind {
                     val tail = 24.dp.toPx()
@@ -242,11 +242,10 @@ private fun CollapsingHeader(
             color = colors.surfaceContainerHighest,
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = kozuUiString("Back"))
+                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
             }
         }
-        Text(
-            text = title,
+        Text(text = title,
             style = MaterialTheme.typography.displaySmall,
             color = colors.onSurface,
             maxLines = 1,
@@ -306,7 +305,7 @@ class SettingsGroupScope {
         steps: Int = 0,
         enabled: Boolean = true,
         description: String = setting.description,
-        /** Snap size. When set, the slider moves in whole steps of this size and shows tick marks. */
+
         unit: Float = 0f,
         onChange: (Float) -> Unit,
     ) = custom { shape ->
@@ -372,8 +371,7 @@ fun SettingsSection(
 
 @Composable
 fun SettingsSectionTitle(title: String) {
-    Text(
-        text = title,
+    Text(text = title,
         style = MaterialTheme.typography.titleSmall,
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.padding(start = 24.dp, top = 18.dp, bottom = 10.dp),
@@ -467,16 +465,14 @@ internal fun ItemText(
 ) {
     val alpha = if (enabled) 1f else 0.5f
     Column(modifier) {
-        Text(
-            text = title,
+        Text(text = title,
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
             maxLines = titleMaxLines,
             overflow = TextOverflow.Ellipsis,
         )
         if (!description.isNullOrBlank()) {
-            Text(
-                text = description,
+            Text(text = description,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha),
                 maxLines = descriptionMaxLines,
@@ -593,8 +589,7 @@ fun ValueChip(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             leading?.invoke()
-            Text(
-                text = text,
+            Text(text = text,
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary,
                 maxLines = 1,
@@ -635,8 +630,7 @@ fun <T> OptionSheet(
                     .padding(horizontal = 20.dp)
                     .padding(bottom = 24.dp),
         ) {
-            Text(
-                title,
+            Text(title,
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.padding(vertical = 8.dp),
             )
@@ -665,8 +659,7 @@ fun <T> OptionSheet(
                             it(option)
                             Spacer(Modifier.width(12.dp))
                         }
-                        Text(
-                            label(option),
+                        Text(label(option),
                             modifier = Modifier.weight(1f),
                             style = MaterialTheme.typography.titleMedium,
                             color =
@@ -679,7 +672,7 @@ fun <T> OptionSheet(
                         if (isSelected) {
                             Icon(
                                 Icons.Rounded.Check,
-                                contentDescription = kozuUiString("Selected"),
+                                contentDescription = stringResource(R.string.selected),
                                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
                             )
                         }
@@ -705,7 +698,7 @@ private fun SliderItem(
 ) {
     var draft by remember { mutableFloatStateOf(value) }
     var interacting by remember { mutableStateOf(false) }
-    // Saved values flow back in after a change; follow them unless the user is mid-drag.
+
     LaunchedEffect(value) { if (!interacting) draft = value }
     SettingCard(setting = setting, shape = shape, onClick = null) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
@@ -715,8 +708,8 @@ private fun SliderItem(
             ) {
                 IconBadge(setting.icon, enabled)
                 Spacer(Modifier.width(14.dp))
-                // Reserve a stable text column: a changing value such as 9 dp -> 10 dp must
-                // never steal width from the description and make the whole card jump.
+
+
                 ItemText(
                     title = setting.title,
                     description = description,
@@ -746,8 +739,8 @@ private fun SliderItem(
                 valueRange = range,
                 steps = steps,
                 enabled = enabled,
-                // The value chip above updates live while dragging. A second floating bubble
-                // only overlaps the description in this compact card layout.
+
+
                 contentDescription = setting.title,
                 modifier = Modifier.padding(top = 10.dp),
             )
@@ -833,8 +826,7 @@ private fun InfoItem(
             Spacer(Modifier.width(14.dp))
             ItemText(title, description, modifier = Modifier.weight(1f))
             Spacer(Modifier.width(12.dp))
-            Text(
-                text = value,
+            Text(text = value,
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary,
                 maxLines = 2,

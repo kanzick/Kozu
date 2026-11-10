@@ -1,14 +1,5 @@
 package vn.kozu.data.remote
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import okhttp3.Authenticator
-import okhttp3.ConnectionPool
-import okhttp3.Credentials
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import vn.kozu.domain.model.ProxySettings
-import vn.kozu.domain.model.ProxyType
 import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.PasswordAuthentication
@@ -18,6 +9,15 @@ import java.net.SocketAddress
 import java.net.URI
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.Authenticator
+import okhttp3.ConnectionPool
+import okhttp3.Credentials
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import vn.kozu.domain.model.ProxySettings
+import vn.kozu.domain.model.ProxyType
 
 sealed interface ProxyTestResult {
     data class Success(

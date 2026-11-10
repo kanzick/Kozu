@@ -5,29 +5,32 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import vn.kozu.ui.i18n.KozuText as Text
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import vn.kozu.R
 import vn.kozu.ui.components.LocalTrackActions
-import vn.kozu.ui.components.TrackRow
 import vn.kozu.ui.components.segmentedShape
+import vn.kozu.ui.components.TrackRow
 import vn.kozu.ui.theme.KozuMotion
 import vn.kozu.util.formatDuration
 
@@ -40,13 +43,13 @@ fun StatsPage(
     val stats by viewModel.stats.collectAsStateWithLifecycle()
     val actions = LocalTrackActions.current
 
-    SettingsScaffold(title = "Listening Stats", onBack = onBack) {
+    SettingsScaffold(title = stringResource(R.string.listening_stats_text), onBack = onBack) {
         SettingsGroup(
             title = null,
             items =
                 listOf({
                     ChoiceRow(
-                        title = "Period",
+                        title = stringResource(R.string.period),
                         options = StatsRange.entries.toList(),
                         selected = range,
                         label = { it.label },
@@ -70,7 +73,7 @@ fun StatsPage(
                 color = MaterialTheme.colorScheme.surfaceContainer,
             ) {
                 Column(Modifier.padding(18.dp)) {
-                    Text("Daily listening", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.daily_listening), style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.height(14.dp))
                     DayBars(stats.dayMs)
                 }
@@ -83,8 +86,7 @@ fun StatsPage(
                 title = null,
                 items =
                     listOf({
-                        Text(
-                            "Nothing to show yet. Listen to a few songs and your top tracks, artists and mappers will appear here.",
+                        Text(stringResource(R.string.nothing_to_show_yet_listen_to_a_few_songs_and_your_t),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -93,8 +95,7 @@ fun StatsPage(
             return@SettingsScaffold
         }
 
-        Text(
-            "Top songs",
+        Text(stringResource(R.string.top_songs),
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(start = 8.dp, bottom = 10.dp),
@@ -107,8 +108,7 @@ fun StatsPage(
                     shape = segmentedShape(index, stats.topTracks.size),
                     onClick = { actions.play(queue, index) },
                     trailing = {
-                        Text(
-                            "$count×",
+                        Text("$count×",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(end = 16.dp),
@@ -170,16 +170,14 @@ private fun RankedList(
                 @Composable {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                name,
+                            Text(name,
                                 style = MaterialTheme.typography.titleMedium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.weight(1f),
                             )
                             Spacer(Modifier.width(12.dp))
-                            Text(
-                                "$count plays",
+                            Text(pluralStringResource(R.plurals.play_count, count, count),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )

@@ -1,56 +1,56 @@
 package vn.kozu.ui.settings
 
-import vn.kozu.ui.i18n.kozuUiString
-import vn.kozu.ui.components.KozuSheetHandle
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberBottomSheetState
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
-import vn.kozu.ui.i18n.KozuText as Text
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberBottomSheetState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.material.icons.rounded.Tune
-import vn.kozu.ui.components.bounceClick
 import coil3.compose.AsyncImage
-import androidx.compose.ui.layout.ContentScale
+import vn.kozu.R
+import vn.kozu.ui.components.bounceClick
+import vn.kozu.ui.components.KozuSheetHandle
 
 @Composable
 fun SettingsScaffold(
@@ -90,7 +90,7 @@ fun SettingsEntry(
                     } else {
                         AsyncImage(
                             model = avatarUrl,
-                            contentDescription = kozuUiString("$title avatar"),
+                            contentDescription = stringResource(R.string.avatar_for, title),
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize()
                         )
@@ -100,8 +100,7 @@ fun SettingsEntry(
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(
-                    subtitle,
+                Text(subtitle,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -136,8 +135,7 @@ fun SwitchRow(title: String, subtitle: String, checked: Boolean, onChange: (Bool
     Row(verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
-            Text(
-                subtitle,
+            Text(subtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -191,8 +189,7 @@ fun <T> ChoiceRow(
             Column(Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.titleMedium)
                 if (subtitle != null) {
-                    Text(
-                        subtitle,
+                    Text(subtitle,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -208,8 +205,7 @@ fun <T> ChoiceRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         leading?.invoke(selected)
-                        Text(
-                            label(selected),
+                        Text(label(selected),
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -238,8 +234,7 @@ fun <T> ChoiceRow(
                     .padding(horizontal = 20.dp)
                     .padding(bottom = 24.dp)
             ) {
-                Text(
-                    title,
+                Text(title,
                     style = MaterialTheme.typography.headlineSmall,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
@@ -265,8 +260,7 @@ fun <T> ChoiceRow(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             leading?.invoke(option)
-                            Text(
-                                label(option),
+                            Text(label(option),
                                 modifier = Modifier
                                     .weight(1f)
                                     .padding(start = if (leading == null) 0.dp else 12.dp),
@@ -285,7 +279,7 @@ fun <T> ChoiceRow(
                             if (option == selected) {
                                 Icon(
                                     Icons.Rounded.Check,
-                                    contentDescription = kozuUiString("Selected"),
+                                    contentDescription = stringResource(R.string.selected),
                                     tint = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                             }
@@ -310,13 +304,11 @@ fun ActionRow(
             .fillMaxWidth()
             .bounceClick(pressedScale = 0.98f, onClick = onClick)
     ) {
-        Text(
-            title,
+        Text(title,
             style = MaterialTheme.typography.titleLarge,
             color = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
         )
-        Text(
-            subtitle,
+        Text(subtitle,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -331,8 +323,7 @@ fun PrimaryPill(label: String, enabled: Boolean = true, onClick: () -> Unit) {
         color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
         contentColor = if (enabled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
     ) {
-        Text(
-            label,
+        Text(label,
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 13.dp),
             style = MaterialTheme.typography.titleSmall
         )
@@ -347,8 +338,7 @@ fun SecondaryPill(label: String, onClick: () -> Unit) {
         color = MaterialTheme.colorScheme.secondaryContainer,
         contentColor = MaterialTheme.colorScheme.onSecondaryContainer
     ) {
-        Text(
-            label,
+        Text(label,
             modifier = Modifier.padding(horizontal = 22.dp, vertical = 13.dp),
             style = MaterialTheme.typography.titleSmall
         )
@@ -364,8 +354,7 @@ fun StatTile(label: String, value: String, modifier: Modifier = Modifier, highli
         contentColor = if (highlight) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
     ) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-            Text(
-                label,
+            Text(label,
                 style = MaterialTheme.typography.labelMedium,
                 color = localContentColorAlpha()
             )

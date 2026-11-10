@@ -1,14 +1,14 @@
 package vn.kozu.game.mania.gamestage.settings
 
+import java.io.File
+import java.io.IOException
+import java.util.Properties
+import kotlin.math.roundToInt
 import vn.kozu.game.mania.gamestage.engine.NoteScroll
 import vn.kozu.game.mania.gamestage.playtype.Landscape3DPerspective
 import vn.kozu.game.mania.gamestage.playtype.LandscapeVerticalScrolling
 import vn.kozu.game.mania.gamestage.playtype.PlayType
 import vn.kozu.game.mania.gamestage.playtype.Portrait
-import java.io.File
-import java.io.IOException
-import java.util.Properties
-import kotlin.math.roundToInt
 
 enum class GameOrientation {
     PORTRAIT,

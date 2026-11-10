@@ -1,7 +1,5 @@
 package vn.kozu.ui.settings
 
-import vn.kozu.ui.i18n.kozuUiString
-
 import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.Image
@@ -9,52 +7,54 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.Language
-import androidx.compose.material.icons.rounded.Palette
-import androidx.compose.material.icons.rounded.Star
-import androidx.compose.material.icons.rounded.Share
-import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.Layers
+import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.Security
+import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import vn.kozu.ui.i18n.KozuText as Text
+import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import vn.kozu.ui.onboarding.LocalReplayOnboarding
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import vn.kozu.data.update.UpdateChecker
+import vn.kozu.R
+import vn.kozu.ui.onboarding.LocalReplayOnboarding
 
 private const val GITHUB_URL = "https://github.com/kanzick/Kozu"
 private const val OSU_URL = "https://osu.ppy.sh"
@@ -75,14 +75,14 @@ fun AboutPage(
     val context = LocalContext.current
     val version = remember { UpdateChecker.installedVersion(context) }
     var privacyOpen by remember { mutableStateOf(false) }
-    // CompositionLocals can only be read in composable code, not inside the settings DSL below.
+
     val replayOnboarding = LocalReplayOnboarding.current
 
-    SettingsScaffold(title = "About", onBack = onBack) {
+    SettingsScaffold(title = stringResource(R.string.about), onBack = onBack) {
         SettingsSection(null) {
             custom { shape -> HeroCard(shape, version) }
         }
-        SettingsSection("Links") {
+        SettingsSection(stringResource(R.string.settings_links)) {
             custom { shape ->
                 LinkItem(shape, Icons.Rounded.Code, "GitHub", "kanzick/Kozu") { context.openLink(GITHUB_URL) }
             }
@@ -90,7 +90,7 @@ fun AboutPage(
                 LinkItem(shape, Icons.Rounded.Language, "osu!", "osu.ppy.sh") { context.openLink(OSU_URL) }
             }
         }
-        SettingsSection("App information") {
+        SettingsSection(stringResource(R.string.settings_app_information)) {
             custom { shape ->
                 LinkItem(shape, Icons.Rounded.Star, "Rate Kozu", "Star us on GitHub", Setting.RATE_APP) {
                     context.openLink(GITHUB_URL)
@@ -117,8 +117,7 @@ fun AboutPage(
                 }
             }
         }
-        Text(
-            text = "Kozu is an unofficial fan project and is not affiliated with or endorsed by ppy Pty Ltd. osu! is a trademark of ppy Pty Ltd.",
+        Text(text = stringResource(R.string.kozu_is_an_unofficial_fan_project_and_is_not_affilia),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -132,13 +131,13 @@ fun AboutPage(
     if (privacyOpen) {
         AlertDialog(
             onDismissRequest = { privacyOpen = false },
-            title = { Text("Privacy policy") },
+            title = { Text(stringResource(R.string.privacy_policy)) },
             text = {
                 Column(Modifier.verticalScroll(rememberScrollState())) {
                     Text(PRIVACY_TEXT, style = MaterialTheme.typography.bodyMedium)
                 }
             },
-            confirmButton = { TextButton(onClick = { privacyOpen = false }) { Text("Close") } },
+            confirmButton = { TextButton(onClick = { privacyOpen = false }) { Text(stringResource(R.string.close)) } },
         )
     }
 }
@@ -190,16 +189,15 @@ private fun HeroCard(
                 contentAlignment = Alignment.Center,
             ) {
                 if (icon != null) {
-                    Image(bitmap = icon, contentDescription = kozuUiString("Kozu"), modifier = Modifier.size(96.dp))
+                    Image(bitmap = icon, contentDescription = stringResource(R.string.kozu), modifier = Modifier.size(96.dp))
                 } else {
                     Icon(Icons.Rounded.AutoAwesome, contentDescription = null, tint = colors.primary, modifier = Modifier.size(48.dp))
                 }
             }
             Spacer(Modifier.height(14.dp))
-            Text("Kozu", style = MaterialTheme.typography.headlineLarge)
+            Text(stringResource(R.string.kozu), style = MaterialTheme.typography.headlineLarge)
             Spacer(Modifier.height(6.dp))
-            Text(
-                TAGLINE,
+            Text(TAGLINE,
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.onSurfaceVariant,
                 textAlign = TextAlign.Center,

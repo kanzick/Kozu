@@ -1,9 +1,9 @@
 package vn.kozu.ui.onboarding
 
-import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.Manifest
 import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
@@ -11,35 +11,33 @@ import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandHorizontally
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -47,7 +45,9 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -55,8 +55,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.BatteryChargingFull
 import androidx.compose.material.icons.rounded.Check
@@ -79,20 +79,21 @@ import androidx.compose.material.icons.rounded.ViewCarousel
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Slider
 import androidx.compose.material3.rememberSliderState
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -100,13 +101,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -115,8 +117,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.Lifecycle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -129,19 +131,18 @@ import vn.kozu.domain.model.NavigationStyle
 import vn.kozu.domain.model.StartTab
 import vn.kozu.domain.model.ThemeMode
 import vn.kozu.domain.model.ThemePreset
-import vn.kozu.ui.navigation.KozuTab
-import vn.kozu.ui.theme.KozuMotion
-import vn.kozu.ui.components.FitText
+import vn.kozu.R
 import vn.kozu.ui.components.bounceClick
-import vn.kozu.ui.i18n.KozuText as Text
+import vn.kozu.ui.components.FitText
+import vn.kozu.ui.navigation.KozuTab
 import vn.kozu.ui.player.PlayerDesignSheet
-import vn.kozu.ui.settings.SwatchDots
 import vn.kozu.ui.settings.rememberPresetSwatches
+import vn.kozu.ui.settings.SwatchDots
+import vn.kozu.ui.theme.KozuMotion
 
-/** Lets Settings > About reopen the wizard; provided by the app shell. */
 val LocalReplayOnboarding = androidx.compose.runtime.compositionLocalOf<(() -> Unit)?> { null }
 
-/** Ten numbered setup steps plus the welcome page. The radius editor is a modal-like page. */
+
 private const val STEP_COUNT = 10
 private const val MAX_BACKUP_BYTES = 32 * 1024 * 1024
 
@@ -167,7 +168,7 @@ private fun OnboardingContent(
         container.settings.onboardingCompleted = true
         onFinish()
     }
-    // Permissions are optional during setup; every step can advance like Pixel Music.
+
     val nextEnabled = true
 
     Box(
@@ -225,7 +226,6 @@ private fun OnboardingContent(
     }
 }
 
-// ───────────────────────────── wizard footer ─────────────────────────────
 
 @Composable
 private fun BottomBar(
@@ -269,8 +269,7 @@ private fun BottomBar(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = if (isWelcome) "Let's Go!" else "Step $step of $STEP_COUNT",
+            Text(text = if (isWelcome) stringResource(R.string.lets_go) else stringResource(R.string.step_of_total, step, STEP_COUNT),
                 modifier = Modifier.weight(1f).padding(end = 12.dp),
                 style = if (isWelcome) MaterialTheme.typography.titleLarge else MaterialTheme.typography.bodyLarge,
                 fontWeight = if (isWelcome) FontWeight.Bold else FontWeight.Medium,
@@ -315,7 +314,6 @@ private fun BottomBar(
     }
 }
 
-// ───────────────────────────── shared setup visuals ─────────────────────────────
 
 @Composable
 private fun SetupHeading(
@@ -328,15 +326,13 @@ private fun SetupHeading(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(
-            text = title,
+        Text(text = title,
             style = MaterialTheme.typography.displayMedium.copy(fontSize = 32.sp, lineHeight = 38.sp),
             fontWeight = FontWeight.Bold,
             textAlign = if (alignment == Alignment.Start) TextAlign.Start else TextAlign.Center,
         )
         if (subtitle != null) {
-            Text(
-                text = subtitle,
+            Text(text = subtitle,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = if (alignment == Alignment.Start) TextAlign.Start else TextAlign.Center,
@@ -345,7 +341,7 @@ private fun SetupHeading(
     }
 }
 
-/** Static layered icon collage. Page motion is reserved for the wizard pager and Next button. */
+
 @Composable
 private fun PermissionCollage(
     icons: List<ImageVector>,
@@ -360,7 +356,7 @@ private fun PermissionCollage(
         val unit = minOf(200.dp, maxHeight)
         val centerSize = unit * 0.8f
 
-        // The central tile and four surrounding tiles follow PixelMusic's collage geometry.
+
         Surface(
             modifier = Modifier.size(centerSize).rotate(-15f),
             shape = RoundedCornerShape(20.dp),
@@ -596,8 +592,7 @@ private fun SwitchCard(
 
 @Composable
 private fun SkipHint(text: String) {
-    Text(
-        text = text,
+    Text(text = text,
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
         textAlign = TextAlign.Center,
@@ -605,7 +600,6 @@ private fun SkipHint(text: String) {
     )
 }
 
-// ───────────────────────────── setup steps ─────────────────────────────
 
 @Composable
 private fun WelcomeStep() {
@@ -621,8 +615,7 @@ private fun WelcomeStep() {
             .padding(top = 34.dp, bottom = 18.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
-            text = "Welcome to",
+        Text(text = stringResource(R.string.welcome_to),
             style = MaterialTheme.typography.displaySmall.copy(fontSize = 36.sp, lineHeight = 44.sp),
             fontWeight = FontWeight.Bold,
             color = colors.onSurface,
@@ -637,15 +630,13 @@ private fun WelcomeStep() {
 
         Spacer(Modifier.height(20.dp))
 
-        Text(
-            text = "Kozu",
+        Text(text = stringResource(R.string.kozu),
             style = MaterialTheme.typography.displayLarge.copy(fontSize = 58.sp, lineHeight = 66.sp),
             fontWeight = FontWeight.ExtraBold,
             color = colors.primary,
             textAlign = TextAlign.Center,
         )
-        Text(
-            text = "v$version",
+        Text(text = "v$version",
             style = MaterialTheme.typography.titleMedium.copy(fontSize = 19.sp),
             fontWeight = FontWeight.SemiBold,
             color = colors.onSurfaceVariant,
@@ -654,8 +645,7 @@ private fun WelcomeStep() {
 
         Spacer(Modifier.height(42.dp))
 
-        Text(
-            text = "Let's get everything set up for you.",
+        Text(text = stringResource(R.string.setup_intro),
             style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp),
             color = colors.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -747,9 +737,9 @@ private fun NotificationsStep(next: () -> Unit) {
         onAction = { if (!granted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) launcher.launch(Manifest.permission.POST_NOTIFICATIONS) },
     ) {
         if (granted) {
-            Text("Notifications are enabled", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+            Text(stringResource(R.string.notifications_enabled), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
         } else {
-            TextButton(onClick = next) { Text("Skip for now") }
+            TextButton(onClick = next) { Text(stringResource(R.string.skip_for_now)) }
         }
     }
 }
@@ -799,7 +789,7 @@ private fun BackupStep(
         result?.let {
             Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center)
         }
-        TextButton(onClick = next, enabled = !busy) { Text("Skip / Not now") }
+        TextButton(onClick = next, enabled = !busy) { Text(stringResource(R.string.skip_not_now)) }
     }
 }
 
@@ -881,8 +871,7 @@ private fun OnboardingThemePresetRow(
         ) {
             Column(Modifier.weight(1f)) {
                 Text(preset.label, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    text = if (unavailable) "Requires Android 12 or newer" else preset.description,
+                Text(text = if (unavailable) "Requires Android 12 or newer" else preset.description,
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (selected) colors.onPrimaryContainer.copy(alpha = 0.8f) else colors.onSurfaceVariant,
                 )
@@ -921,7 +910,7 @@ private fun LibraryStep(
             ) {
                 Row(Modifier.padding(horizontal = 20.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Compact Mode", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.compact_mode), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         Text(if (compact) "Using minimal pill navigation" else "Using a standard tab row", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Switch(checked = compact, onCheckedChange = { enabled -> scope.launch { container.settings.setLibraryNavigationMode(if (enabled) LibraryNavigationMode.COMPACT else LibraryNavigationMode.TAB_ROW) } })
@@ -957,8 +946,8 @@ private fun LibraryPreview(compact: Boolean) {
             ),
         ) {
             if (compact) {
-                // Match LibraryScreen.SplitTitle: content-sized title + fixed 52dp chevron.
-                // Only the heights are equal; the title keeps its natural width.
+
+
                 Row(
                     modifier = Modifier.align(Alignment.TopStart).padding(start = 16.dp, top = 24.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -1009,8 +998,7 @@ private fun LibraryPreview(compact: Boolean) {
                 Column(
                     modifier = Modifier.fillMaxSize().padding(top = 18.dp, start = 20.dp, end = 20.dp),
                 ) {
-                    Text(
-                        text = "Library",
+                    Text(text = stringResource(R.string.library),
                         fontWeight = FontWeight.ExtraBold,
                         color = colors.primary,
                         style = MaterialTheme.typography.displaySmall.copy(fontSize = 40.sp),
@@ -1034,8 +1022,7 @@ private fun LibraryPreview(compact: Boolean) {
                                     color = colors.surfaceContainerLowest,
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
-                                        Text(
-                                            text = label,
+                                        Text(text = label,
                                             style = MaterialTheme.typography.labelMedium.copy(fontSize = 10.sp),
                                             fontWeight = if (index == 0) FontWeight.Bold else FontWeight.Medium,
                                             color = if (index == 0) colors.primary else colors.onSurfaceVariant,
@@ -1078,7 +1065,7 @@ private fun NavigationStep(
         value = radius,
         trackRange = 0f..32f,
     )
-    // Keep the slider in sync if the saved setting is reloaded while this step is visible.
+
     LaunchedEffect(settings.navCornerRadius) {
         radiusSliderState.value = settings.navCornerRadius.toFloat().coerceIn(0f, 32f)
     }
@@ -1122,8 +1109,7 @@ private fun NavigationStep(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            "Corner Radius",
+                        Text(stringResource(R.string.corner_radius),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.weight(1f),
@@ -1135,10 +1121,9 @@ private fun NavigationStep(
                                 scope.launch { container.settings.setNavCornerRadius(32) }
                             },
                         ) {
-                            Text("Reset")
+                            Text(stringResource(R.string.reset))
                         }
-                        Text(
-                            "${radius.toInt()} dp",
+                        Text("${radius.toInt()} dp",
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.primary,
                         )
@@ -1155,8 +1140,7 @@ private fun NavigationStep(
                         },
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    Text(
-                        "Adjust the preview above. Your choice is saved for the floating navigation style.",
+                    Text(stringResource(R.string.navigation_radius_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -1289,8 +1273,7 @@ private fun NavPreview(
                                             enter = fadeIn(tween(160)) + expandHorizontally(KozuMotion.spatial()),
                                             exit = fadeOut(tween(90)) + shrinkHorizontally(tween(160)),
                                         ) {
-                                            Text(
-                                                text = tab.title,
+                                            Text(text = tab.title,
                                                 modifier = Modifier.padding(start = 8.dp),
                                                 style = MaterialTheme.typography.labelLarge,
                                                 color = itemContent,
@@ -1361,8 +1344,7 @@ private fun NavPreview(
                                     tint = if (index == 0) colors.primary else colors.onSurfaceVariant,
                                     modifier = Modifier.size(21.dp),
                                 )
-                                Text(
-                                    label,
+                                Text(label,
                                     style = MaterialTheme.typography.labelSmall,
                                     color = if (index == 0) colors.primary else colors.onSurfaceVariant,
                                     maxLines = 1,
@@ -1401,7 +1383,7 @@ private fun PlayerStep(
             Text(current.description, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
         }
         FilledTonalButton(onClick = { sheetOpen = true }, modifier = Modifier.fillMaxWidth(), shape = CircleShape) {
-            Text("Choose player design")
+            Text(stringResource(R.string.choose_player_design))
         }
         SkipHint("You can change this later in Settings  >  Appearance  >  Player")
     }
@@ -1462,9 +1444,9 @@ private fun BatteryStep(next: () -> Unit) {
         },
     ) {
         if (unrestricted) {
-            Text("Kozu is unrestricted", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+            Text(stringResource(R.string.kozu_unrestricted), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
         } else {
-            TextButton(onClick = next) { Text("Skip for now") }
+            TextButton(onClick = next) { Text(stringResource(R.string.skip_for_now)) }
         }
     }
 }

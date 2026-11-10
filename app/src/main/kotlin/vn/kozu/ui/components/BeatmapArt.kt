@@ -1,11 +1,9 @@
 package vn.kozu.ui.components
 
-import vn.kozu.ui.i18n.kozuUiString
-
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,26 +12,28 @@ import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
 import coil3.request.crossfade
+import coil3.request.ImageRequest
+import java.io.File
 import vn.kozu.domain.model.ArtworkQuality
 import vn.kozu.domain.model.Beatmap
-import java.io.File
+import vn.kozu.R
 
 @Composable
 fun BeatmapArt(
@@ -41,7 +41,7 @@ fun BeatmapArt(
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(20.dp),
     large: Boolean = false,
-    /** When false the caller's [shape] is used as-is instead of the global album-art shape. */
+
     followGlobalShape: Boolean = true,
 ) {
     val appSettings = LocalAppSettings.current
@@ -80,7 +80,7 @@ fun BeatmapArt(
             }
         AsyncImage(
             model = request,
-            contentDescription = kozuUiString("${beatmap.title} cover"),
+            contentDescription = stringResource(R.string.cover_for, beatmap.title),
             contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxSize(),
         )
@@ -90,15 +90,7 @@ fun BeatmapArt(
 private const val FULL_ART_MIN_ASPECT = 0.6f
 private const val FULL_ART_MAX_ASPECT = 3.6f
 
-/**
- * Shows the whole background image instead of the cropped banner/thumbnail variants.
- *
- * Source order: osu!'s `raw.jpg`; if that does not exist for the set, the original picture from the
- * downloaded copy or from the set's .osz on a mirror (see [LocalBackgroundResolver]); the cropped
- * covers are only a placeholder/last resort. With [wrapToImage] the visible frame takes the image's own aspect
- * ratio (inside the space the caller gives it), so no empty bars are left above and below it.
- * Pass `wrapToImage = false` for non-rectangular shapes, which need a square frame.
- */
+
 @Composable
 fun FullBeatmapArt(
     beatmap: Beatmap,
@@ -119,14 +111,14 @@ fun FullBeatmapArt(
             }
         }
     var stage by remember(sources) { mutableStateOf(0) }
-    // The true original, taken from the downloaded set or extracted from a mirror's .osz.
-    // osu!'s own raw.jpg only exists for some sets, so this is what makes it work for every song.
+
+
     var original by remember(beatmap.id) { mutableStateOf<File?>(null) }
     val resolver = LocalBackgroundResolver.current
     val wantsFull = quality != ArtworkQuality.LOW
     LaunchedEffect(beatmap.id, stage, wantsFull) {
         if (resolver == null || !wantsFull || original != null) return@LaunchedEffect
-        // Cheap local lookup first; go online only once raw.jpg has failed.
+
         original = resolver(beatmap.id, stage > 0)
     }
     var imageAspect by remember(beatmap.id) { mutableStateOf(1f) }
@@ -163,7 +155,7 @@ fun FullBeatmapArt(
             )
             AsyncImage(
                 model = request,
-                contentDescription = kozuUiString("${beatmap.title} cover"),
+                contentDescription = stringResource(R.string.cover_for, beatmap.title),
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.fillMaxSize(),
                 onSuccess = { success ->
@@ -174,7 +166,7 @@ fun FullBeatmapArt(
                 },
                 onError = {
                     if (original != null) {
-                        // A broken cached file must not stick around.
+
                         original = null
                     } else if (stage < sources.lastIndex) {
                         stage++

@@ -134,7 +134,7 @@ enum class AppFont(
     SYSTEM("system", "System default"),
     ;
 
-    /** Only the Flex family exposes the width and roundness axes. */
+
     val hasWidthAxis: Boolean get() = this == GOOGLE_SANS_FLEX
 
     companion object {

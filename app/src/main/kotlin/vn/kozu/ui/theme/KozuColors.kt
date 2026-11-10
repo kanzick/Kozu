@@ -14,7 +14,7 @@ fun kozuColorScheme(
     dark: Boolean,
     amoled: Boolean = false,
     style: PaletteStyle = PaletteStyle.TONAL_SPOT,
-    /** Optional hand-picked secondary/tertiary colours (used by the theme presets). */
+
     secondarySeed: Color? = null,
     tertiarySeed: Color? = null,
 ): ColorScheme {

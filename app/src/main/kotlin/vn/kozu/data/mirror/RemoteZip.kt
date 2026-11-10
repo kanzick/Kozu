@@ -1,8 +1,8 @@
 package vn.kozu.data.mirror
 
 import java.io.File
-import java.io.IOException
 import java.io.InputStream
+import java.io.IOException
 import java.util.zip.Inflater
 import java.util.zip.InflaterInputStream
 

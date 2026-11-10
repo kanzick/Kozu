@@ -2,85 +2,85 @@ package vn.kozu.ui.player
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animate
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import vn.kozu.ui.i18n.KozuText as Text
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.Job
+import kotlin.math.abs
+import kotlin.math.PI
+import kotlin.math.sin
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import vn.kozu.domain.model.ArtworkShape
 import vn.kozu.domain.model.Beatmap
+import vn.kozu.domain.model.displayArtist
+import vn.kozu.domain.model.displayTitle
 import vn.kozu.domain.model.IconStyle
 import vn.kozu.domain.model.MiniPlayerColors
 import vn.kozu.domain.model.MiniPlayerProgress
 import vn.kozu.domain.model.MiniPlayerStyle
-import vn.kozu.domain.model.displayArtist
-import vn.kozu.domain.model.displayTitle
 import vn.kozu.ui.components.BeatmapArt
+import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.FullBeatmapArt
 import vn.kozu.ui.components.KozuIcons
 import vn.kozu.ui.components.LocalAppSettings
 import vn.kozu.ui.components.LocalPerformanceMode
-import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.playbackIconVector
 import vn.kozu.ui.components.rememberKozuHaptics
 import vn.kozu.ui.components.resolveArtworkShape
 import vn.kozu.ui.components.toShape
-import kotlin.math.PI
-import kotlin.math.abs
-import kotlin.math.sin
 
 private class MiniPalette(
     val brush: Brush?,
@@ -200,7 +200,7 @@ fun MiniPlayer(
             prefs.miniArtShape == ArtworkShape.FLOWER ||
             prefs.miniArtShape == ArtworkShape.CLOVER
     val canSpin = prefs.miniSpinArtwork && roundArt && !performanceMode
-    // A ring only fits a round artwork; otherwise fall back to a line so progress is never lost.
+
     val progressMode =
         if (prefs.miniProgress == MiniPlayerProgress.RING && !roundArt) MiniPlayerProgress.LINE else prefs.miniProgress
 
@@ -213,14 +213,11 @@ fun MiniPlayer(
         }
     }
 
-    // Keep drag offsets as plain state so pointer events update the layer synchronously.
-    // Animatable.snapTo() is suspending; launching one coroutine for every pointer move made
-    // the mini player stutter during fast swipes (including the Settings preview instance).
+
     var offsetX by remember { mutableFloatStateOf(0f) }
     var offsetY by remember { mutableFloatStateOf(0f) }
-    // The callbacks are bound references (`playback::clearQueue`), i.e. a new instance on every
-    // parent recomposition. Keying pointerInput on them restarted the gesture mid-drag (most
-    // visible on Settings, which recomposes constantly) and the swipe-down dismiss never fired.
+
+
     val currentOnDismiss by rememberUpdatedState(onDismiss)
     val currentOnNext by rememberUpdatedState(onNext)
     val currentOnPrevious by rememberUpdatedState(onPrevious)
@@ -263,9 +260,8 @@ fun MiniPlayer(
                     var dx = 0f
                     var dy = 0f
                     val skipThreshold = 96.dp.toPx()
-                    // The player can sit right on the bottom edge of the screen (over Settings,
-                    // All beatmaps…) where there is barely any room below it to drag into, so the
-                    // distance has to be small and a quick downward flick must count as well.
+
+
                     val dismissThreshold = 36.dp.toPx()
                     val flingThreshold = 650.dp.toPx()
                     val tracker = VelocityTracker()
@@ -379,9 +375,6 @@ fun MiniPlayer(
     }
 }
 
-// ---------------------------------------------------------------------------------------------
-// Bodies
-// ---------------------------------------------------------------------------------------------
 
 @Composable
 private fun FloatingBody(
@@ -496,16 +489,14 @@ private fun CardBody(
             MiniArtwork(beatmap, 64.dp, artShape, progress, mode == MiniPlayerProgress.RING, palette, spinDegrees, spinning)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(
-                    text = title,
+                Text(text = title,
                     style = MaterialTheme.typography.titleMedium,
                     color = palette.content,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 if (showArtist) {
-                    Text(
-                        text = artist,
+                    Text(text = artist,
                         style = MaterialTheme.typography.bodyMedium,
                         color = palette.secondary,
                         maxLines = 1,
@@ -580,9 +571,6 @@ private fun MinimalBody(
     }
 }
 
-// ---------------------------------------------------------------------------------------------
-// Parts
-// ---------------------------------------------------------------------------------------------
 
 @Composable
 private fun MiniArtwork(
@@ -622,8 +610,8 @@ private fun MiniArtwork(
                 )
             }
         }
-        // Same source as the full player: rectangular shapes show the whole picture. Round shapes
-        // (cookie, circle...) cannot hold a wide image, so they keep the square thumbnail.
+
+
         val appearance = LocalAppSettings.current.appearance
         val effectiveShape =
             if (appearance.miniArtShape == ArtworkShape.DEFAULT) appearance.artworkShape else appearance.miniArtShape
@@ -659,16 +647,14 @@ private fun MiniTexts(
     compact: Boolean = false,
 ) {
     Column(modifier) {
-        Text(
-            text = title,
+        Text(text = title,
             style = if (compact) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
             color = palette.content,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
         if (showArtist) {
-            Text(
-                text = artist,
+            Text(text = artist,
                 style = MaterialTheme.typography.bodySmall,
                 color = palette.secondary,
                 maxLines = 1,
@@ -734,7 +720,7 @@ private fun MiniButton(
     }
 }
 
-/** Thin or wavy progress line shared by the line-based mini player layouts. */
+
 @Composable
 private fun MiniProgressLine(
     progress: Float,

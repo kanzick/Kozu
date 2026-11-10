@@ -2,12 +2,12 @@ package vn.kozu.game.mania.gamestage.audio
 
 import android.media.AudioAttributes
 import android.media.SoundPool
-import kotlinx.coroutines.delay
+import java.io.File
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import java.io.File
 
 class HitSoundPlayer {
     private val pool: SoundPool = SoundPool.Builder()

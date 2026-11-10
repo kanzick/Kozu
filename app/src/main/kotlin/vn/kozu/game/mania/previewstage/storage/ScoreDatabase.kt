@@ -4,28 +4,13 @@ import android.content.ContentValues
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import androidx.core.database.sqlite.transaction
-import vn.kozu.game.mania.previewstage.model.ScoreRecord
 import java.io.Closeable
 import java.io.File
+import vn.kozu.game.mania.previewstage.model.ScoreRecord
 
-/**
- * score.db stores best-score history separately from unbounded per-player last-play timestamps.
- *
- * Schema v5 stores the highest achieved combo as `true_combo` and the chart's maximum possible combo
- * as `max_combo`. Older rows can recover true combo from their recorded max combo, but not chart maximum.
- * Schema v6 adds `score_play_history` so Last Played remains accurate after score rows are pruned.
- * Schema v7 keeps each player's best score even when it does not fit the public top-50 list.
- *  - v1 -> v2 adds `difficulty` and `played_at`.
- *  - v2 -> v3 adds `max_combo`.
- *  - v3 -> v4 adds `true_combo`.
- *  - v4 -> v5 migrates the old achieved-combo value to `true_combo`.
- */
 class ScoreDatabase private constructor(private val db: SQLiteDatabase) : Closeable {
 
-    /**
-     * Records a play as its own row. Each difficulty keeps only its [MAX_SCORES_PER_DIFFICULTY] best scores;
-     * a score that cannot beat the current last place is not added (returns false).
-     */
+
     fun insert(s: ScoreRecord): Boolean {
         db.beginTransaction()
         try {
@@ -109,10 +94,7 @@ class ScoreDatabase private constructor(private val db: SQLiteDatabase) : Closea
         }
     }
 
-    /**
-     * Leaderboard for ONE song at ONE difficulty, ordered from highest to lowest score.
-     * Every recorded play is listed separately (ties are ordered by the earliest achievement).
-     */
+
     fun topScores(songId: Long, difficulty: String, limit: Int = MAX_SCORES_PER_DIFFICULTY): List<ScoreRecord> =
         db.rawQuery(
             """SELECT s.player_name, s.song_id, s.difficulty, s.score, s.accuracy, s."rank",
@@ -133,7 +115,7 @@ class ScoreDatabase private constructor(private val db: SQLiteDatabase) : Closea
             arrayOf(songId.toString(), difficulty, playerName)
         ).use { it.toRecords().firstOrNull() }
 
-    /** Best score for each difficulty in one song for a player. */
+
     fun bestScores(songId: Long, playerName: String): List<ScoreRecord> =
         db.rawQuery(
             """SELECT player_name, song_id, difficulty, score, accuracy, "rank", true_combo, max_combo, played_at

@@ -2,12 +2,12 @@ package vn.kozu.ui.components
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -20,27 +20,22 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import vn.kozu.data.repository.OsuSearchSyntax
-import vn.kozu.ui.i18n.KozuText as Text
-import vn.kozu.ui.i18n.kozuUiString
+import vn.kozu.R
 
-/** Fixed height of the search pill. Header icon buttons are centred against it. */
 val KozuSearchFieldHeight: Dp = 52.dp
 
-/**
- * Single-line search pill used by Search and All beatmaps.
- *
- * Unlike a Material `TextField` it never grows when the query is long: the text scrolls
- * horizontally inside a fixed-height pill, so it always lines up with the buttons next to it.
- */
+
 @Composable
 fun KozuSearchField(
     query: String,
@@ -82,8 +77,7 @@ fun KozuSearchField(
                 decorationBox = { inner ->
                     Box(contentAlignment = Alignment.CenterStart) {
                         if (query.isEmpty()) {
-                            Text(
-                                text = placeholder,
+                            Text(text = placeholder,
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
@@ -98,7 +92,7 @@ fun KozuSearchField(
                 IconButton(onClick = { onQueryChange("") }, modifier = Modifier.size(44.dp)) {
                     Icon(
                         Icons.Rounded.Close,
-                        contentDescription = kozuUiString("Clear search"),
+                        contentDescription = stringResource(R.string.clear_search),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -109,10 +103,7 @@ fun KozuSearchField(
     }
 }
 
-/**
- * Shows which parts of the query were understood as osu! search keywords (`stars<8`,
- * `ranked=2025`, `status=r`…), so people can see the syntax is being applied.
- */
+
 @Composable
 fun SearchSyntaxChips(
     query: String,
@@ -134,8 +125,7 @@ fun SearchSyntaxChips(
                 color = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
             ) {
-                Text(
-                    text = token,
+                Text(text = token,
                     style = MaterialTheme.typography.labelMedium,
                     maxLines = 1,
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),

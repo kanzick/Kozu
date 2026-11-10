@@ -1,10 +1,11 @@
 package vn.kozu.player
 
+import java.util.Locale
+import kotlinx.coroutines.async
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import vn.kozu.data.local.DownloadsStore
@@ -13,19 +14,7 @@ import vn.kozu.data.local.History
 import vn.kozu.data.local.HistoryStore
 import vn.kozu.data.repository.BeatmapRepository
 import vn.kozu.domain.model.Beatmap
-import java.util.Locale
 
-/**
- * Picks songs to append when the queue runs out.
- *
- * Order of preference:
- *  1. Online "related" songs (same artist, same mapper, trending, new releases), fetched in parallel
- *     so one slow or failing source does not hold up the others, with a per-source cap so the queue
- *     is varied instead of ten songs by the same artist.
- *  2. If the network gave (almost) nothing: the listener's own library, i.e. favourites, downloads
- *     and most played songs. These also work offline.
- *  3. [replay] as the very last resort, to loop what was already played instead of going silent.
- */
 class AutoplayQueue(
     private val catalog: BeatmapRepository,
     private val history: HistoryStore,
@@ -86,7 +75,7 @@ class AutoplayQueue(
                 }
             }
 
-            // 1. Online sources, all at once. A failed source simply contributes nothing.
+
             val online: List<Pair<Int, List<Beatmap>>> =
                 coroutineScope {
                     val requests = ArrayList<Pair<Int, Deferred<List<Beatmap>>>>(4)
@@ -100,21 +89,21 @@ class AutoplayQueue(
                     requests.add(DISCOVER_CAP to async { safely { catalog.newReleases().items.shuffled() }.orEmpty() })
                     requests.map { (cap, deferred) -> cap to deferred.await() }
                 }
-            // First pass with a per-source cap keeps the queue varied.
+
             online.forEach { (cap, items) -> consume(items, cap, requirePlayable = true) }
-            // Second pass without caps, in case some sources returned little.
+
             online.forEach { (_, items) -> consume(items, Int.MAX_VALUE, requirePlayable = true) }
 
-            // 2. Own library when the network did not deliver enough.
+
             if (picked.size < MIN_ONLINE_RESULTS) {
                 val pickedIds = picked.mapTo(HashSet()) { it.id }
                 val libraryKeys = HashSet<String>(queueKeys).also { keys -> picked.forEach { keys.add(keyOf(it)) } }
-                // Songs that were not played recently come first.
+
                 val library = libraryCandidates(snapshot).sortedBy { if (it.id in recentIds) 1 else 0 }
                 for (beatmap in library) {
                     if (picked.size >= limit) break
-                    // "Avoid repeats" is relaxed for the library fallback; only what is already
-                    // queued (or just picked) stays excluded.
+
+
                     if (beatmap.id <= 0L || beatmap.id in queueIds || beatmap.id in pickedIds) continue
                     if (!libraryKeys.add(keyOf(beatmap))) continue
                     pickedIds.add(beatmap.id)
@@ -125,10 +114,7 @@ class AutoplayQueue(
             SmartShuffle.spread(picked)
         }
 
-    /**
-     * Songs that were already played in this queue, in a fresh smart-shuffled order. Used when
-     * nothing new could be found, so the player loops the queue instead of stopping.
-     */
+
     fun replay(
         current: Beatmap,
         queue: List<Beatmap>,

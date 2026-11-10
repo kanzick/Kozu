@@ -2,6 +2,13 @@ package vn.kozu.game.mania.previewstage
 
 import android.content.Context
 import android.util.Log
+import java.io.File
+import java.io.IOException
+import java.util.UUID
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import vn.kozu.game.mania.previewstage.audio.PreviewPlayer
 import vn.kozu.game.mania.previewstage.model.DifficultyRecord
 import vn.kozu.game.mania.previewstage.model.SongEntry
@@ -10,13 +17,6 @@ import vn.kozu.game.mania.previewstage.storage.KozuDatabase
 import vn.kozu.game.mania.previewstage.storage.ModulePaths
 import vn.kozu.game.mania.previewstage.storage.ScoreDatabase
 import vn.kozu.game.mania.previewstage.storage.SongImporter
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.IOException
-import java.util.UUID
 
 data class PreviewStageConfig(
 
@@ -219,7 +219,7 @@ class PreviewStageModule private constructor(
 
         @Volatile private var instance: PreviewStageModule? = null
 
-        /** The module if the Game tab has created it already, without creating it. */
+
         fun peek(): PreviewStageModule? = instance
 
         fun get(context: Context, config: PreviewStageConfig = PreviewStageConfig()): PreviewStageModule =

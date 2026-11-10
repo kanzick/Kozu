@@ -1,26 +1,24 @@
 package vn.kozu.ui.search
 
-import vn.kozu.ui.i18n.kozuUiString
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -34,51 +32,53 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.Surface
-import vn.kozu.ui.i18n.KozuText as Text
+import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import vn.kozu.ui.explore.ActiveFilterChips
-import vn.kozu.ui.explore.BrowseFilterSheet
-import vn.kozu.ui.explore.FilterAction
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import kotlinx.coroutines.delay
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.delay
 import vn.kozu.domain.model.SearchCategory
 import vn.kozu.domain.model.SearchSort
-import vn.kozu.ui.components.softTopEdge
+import vn.kozu.R
+import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.EmptyState
-import vn.kozu.ui.components.KozuSearchField
 import vn.kozu.ui.components.KozuLoading
+import vn.kozu.ui.components.KozuSearchField
 import vn.kozu.ui.components.LocalTrackActions
 import vn.kozu.ui.components.RefreshIndicator
 import vn.kozu.ui.components.ScreenHeader
-import vn.kozu.ui.components.SettingsAction
-import vn.kozu.ui.components.TrackRow
-import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.segmentedShape
+import vn.kozu.ui.components.SettingsAction
+import vn.kozu.ui.components.softTopEdge
+import vn.kozu.ui.components.TrackRow
+import vn.kozu.ui.explore.ActiveFilterChips
+import vn.kozu.ui.explore.BrowseFilterSheet
+import vn.kozu.ui.explore.FilterAction
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -112,15 +112,15 @@ fun SearchScreen(
     val recents by viewModel.recentSearches.collectAsStateWithLifecycle()
     val actions = LocalTrackActions.current
     val keyboard = LocalSoftwareKeyboardController.current
-    // Idle (recents / categories) and results are different lists. Sharing one state meant the
-    // results list re-opened at whatever offset the previous list had been scrolled to.
+
+
     val idleListState = rememberLazyListState()
     val listState = rememberLazyListState()
     var showFilters by rememberSaveable { mutableStateOf(false) }
     val pullState = rememberPullToRefreshState()
     val listBottom = if (WindowInsets.isImeVisible) 16.dp else bottomPadding
-    // Any edit to the query, filters or a fresh result set starts again from the first hit,
-    // exactly like All beatmaps does.
+
+
     LaunchedEffect(ui.query, ui.filters) { listState.scrollToItem(0) }
     LaunchedEffect(ui.phase) {
         if (ui.phase != SearchPhase.DONE) listState.scrollToItem(0)
@@ -128,7 +128,7 @@ fun SearchScreen(
     LaunchedEffect(ui.results.firstOrNull()?.id, ui.phase) {
         if (ui.phase == SearchPhase.DONE && !ui.isLoadingMore) listState.scrollToItem(0)
     }
-    // Scrolling the results hides the keyboard so more of the list is visible.
+
     LaunchedEffect(listState) {
         snapshotFlow { listState.isScrollInProgress }
             .collect { scrolling -> if (scrolling) keyboard?.hide() }
@@ -162,7 +162,7 @@ fun SearchScreen(
             leading = {
                 KozuSearchField(
                     query = ui.query,
-                    placeholder = kozuUiString("Search, or try stars<8 ranked=2025"),
+                    placeholder = "Search, or try stars<8 ranked=2025",
                     onQueryChange = viewModel::onQueryChange,
                     onSearch = {
                         viewModel.remember()
@@ -209,8 +209,7 @@ fun SearchScreen(
             }
         } else {
             if (ui.phase == SearchPhase.DONE) {
-                Text(
-                    text = (ui.total?.let { "%,d results".format(it) } ?: "${ui.results.size} results") +
+                Text(text = (ui.total?.let { "%,d results".format(it) } ?: "${ui.results.size} results") +
                         " · " + ui.filters.sort.label,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp),
                     style = MaterialTheme.typography.labelLarge,
@@ -245,7 +244,7 @@ fun SearchScreen(
                             title = if (ui.error == null) "No results found" else "Catalog unavailable",
                             message = ui.error ?: "Try a different song, artist or mapper, or loosen the filters.",
                             action = if (ui.error == null) null else ({
-                                TextButton(onClick = viewModel::retry) { Text("Retry") }
+                                TextButton(onClick = viewModel::retry) { Text(stringResource(R.string.retry)) }
                             })
                         )
                     } else {
@@ -267,7 +266,7 @@ fun SearchScreen(
                             }
                             if (ui.isLoadingMore) item(key = "more") { KozuLoading() }
                             if (ui.loadMoreError != null) item(key = "more-error") {
-                                TextButton(onClick = viewModel::loadMore) { Text("Retry loading more") }
+                                TextButton(onClick = viewModel::loadMore) { Text(stringResource(R.string.retry_loading_more)) }
                             }
                         }
                     }
@@ -303,8 +302,8 @@ private fun RecentSearches(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Recent searches", style = MaterialTheme.typography.titleMedium)
-            TextButton(onClick = onClear) { Text("Clear all") }
+            Text(stringResource(R.string.recent_searches), style = MaterialTheme.typography.titleMedium)
+            TextButton(onClick = onClear) { Text(stringResource(R.string.clear_all)) }
         }
         Spacer(Modifier.height(8.dp))
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -327,8 +326,7 @@ private fun RecentSearches(
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(Modifier.width(14.dp))
-                        Text(
-                            text = query,
+                        Text(text = query,
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.weight(1f),
                             maxLines = 1,
@@ -337,7 +335,7 @@ private fun RecentSearches(
                         IconButton(onClick = { onRemove(query) }) {
                             Icon(
                                 Icons.Rounded.Close,
-                                contentDescription = kozuUiString("Remove recent search"),
+                                contentDescription = stringResource(R.string.remove_recent_search),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(18.dp)
                             )
@@ -353,7 +351,7 @@ private fun RecentSearches(
 @Composable
 private fun BrowseAll(onPick: (SearchCategory) -> Unit) {
     Column(Modifier.padding(horizontal = 20.dp)) {
-        Text("Browse all", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.browse_all), style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(12.dp))
         val categories = SearchCategory.entries.chunked(2)
         val colors = listOf(
@@ -379,13 +377,11 @@ private fun BrowseAll(onPick: (SearchCategory) -> Unit) {
                             color = cardColor
                         ) {
                             Box(Modifier.padding(16.dp)) {
-                                Text(
-                                    text = cat.title,
+                                Text(text = cat.title,
                                     style = MaterialTheme.typography.titleMedium,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
-                                Text(
-                                    text = cat.emoji,
+                                Text(text = cat.emoji,
                                     style = MaterialTheme.typography.headlineLarge,
                                     modifier = Modifier.align(Alignment.BottomEnd)
                                 )

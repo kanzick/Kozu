@@ -1,7 +1,5 @@
 package vn.kozu.game.mania.gamestage.ui
 
-import vn.kozu.ui.i18n.kozuUiString
-
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -10,36 +8,36 @@ import android.view.MotionEvent
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import vn.kozu.ui.i18n.KozuText as Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -47,7 +45,6 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
@@ -56,29 +53,32 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import kotlin.math.max
+import kotlinx.coroutines.isActive
+import vn.kozu.game.mania.gamestage.playtype.drawLandscapeVerticalScrolling
+import vn.kozu.game.mania.gamestage.playtype.drawPerspectivePlayfield
+import vn.kozu.game.mania.gamestage.playtype.drawPortraitPlayfield
 import vn.kozu.game.mania.gamestage.playtype.Landscape3DPerspective
 import vn.kozu.game.mania.gamestage.playtype.LandscapeProjection
 import vn.kozu.game.mania.gamestage.playtype.LandscapeVerticalScrolling
 import vn.kozu.game.mania.gamestage.playtype.Portrait
-import vn.kozu.game.mania.gamestage.playtype.drawLandscapeVerticalScrolling
-import vn.kozu.game.mania.gamestage.playtype.drawPortraitPlayfield
-import vn.kozu.game.mania.gamestage.playtype.drawPerspectivePlayfield
 import vn.kozu.game.mania.gamestage.scoring.GameResult
 import vn.kozu.game.mania.gamestage.scoring.Judgement
 import vn.kozu.game.mania.gamestage.session.GameSession
-import kotlinx.coroutines.isActive
-import kotlin.math.max
+import vn.kozu.R
 
 private tailrec fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
@@ -86,12 +86,7 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
     else -> null
 }
 
-/**
- * Gameplay motion is derived from chart time without accumulating across frames. Perspective mode
- * changes visual position and size, not chart timing or judgement.
- * Time comes from the current frame's vsync timestamp, so a delayed
- * frame does not cause stuttering. Touches are judged by their event time, not their processing time.
- */
+
 @Composable
 fun PlayScreen(
     session: GameSession,
@@ -274,7 +269,7 @@ fun PlayScreen(
                 IconButton(onClick = session::pause) {
                     Icon(
                         Icons.Rounded.Pause,
-                        contentDescription = kozuUiString("Pause game"),
+                        contentDescription = stringResource(R.string.pause_game),
                         tint = MaterialTheme.colorScheme.onSurface,
                     )
                 }
@@ -298,18 +293,18 @@ fun PlayScreen(
                         modifier = Modifier.padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Text("Game paused", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.game_paused), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(20.dp))
                         Button(onClick = session::resume, modifier = Modifier.fillMaxWidth()) {
                             Icon(Icons.Rounded.PlayArrow, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
-                            Text("Resume")
+                            Text(stringResource(R.string.resume))
                         }
                         Spacer(Modifier.height(8.dp))
                         Button(onClick = onRestart, modifier = Modifier.fillMaxWidth()) {
                             Icon(Icons.Rounded.Refresh, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
-                            Text("Restart")
+                            Text(stringResource(R.string.restart))
                         }
                         Spacer(Modifier.height(8.dp))
                         TextButton(
@@ -321,7 +316,7 @@ fun PlayScreen(
                         ) {
                             Icon(Icons.Rounded.Close, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
-                            Text("Quit")
+                            Text(stringResource(R.string.quit))
                         }
                     }
                 }
@@ -340,9 +335,9 @@ fun PlayScreen(
                     Modifier.align(Alignment.Center).padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Text("Unable to start this chart", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.unable_to_start_this_chart), color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     Text(msg, color = Color(0xFFFFB4B4), modifier = Modifier.padding(vertical = 12.dp))
-                    Button(onClick = onQuit) { Text("Back") }
+                    Button(onClick = onQuit) { Text(stringResource(R.string.back)) }
                 }
             }
             else -> Unit
@@ -373,31 +368,26 @@ private fun PreparationPanel(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.Start,
         ) {
-            Text(
-                text = if (ready) "Ready to play" else "Preparing chart",
+            Text(text = if (ready) stringResource(R.string.ready_to_play) else stringResource(R.string.preparing_chart),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
             )
             Spacer(Modifier.height(8.dp))
-            Text(
-                "${session.difficulty.artist} — ${session.difficulty.title}",
+            Text("${session.difficulty.artist} — ${session.difficulty.title}",
                 style = MaterialTheme.typography.titleMedium,
             )
-            Text(
-                "${session.difficulty.version} • ${session.chart.keys}K • ${session.chart.notes.size} notes",
+            Text("${session.difficulty.version} • ${session.chart.keys}K • ${session.chart.notes.size} notes",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(16.dp))
-            Text(
-                "Preparation log",
+            Text(stringResource(R.string.preparation_log),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
             )
             Spacer(Modifier.height(6.dp))
             session.preparationLog.forEach { entry ->
-                Text(
-                    "›  $entry",
+                Text("›  $entry",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 2.dp),
@@ -443,8 +433,7 @@ private fun Hud(session: GameSession) {
             }
         }
         if (session.combo > 1) {
-            Text(
-                "${session.combo}",
+            Text("${session.combo}",
                 color = Color.White.copy(alpha = 0.9f),
                 fontSize = 44.sp,
                 fontWeight = FontWeight.Bold,

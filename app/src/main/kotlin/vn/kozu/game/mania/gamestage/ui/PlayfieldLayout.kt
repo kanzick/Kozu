@@ -2,13 +2,13 @@ package vn.kozu.game.mania.gamestage.ui
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import vn.kozu.game.mania.gamestage.scoring.Judgement
+import androidx.compose.ui.graphics.StrokeCap
 import kotlin.math.min
+import vn.kozu.game.mania.gamestage.scoring.Judgement
 
 class PlayfieldLayout(width: Float, height: Float, val keys: Int) {
-    /** Landscape playfields keep a fixed proportional gutter on both sides across device sizes. */
+
     val columnWidth: Float = if (width > height && keys in LANDSCAPE_EXPANDED_KEY_RANGE) {
         width * LANDSCAPE_FIELD_WIDTH_FRACTION / keys
     } else {

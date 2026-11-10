@@ -6,11 +6,11 @@ import android.util.Log
 import android.util.LruCache
 import androidx.compose.ui.graphics.Color
 import androidx.palette.graphics.Palette
+import java.net.HttpURLConnection
+import java.net.URL
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.net.HttpURLConnection
-import java.net.URL
 
 object ArtworkPalette {
     private const val TAG = "ArtworkPalette"

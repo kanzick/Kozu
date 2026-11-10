@@ -2,23 +2,22 @@ package vn.kozu.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.ExperimentalTextApi
-import androidx.compose.ui.text.PlatformTextStyle
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.sp
-import vn.kozu.R
-import vn.kozu.domain.model.AppFont
 import vn.kozu.domain.model.AppearancePrefs
+import vn.kozu.domain.model.AppFont
+import vn.kozu.R
 
-/** A resolved font family together with the weight range it can actually render. */
 private class ResolvedFont(
     val family: FontFamily,
     val minWeight: Int,
     val maxWeight: Int,
-    /** Thin fonts such as Quicksand need a heavier body weight to stay readable. */
+
     val bodyBias: Int,
 )
 
@@ -96,11 +95,7 @@ private fun style(
     )
 }
 
-/**
- * Builds the Material typography for the chosen [font]. Sizes follow PixelMusic's slightly larger
- * scale, which reads better than the stock Material defaults. The user's text-size preference is
- * applied separately through the composition density so hard-coded `sp` values follow it too.
- */
+
 fun typographyFor(
     font: AppFont,
     prefs: AppearancePrefs = AppearancePrefs(),

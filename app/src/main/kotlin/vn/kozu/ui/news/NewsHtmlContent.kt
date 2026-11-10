@@ -5,18 +5,18 @@ import android.view.LayoutInflater
 import android.view.TextureView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,25 +26,26 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.LinkAnnotation
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
@@ -52,17 +53,17 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
-import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
+import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
-import vn.kozu.R
 import coil3.compose.AsyncImage
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import org.jsoup.nodes.Node
 import org.jsoup.nodes.TextNode
+import vn.kozu.R
 
 private sealed interface NewsBlock {
     data class TextBlock(
@@ -167,13 +168,13 @@ internal fun NewsHtmlContent(
                             block.thumbnail?.let { image ->
                                 AsyncImage(
                                     model = image,
-                                    contentDescription = "Video preview",
+                                    contentDescription = stringResource(R.string.video_preview),
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier.fillMaxSize(),
                                 )
                             }
                             Text(
-                                "This video format cannot be played natively.",
+                                stringResource(R.string.unsupported_video_format),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 style = MaterialTheme.typography.bodyMedium,
                                 modifier = Modifier
@@ -303,8 +304,8 @@ private fun NewsVideoPlayer(
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
-                // The initial muted playback is only used to paint a real video frame as
-                // the preview. Sound is enabled only after the user starts playback.
+
+
                 if (isPlaying && previewReady && !userStartedPlayback) {
                     userStartedPlayback = true
                     activePlayer.volume = 1f
@@ -338,8 +339,8 @@ private fun NewsVideoPlayer(
         playbackError = null
         activePlayer.setMediaItem(MediaItem.fromUri(url))
         activePlayer.prepare()
-        // Render the first frame silently, then pause on it. This produces the same
-        // kind of actual-video preview as the osu! news page instead of a black poster.
+
+
         activePlayer.volume = 0f
         activePlayer.playWhenReady = true
     }
@@ -354,7 +355,7 @@ private fun NewsVideoPlayer(
         if (!poster.isNullOrBlank()) {
             AsyncImage(
                 model = poster,
-                contentDescription = "Video preview",
+                contentDescription = stringResource(R.string.video_preview),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
@@ -397,7 +398,7 @@ private fun NewsVideoPlayer(
                     strokeWidth = 3.dp,
                 )
                 Text(
-                    text = "Loading video preview…",
+                    text = stringResource(R.string.loading_video_preview),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -427,8 +428,8 @@ private fun NewsVideoPlayer(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text("Couldn't load video", fontWeight = FontWeight.SemiBold)
-                    Text("Tap to retry", style = MaterialTheme.typography.labelMedium)
+                    Text(stringResource(R.string.could_not_load_video), fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.tap_to_retry), style = MaterialTheme.typography.labelMedium)
                     Text(message, style = MaterialTheme.typography.labelSmall, maxLines = 1)
                 }
             }
@@ -557,7 +558,7 @@ private fun parseNewsHtml(html: String): List<NewsBlock> {
                         }
                     }
                     else -> {
-                        // osu! news quotes use background-image avatars instead of <img> tags.
+
                         val avatarUrl = backgroundImageUrl(node.attr("style"))
                         if (avatarUrl != null) {
                             result += NewsBlock.ImageBlock(avatarUrl, node.attr("aria-label"), maxWidthDp = 40, maxHeightDp = 40)

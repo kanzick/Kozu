@@ -1,27 +1,27 @@
 package vn.kozu.ui.theme
 
+import android.content.Context
+import android.os.Build
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
-import android.content.Context
-import android.os.Build
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
-import vn.kozu.domain.model.AppFont
+import androidx.compose.ui.platform.LocalContext
 import vn.kozu.domain.model.AppearancePrefs
+import vn.kozu.domain.model.AppFont
 import vn.kozu.domain.model.AppStyle
 import vn.kozu.domain.model.PaletteStyle
 
@@ -75,7 +75,7 @@ fun KozuTheme(
     }
 }
 
-/** Wallpaper-derived Material You colours (Android 12+), with the app's pure-black AMOLED option. */
+
 @androidx.annotation.RequiresApi(Build.VERSION_CODES.S)
 private fun systemDynamicScheme(
     context: Context,

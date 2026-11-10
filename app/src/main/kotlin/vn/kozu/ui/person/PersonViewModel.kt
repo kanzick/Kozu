@@ -1,16 +1,16 @@
 package vn.kozu.ui.person
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import vn.kozu.di.AppContainer
 import vn.kozu.domain.model.Beatmap
@@ -28,17 +28,11 @@ data class PersonUiState(
     val isLoadingMore: Boolean = false,
     val hasMore: Boolean = false,
     val error: String? = null,
-    /** False when nothing matched the name exactly and the raw search results are shown instead. */
+
     val exact: Boolean = true,
 )
 
-/**
- * Loads everything a single artist or mapper has in the catalog.
- *
- * The catalog only offers free-text search, so the name is searched and the hits are then
- * narrowed to the ones that really belong to that person. Several pages are pulled so a prolific
- * artist is not cut off after the first handful of results.
- */
+
 class PersonViewModel(
     private val container: AppContainer,
     val kind: PersonKind,
@@ -129,7 +123,7 @@ class PersonViewModel(
                     artistNames(beatmap.artistUnicode).any { it.equals(name, ignoreCase = true) }
         }
 
-    /** "A feat. B", "A & B", "A, B", "A x B" all credit both people. */
+
     private fun artistNames(artist: String): List<String> =
         if (artist.isBlank()) {
             emptyList()

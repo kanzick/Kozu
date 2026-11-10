@@ -7,18 +7,17 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import vn.kozu.domain.model.AccentColor
-import vn.kozu.domain.model.ThemePreset
-import vn.kozu.domain.model.AppFont
 import vn.kozu.domain.model.AppearancePrefs
+import vn.kozu.domain.model.AppFont
 import vn.kozu.domain.model.AppSettings
 import vn.kozu.domain.model.AppStyle
 import vn.kozu.domain.model.ArtworkQuality
@@ -39,8 +38,9 @@ import vn.kozu.domain.model.StartTab
 import vn.kozu.domain.model.StatusFilter
 import vn.kozu.domain.model.StreamMode
 import vn.kozu.domain.model.ThemeMode
-import vn.kozu.domain.model.UpdateChannel
+import vn.kozu.domain.model.ThemePreset
 import vn.kozu.domain.model.TopSize
+import vn.kozu.domain.model.UpdateChannel
 
 class SettingsStore(
     context: Context,
@@ -50,12 +50,12 @@ class SettingsStore(
     private val prefsCache = appContext.getSharedPreferences("kozu_theme_sync", Context.MODE_PRIVATE)
 
     val cachedThemeMode: ThemeMode get() = initialThemeMode(appContext)
-    /** People who already had an accent keep it (as the Custom preset); new installs get osu!. */
+
     val cachedThemePreset: ThemePreset get() =
         prefsCache.getString("theme_preset", null)?.let(ThemePreset::fromKey)
             ?: if (prefsCache.contains("accent")) ThemePreset.CUSTOM else ThemePreset.OSU
 
-    /** Kept apart from the theme cache so "reset all settings" does not replay the welcome wizard. */
+
     private val onboardingPrefs = appContext.getSharedPreferences("kozu_onboarding", Context.MODE_PRIVATE)
     var onboardingCompleted: Boolean
         get() = onboardingPrefs.getBoolean("completed", false)
@@ -194,7 +194,7 @@ class SettingsStore(
         }
     }
 
-    /** Stable user-defined order for library collections. Playlist tracks use Room positions. */
+
     val libraryCustomOrders: Flow<Map<String, List<Long>>> =
         store.data.map { prefs -> decodeLibraryCustomOrders(prefs[Keys.libraryCustomOrder]) }.distinctUntilChanged()
 
@@ -420,7 +420,7 @@ class SettingsStore(
         store.edit { it[Keys.appFont] = font.key }
     }
 
-    /** Reads the current [AppearancePrefs], applies [transform] and persists the result. */
+
     suspend fun updateAppearance(transform: AppearancePrefs.() -> AppearancePrefs) {
         var json = ""
         store.edit { prefs ->

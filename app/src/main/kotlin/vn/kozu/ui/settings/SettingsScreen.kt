@@ -1,7 +1,5 @@
 package vn.kozu.ui.settings
 
-import vn.kozu.ui.i18n.kozuUiString
-
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -18,9 +16,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,50 +23,52 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.SearchOff
-import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import vn.kozu.ui.i18n.KozuText as Text
+import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
-import vn.kozu.ui.components.scrollReveal
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -80,11 +77,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.delay
-import vn.kozu.domain.model.OsuProfile
 import vn.kozu.data.update.UpdateChecker
+import vn.kozu.domain.model.OsuProfile
 import vn.kozu.domain.model.UpdateChannel
-import vn.kozu.ui.components.bounceClick
 import vn.kozu.R
+import vn.kozu.ui.components.bounceClick
+import vn.kozu.ui.components.scrollReveal
 
 private data class SettingsGroup(
     val titleRes: Int,
@@ -259,7 +257,7 @@ private fun SettingsRoot(
     val context = androidx.compose.ui.platform.LocalContext.current
     val version = remember { UpdateChecker.installedVersion(context) }
 
-    SettingsPageScaffold(title = "Settings", onBack = onBack) {
+    SettingsPageScaffold(title = stringResource(R.string.settings), onBack = onBack) {
         Spacer(Modifier.height(4.dp))
         SearchEntryBar(onClick = onSearch)
         Spacer(Modifier.height(12.dp))
@@ -295,8 +293,7 @@ private fun SettingsGroupCard(
     }
 
     Column {
-        Text(
-            text = stringResource(group.titleRes),
+        Text(text = stringResource(group.titleRes),
             style = MaterialTheme.typography.titleSmall,
             color = colors.primary,
             modifier = Modifier.padding(start = 16.dp, bottom = 8.dp),
@@ -337,14 +334,12 @@ private fun SettingsGroupCard(
                         }
                         Spacer(Modifier.width(14.dp))
                         Column(Modifier.weight(1f)) {
-                            Text(
-                                text = title,
+                            Text(text = title,
                                 style = MaterialTheme.typography.titleMedium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
-                            Text(
-                                text = subtitle,
+                            Text(text = subtitle,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = colors.onSurfaceVariant,
                                 maxLines = 1,
@@ -401,7 +396,7 @@ private fun SettingsSearchOverlay(onClose: () -> Unit, onPick: (Setting) -> Unit
                     keyboard?.hide()
                     onClose()
                 }) {
-                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = kozuUiString("Back"))
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
                 }
                 TextField(
                     value = query,
@@ -412,7 +407,7 @@ private fun SettingsSearchOverlay(onClose: () -> Unit, onPick: (Setting) -> Unit
                     singleLine = false,
                     minLines = 1,
                     maxLines = 2,
-                    placeholder = { Text("Search settings") },
+                    placeholder = { Text(stringResource(R.string.search_settings)) },
                     textStyle = MaterialTheme.typography.bodyLarge,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                     keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
@@ -425,7 +420,7 @@ private fun SettingsSearchOverlay(onClose: () -> Unit, onPick: (Setting) -> Unit
                 )
                 if (query.isNotEmpty()) {
                     IconButton(onClick = { query = "" }) {
-                        Icon(Icons.Rounded.Close, contentDescription = kozuUiString("Clear"))
+                        Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.clear))
                     }
                 }
             }
@@ -448,9 +443,8 @@ private fun SettingsSearchOverlay(onClose: () -> Unit, onPick: (Setting) -> Unit
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(Modifier.height(12.dp))
-                Text("No settings found", style = MaterialTheme.typography.titleLarge)
-                Text(
-                    "Try a different word, like theme, crossfade or cache.",
+                Text(stringResource(R.string.no_settings_found), style = MaterialTheme.typography.titleLarge)
+                Text(stringResource(R.string.try_a_different_word_like_theme_crossfade_or_cache),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -495,21 +489,18 @@ private fun SettingsSearchOverlay(onClose: () -> Unit, onPick: (Setting) -> Unit
                             IconBadge(setting.icon)
                             Spacer(Modifier.width(14.dp))
                             Column(Modifier.weight(1f)) {
-                                Text(
-                                    resultTitle,
+                                Text(resultTitle,
                                     style = MaterialTheme.typography.titleMedium,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
-                                Text(
-                                    resultDescription,
+                                Text(resultDescription,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis
                                 )
-                                Text(
-                                    resultPageTitle,
+                                Text(resultPageTitle,
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.primary
                                 )
@@ -539,14 +530,12 @@ private fun SearchHint() {
             tint = colors.onSurfaceVariant.copy(alpha = 0.32f),
         )
         Spacer(Modifier.height(14.dp))
-        Text(
-            text = "Find a setting",
+        Text(text = stringResource(R.string.find_a_setting),
             style = MaterialTheme.typography.titleMedium,
             color = colors.onSurfaceVariant.copy(alpha = 0.58f),
         )
         Spacer(Modifier.height(6.dp))
-        Text(
-            text = "Try theme, playback, cache or downloads",
+        Text(text = stringResource(R.string.try_theme_playback_cache_or_downloads),
             style = MaterialTheme.typography.bodyMedium,
             color = colors.onSurfaceVariant.copy(alpha = 0.38f),
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -570,12 +559,11 @@ private fun SearchEntryBar(onClick: () -> Unit) {
         ) {
             Icon(
                 Icons.Rounded.Search,
-                contentDescription = kozuUiString("Search settings"),
+                contentDescription = stringResource(R.string.search_settings),
                 tint = MaterialTheme.colorScheme.primary
             )
             Spacer(Modifier.width(16.dp))
-            Text(
-                "Search settings",
+            Text(stringResource(R.string.search_settings),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -608,13 +596,12 @@ private fun AccountSummaryCard(profile: OsuProfile?, loggedIn: Boolean, onClick:
                     if (avatar != null) {
                         AsyncImage(
                             model = avatar,
-                            contentDescription = kozuUiString("Avatar"),
+                            contentDescription = stringResource(R.string.avatar),
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {
-                        Text(
-                            text = (profile?.username?.firstOrNull() ?: 'G').uppercase(),
+                        Text(text = (profile?.username?.firstOrNull() ?: 'G').uppercase(),
                             style = MaterialTheme.typography.headlineMedium
                         )
                     }
@@ -622,14 +609,12 @@ private fun AccountSummaryCard(profile: OsuProfile?, loggedIn: Boolean, onClick:
             }
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
-                Text(
-                    text = if (loggedIn && profile != null) profile.username else "Guest",
+                Text(text = if (loggedIn && profile != null) profile.username else "Guest",
                     style = MaterialTheme.typography.titleLarge,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    text = if (loggedIn) "osu! profile · manage account" else "Sign in to sync with osu!",
+                Text(text = if (loggedIn) "osu! profile · manage account" else "Sign in to sync with osu!",
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant,
                     maxLines = 1,

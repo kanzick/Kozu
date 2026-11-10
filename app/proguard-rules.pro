@@ -1,5 +1,3 @@
-# Kozu Application Proguard / R8 Rules
-
 # Keep Data Transfer Objects (DTOs) and Models for Gson / DataStore / Reflection
 -keep class vn.kozu.data.remote.osu.** { *; }
 -keepclassmembers class vn.kozu.data.remote.osu.** { <fields>; }

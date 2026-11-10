@@ -1,8 +1,8 @@
 package vn.kozu.data.repository
 
 import java.time.LocalDate
-import java.time.YearMonth
 import java.time.Year
+import java.time.YearMonth
 import java.time.ZoneOffset
 import java.util.Locale
 import vn.kozu.domain.model.Beatmap
@@ -12,14 +12,6 @@ import vn.kozu.domain.model.BrowseLanguage
 import vn.kozu.domain.model.BrowseStatus
 import vn.kozu.domain.model.ModeFilter
 
-/**
- * osu!'s own beatmap search syntax: `stars<8 ar>=9 ranked=2025 status=r mapper="Some One" fox`.
- *
- * One parser serves the Search tab and All beatmaps. Keywords that map onto an app filter
- * (status, mode, language, genre) set that filter. The rest are handed to the official API
- * untouched (it understands the full syntax) and, when only the public mirror is available,
- * applied to the results here for the fields the mirror reports.
- */
 object OsuSearchSyntax {
     enum class Op(val symbol: String) {
         EQ("="),
@@ -38,26 +30,26 @@ object OsuSearchSyntax {
     )
 
     data class Parsed(
-        /** The free text left once every recognised keyword is taken out. */
+
         val text: String,
         val conditions: List<Condition>,
         val statuses: Set<String>,
         val mode: ModeFilter?,
         val language: BrowseLanguage?,
         val genre: BrowseGenre?,
-        /** Everything that was recognised, in the order typed, for display. */
+
         val recognised: List<String>,
     ) {
         val hasSyntax: Boolean get() = recognised.isNotEmpty()
 
-        /** True when the public mirror needs help from the client to honour the query. */
+
         val needsClientFilter: Boolean get() = conditions.any { it.key in CLIENT_KEYS } || statuses.size > 1
 
-        /** The query to send to the official API: keywords it understands plus the free text. */
+
         fun passthroughQuery(): String =
             (conditions.map { it.raw } + text).filter { it.isNotBlank() }.joinToString(" ")
 
-        /** Applies the app-level keywords to [filters] and leaves only the free text as query. */
+
         fun applyTo(filters: BrowseFilters): BrowseFilters {
             var next = filters.copy(query = text)
             mode?.let { next = next.copy(mode = it) }
@@ -71,7 +63,7 @@ object OsuSearchSyntax {
             return next
         }
 
-        /** Labels of keywords the public mirror cannot evaluate (no data for them). */
+
         fun unsupportedLabels(): List<String> =
             conditions.filter { it.key in UNSUPPORTED_ON_MIRROR }.map { it.raw }.distinct()
 
@@ -158,7 +150,7 @@ object OsuSearchSyntax {
         )
     }
 
-    /** Splits on spaces but keeps `key="a b"` together. */
+
     private fun tokenize(query: String): List<String> {
         val out = mutableListOf<String>()
         val current = StringBuilder()
@@ -231,7 +223,7 @@ object OsuSearchSyntax {
             else -> null
         }
 
-    /** Accepts any unambiguous prefix: `japan` -> Japanese, `eng` -> English. */
+
     private fun languageOf(value: String): BrowseLanguage? {
         val v = value.lowercase(Locale.US)
         val all = BrowseLanguage.entries.filter { it.id != null }
@@ -247,7 +239,6 @@ object OsuSearchSyntax {
             ?: all.firstOrNull { it.label.lowercase(Locale.US).startsWith(v) && v.length >= 2 }
     }
 
-    // ── client-side evaluation ──────────────────────────────────────────────
 
     private fun matchesCondition(c: Condition, b: Beatmap): Boolean =
         when (c.key) {
@@ -261,7 +252,7 @@ object OsuSearchSyntax {
             "ranked" -> date(c, b.rankedAt)
             "created" -> date(c, b.submittedAt)
             "updated" -> date(c, b.updatedAt)
-            else -> true // not known to the mirror: left to the server, never filtered here
+            else -> true
         }
 
     private fun text(c: Condition, vararg haystack: String): Boolean {
@@ -272,7 +263,7 @@ object OsuSearchSyntax {
 
     private fun numeric(c: Condition, min: Double, max: Double, tolerance: Double): Boolean {
         val v = c.value.toDoubleOrNull() ?: return true
-        if (max <= 0.0 && min <= 0.0) return true // no data reported
+        if (max <= 0.0 && min <= 0.0) return true
         return when (c.op) {
             Op.EQ -> v >= min - tolerance && v <= max + tolerance
             Op.NE -> !(v >= min - tolerance && v <= max + tolerance)
@@ -297,7 +288,7 @@ object OsuSearchSyntax {
         }
     }
 
-    /** `2025`, `2025-08` or `2025-08-15` as a half-open UTC range in epoch millis. */
+
     private fun dateRange(value: String): Pair<Long, Long>? =
         runCatching {
             val parts = value.trim().split('-')

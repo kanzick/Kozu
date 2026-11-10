@@ -1,30 +1,27 @@
 package vn.kozu.ui.settings
 
-import vn.kozu.ui.i18n.kozuUiString
-
-import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.ClipData
 import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
-import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ContentCopy
@@ -36,22 +33,24 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import vn.kozu.ui.i18n.KozuText as Text
+import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -61,6 +60,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import vn.kozu.data.remote.osu.OsuAuth
 import vn.kozu.domain.model.OsuProfile
+import vn.kozu.R
 
 @Composable
 fun AccountPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
@@ -90,7 +90,7 @@ fun AccountPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
         }
     }
 
-    SettingsScaffold(title = "Account", onBack = onBack) {
+    SettingsScaffold(title = stringResource(R.string.account), onBack = onBack) {
         val current = profile
         if (loggedIn && current != null) {
             ProfileHeader(current)
@@ -98,8 +98,8 @@ fun AccountPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
             ProfileStats(current)
             Spacer(Modifier.height(14.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                SecondaryPill(if (loading) "Refreshing…" else "Refresh") { viewModel.refreshProfile() }
-                TextButton(onClick = { viewModel.logout() }) { Text(text = "Sign out") }
+                SecondaryPill(if (loading) stringResource(R.string.refreshing) else stringResource(R.string.settings_refresh)) { viewModel.refreshProfile() }
+                TextButton(onClick = { viewModel.logout() }) { Text(text = stringResource(R.string.sign_out)) }
             }
             Spacer(Modifier.height(24.dp))
         } else if (loggedIn) {
@@ -107,16 +107,15 @@ fun AccountPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                 title = null,
                 items = listOf({
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text(text = "Signed in", style = MaterialTheme.typography.titleMedium)
-                        Text(
-                            text = "Your osu! profile is loading. Refresh it if it takes too long.",
+                        Text(text = stringResource(R.string.signed_in), style = MaterialTheme.typography.titleMedium)
+                        Text(text = stringResource(R.string.your_osu_profile_is_loading_refresh_it_if_it_takes_t),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                            SecondaryPill("Load profile") { viewModel.refreshProfile() }
-                            TextButton(onClick = { viewModel.logout() }) { Text(text = "Sign out") }
+                            SecondaryPill(stringResource(R.string.settings_load_profile)) { viewModel.refreshProfile() }
+                            TextButton(onClick = { viewModel.logout() }) { Text(text = stringResource(R.string.sign_out)) }
                         }
                     }
                 })
@@ -127,14 +126,13 @@ fun AccountPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                 title = null,
                 items = listOf({
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(text = "Sign in with osu!", style = MaterialTheme.typography.titleLarge)
-                        Text(
-                            text = "Connect your osu! profile to show your avatar, ranks and statistics here. Browsing, searching and listening remain available without signing in.",
+                        Text(text = stringResource(R.string.sign_in_with_osu), style = MaterialTheme.typography.titleLarge)
+                        Text(text = stringResource(R.string.connect_your_osu_profile_to_show_your_avatar_ranks_a),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         PrimaryPill(
-                            label = if (verify == VerifyState.Checking) "Checking OAuth application…" else "Sign in with osu!",
+                            label = if (verify == VerifyState.Checking) stringResource(R.string.settings_checking_oauth_application) else stringResource(R.string.sign_in_with_osu),
                             enabled = verify != VerifyState.Checking
                         ) {
                             continueLoginAfterVerify = true
@@ -145,8 +143,7 @@ fun AccountPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                             }
                         }
                         if (!settings.hasCredentials) {
-                            Text(
-                                text = "Your OAuth application details will be requested in the next step.",
+                            Text(text = stringResource(R.string.your_oauth_application_details_will_be_requested_in),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -196,28 +193,27 @@ private fun OAuthCredentialsDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         modifier = Modifier.imePadding(),
-        title = { Text(text = "Connect your osu! account") },
+        title = { Text(text = stringResource(R.string.connect_your_osu_account)) },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text(
-                    text = "Enter the Client ID and Client Secret from your osu! OAuth application. These are app credentials, not your osu! password. After they are verified, Kozu will open osu! so you can authorize your profile.",
+                Text(text = stringResource(R.string.enter_the_client_id_and_client_secret_from_your_osu),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                TextButton(onClick = onOpenOsuSettings) { Text(text = "Open osu! OAuth settings") }
+                TextButton(onClick = onOpenOsuSettings) { Text(text = stringResource(R.string.open_osu_oauth_settings)) }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text(text = "Callback URL", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(text = stringResource(R.string.callback_url), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(text = OsuAuth.REDIRECT_URI, style = MaterialTheme.typography.bodyMedium)
                     }
                     IconButton(onClick = {
                         val manager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                         manager.setPrimaryClip(ClipData.newPlainText("callback", OsuAuth.REDIRECT_URI))
                     }) {
-                        Icon(Icons.Rounded.ContentCopy, contentDescription = kozuUiString("Copy callback URL"))
+                        Icon(Icons.Rounded.ContentCopy, contentDescription = stringResource(R.string.copy_callback_url))
                     }
                 }
                 OutlinedTextField(
@@ -226,7 +222,7 @@ private fun OAuthCredentialsDialog(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     shape = RoundedCornerShape(20.dp),
-                    label = { Text(text = "Client ID") },
+                    label = { Text(text = stringResource(R.string.client_id)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next)
                 )
                 OutlinedTextField(
@@ -235,7 +231,7 @@ private fun OAuthCredentialsDialog(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     shape = RoundedCornerShape(20.dp),
-                    label = { Text(text = "Client secret") },
+                    label = { Text(text = stringResource(R.string.client_secret)) },
                     visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = { if (canSave) onSave(clientId, clientSecret) })
@@ -244,15 +240,13 @@ private fun OAuthCredentialsDialog(
                     VerifyState.Checking -> Row(verticalAlignment = Alignment.CenterVertically) {
                         LinearProgressIndicator(Modifier.weight(1f))
                         Spacer(Modifier.width(10.dp))
-                        Text(text = "Checking", style = MaterialTheme.typography.labelMedium)
+                        Text(text = stringResource(R.string.checking), style = MaterialTheme.typography.labelMedium)
                     }
-                    VerifyState.Success -> Text(
-                        text = "OAuth application verified. Opening osu!…",
+                    VerifyState.Success -> Text(text = stringResource(R.string.oauth_application_verified_opening_osu),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary
                     )
-                    is VerifyState.Failure -> Text(
-                        text = current.message,
+                    is VerifyState.Failure -> Text(text = current.message,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error
                     )
@@ -271,9 +265,9 @@ private fun OAuthCredentialsDialog(
                     TextButton(onClick = {
                         onClear()
                         onDismiss()
-                    }) { Text(text = "Remove") }
+                    }) { Text(text = stringResource(R.string.remove)) }
                 }
-                TextButton(onClick = onDismiss) { Text(text = "Cancel") }
+                TextButton(onClick = onDismiss) { Text(text = stringResource(R.string.cancel)) }
             }
         }
     )
@@ -328,8 +322,7 @@ private fun ProfileHeader(profile: OsuProfile) {
             }
             Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 46.dp, bottom = 20.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = profile.username,
+                    Text(text = profile.username,
                         style = MaterialTheme.typography.headlineMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -349,15 +342,14 @@ private fun ProfileHeader(profile: OsuProfile) {
                             Row(Modifier.padding(horizontal = 10.dp, vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(14.dp))
                                 Spacer(Modifier.width(4.dp))
-                                Text(text = "Supporter", style = MaterialTheme.typography.labelSmall)
+                                Text(text = stringResource(R.string.supporter), style = MaterialTheme.typography.labelSmall)
                             }
                         }
                     }
                 }
                 if (profile.joinDate.isNotBlank()) {
                     Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = "Joined ${profile.joinDate} · ${formatInt(profile.followers)} followers",
+                    Text(text = stringResource(R.string.joined_followers, profile.joinDate, formatInt(profile.followers)),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -398,9 +390,8 @@ private fun ProfileStats(profile: OsuProfile) {
         ) {
             Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "Level ${profile.level.toInt()}", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
-                    Text(
-                        text = "Ranked score ${formatCompact(profile.rankedScore)}",
+                    Text(text = stringResource(R.string.level, profile.level.toInt()), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                    Text(text = stringResource(R.string.ranked_score, formatCompact(profile.rankedScore)),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

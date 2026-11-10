@@ -6,8 +6,8 @@ import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Headers
-import retrofit2.http.POST
 import retrofit2.http.Path
+import retrofit2.http.POST
 import retrofit2.http.Query
 import vn.kozu.data.news.NewsCommentBundleDto
 import vn.kozu.data.news.NewsCommentCreateRequest
@@ -44,8 +44,6 @@ interface OsuApi {
     ): TokenDto
 
 
-    // Public guest endpoints: reading news/comments does not require an osu! user login.
-    // Explicit JSON headers match osu! API v2 request requirements.
     @Headers("Accept: application/json", "Content-Type: application/json")
     @GET("news")
     suspend fun news(
@@ -59,8 +57,7 @@ interface OsuApi {
         @Query("content_formats[]") contentFormats: List<String> = listOf("html"),
     ): NewsPostDto
 
-    // The public website JSON route is intentionally used here instead of /api/v2/comments.
-    // It is the same route used by osu!'s own comments UI and allows guest reads.
+
     @Headers(
         "Accept: application/json",
         "Content-Type: application/json",
@@ -75,7 +72,7 @@ interface OsuApi {
         @Query("after") after: String? = null,
     ): NewsCommentBundleDto
 
-    /** Posts a comment through the authenticated osu! API session. */
+
     @Headers("Accept: application/json", "Content-Type: application/json")
     @POST("comments")
     suspend fun postNewsComment(

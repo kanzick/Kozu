@@ -3,11 +3,11 @@ package vn.kozu.ui.news
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,10 +19,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -30,8 +31,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -42,7 +45,7 @@ import vn.kozu.data.news.NewsCommentUserDto
 import vn.kozu.data.news.NewsFeed
 import vn.kozu.data.news.NewsPost
 import vn.kozu.data.remote.osu.OsuAuth
-import vn.kozu.ui.i18n.KozuText as Text
+import vn.kozu.R
 
 @Composable
 internal fun NewsComments(
@@ -103,7 +106,7 @@ internal fun NewsComments(
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Comments", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.comments), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.width(8.dp))
                 if (commentCount != null) {
                     Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHighest) {
@@ -121,21 +124,19 @@ internal fun NewsComments(
             ) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (signedIn) {
-                        Text(
-                            text = if (signedInUsername.isNullOrBlank()) "Comment as your osu! account" else "Comment as $signedInUsername",
+                        Text(text = if (signedInUsername.isNullOrBlank()) stringResource(R.string.comment_as_osu_account) else stringResource(R.string.comment_as_username, signedInUsername),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.labelMedium,
                         )
                         if (replyTarget != null) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 val replyName = users[replyTarget?.userId]?.username ?: "osu! user"
-                                Text(
-                                    "Replying to $replyName",
+                                Text(stringResource(R.string.replying_to, replyName),
                                     modifier = Modifier.weight(1f),
                                     color = MaterialTheme.colorScheme.primary,
                                     style = MaterialTheme.typography.labelLarge,
                                 )
-                                TextButton(onClick = { replyTarget = null }) { Text("Cancel") }
+                                TextButton(onClick = { replyTarget = null }) { Text(stringResource(R.string.cancel)) }
                             }
                         }
                         OutlinedTextField(
@@ -146,7 +147,7 @@ internal fun NewsComments(
                             minLines = 2,
                             maxLines = 6,
                             shape = RoundedCornerShape(14.dp),
-                            placeholder = { Text("Write a comment…") },
+                            placeholder = { Text(stringResource(R.string.write_comment)) },
                             supportingText = { Text("${draft.length}/1000") },
                         )
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
@@ -191,9 +192,9 @@ internal fun NewsComments(
                             }
                         }
                     } else {
-                        Text("Sign in with your osu! account to write a comment or reply. You can still read all comments without signing in.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.sign_in_comment_hint), color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                            Button(onClick = onSignIn) { Text("Sign in to comment") }
+                            Button(onClick = onSignIn) { Text(stringResource(R.string.sign_in_to_comment)) }
                         }
                     }
                 }
@@ -203,13 +204,13 @@ internal fun NewsComments(
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                     if (error.contains("session", ignoreCase = true) || error.contains("401")) {
-                        TextButton(onClick = onSignIn) { Text("Sign in again") }
+                        TextButton(onClick = onSignIn) { Text(stringResource(R.string.sign_in_again)) }
                     }
                 }
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("Sort by", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.sort_by), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 SortChoice("Recent", selected = sort == "new") { sort = "new"; replyBundles.clear(); expandedReplies = emptySet() }
                 SortChoice("Old", selected = sort == "old") { sort = "old"; replyBundles.clear(); expandedReplies = emptySet() }
                 SortChoice("Top", selected = sort == "top") { sort = "top"; replyBundles.clear(); expandedReplies = emptySet() }
@@ -219,9 +220,9 @@ internal fun NewsComments(
                 loading && data == null -> Box(Modifier.fillMaxWidth().padding(18.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
                 loadError != null && data == null -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(loadError.orEmpty(), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
-                    TextButton(onClick = { reload++ }) { Text("Retry") }
+                    TextButton(onClick = { reload++ }) { Text(stringResource(R.string.retry)) }
                 }
-                topLevel.isEmpty() -> Text("No comments yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                topLevel.isEmpty() -> Text(stringResource(R.string.no_comments_yet), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 else -> {
                     topLevel.forEach { comment ->
                         val user = users[comment.userId]
@@ -252,7 +253,7 @@ internal fun NewsComments(
                                 },
                                 modifier = Modifier.padding(start = 56.dp),
                             ) {
-                                Text(if (expanded) "Hide replies" else "View ${comment.repliesCount} ${if (comment.repliesCount == 1) "reply" else "replies"}")
+                                Text(if (expanded) stringResource(R.string.hide_replies) else pluralStringResource(R.plurals.view_replies, comment.repliesCount, comment.repliesCount))
                             }
                             if (expanded) {
                                 if (loadingReplies[comment.id] == true) {
@@ -310,7 +311,7 @@ internal fun NewsComments(
                             modifier = Modifier.align(Alignment.CenterHorizontally),
                         ) {
                             if (loadingMore) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-                            else Text("Load more comments")
+                            else Text(stringResource(R.string.load_more_comments))
                         }
                     }
                 }
@@ -361,7 +362,7 @@ private fun NewsCommentRow(
                 Text(relativeDate(comment.createdAt), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (comment.deletedAt != null) {
-                Text("This comment has been deleted.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.comment_deleted), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
             } else if (!comment.messageHtml.isNullOrBlank()) {
                 NewsHtmlContent(comment.messageHtml, onOpenUrl = onOpenUrl, compact = true)
             } else {
@@ -370,7 +371,7 @@ private fun NewsCommentRow(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("+${comment.votesCount}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.width(10.dp))
-                TextButton(onClick = onReply) { Text("Reply") }
+                TextButton(onClick = onReply) { Text(stringResource(R.string.reply)) }
             }
         }
     }

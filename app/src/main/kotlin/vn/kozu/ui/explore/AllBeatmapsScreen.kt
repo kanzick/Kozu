@@ -1,9 +1,7 @@
 package vn.kozu.ui.explore
 
-import vn.kozu.ui.i18n.kozuUiString
-
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -14,10 +12,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,16 +19,20 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.DownloadDone
@@ -48,54 +46,56 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import vn.kozu.ui.i18n.KozuText as Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import java.util.Locale
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.MutableStateFlow
 import vn.kozu.data.repository.BeatmapRepository
 import vn.kozu.data.repository.CatalogSource
 import vn.kozu.domain.model.Beatmap
-import vn.kozu.ui.components.softTopEdge
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.flow.MutableStateFlow
 import vn.kozu.domain.model.BeatmapDifficultyInfo
 import vn.kozu.domain.model.BeatmapSetInfo
 import vn.kozu.game.ui.game.GameMapDownloadState
 import vn.kozu.game.ui.game.GameViewModel
+import vn.kozu.R
 import vn.kozu.ui.components.CenteredHeader
 import vn.kozu.ui.components.EmptyState
 import vn.kozu.ui.components.HeaderAction
 import vn.kozu.ui.components.KozuLoading
-import vn.kozu.ui.components.LocalTrackActions
+import vn.kozu.ui.components.LocalAppSettings
 import vn.kozu.ui.components.LocalDownloads
 import vn.kozu.ui.components.LocalFavoriteIds
-import vn.kozu.ui.components.LocalAppSettings
-import vn.kozu.ui.components.RefreshIndicator
-import vn.kozu.ui.components.TrackRow
-import vn.kozu.ui.components.segmentedShape
 import vn.kozu.ui.components.LocalOverlayBottomInset
+import vn.kozu.ui.components.LocalTrackActions
+import vn.kozu.ui.components.RefreshIndicator
+import vn.kozu.ui.components.segmentedShape
+import vn.kozu.ui.components.softTopEdge
+import vn.kozu.ui.components.TrackRow
 import vn.kozu.util.formatTime
-import java.util.Locale
 
 private const val BEATMAPS_PER_PAGE = 30
 
@@ -129,13 +129,13 @@ fun AllBeatmapsScreen(
     var currentPage by rememberSaveable { mutableIntStateOf(0) }
     var gameCatalogError by remember(gameViewModel) { mutableStateOf<String?>(null) }
     val refreshing = ui.isRefreshing || isAppRefreshing
-    // The floating mini player is drawn by the app shell on top of this screen; leave room for it.
+
     val listBottom = if (WindowInsets.isImeVisible) 16.dp else 12.dp + LocalOverlayBottomInset.current
     val pageStart = currentPage * BEATMAPS_PER_PAGE
     val pageItems = ui.items.drop((pageStart - ui.baseOffset).coerceAtLeast(0)).take(BEATMAPS_PER_PAGE)
     val loadedEnd = ui.baseOffset + ui.items.size
     val loadedPages = ((loadedEnd + BEATMAPS_PER_PAGE - 1) / BEATMAPS_PER_PAGE).coerceAtLeast(1)
-    // The public mirror cannot go past its result window, so do not offer pages it cannot serve.
+
     val reachableTotal =
         ui.total?.let { if (ui.source == CatalogSource.PUBLIC_MIRROR) minOf(it, BeatmapRepository.MIRROR_RESULT_WINDOW) else it }
     val estimatedPages = reachableTotal?.let { ((it + BEATMAPS_PER_PAGE - 1) / BEATMAPS_PER_PAGE).coerceAtLeast(1) }
@@ -171,7 +171,7 @@ fun AllBeatmapsScreen(
         val loadedEndNow = ui.baseOffset + ui.items.size
         val outsideWindow = start < ui.baseOffset || start > loadedEndNow + BEATMAPS_PER_PAGE * 2
         when {
-            // Public mirror: go straight to the page rather than loading everything before it.
+
             outsideWindow && ui.source == CatalogSource.PUBLIC_MIRROR && !ui.isLoadingMore -> viewModel.jumpToIndex(start)
             loadedEndNow < requiredEnd && ui.hasMore && !ui.isLoadingMore && ui.loadMoreError == null -> viewModel.loadMore()
             loadedEndNow < requiredEnd && !ui.hasMore && !ui.isLoadingMore && currentPage > 0 && ui.items.isNotEmpty() ->
@@ -191,7 +191,7 @@ fun AllBeatmapsScreen(
             leading = {
                 HeaderAction(
                     icon = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = kozuUiString("Back"),
+                    contentDescription = stringResource(R.string.back),
                     onClick = onBack,
                     startPadding = 0.dp,
                 )
@@ -265,8 +265,7 @@ fun AllBeatmapsScreen(
                 if (formgamepage) {
                     gameCatalogError?.let { message ->
                         item(key = "game-catalog-error") {
-                            Text(
-                                "Local Mania maps could not be loaded: $message",
+                            Text(stringResource(R.string.local_mania_load_failed, message),
                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                                 color = MaterialTheme.colorScheme.error,
                                 style = MaterialTheme.typography.bodySmall,
@@ -284,7 +283,7 @@ fun AllBeatmapsScreen(
                             icon = Icons.Rounded.CloudOff,
                             title = "Catalog unavailable",
                             message = ui.error.orEmpty(),
-                            action = { TextButton(onClick = viewModel::retry) { Text("Retry") } },
+                            action = { TextButton(onClick = viewModel::retry) { Text(stringResource(R.string.retry)) } },
                         )
                     }
 
@@ -294,7 +293,7 @@ fun AllBeatmapsScreen(
                             title = "No beatmaps found",
                             message = "Try another search or filter.",
                             action = if (ui.filters.hasActiveFilters) {
-                                { TextButton(onClick = viewModel::resetFilters) { Text("Reset filters") } }
+                                { TextButton(onClick = viewModel::resetFilters) { Text(stringResource(R.string.reset_filters)) } }
                             } else {
                                 null
                             },
@@ -313,13 +312,12 @@ fun AllBeatmapsScreen(
                                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                     ) {
-                                        Text(
-                                            text = ui.error.orEmpty(),
+                                        Text(text = ui.error.orEmpty(),
                                             modifier = Modifier.weight(1f),
                                             style = MaterialTheme.typography.labelMedium,
                                             color = MaterialTheme.colorScheme.onErrorContainer,
                                         )
-                                        TextButton(onClick = viewModel::retry) { Text("Retry") }
+                                        TextButton(onClick = viewModel::retry) { Text(stringResource(R.string.retry)) }
                                     }
                                 }
                             }
@@ -462,7 +460,7 @@ private fun BrowseRow(
                         IconButton(onClick = { actions.openMenu(beatmap) }) {
                             Icon(
                                 imageVector = Icons.Rounded.MoreVert,
-                                contentDescription = kozuUiString("More options"),
+                                contentDescription = stringResource(R.string.more_options),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
@@ -487,8 +485,7 @@ private fun BrowseRow(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(
-                                text = beatmap.status.ifBlank { "Map" }.replaceFirstChar { it.uppercase() },
+                            Text(text = beatmap.status.ifBlank { "Map" }.replaceFirstChar { it.uppercase() },
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
@@ -626,8 +623,7 @@ private fun DifficultyExpansion(
             modifier = Modifier.padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
-                text = if (info == null) "Difficulties" else "Difficulties (${info.difficulties.size})",
+            Text(text = if (info == null) "Difficulties" else "Difficulties (${info.difficulties.size})",
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurface,
             )
@@ -636,16 +632,14 @@ private fun DifficultyExpansion(
                     modifier = Modifier.align(Alignment.CenterHorizontally).padding(8.dp),
                 )
                 error != null -> Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = error,
+                    Text(text = error,
                         modifier = Modifier.weight(1f),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                     )
-                    TextButton(onClick = onRetry) { Text("Retry") }
+                    TextButton(onClick = onRetry) { Text(stringResource(R.string.retry)) }
                 }
-                info?.difficulties.isNullOrEmpty() -> Text(
-                    "No difficulty details are available for this map.",
+                info?.difficulties.isNullOrEmpty() -> Text(stringResource(R.string.no_difficulty_details),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -671,15 +665,13 @@ private fun DifficultyDetail(difficulty: BeatmapDifficultyInfo) {
             verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = difficulty.version,
+                Text(text = difficulty.version,
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.titleSmall,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Text(
-                    text = if (difficulty.lengthSeconds > 0) {
+                Text(text = if (difficulty.lengthSeconds > 0) {
                         formatTime(difficulty.lengthSeconds * 1000L)
                     } else {
                         "—"
@@ -692,8 +684,7 @@ private fun DifficultyDetail(difficulty: BeatmapDifficultyInfo) {
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = "CS ${compact(difficulty.circleSize)} · AR ${compact(difficulty.approachRate)} · " +
+                Text(text = "CS ${compact(difficulty.circleSize)} · AR ${compact(difficulty.approachRate)} · " +
                         "OD ${compact(difficulty.overallDifficulty)} · HP ${compact(difficulty.hpDrain)}",
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.labelMedium,
@@ -701,8 +692,7 @@ private fun DifficultyDetail(difficulty: BeatmapDifficultyInfo) {
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Text(
-                    text = "★ ${String.format(Locale.US, "%.2f", difficulty.stars)}",
+                Text(text = "★ ${String.format(Locale.US, "%.2f", difficulty.stars)}",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -731,9 +721,9 @@ private fun BrowsePagination(
             KozuLoading()
         } else if (loadMoreError != null) {
             Text(loadMoreError, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-            TextButton(onClick = onRetry) { Text("Retry") }
+            TextButton(onClick = onRetry) { Text(stringResource(R.string.retry)) }
         } else if (!hasMore && currentPage + 1 >= pageCount) {
-            Text("End of results", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.end_of_results), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (pageCount > 1 || currentPage > 0 || hasMore) {
             Row(
@@ -767,8 +757,7 @@ private fun BrowsePagination(
                                     color = if (page == currentPage) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
                                     contentColor = if (page == currentPage) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
                                 ) {
-                                    Text(
-                                        text = (page + 1).toString(),
+                                    Text(text = (page + 1).toString(),
                                         modifier = Modifier.padding(horizontal = 11.dp, vertical = 8.dp),
                                         style = MaterialTheme.typography.labelLarge,
                                     )
@@ -786,7 +775,7 @@ private fun BrowsePagination(
             }
         }
         if (pageCount > 1) {
-            Text("Page ${currentPage + 1}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.page, currentPage + 1), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

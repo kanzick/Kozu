@@ -2,11 +2,11 @@ package vn.kozu.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -27,7 +27,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import vn.kozu.ui.i18n.KozuText as Text
+import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -38,16 +38,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import vn.kozu.KozuApplication
 import vn.kozu.data.remote.ProxyController
 import vn.kozu.data.remote.ProxyTestResult
 import vn.kozu.domain.model.ProxySettings
 import vn.kozu.domain.model.ProxyType
+import vn.kozu.KozuApplication
+import vn.kozu.R
 
 private val hostPattern = Regex("^[A-Za-z0-9._\\-]+$|^\\[[0-9A-Fa-f:.]+]$|^[0-9A-Fa-f:]+:[0-9A-Fa-f:]*$")
 
@@ -90,7 +92,7 @@ fun ProxySettingsDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Proxy server") },
+        title = { Text(stringResource(R.string.proxy_server)) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -101,7 +103,7 @@ fun ProxySettingsDialog(
                         value = type.label,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Type") },
+                        label = { Text(stringResource(R.string.type)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = menuOpen) },
                         modifier =
                             Modifier
@@ -131,11 +133,11 @@ fun ProxySettingsDialog(
                     singleLine = false,
                     minLines = 1,
                     maxLines = 2,
-                    label = { Text("Host") },
+                    label = { Text(stringResource(R.string.host)) },
                     isError = hostError,
                     supportingText =
                         if (hostError) {
-                            { Text("Enter a valid host name or IP address") }
+                            { Text(stringResource(R.string.enter_a_valid_host_name_or_ip_address)) }
                         } else {
                             null
                         },
@@ -150,11 +152,11 @@ fun ProxySettingsDialog(
                     },
                     enabled = enabled,
                     singleLine = true,
-                    label = { Text("Port") },
+                    label = { Text(stringResource(R.string.port)) },
                     isError = portError,
                     supportingText =
                         if (portError) {
-                            { Text("Port must be between 1 and 65535") }
+                            { Text(stringResource(R.string.port_must_be_between_1_and_65535)) }
                         } else {
                             null
                         },
@@ -171,7 +173,7 @@ fun ProxySettingsDialog(
                     singleLine = false,
                     minLines = 1,
                     maxLines = 2,
-                    label = { Text("Username (optional)") },
+                    label = { Text(stringResource(R.string.username_optional)) },
                     modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(
@@ -184,7 +186,7 @@ fun ProxySettingsDialog(
                     singleLine = false,
                     minLines = 1,
                     maxLines = 2,
-                    label = { Text("Password (optional)") },
+                    label = { Text(stringResource(R.string.password_optional)) },
                     visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     trailingIcon = {
@@ -208,23 +210,21 @@ fun ProxySettingsDialog(
                             }
                         },
                         enabled = enabled && valid && !testing,
-                    ) { Text("Test connection") }
+                    ) { Text(stringResource(R.string.test_connection)) }
                     Spacer(Modifier.width(12.dp))
                     if (testing) {
                         CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                     }
                     when (val result = testResult) {
                         is ProxyTestResult.Success -> {
-                            Text(
-                                "Connected in ${result.latencyMs} ms",
+                            Text(stringResource(R.string.connected_in_ms, result.latencyMs),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.primary,
                             )
                         }
 
                         is ProxyTestResult.Failure -> {
-                            Text(
-                                result.message,
+                            Text(result.message,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.weight(1f),
@@ -234,8 +234,7 @@ fun ProxySettingsDialog(
                         null -> {}
                     }
                 }
-                Text(
-                    if (enabled) {
+                Text(if (enabled) {
                         "Credentials are stored on this device and are never included in backups."
                     } else {
                         "Kozu connects directly to the internet."
@@ -247,8 +246,8 @@ fun ProxySettingsDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(proposed()) }, enabled = valid && !testing) { Text("Save") }
+            TextButton(onClick = { onSave(proposed()) }, enabled = valid && !testing) { Text(stringResource(R.string.save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }

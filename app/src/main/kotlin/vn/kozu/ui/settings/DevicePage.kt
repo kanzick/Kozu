@@ -33,10 +33,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import vn.kozu.data.update.UpdateChecker
-import java.io.File
+import vn.kozu.R
 
 internal data class DeviceEntry(
     val icon: ImageVector,
@@ -61,16 +63,16 @@ fun DevicePage(viewModel: SettingsViewModel, onBack: () -> Unit) {
         value = withContext(Dispatchers.Default) { readDeviceReport(context) }
     }
 
-    SettingsScaffold(title = "Device Capabilities", onBack = onBack) {
+    SettingsScaffold(title = stringResource(R.string.device_capabilities), onBack = onBack) {
         SettingsSection(null) {
             action(Setting.REFRESH_DEVICE, "Refresh") { refresh++ }
         }
         report?.let { data ->
-            SettingsSection("Playback path") { data.playback.forEach { info(it.icon, it.title, it.value, it.description) } }
-            SettingsSection("Audio decoders") { data.decoders.forEach { info(it.icon, it.title, it.value, it.description) } }
-            SettingsSection("Memory") { data.memory.forEach { info(it.icon, it.title, it.value, it.description) } }
-            SettingsSection("Storage") { data.storage.forEach { info(it.icon, it.title, it.value, it.description) } }
-            SettingsSection("App & device") { data.app.forEach { info(it.icon, it.title, it.value, it.description) } }
+            SettingsSection(stringResource(R.string.settings_playback_path)) { data.playback.forEach { info(it.icon, it.title, it.value, it.description) } }
+            SettingsSection(stringResource(R.string.settings_audio_decoders)) { data.decoders.forEach { info(it.icon, it.title, it.value, it.description) } }
+            SettingsSection(stringResource(R.string.settings_memory)) { data.memory.forEach { info(it.icon, it.title, it.value, it.description) } }
+            SettingsSection(stringResource(R.string.storage)) { data.storage.forEach { info(it.icon, it.title, it.value, it.description) } }
+            SettingsSection(stringResource(R.string.settings_app_device)) { data.app.forEach { info(it.icon, it.title, it.value, it.description) } }
         }
     }
 }

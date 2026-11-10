@@ -1,62 +1,64 @@
 package vn.kozu.game.mania.gamestage.ui
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.Icons
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import vn.kozu.ui.components.KozuSlider
 import androidx.compose.material3.Surface
-import vn.kozu.ui.i18n.KozuText as Text
+import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import vn.kozu.game.mania.gamestage.GameStageModule
+import kotlin.math.roundToInt
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import vn.kozu.game.mania.gamestage.chart.ManiaChart
 import vn.kozu.game.mania.gamestage.engine.NoteScroll
+import vn.kozu.game.mania.gamestage.GameStageModule
 import vn.kozu.game.mania.gamestage.media.BackgroundLoader
-import vn.kozu.game.mania.gamestage.settings.GameSettings
 import vn.kozu.game.mania.gamestage.playtype.Landscape3DPerspective
 import vn.kozu.game.mania.gamestage.playtype.LandscapeVerticalScrolling
 import vn.kozu.game.mania.gamestage.playtype.Portrait
+import vn.kozu.game.mania.gamestage.settings.GameSettings
 import vn.kozu.game.mania.previewstage.model.DifficultyRecord
 import vn.kozu.game.mania.previewstage.model.ScoreRecord
 import vn.kozu.game.mania.previewstage.model.SongEntry
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.withContext
-import kotlin.math.roundToInt
+import vn.kozu.R
+import vn.kozu.ui.components.KozuSlider
 
 @Composable
 fun SongInfoDialog(
@@ -125,8 +127,7 @@ fun SongInfoDialog(
                         ) {
                             Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = Color.White)
                         }
-                        Text(
-                            "Player: ${settings.playerName}",
+                        Text(stringResource(R.string.player_name_label, settings.playerName),
                             color = Color.White,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
@@ -134,12 +135,11 @@ fun SongInfoDialog(
                             modifier = Modifier.align(Alignment.TopCenter).padding(top = 14.dp, start = 56.dp, end = 56.dp),
                         )
                         Column(Modifier.align(Alignment.BottomStart).padding(16.dp)) {
-                            Text(
-                                difficulty.title, color = Color.White, fontWeight = FontWeight.Bold,
+                            Text(difficulty.title, color = Color.White, fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.titleLarge, maxLines = 2, overflow = TextOverflow.Ellipsis,
                             )
                             Text(difficulty.artist, color = Color(0xFFE0E0E0), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text("[${difficulty.version}]  ·  mapped by ${difficulty.creator}", color = Color(0xFFBDBDBD), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(stringResource(R.string.difficulty_mapper_label, difficulty.version, difficulty.creator), color = Color(0xFFBDBDBD), maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     }
                     Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
@@ -152,28 +152,27 @@ fun SongInfoDialog(
                             }
                         }
                         Text(stats, style = MaterialTheme.typography.bodyMedium)
-                        chartError?.let { Text("Could not read chart: $it", color = MaterialTheme.colorScheme.error) }
+                        chartError?.let { Text(stringResource(R.string.could_not_read_chart, it), color = MaterialTheme.colorScheme.error) }
                         Spacer(Modifier.height(8.dp))
                         val b = best
-                        Text(
-                            when {
-                                !bestLoaded -> "Personal best: …"
-                                bestError != null -> "Personal best unavailable: $bestError"
-                                b == null -> "Personal best: not played yet"
-                                else -> "Personal best: %,d  ·  %.2f%%  ·  %s".format(b.score, b.accuracy, b.rank)
+                        val currentBestError = bestError
+                        Text(when {
+                                !bestLoaded -> stringResource(R.string.personal_best_loading)
+                                currentBestError != null -> stringResource(R.string.personal_best_unavailable, currentBestError)
+                                b == null -> stringResource(R.string.personal_best_not_played)
+                                else -> stringResource(R.string.personal_best_summary, b.score, b.accuracy, b.rank)
                             },
                             fontWeight = FontWeight.SemiBold,
                             color = b?.let { PlayColors.rank(it.rank) } ?: MaterialTheme.colorScheme.onSurface,
                         )
                         Spacer(Modifier.height(6.dp))
-                        OutlinedButton(onClick = { showLeaderboard = true }) { Text("Leaderboard") }
+                        OutlinedButton(onClick = { showLeaderboard = true }) { Text(stringResource(R.string.leaderboard)) }
 
                         Spacer(Modifier.height(16.dp))
 
                         SettingsPanel(settings, onSettingsChange, onSettingsCommit)
                         settingsError?.let {
-                            Text(
-                                "Could not save settings: $it",
+                            Text(stringResource(R.string.game_settings_error, it),
                                 color = MaterialTheme.colorScheme.error,
                                 style = MaterialTheme.typography.bodySmall,
                                 modifier = Modifier.padding(top = 8.dp)
@@ -186,7 +185,7 @@ fun SongInfoDialog(
                     onClick = { chart?.let { onSettingsCommit(settings); onPlay(it) } },
                     enabled = chart != null,
                     modifier = Modifier.fillMaxWidth().padding(12.dp),
-                ) { Text(if (chart == null && chartError == null) "Loading chart…" else "Play") }
+                ) { Text(if (chart == null && chartError == null) stringResource(R.string.loading_chart) else stringResource(R.string.play)) }
             }
         }
     }
@@ -202,9 +201,9 @@ private fun SettingsPanel(
     onChange: (GameSettings) -> Unit,
     onCommit: (GameSettings) -> Unit,
 ) {
-    Text("Game settings", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+    Text(stringResource(R.string.game_settings), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 
-    Text("Playfield layout", fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
+    Text(stringResource(R.string.playfield_layout), fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         PlayTypeOption(
             selected = s.playType == Portrait,
@@ -232,22 +231,22 @@ private fun SettingsPanel(
         }
     }
 
-    Text("Audio", fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
+    Text(stringResource(R.string.audio), fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
     SettingSlider("Music", "${s.musicVolume}", s.musicVolume.toFloat(), 0f..100f, 99,
         onChange = { onChange(s.copy(musicVolume = it.roundToInt()).coerced()) }, onFinished = { onCommit(s) })
     SettingSlider("Hitsound", "${s.hitsoundVolume}", s.hitsoundVolume.toFloat(), 0f..100f, 99,
         onChange = { onChange(s.copy(hitsoundVolume = it.roundToInt()).coerced()) }, onFinished = { onCommit(s) })
 
-    Text("Speed", fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
+    Text(stringResource(R.string.speed), fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
     SettingSlider("Note speed", fmt1(s.speed), s.speed.toFloat(), NoteScroll.MIN_SPEED.toFloat()..NoteScroll.MAX_SPEED.toFloat(), 148,
         onChange = { onChange(s.copy(speed = it.toDouble()).coerced()) }, onFinished = { onCommit(s) },
         onStep = { dir -> onCommit(s.copy(speed = s.speed + dir * 0.1).coerced().also(onChange)) })
 
-    Text("Background", fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
+    Text(stringResource(R.string.background), fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
     SettingSlider("Background dim (0 = clear, 100 = dark)", "${s.backgroundDim}", s.backgroundDim.toFloat(), 0f..100f, 99,
         onChange = { onChange(s.copy(backgroundDim = it.roundToInt()).coerced()) }, onFinished = { onCommit(s) })
 
-    Text("Timing", fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
+    Text(stringResource(R.string.timing), fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
     SettingSlider(
         "Note offset (+ = later)", "${s.nodeOffsetMs} ms", s.nodeOffsetMs.toFloat(),
         GameSettings.OFFSET_MIN.toFloat()..GameSettings.OFFSET_MAX.toFloat(),

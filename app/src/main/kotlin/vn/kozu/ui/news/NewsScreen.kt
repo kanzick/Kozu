@@ -5,58 +5,60 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -64,18 +66,16 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
-import vn.kozu.R
 import vn.kozu.data.news.NewsFeed
 import vn.kozu.data.news.NewsPost
 import vn.kozu.data.news.NewsReadState
 import vn.kozu.di.AppContainer
+import vn.kozu.R
+import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.KozuSearchField
 import vn.kozu.ui.components.LocalOverlayBottomInset
 import vn.kozu.ui.components.RefreshIndicator
-import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.softTopEdge
-import vn.kozu.ui.i18n.KozuText as Text
-import vn.kozu.ui.i18n.kozuUiString
 
 private sealed interface NewsState {
     data object Loading : NewsState
@@ -118,7 +118,7 @@ fun NewsScreen(
             NewsReadState.updateLatest(context, loadedPosts)
             state = NewsState.Ready(loadedPosts)
         } catch (error: Exception) {
-            // Keep the existing feed visible when a pull-to-refresh fails.
+
             if (!hadContent) {
                 state = NewsState.Failed(error.message ?: "Could not load the news")
             }
@@ -168,8 +168,8 @@ fun NewsScreen(
     val openExternal: (String) -> Unit = { url ->
         runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
     }
-    // Reuse Kozu's existing osu! OAuth flow. The browser is only used for osu!'s
-    // authorization screen; comment composition and posting remain inside Kozu.
+
+
     val signInToComment: () -> Unit = {
         scope.launch {
             try {
@@ -225,7 +225,7 @@ fun NewsScreen(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    TopIcon(R.drawable.at_arrow_back, kozuUiString("Back")) {
+                    TopIcon(R.drawable.at_arrow_back, stringResource(R.string.back)) {
                         when (mode) {
                             NewsHeaderMode.Search -> {
                                 searching = false
@@ -241,14 +241,14 @@ fun NewsScreen(
                             query = query,
                             onQueryChange = { query = it },
                             onSearch = {},
-                            placeholder = kozuUiString("Search news"),
+                            placeholder = "Search news",
                             modifier = Modifier.weight(1f),
                         )
                     } else {
                         Spacer(Modifier.weight(1f))
                         when (mode) {
-                            NewsHeaderMode.List -> TopIcon(R.drawable.at_search, kozuUiString("Search")) { searching = true }
-                            NewsHeaderMode.Detail -> TopIcon(R.drawable.at_share, kozuUiString("Open on osu!")) {
+                            NewsHeaderMode.List -> TopIcon(R.drawable.at_search, stringResource(R.string.search)) { searching = true }
+                            NewsHeaderMode.Detail -> TopIcon(R.drawable.at_share, stringResource(R.string.open_on_osu)) {
                                 detail?.url?.let(openExternal)
                             }
                             NewsHeaderMode.Search -> Unit
@@ -286,7 +286,7 @@ fun NewsScreen(
                 when (val current = state) {
                     NewsState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
                     is NewsState.Failed -> NewsMessage(
-                        title = kozuUiString("Couldn't load the news"),
+                        title = "Couldn't load the news",
                         message = current.message,
                         onRetry = { reload++ },
                         onOpenSite = { openExternal(NewsFeed.SITE_URL) },
@@ -319,16 +319,14 @@ fun NewsScreen(
                                 verticalArrangement = Arrangement.spacedBy(14.dp),
                             ) {
                                 item(key = "title") {
-                                    Text(
-                                        kozuUiString("News"),
+                                    Text(stringResource(R.string.news_title),
                                         style = MaterialTheme.typography.displaySmall,
                                         modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 10.dp),
                                     )
                                 }
                                 if (visible.isEmpty()) {
                                     item(key = "empty") {
-                                        Text(
-                                            kozuUiString(if (query.isBlank()) "No news yet." else "Nothing matches your search."),
+                                        Text(if (query.isBlank()) stringResource(R.string.no_news_yet) else stringResource(R.string.nothing_matches_search),
                                             style = MaterialTheme.typography.bodyLarge,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.padding(24.dp),
@@ -342,7 +340,7 @@ fun NewsScreen(
                                     FilledTonalButton(
                                         onClick = { openExternal(NewsFeed.SITE_URL) },
                                         modifier = Modifier.fillMaxWidth().navigationBarsPadding(),
-                                    ) { Text("Read more on osu.ppy.sh") }
+                                    ) { Text(stringResource(R.string.read_more_osu)) }
                                 }
                             }
                         }
@@ -377,16 +375,14 @@ private fun NewsChips(post: NewsPost) {
             color = if (fresh) colors.tertiary else colors.secondaryContainer,
             contentColor = if (fresh) colors.onTertiary else colors.onSecondaryContainer,
         ) {
-            Text(
-                if (fresh) "New" else "News",
+            Text(if (fresh) stringResource(R.string.new_label) else "News",
                 style = MaterialTheme.typography.titleSmall,
                 maxLines = 1,
                 modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
             )
         }
         Surface(Modifier.weight(1f, fill = false), shape = CircleShape, color = colors.surfaceContainerHighest) {
-            Text(
-                listOf(post.author, post.dateLabel).filter { it.isNotBlank() }.joinToString(" · "),
+            Text(listOf(post.author, post.dateLabel).filter { it.isNotBlank() }.joinToString(" · "),
                 style = MaterialTheme.typography.titleSmall,
                 color = colors.onSurfaceVariant,
                 maxLines = 1,
@@ -420,8 +416,7 @@ private fun NewsCard(
             NewsChips(post)
             Text(post.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Medium, maxLines = 3, overflow = TextOverflow.Ellipsis)
             if (post.summary.isNotBlank()) {
-                Text(
-                    post.summary,
+                Text(post.summary,
                     style = MaterialTheme.typography.bodyLarge,
                     color = colors.onSurfaceVariant,
                     maxLines = 3,
@@ -488,7 +483,7 @@ private fun NewsDetail(
         }
         item(key = "article-open-site") {
             FilledTonalButton(onClick = { onOpenUrl(post.url) }, modifier = Modifier.fillMaxWidth()) {
-                Text("Open on osu.ppy.sh")
+                Text(stringResource(R.string.open_osu))
             }
         }
     }
@@ -510,8 +505,8 @@ private fun NewsMessage(
         Spacer(Modifier.height(8.dp))
         Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(20.dp))
-        FilledTonalButton(onClick = onRetry) { Text("Retry") }
+        FilledTonalButton(onClick = onRetry) { Text(stringResource(R.string.retry)) }
         Spacer(Modifier.height(8.dp))
-        FilledTonalButton(onClick = onOpenSite) { Text("Open osu.ppy.sh") }
+        FilledTonalButton(onClick = onOpenSite) { Text(stringResource(R.string.open_osu_site)) }
     }
 }

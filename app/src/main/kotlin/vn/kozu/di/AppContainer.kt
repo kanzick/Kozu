@@ -3,13 +3,12 @@ package vn.kozu.di
 import android.content.Context
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.SupervisorJob
 import vn.kozu.data.backup.BackupManager
 import vn.kozu.data.download.DownloadManager
-import vn.kozu.data.news.NewsFeed
 import vn.kozu.data.local.AccountStore
 import vn.kozu.data.local.DownloadsStore
 import vn.kozu.data.local.FavoritesStore
@@ -18,9 +17,10 @@ import vn.kozu.data.local.PlaylistStore
 import vn.kozu.data.local.SettingsStore
 import vn.kozu.data.mirror.MirrorTester
 import vn.kozu.data.mirror.StreamResolver
-import vn.kozu.data.remote.ProxyController
+import vn.kozu.data.news.NewsFeed
 import vn.kozu.data.remote.osu.OsuApiFactory
 import vn.kozu.data.remote.osu.OsuAuth
+import vn.kozu.data.remote.ProxyController
 import vn.kozu.data.repository.AccountRepository
 import vn.kozu.data.repository.BeatmapRepository
 import vn.kozu.data.repository.DiscoverFeed

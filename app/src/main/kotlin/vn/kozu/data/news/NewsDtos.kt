@@ -2,7 +2,6 @@ package vn.kozu.data.news
 
 import com.google.gson.annotations.SerializedName
 
-/** osu! API v2 news listing response. */
 data class NewsListingDto(
     @SerializedName("news_posts") val newsPosts: List<NewsPostDto> = emptyList(),
     @SerializedName("cursor_string") val cursorString: String? = null,
@@ -51,7 +50,7 @@ data class NewsCommentUserDto(
     @SerializedName("avatar_url") val avatarUrl: String? = null,
 )
 
-/** Request body used by osu! API v2 when an authenticated user posts a comment. */
+
 data class NewsCommentCreateRequest(
     @SerializedName("comment") val comment: NewsCommentCreateDto,
 )
@@ -62,4 +61,3 @@ data class NewsCommentCreateDto(
     @SerializedName("message") val message: String,
     @SerializedName("parent_id") val parentId: Long? = null,
 )
-

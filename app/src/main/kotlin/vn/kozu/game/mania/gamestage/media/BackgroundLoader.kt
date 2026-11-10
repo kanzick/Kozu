@@ -1,8 +1,8 @@
 package vn.kozu.game.mania.gamestage.media
 
 import android.graphics.BitmapFactory
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.ImageBitmap
 import java.io.File
 
 object BackgroundLoader {

@@ -1,34 +1,28 @@
 package vn.kozu.game.mania.previewstage.ui
 
-import vn.kozu.ui.i18n.kozuUiString
-
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Checkbox
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Search
@@ -36,41 +30,47 @@ import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import vn.kozu.ui.i18n.KozuText as Text
+import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import vn.kozu.domain.model.Beatmap
-import vn.kozu.ui.components.BeatmapArt
-import vn.kozu.ui.components.EmptyState
-import vn.kozu.ui.components.SectionHeader
-import vn.kozu.ui.components.bounceClick
-import vn.kozu.game.mania.previewstage.PreviewStageModule
 import vn.kozu.game.mania.previewstage.model.DifficultyRecord
 import vn.kozu.game.mania.previewstage.model.ScoreRecord
 import vn.kozu.game.mania.previewstage.model.SongEntry
 import vn.kozu.game.mania.previewstage.model.StartupReport
-import java.util.Locale
+import vn.kozu.game.mania.previewstage.PreviewStageModule
+import vn.kozu.R
+import vn.kozu.ui.components.BeatmapArt
+import vn.kozu.ui.components.bounceClick
+import vn.kozu.ui.components.EmptyState
+import vn.kozu.ui.components.SectionHeader
 
 private data class DifficultyEntry(val song: SongEntry, val difficulty: DifficultyRecord)
 
@@ -387,7 +387,7 @@ fun PreviewStageScreen(
                         modifier = Modifier.weight(1f),
                         singleLine = true,
                         shape = RoundedCornerShape(20.dp),
-                        placeholder = { Text("Search maps") },
+                        placeholder = { Text(stringResource(R.string.search_maps)) },
                         leadingIcon = {
                             Icon(Icons.Rounded.Search, contentDescription = null)
                         },
@@ -406,7 +406,7 @@ fun PreviewStageScreen(
                     ) {
                         Icon(Icons.Rounded.Shuffle, contentDescription = null)
                         Spacer(Modifier.width(6.dp))
-                        Text("Random")
+                        Text(stringResource(R.string.random))
                     }
                 }
             }
@@ -420,7 +420,7 @@ fun PreviewStageScreen(
                             .bounceClick(pressedScale = 0.99f) { showSortOptions = !showSortOptions },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text("Sort", modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+                        Text(stringResource(R.string.sort), modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
                         Text(if (showSortOptions) "Hide" else "Show", style = MaterialTheme.typography.labelMedium)
                     }
                     AnimatedVisibility(visible = showSortOptions) {
@@ -449,7 +449,7 @@ fun PreviewStageScreen(
                             .bounceClick(pressedScale = 0.99f) { showGroupOptions = !showGroupOptions },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text("Group", modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+                        Text(stringResource(R.string.group), modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
                         Text(if (showGroupOptions) "Hide" else "Show", style = MaterialTheme.typography.labelMedium)
                     }
                     AnimatedVisibility(visible = showGroupOptions) {
@@ -488,8 +488,7 @@ fun PreviewStageScreen(
         }
         metadataErrors.values.distinct().takeIf { it.isNotEmpty() }?.let { messages ->
             item(key = "metadata-errors") {
-                Text(
-                    messages.joinToString("\n"),
+                Text(messages.joinToString("\n"),
                     modifier = Modifier.padding(horizontal = 24.dp),
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
@@ -498,8 +497,7 @@ fun PreviewStageScreen(
         }
         scoreErrors.values.distinct().takeIf { it.isNotEmpty() }?.let { messages ->
             item(key = "score-errors") {
-                Text(
-                    messages.joinToString("\n") { "Scores unavailable: $it" },
+                Text(messages.joinToString("\n") { "Scores unavailable: $it" },
                     modifier = Modifier.padding(horizontal = 24.dp),
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
@@ -519,10 +517,9 @@ fun PreviewStageScreen(
                         modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Text("Some archives could not be imported", style = MaterialTheme.typography.titleSmall)
+                        Text(stringResource(R.string.some_archives_could_not_be_imported), style = MaterialTheme.typography.titleSmall)
                         failures.forEach { failure ->
-                            Text(
-                                "${failure.fileName}: ${failure.reason}",
+                            Text("${failure.fileName}: ${failure.reason}",
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
@@ -541,8 +538,7 @@ fun PreviewStageScreen(
                 )
             }
             report == null -> item(key = "loading") {
-                Text(
-                    "Loading charts…",
+                Text(stringResource(R.string.loading_charts),
                     modifier = Modifier.padding(horizontal = 26.dp, vertical = 20.dp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -554,7 +550,7 @@ fun PreviewStageScreen(
                     message = "Add a map to build your personal play list.",
                     modifier = Modifier.padding(horizontal = 20.dp),
                     action = {
-                        Button(onClick = onAddMaps) { Text("Add maps") }
+                        Button(onClick = onAddMaps) { Text(stringResource(R.string.add_maps)) }
                     }
                 )
             }
@@ -586,13 +582,11 @@ fun PreviewStageScreen(
                             Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(
-                                item.title,
+                            Text(item.title,
                                 modifier = Modifier.weight(1f),
                                 style = MaterialTheme.typography.titleSmall,
                             )
-                            Text(
-                                "${item.count}  ${if (item.key in expandedGroups) "−" else "+"}",
+                            Text("${item.count}  ${if (item.key in expandedGroups) "−" else "+"}",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
@@ -651,7 +645,7 @@ fun PreviewStageScreen(
     deleteTarget?.let { song ->
         AlertDialog(
             onDismissRequest = { if (deletingSongId == null) deleteTarget = null },
-            title = { Text("Delete map?") },
+            title = { Text(stringResource(R.string.delete_map)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Remove \"${song.displayTitle.ifBlank { "Beatmap ${song.songId}" }}\" and its chart files from this device?")
@@ -681,14 +675,14 @@ fun PreviewStageScreen(
                         }
                     },
                 ) {
-                    Text(if (deletingSongId == song.songId) "Deleting…" else "Delete")
+                    Text(if (deletingSongId == song.songId) "Deleting…" else stringResource(R.string.delete))
                 }
             },
             dismissButton = {
                 TextButton(
                     enabled = deletingSongId == null,
                     onClick = { deleteTarget = null },
-                ) { Text("Cancel") }
+                ) { Text(stringResource(R.string.cancel)) }
             },
         )
     }
@@ -696,11 +690,11 @@ fun PreviewStageScreen(
     collectionTarget?.let { song ->
         AlertDialog(
             onDismissRequest = { collectionTarget = null },
-            title = { Text("Collections") },
+            title = { Text(stringResource(R.string.collections)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     if (collectionOptions.isEmpty()) {
-                        Text("Create a collection to organize downloaded maps.")
+                        Text(stringResource(R.string.create_collection_hint))
                     }
                     collectionOptions.forEach { name ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -719,7 +713,7 @@ fun PreviewStageScreen(
                             onValueChange = { newCollection = it.take(40) },
                             modifier = Modifier.weight(1f),
                             singleLine = true,
-                            label = { Text("New collection") },
+                            label = { Text(stringResource(R.string.new_collection)) },
                         )
                         TextButton(
                             onClick = {
@@ -730,7 +724,7 @@ fun PreviewStageScreen(
                                     newCollection = ""
                                 }
                             },
-                        ) { Text("Add") }
+                        ) { Text(stringResource(R.string.add)) }
                     }
                     collectionError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 }
@@ -751,10 +745,10 @@ fun PreviewStageScreen(
                             }
                         }
                     },
-                ) { Text("Save") }
+                ) { Text(stringResource(R.string.save)) }
             },
             dismissButton = {
-                TextButton(onClick = { collectionTarget = null }) { Text("Cancel") }
+                TextButton(onClick = { collectionTarget = null }) { Text(stringResource(R.string.cancel)) }
             },
         )
     }
@@ -800,14 +794,12 @@ private fun ChartSetCard(
                 BeatmapArt(beatmap, Modifier.size(60.dp), shape = RoundedCornerShape(20.dp))
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(
-                        title,
+                    Text(title,
                         style = MaterialTheme.typography.titleMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Text(
-                        artist,
+                    Text(artist,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -820,8 +812,7 @@ private fun ChartSetCard(
                         ?.let { ratings ->
                             val minimum = ratings.minOrNull() ?: return@let
                             val maximum = ratings.maxOrNull() ?: return@let
-                            Text(
-                                "${String.format(Locale.US, "%.2f★", minimum)} – ${String.format(Locale.US, "%.2f★", maximum)}",
+                            Text("${String.format(Locale.US, "%.2f★", minimum)} – ${String.format(Locale.US, "%.2f★", maximum)}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.primary,
                                 maxLines = 1
@@ -831,7 +822,7 @@ private fun ChartSetCard(
                 IconButton(onClick = onDelete, enabled = !deleting) {
                     Icon(
                         Icons.Rounded.Delete,
-                        contentDescription = kozuUiString("Delete map"),
+                        contentDescription = stringResource(R.string.delete_map_text),
                         tint = MaterialTheme.colorScheme.error,
                     )
                 }
@@ -841,7 +832,7 @@ private fun ChartSetCard(
                 ) {
                     Icon(
                         Icons.Rounded.PlayArrow,
-                        contentDescription = kozuUiString("Play preview"),
+                        contentDescription = stringResource(R.string.play_preview),
                         tint = MaterialTheme.colorScheme.primary,
                     )
                 }
@@ -860,8 +851,7 @@ private fun ChartSetCard(
                 }
             }
             previewError?.let {
-                Text(
-                    "Preview unavailable: $it",
+                Text(stringResource(R.string.preview_unavailable, it),
                     modifier = Modifier.padding(start = 18.dp, end = 18.dp, bottom = 10.dp),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.error,
@@ -873,22 +863,20 @@ private fun ChartSetCard(
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     if (scoresLoading && bestScores == null) {
-                        Text(
-                            "Loading personal scores…",
+                        Text(stringResource(R.string.loading_personal_scores),
                             modifier = Modifier.padding(horizontal = 8.dp),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     scoreError?.let {
-                        Text(
-                            "Could not load personal scores: $it",
+                        Text(stringResource(R.string.personal_scores_error, it),
                             modifier = Modifier.padding(horizontal = 8.dp),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.error,
                         )
                     }
-                    TextButton(onClick = onManageCollections) { Text("Collections") }
+                    TextButton(onClick = onManageCollections) { Text(stringResource(R.string.collections)) }
                     song.difficulties.forEach { difficulty ->
                         DifficultyRow(
                             difficulty = difficulty,
@@ -920,14 +908,12 @@ private fun DifficultyRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(Modifier.weight(1f)) {
-                Text(
-                    difficulty.version,
+                Text(difficulty.version,
                     style = MaterialTheme.typography.titleSmall,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    buildList {
+                Text(buildList {
                         if (difficulty.starRating > 0.0) {
                             add(String.format(Locale.US, "%.2f★", difficulty.starRating))
                         }
@@ -939,8 +925,7 @@ private fun DifficultyRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 score?.let {
-                    Text(
-                        "${it.rank}  ·  %.2f%%  ·  %,d pts  ·  %s/%s combo".format(
+                    Text("${it.rank}  ·  %.2f%%  ·  %,d pts  ·  %s/%s combo".format(
                             java.util.Locale.ROOT,
                             it.accuracy,
                             it.score,
@@ -955,13 +940,11 @@ private fun DifficultyRow(
                 }
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    "${difficulty.circleSize.toInt()}K",
+                Text("${difficulty.circleSize.toInt()}K",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
-                Text(
-                    "${difficulty.beatmapId}",
+                Text("${difficulty.beatmapId}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1010,7 +993,7 @@ private enum class MapGroup(val label: String, val perDifficulty: Boolean = fals
 
 private fun bpmKey(difficulty: DifficultyRecord) = "${difficulty.songId}|${difficulty.osuFile}"
 
-// First uninherited timing point of the .osu file, as BPM.
+
 private fun readBpm(folder: java.io.File, difficulty: DifficultyRecord): Double? =
     run {
         var inTiming = false
@@ -1277,8 +1260,7 @@ private fun DifficultyCard(
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(
-                    buildList {
+                Text(buildList {
                         if (difficulty.starRating > 0.0) {
                             add(String.format(Locale.US, "%.2f★", difficulty.starRating))
                         }
@@ -1290,8 +1272,7 @@ private fun DifficultyCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    buildList {
+                Text(buildList {
                         add("[${difficulty.version}]")
                         add("${difficulty.circleSize.toInt()}K")
                         add(bpm?.let { "${it.toInt()} BPM" } ?: "Unknown BPM")
@@ -1303,8 +1284,7 @@ private fun DifficultyCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 score?.let {
-                    Text(
-                        "${it.rank}  ·  %.2f%%  ·  %,d pts".format(Locale.ROOT, it.accuracy, it.score),
+                    Text("${it.rank}  ·  %.2f%%  ·  %,d pts".format(Locale.ROOT, it.accuracy, it.score),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -1315,7 +1295,7 @@ private fun DifficultyCard(
             IconButton(onClick = onDelete) {
                 Icon(
                     Icons.Rounded.Delete,
-                    contentDescription = kozuUiString("Delete map"),
+                    contentDescription = stringResource(R.string.delete_map_text),
                     tint = MaterialTheme.colorScheme.error,
                 )
             }

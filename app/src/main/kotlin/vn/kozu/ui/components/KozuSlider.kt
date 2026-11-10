@@ -1,13 +1,13 @@
 package vn.kozu.ui.components
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -24,10 +24,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import vn.kozu.ui.i18n.KozuText as Text
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,37 +36,37 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.setProgress
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
-import vn.kozu.domain.model.SliderStyle
-import kotlin.math.PI
+import androidx.compose.ui.unit.IntOffset
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.PI
 import kotlin.math.roundToInt
 import kotlin.math.sin
+import kotlinx.coroutines.launch
+import vn.kozu.domain.model.SliderStyle
 
 private val SliderCrossSize = 48.dp
 private val ExpressiveTrack = 16.dp
@@ -75,10 +75,10 @@ private val ExpressiveHandleWidth = 4.dp
 private val ExpressiveGap = 6.dp
 private val InnerCorner = 3.dp
 
-/** Snappy spring used when the thumb follows the finger between discrete steps. */
+
 private val FollowSpring = spring<Float>(dampingRatio = 0.72f, stiffness = Spring.StiffnessMedium)
 
-/** Softer spring used when the thumb travels to a tapped position or to a value set from outside. */
+
 private val TravelSpring = spring<Float>(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow)
 
 private class SliderMath(
@@ -100,16 +100,7 @@ private class SliderMath(
         }
 }
 
-/**
- * Slider used everywhere in Kozu: settings, equalizer, game options and the player seek bar.
- *
- * Unlike the stock Material slider, the thumb always *travels*: it follows the finger with a spring,
- * glides between discrete steps and animates to a tapped position instead of teleporting.
- *
- * @param origin value the filled part starts from (for example `0f` on a -1..1 equalizer band).
- * @param vertical draws the slider bottom-to-top. The caller must give it a bounded height.
- * @param bubbleLabel when set, a small bubble with the current value floats above the thumb while dragging.
- */
+
 @Composable
 fun KozuSlider(
     value: Float,
@@ -142,7 +133,7 @@ fun KozuSlider(
     val latestChange by rememberUpdatedState(onValueChange)
     val latestFinished by rememberUpdatedState(onValueChangeFinished)
 
-    // Follow value changes that come from outside (reset buttons, presets, saved settings).
+
     LaunchedEffect(value, math) {
         if (!dragging) {
             lastEmitted = value
@@ -151,8 +142,8 @@ fun KozuSlider(
     }
 
     val effectiveStyle = if (vertical && style == SliderStyle.WAVY) SliderStyle.EXPRESSIVE else style
-    // Keep the thumb centre exactly one half-thumb-size from either end.
-    // The previous generic 10–12 dp inset left a visible dead strip on vertical sliders.
+
+
     val insetPx =
         with(density) {
             when (effectiveStyle) {
@@ -167,8 +158,7 @@ fun KozuSlider(
         return ((along - insetPx) / usable).coerceIn(0f, 1f)
     }
 
-    // Run the "finished" callback one frame later so callers see the recomposed value, which matters
-    // for taps where the value change and the end of the gesture arrive together.
+
     fun finish() {
         scope.launch {
             withFrameNanos { }
@@ -315,8 +305,8 @@ fun KozuSlider(
             val cross = if (vertical) size.width else size.height
             val usable = (length - 2f * insetPx).coerceAtLeast(1f)
             val handleAlong = insetPx + position.value * usable
-            // A fill that starts at an end of the track must start at the very edge. Only the thumb is
-            // inset, otherwise the first few dp would be drawn as a stray "inactive" blob.
+
+
             val originFraction = origin?.let { math.fraction(it) } ?: 0f
             val originAlong =
                 when {
@@ -374,7 +364,7 @@ fun KozuSlider(
                         }
                         drawPath(path, active, style = Stroke(stroke, cap = StrokeCap.Round, join = StrokeJoin.Round))
                     }
-                    // Keep the along-axis width fixed so the handle remains flush at 0% and 100%.
+
                     val handleW = ExpressiveHandleWidth.toPx()
                     val handleLen = 28.dp.toPx()
                     drawRoundRect(
@@ -403,10 +393,10 @@ fun KozuSlider(
                     val lowInactiveEnd = if (handleIsHi) lo else lo - endGap
                     val highInactiveStart = if (handleIsHi) hi + endGap else hi
 
-                    // Inactive parts on both sides of the filled part.
+
                     segment(vertical, length, 0f, lowInactiveEnd, c0, c1, outer, inner, inactive)
                     segment(vertical, length, highInactiveStart, length, c0, c1, inner, outer, inactive)
-                    // Filled part: round at the track end when it starts there, square-ish next to the handle.
+
                     val startsAtEdge = origin == null || math.fraction(origin) <= 0.001f
                     segment(
                         vertical, length, activeStart, activeEnd, c0, c1,
@@ -415,8 +405,7 @@ fun KozuSlider(
                     )
                     drawTicks(vertical, length, cross, insetPx, usable, math.steps, activeStart, activeEnd, 2.dp.toPx(), activeTick, inactiveTick, handleAlong, endGap + 4.dp.toPx())
 
-                    // The narrow dimension follows the slider axis; do not animate it or it floats
-                    // away from the track ends while the thumb is pressed.
+
                     val handleW = ExpressiveHandleWidth.toPx()
                     val handleLen = ExpressiveHandleLength.toPx().coerceAtMost(cross)
                     val handleRect =
@@ -461,8 +450,7 @@ fun KozuSlider(
                 color = MaterialTheme.colorScheme.inverseSurface,
                 contentColor = MaterialTheme.colorScheme.inverseOnSurface,
             ) {
-                Text(
-                    text = bubbleLabel(math.value(math.snap(position.value))),
+                Text(text = bubbleLabel(math.value(math.snap(position.value))),
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
                     style = MaterialTheme.typography.labelMedium,
                     textAlign = TextAlign.Center,
@@ -479,7 +467,7 @@ private fun lerpPx(
     t: Float,
 ): Float = a + (b - a) * t
 
-/** Draws one rounded segment of a track between two positions along the slider axis. */
+
 private fun DrawScope.segment(
     vertical: Boolean,
     length: Float,
@@ -515,10 +503,7 @@ private fun DrawScope.segment(
     drawPath(Path().apply { addRoundRect(round) }, color)
 }
 
-/**
- * Draws the step dots of a discrete slider, skipping the ones hidden behind the handle.
- * Only the steps *between* the two ends are drawn: 0% and 100% are the ends of the track and get no dot.
- */
+
 private fun DrawScope.drawTicks(
     vertical: Boolean,
     length: Float,

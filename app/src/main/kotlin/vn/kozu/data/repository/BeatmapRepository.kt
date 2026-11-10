@@ -1,8 +1,17 @@
 package vn.kozu.data.repository
 
 import com.google.gson.Gson
-import kotlinx.coroutines.CancellationException
+import java.io.IOException
+import java.time.format.DateTimeFormatter
+import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
+import java.util.Base64
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
+import java.util.Locale
 import kotlinx.coroutines.async
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -15,9 +24,9 @@ import org.json.JSONObject
 import retrofit2.HttpException
 import vn.kozu.data.local.SettingsStore
 import vn.kozu.data.remote.osu.BeatmapsetDto
-import vn.kozu.data.remote.osu.OsuBeatmapDto
 import vn.kozu.data.remote.osu.OsuApi
 import vn.kozu.data.remote.osu.OsuAuth
+import vn.kozu.data.remote.osu.OsuBeatmapDto
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.BeatmapDifficulty
 import vn.kozu.domain.model.BeatmapDifficultyInfo
@@ -29,15 +38,6 @@ import vn.kozu.domain.model.BrowseSortField
 import vn.kozu.domain.model.BrowseStatus
 import vn.kozu.domain.model.SearchCategory
 import vn.kozu.domain.model.SearchSort
-import java.io.IOException
-import java.time.LocalDateTime
-import java.time.OffsetDateTime
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
-import java.util.Locale
-import java.util.Base64
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.TimeUnit
 
 data class CatalogResult(
     val items: List<Beatmap>,
@@ -571,10 +571,7 @@ class BeatmapRepository(
         return hinai ?: mirrorDetails(id)
     }
 
-    /**
-     * Browse or search the catalog. The query may use osu!'s search syntax (`stars<8 ranked=2025`);
-     * both the Search tab and All beatmaps come through here, so they behave identically.
-     */
+
     suspend fun browse(filters: BrowseFilters, cursor: String? = null): CatalogResult {
         val parsed = OsuSearchSyntax.parse(filters.query)
         if (!parsed.hasSyntax) return browseCore(filters, cursor, null)
@@ -587,8 +584,7 @@ class BeatmapRepository(
             return first.copy(ignoredFilters = (first.ignoredFilters + unsupported).distinct())
         }
 
-        // The mirror does not understand the keywords: filter here, reading a few pages if the
-        // first one is mostly filtered out so a page is never empty while more results exist.
+
         var kept = first.items.filter(parsed::matches)
         var last = first
         var pages = 1
@@ -1419,13 +1415,13 @@ class BeatmapRepository(
     }
 
     companion object {
-        /** Cursor that makes the public mirror open a given 0-based page directly. */
+
         fun hinaiPageCursor(page: Int): String = "$HINAI_OFFSET_PREFIX$page"
 
-        /** Results per request, which the browse paging maths has to agree with. */
+
         const val CATALOG_PAGE_SIZE = 50
 
-        /** The public mirror (an Elasticsearch index) stops at this many results. */
+
         const val MIRROR_RESULT_WINDOW = 10_000
 
         private const val HINAI_HOST = "mirror.hinamizawa.ai"

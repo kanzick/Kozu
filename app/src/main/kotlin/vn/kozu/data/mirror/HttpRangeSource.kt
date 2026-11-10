@@ -1,10 +1,10 @@
 package vn.kozu.data.mirror
 
+import java.io.FilterInputStream
+import java.io.InputStream
+import java.io.IOException
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import java.io.FilterInputStream
-import java.io.IOException
-import java.io.InputStream
 
 class HttpRangeSource(
     private val client: OkHttpClient,

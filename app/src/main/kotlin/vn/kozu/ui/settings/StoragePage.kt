@@ -1,18 +1,15 @@
 package vn.kozu.ui.settings
 
-import vn.kozu.ui.i18n.kozuUiString
-import vn.kozu.ui.components.KozuSheetHandle
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,13 +23,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import vn.kozu.ui.i18n.KozuText as Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberBottomSheetState
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -40,20 +37,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.SingletonImageLoader
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import vn.kozu.data.local.DownloadedSet
+import vn.kozu.R
+import vn.kozu.ui.components.KozuSheetHandle
 
 private const val FORGOTTEN_DAYS = 60L
 private const val DAY_MS = 24L * 60L * 60L * 1000L
@@ -118,13 +118,13 @@ fun StoragePage(viewModel: SettingsViewModel, onBack: () -> Unit) {
         }
     }
 
-    SettingsScaffold(title = "Storage Sense", onBack = onBack) {
+    SettingsScaffold(title = stringResource(R.string.storage_sense), onBack = onBack) {
         SettingsSection(null) {
             custom { shape ->
                 ReclaimCard(shape, reclaimable, streamBytes, artworkBytes, forgottenBytes)
             }
         }
-        SettingsSection("App cache & storage") {
+        SettingsSection(stringResource(R.string.settings_app_cache_storage)) {
             dropdown(
                 Setting.STREAM_CACHE,
                 settings.streamCacheMb,
@@ -162,7 +162,7 @@ fun StoragePage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                 destructive = true
             ) { confirm = StorageConfirm.HISTORY }
         }
-        SettingsSection("Downloads") {
+        SettingsSection(stringResource(R.string.downloads)) {
             info(
                 Setting.DOWNLOAD_LIMIT.icon,
                 "Used space",
@@ -192,7 +192,7 @@ fun StoragePage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                 description = "Offline songs you have not played in $FORGOTTEN_DAYS days."
             ) { showForgotten = true }
         }
-        SettingsSection("Automatic cleanup") {
+        SettingsSection(stringResource(R.string.automatic_cleanup)) {
             switch(Setting.AUTO_CLEAN, settings.autoCleanCache) { value ->
                 viewModel.save { setAutoCleanCache(value) }
             }
@@ -268,7 +268,7 @@ internal fun ConfirmDialog(
         title = { Text(title) },
         text = { Text(text) },
         confirmButton = { TextButton(onClick = onConfirm) { Text(action) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
     )
 }
 
@@ -277,7 +277,7 @@ private fun ReclaimCard(shape: Shape, total: Long, stream: Long, artwork: Long, 
     val colors = MaterialTheme.colorScheme
     SettingCard(setting = null, shape = shape, onClick = null) {
         Column(Modifier.padding(horizontal = 20.dp, vertical = 18.dp)) {
-            Text("Reclaimable space", style = MaterialTheme.typography.titleSmall, color = colors.primary)
+            Text(stringResource(R.string.reclaimable_space), style = MaterialTheme.typography.titleSmall, color = colors.primary)
             Text(formatBytes(total), style = MaterialTheme.typography.displaySmall)
             Spacer(Modifier.height(14.dp))
             val sum = (stream + artwork + forgotten).coerceAtLeast(1L).toFloat()
@@ -316,8 +316,7 @@ private fun Legend(color: Color, label: String, bytes: Long) {
         )
         Spacer(Modifier.width(10.dp))
         Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-        Text(
-            formatBytes(bytes),
+        Text(formatBytes(bytes),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -349,20 +348,17 @@ private fun ForgottenSheet(
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 24.dp)
         ) {
-            Text(
-                "Forgotten tracks",
+            Text(stringResource(R.string.forgotten_tracks),
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.padding(vertical = 8.dp)
             )
-            Text(
-                "Offline songs not played in the last $FORGOTTEN_DAYS days.",
+            Text(stringResource(R.string.offline_not_played, FORGOTTEN_DAYS),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(Modifier.height(12.dp))
             if (items.isEmpty()) {
-                Text(
-                    "Nothing to review. Every offline song has been played recently.",
+                Text(stringResource(R.string.nothing_to_review_every_offline_song_has_been_played),
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.padding(vertical = 24.dp)
                 )
@@ -378,7 +374,7 @@ private fun ForgottenSheet(
                 }
                 Spacer(Modifier.height(16.dp))
                 FilledTonalButton(onClick = onDeleteAll, modifier = Modifier.fillMaxWidth()) {
-                    Text("Delete all forgotten")
+                    Text(stringResource(R.string.delete_all_forgotten))
                 }
             }
         }
@@ -393,14 +389,12 @@ private fun ForgottenRow(shape: Shape, set: DownloadedSet, daysAgo: Int, onDelet
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(Modifier.weight(1f)) {
-                Text(
-                    set.beatmap.title,
+                Text(set.beatmap.title,
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    "${set.beatmap.artist} · ${formatBytes(set.sizeBytes)} · $daysAgo days ago",
+                Text(stringResource(R.string.storage_item_summary, set.beatmap.artist, formatBytes(set.sizeBytes), daysAgo),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -408,7 +402,7 @@ private fun ForgottenRow(shape: Shape, set: DownloadedSet, daysAgo: Int, onDelet
                 )
             }
             IconButton(onClick = onDelete) {
-                Icon(Icons.Rounded.Delete, contentDescription = kozuUiString("Delete ${set.beatmap.title}"), tint = MaterialTheme.colorScheme.error)
+                Icon(Icons.Rounded.Delete, contentDescription = stringResource(R.string.delete_item, set.beatmap.title), tint = MaterialTheme.colorScheme.error)
             }
         }
     }

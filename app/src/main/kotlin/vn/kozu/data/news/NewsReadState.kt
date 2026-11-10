@@ -5,7 +5,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
-/** Tracks whether the newest osu! news post has been opened on this device. */
 object NewsReadState {
     private const val PREFS_NAME = "kozu_news_read_state"
     private const val KEY_LATEST_POST_ID = "latest_post_id"
@@ -36,8 +35,8 @@ object NewsReadState {
     fun updateLatest(context: Context, posts: List<NewsPost>) {
         initialize(context)
         val newest = posts.maxWithOrNull(compareBy<NewsPost> { it.dateMillis }.thenBy { it.id }) ?: return
-        // Two feed requests can finish out of order (startup check and opening the page).
-        // Never let an older response replace a newer notification target.
+
+
         if (
             latestPostId != 0L &&
             (newest.dateMillis < latestPostDate ||
@@ -58,7 +57,7 @@ object NewsReadState {
     @Synchronized
     fun markSeen(context: Context, postId: Long) {
         initialize(context)
-        // Opening an older article must not clear the notification for a newer one.
+
         if (postId <= 0L || postId != latestPostId) return
 
         lastSeenPostId = postId

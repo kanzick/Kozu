@@ -18,7 +18,7 @@ class PreviewPlayer(context: Context) {
     private var player: MediaPlayer? = null
 
     companion object {
-        /** Called on the main thread whenever a preview actually starts making sound. */
+
         @Volatile
         var onAudible: (() -> Unit)? = null
     }
@@ -60,7 +60,7 @@ class PreviewPlayer(context: Context) {
                     p.setOnSeekCompleteListener { sp ->
                         if (player === sp) {
                             sp.start()
-                            // Tell the app the preview is audible so it can pause the main player.
+
                             mainHandler.post { onAudible?.invoke() }
                         }
                     }

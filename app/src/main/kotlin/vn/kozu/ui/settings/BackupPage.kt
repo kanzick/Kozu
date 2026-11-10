@@ -1,18 +1,15 @@
 package vn.kozu.ui.settings
 
-import vn.kozu.ui.i18n.kozuUiString
-import vn.kozu.ui.components.KozuSheetHandle
-
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -27,10 +24,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
-import vn.kozu.ui.i18n.KozuText as Text
-import androidx.compose.material3.rememberBottomSheetState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,21 +36,24 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import java.io.ByteArrayOutputStream
+import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import vn.kozu.data.backup.BackupException
 import vn.kozu.data.backup.BackupInfo
 import vn.kozu.data.backup.BackupSection
-import java.io.ByteArrayOutputStream
-import java.io.IOException
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import vn.kozu.R
+import vn.kozu.ui.components.KozuSheetHandle
 
 private const val MAX_BACKUP_BYTES = 25_000_000
 
@@ -136,13 +136,13 @@ fun BackupPage(
             }
         }
 
-    SettingsScaffold(title = "Backup & Restore", onBack = onBack) {
+    SettingsScaffold(title = stringResource(R.string.backup_and_restore_text), onBack = onBack) {
         if (!infoDismissed) {
             SettingsSection(null) {
                 custom { shape -> HowItWorksCard(shape) { infoDismissed = true } }
             }
         }
-        SettingsSection("Your data") {
+        SettingsSection(stringResource(R.string.settings_your_data)) {
             action(
                 Setting.EXPORT_BACKUP,
                 label = if (busy) "Working…" else "Create backup",
@@ -155,7 +155,7 @@ fun BackupPage(
             ) { restoreLauncher.launch(arrayOf("*/*")) }
         }
         outcome?.let { result ->
-            SettingsSection("Last result") {
+            SettingsSection(stringResource(R.string.settings_last_result)) {
                 custom { shape -> OutcomeCard(shape, result) }
             }
         }
@@ -240,18 +240,15 @@ private fun HowItWorksCard(
             }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f).padding(top = 4.dp)) {
-                Text("How backup works", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.how_backup_works), style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(4.dp))
-                Text(
-                    "A backup is a single file you save wherever you like. It holds the sections you choose: settings, favorites, playlists and listening history. " +
-                        "Restoring merges the file into what you already have and never removes anything. " +
-                        "Sign-in tokens, API credentials and proxy passwords are never stored in a backup, and downloaded songs are not included.",
+                Text(stringResource(R.string.backup_description_full),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             IconButton(onClick = onDismiss) {
-                Icon(Icons.Rounded.Close, contentDescription = kozuUiString("Dismiss"))
+                Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.dismiss))
             }
         }
     }
@@ -264,8 +261,7 @@ private fun OutcomeCard(
 ) {
     SettingCard(setting = null, shape = shape, onClick = null) {
         Column(Modifier.padding(horizontal = 18.dp, vertical = 16.dp)) {
-            Text(
-                if (outcome.success) "Done" else "Something went wrong",
+            Text(if (outcome.success) stringResource(R.string.done) else "Something went wrong",
                 style = MaterialTheme.typography.titleMedium,
                 color = if (outcome.success) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
             )
@@ -327,8 +323,7 @@ private fun SectionSheet(
                         Spacer(Modifier.width(8.dp))
                         Column(Modifier.weight(1f)) {
                             Text(section.label, style = MaterialTheme.typography.titleMedium)
-                            Text(
-                                section.description,
+                            Text(section.description,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -342,7 +337,7 @@ private fun SectionSheet(
             }
             Spacer(Modifier.height(16.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
+                OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.cancel)) }
                 Button(
                     onClick = { onConfirm(selected) },
                     enabled = selected.isNotEmpty(),

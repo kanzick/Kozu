@@ -1,29 +1,24 @@
 package vn.kozu.ui.components
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Stable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
+import androidx.compose.runtime.Stable
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-/**
- * Height taken at the bottom of an overlay screen (Settings, All beatmaps, Stats…) by the
- * floating mini player that is drawn on top of it. Scrollable content adds it as end padding
- * so the last item can always be scrolled clear of the player.
- */
 val LocalOverlayBottomInset = compositionLocalOf { 0.dp }
 
-/** The bottom edge (window px) below which scrolling content has not "arrived" yet. */
+
 @Stable
 class ScrollViewport {
     var bottomPx by mutableFloatStateOf(Float.MAX_VALUE)
@@ -31,14 +26,7 @@ class ScrollViewport {
 
 val LocalScrollViewport = compositionLocalOf<ScrollViewport?> { null }
 
-/**
- * Items that sit near the bottom edge of a scrolling page start out faded and slightly lowered,
- * then settle into place as they are scrolled up into view. Items that are already comfortably
- * on screen (including everything on a page that does not scroll) are untouched.
- *
- * Both the item position and the viewport edge are read inside `graphicsLayer`, so scrolling
- * only invalidates drawing, never composition.
- */
+
 @Composable
 fun Modifier.scrollReveal(zone: Dp = 80.dp, travel: Dp = 20.dp): Modifier {
     val viewport = LocalScrollViewport.current ?: return this
@@ -57,11 +45,7 @@ fun Modifier.scrollReveal(zone: Dp = 80.dp, travel: Dp = 20.dp): Modifier {
         }
 }
 
-/**
- * Lets scrolling content melt into the page just under the header instead of being cut off by a
- * hard rectangle. [strength] runs while drawing (0 = no fade, 1 = full), so it follows the scroll
- * without recomposing. Nothing is dimmed while the list sits at the very top.
- */
+
 fun Modifier.softTopEdge(
     height: Dp = 26.dp,
     strength: () -> Float,

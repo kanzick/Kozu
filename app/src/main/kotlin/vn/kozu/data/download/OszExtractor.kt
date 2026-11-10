@@ -1,12 +1,12 @@
 package vn.kozu.data.download
 
-import vn.kozu.game.OsuBeatmapParser
 import java.io.File
 import java.io.IOException
 import java.nio.charset.Charset
 import java.util.zip.ZipEntry
 import java.util.zip.ZipException
 import java.util.zip.ZipFile
+import vn.kozu.game.OsuBeatmapParser
 
 data class ExtractResult(
     val audioFile: String,

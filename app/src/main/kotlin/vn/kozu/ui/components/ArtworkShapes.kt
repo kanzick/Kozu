@@ -9,7 +9,6 @@ import androidx.compose.ui.unit.dp
 import vn.kozu.domain.model.ArtworkShape
 import vn.kozu.ui.theme.KozuCookies
 
-/** Turns the user's artwork-shape choice into a real [Shape]; [fallback] is used for [ArtworkShape.DEFAULT]. */
 fun ArtworkShape.toShape(fallback: Shape): Shape =
     when (this) {
         ArtworkShape.DEFAULT -> fallback
@@ -21,10 +20,7 @@ fun ArtworkShape.toShape(fallback: Shape): Shape =
         ArtworkShape.SQUARE -> RoundedCornerShape(6.dp)
     }
 
-/**
- * Applies the global album-art shape. Components that draw album art pass the shape they would use
- * anyway; when the user picked a global shape it replaces it everywhere in the app.
- */
+
 @Composable
 @ReadOnlyComposable
 fun resolveArtworkShape(fallback: Shape): Shape = LocalAppSettings.current.appearance.artworkShape.toShape(fallback)

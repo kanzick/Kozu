@@ -1,9 +1,9 @@
 package vn.kozu.ui
 
-import android.Manifest
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.Manifest
 import android.os.Build
 import android.os.SystemClock
 import androidx.activity.compose.BackHandler
@@ -25,23 +25,22 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -50,12 +49,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
@@ -63,26 +63,28 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import vn.kozu.KozuApplication
 import vn.kozu.data.local.DownloadedSet
 import vn.kozu.data.news.NewsReadState
-import vn.kozu.data.update.UpdateResult
 import vn.kozu.data.update.checkIfDue
+import vn.kozu.data.update.UpdateResult
 import vn.kozu.di.AppContainer
 import vn.kozu.domain.model.AppSettings
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.Playlist
 import vn.kozu.domain.model.StartTab
-import vn.kozu.domain.model.ThemePreset
 import vn.kozu.domain.model.ThemeMode
+import vn.kozu.domain.model.ThemePreset
+import vn.kozu.game.ui.game.GameViewModel
+import vn.kozu.KozuApplication
+import vn.kozu.R
 import vn.kozu.ui.components.BeatmapInfoSheet
 import vn.kozu.ui.components.DownloadInfo
 import vn.kozu.ui.components.LocalAppSettings
@@ -97,14 +99,12 @@ import vn.kozu.ui.components.LocalPerformanceMode
 import vn.kozu.ui.components.LocalTrackActions
 import vn.kozu.ui.components.NowPlayingInfo
 import vn.kozu.ui.components.PlaylistPickerSheet
+import vn.kozu.ui.components.rememberIsMetered
 import vn.kozu.ui.components.TrackActions
 import vn.kozu.ui.components.TrackMenuSheet
-import vn.kozu.ui.components.rememberIsMetered
-import vn.kozu.ui.i18n.localizeUiString
 import vn.kozu.ui.explore.AllBeatmapsScreen
 import vn.kozu.ui.explore.ExploreScreen
 import vn.kozu.ui.game.GameScreen
-import vn.kozu.game.ui.game.GameViewModel
 import vn.kozu.ui.home.HomeScreen
 import vn.kozu.ui.library.LibraryScreen
 import vn.kozu.ui.navigation.FloatingNavBar
@@ -160,7 +160,7 @@ fun KozuApp() {
         artworkSeed = if (settings.artworkColors) ArtworkPalette.seedColor(currentArt) else null
     }
 
-    // Artwork colours (when enabled and something is playing) win; otherwise the chosen preset.
+
     val artwork = if (state.current != null) artworkSeed else null
     val preset = settings.themePreset
     val seed = artwork ?: if (preset == ThemePreset.CUSTOM) settings.accent.color else preset.seed
@@ -250,8 +250,7 @@ private fun KozuShell(
     var gameMapPickerViewModel by remember { mutableStateOf<GameViewModel?>(null) }
     var gamePlayActive by remember { mutableStateOf(false) }
 
-    // Only one thing may make sound at a time. A Game preview pauses the main player, and
-    // pressing play on the main player (mini player, notification, headset) stops the preview.
+
     DisposableEffect(playback) {
         vn.kozu.game.mania.previewstage.audio.PreviewPlayer.onAudible = { playback.pause() }
         onDispose { vn.kozu.game.mania.previewstage.audio.PreviewPlayer.onAudible = null }
@@ -267,7 +266,7 @@ private fun KozuShell(
     val density = LocalDensity.current
     var chromeHeightPx by remember { mutableIntStateOf(0) }
     val bottomPadding = with(density) { chromeHeightPx.toDp() } + 16.dp
-    // Height of the floating mini player while it is drawn over an overlay screen.
+
     var overlayMiniPx by remember { mutableIntStateOf(0) }
     val overlayScreenOpen = settingsOpen || allBeatmapsOpen || statsOpen || newsOpen
     val overlayMiniInset = if (state.current != null) with(density) { overlayMiniPx.toDp() } else 0.dp
@@ -283,7 +282,7 @@ private fun KozuShell(
     fun notify(message: String) {
         scope.launch {
             snackbar.currentSnackbarData?.dismiss()
-            snackbar.showSnackbar(localizeUiString(context, message))
+            snackbar.showSnackbar(message)
         }
     }
 
@@ -607,7 +606,7 @@ private fun KozuShell(
                     )
                 }
 
-                // Listening stats open as a page of their own, so Back returns to Home.
+
                 AnimatedVisibility(
                     visible = statsOpen,
                     enter = slideInHorizontally(KozuMotion.spatial()) { it } + fadeIn(),
@@ -625,7 +624,7 @@ private fun KozuShell(
                     }
                 }
 
-                // osu! news: native Compose content backed by osu! API v2.
+
                 AnimatedVisibility(
                     visible = newsOpen,
                     enter = slideInHorizontally(KozuMotion.spatial()) { it } + fadeIn(),
@@ -697,7 +696,7 @@ private fun KozuShell(
                                 scope.launch {
                                     val id = container.playlists.create("Queue (${unique.size} tracks)")
                                     unique.forEach { container.playlists.addTrack(id, it) }
-                                    snackbar.showSnackbar(localizeUiString(context, "Saved ${unique.size} tracks as a playlist"))
+                                    snackbar.showSnackbar(context.getString(R.string.saved_playlist, unique.size))
                                 }
                             }
                         },
@@ -706,7 +705,7 @@ private fun KozuShell(
             }
             if (playerOpen) BackHandler { playerOpen = false }
 
-            // Artist / mapper page: above the player so Back lands exactly where the listener was.
+
             AnimatedVisibility(
                 visible = personName != null,
                 enter = slideInHorizontally(KozuMotion.spatial()) { it } + fadeIn(),
@@ -722,9 +721,7 @@ private fun KozuShell(
             }
             if (personName != null) BackHandler { personName = null }
 
-            // One mini player for every overlay screen. Same composable and same state as the
-            // one above the navigation bar, so swiping either away closes both. It sits on top of the
-            // artist / mapper pages too.
+
             AnimatedVisibility(
                 visible = state.current != null && (personName != null || (overlayScreenOpen && !playerOpen)),
                 modifier = Modifier.align(Alignment.BottomCenter),
@@ -783,7 +780,7 @@ private fun KozuShell(
                         ),
             )
 
-            // First-run wizard (also reachable from Settings > About > Setup guide).
+
             AnimatedVisibility(
                 visible = onboardingOpen,
                 enter = fadeIn(tween(200)),
@@ -883,7 +880,7 @@ private fun KozuShell(
     }
 }
 
-/** True only right after a clean install, so people who update never get the welcome wizard. */
+
 private fun isFreshInstall(context: android.content.Context): Boolean =
     runCatching {
         @Suppress("DEPRECATION")
