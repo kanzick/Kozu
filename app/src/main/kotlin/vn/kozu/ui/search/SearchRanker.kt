@@ -3,14 +3,6 @@ package vn.kozu.ui.search
 import java.text.Normalizer
 import vn.kozu.domain.model.Beatmap
 
-/**
- * Lightweight client-side re-ranking for relevance searches.
- *
- * The mirrors rank mostly by popularity, so an exact "Kiss Me When I'm Dead" can land below
- * partial matches. This pass keeps the server order as the tie-breaker (the sort is stable) but
- * lifts results whose title/artist/mapper actually match what was typed, tolerating accents,
- * punctuation, partially typed words and a one-letter typo.
- */
 object SearchRanker {
     private val diacritics = Regex("\\p{M}+")
     private val separators = Regex("[^\\p{L}\\p{N}]+")
@@ -71,7 +63,7 @@ object SearchRanker {
             .replace(separators, " ")
             .trim()
 
-    /** True when the words differ by at most one edit (and are of similar length). */
+
     private fun close(a: String, b: String): Boolean {
         if (kotlin.math.abs(a.length - b.length) > 1) return false
         if (a.length < 4 || b.length < 4) return false

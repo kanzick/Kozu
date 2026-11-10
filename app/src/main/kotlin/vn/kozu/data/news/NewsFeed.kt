@@ -1,22 +1,21 @@
 package vn.kozu.data.news
 
+import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.URL
+import java.time.format.DateTimeFormatter
+import java.time.Instant
+import java.time.OffsetDateTime
+import java.time.ZoneId
+import java.util.Locale
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
 import vn.kozu.data.remote.osu.OsuApi
-import java.io.IOException
-import java.net.HttpURLConnection
-import java.net.URL
-import java.time.Instant
-import java.time.OffsetDateTime
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
-/** A native representation of an osu! news article. */
 data class NewsPost(
-    /** Stable Compose key. For Atom fallback posts this may be generated from the slug. */
+
     val id: Long,
     val slug: String,
     val title: String,
@@ -27,15 +26,11 @@ data class NewsPost(
     val imageUrl: String?,
     val url: String,
     val contentHtml: String? = null,
-    /** Real osu! news-post database ID; null when only the public Atom feed is available. */
+
     val commentableId: Long? = id,
 )
 
-/**
- * Reads osu! news natively. API v2 is preferred because it supplies the numeric post IDs
- * needed by the comments endpoint. If the API is unavailable (for example HTTP 403),
- * the public Atom feed keeps the news list and article content readable without login.
- */
+
 class NewsFeed(
     private val api: OsuApi,
 ) {
@@ -56,8 +51,8 @@ class NewsFeed(
     }
 
     suspend fun loadDetail(post: NewsPost): NewsPost {
-        // Atom entries often contain the full HTML body, but their IDs may be URLs rather
-        // than numeric osu! news-post IDs. Resolve the API detail when the comment ID is absent.
+
+
         if (!post.contentHtml.isNullOrBlank() && post.commentableId != null) return post
         return try {
             val detail = api.newsPost(post.slug, listOf("html"))
@@ -81,7 +76,7 @@ class NewsFeed(
     suspend fun loadComments(
         postId: Long,
         sort: String = "new",
-        // osu!'s own comments UI uses parent_id=0 for top-level comments.
+
         parentId: Long? = 0L,
         after: String? = null,
     ): NewsCommentBundleDto =
@@ -93,7 +88,7 @@ class NewsFeed(
             after = after,
         )
 
-    /** Posts a comment or reply using the user's OAuth access token, never the client token. */
+
     suspend fun postComment(
         accessToken: String,
         postId: Long,

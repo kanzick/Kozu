@@ -4,11 +4,20 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.core.net.toUri
+import java.io.File
+import java.io.IOException
+import java.util.Collections
+import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.Callable
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ExecutorCompletionService
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -20,15 +29,6 @@ import vn.kozu.domain.model.Mirror
 import vn.kozu.domain.model.Mirrors
 import vn.kozu.domain.model.StreamMode
 import vn.kozu.util.NetworkInfo
-import java.io.File
-import java.io.IOException
-import java.util.Collections
-import java.util.concurrent.Callable
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ExecutorCompletionService
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicReference
 
 data class ResolvedAudio(
     val uri: Uri,
@@ -153,10 +153,7 @@ class StreamResolver(
         (streamDir.listFiles()?.sumOf { it.length() } ?: 0L) +
             (backgroundDir.listFiles()?.sumOf { it.length() } ?: 0L)
 
-    /**
-     * Keeps the saved full songs inside their share of the stream cache budget (the rest belongs to
-     * the playback cache), oldest first. Safe to call at any time.
-     */
+
     fun trimTo(limitMb: Int) = prune(limitMb * STREAM_FILES_SHARE_PERCENT / 100)
 
     fun clearCache() {
@@ -679,13 +676,7 @@ class StreamResolver(
         }
     }
 
-    /**
-     * The full, uncropped background image of a beatmap set as a local file, or null.
-     *
-     * Order: the downloaded copy, then a previously cached copy, then (only when [allowRemote]) the
-     * image is extracted from the set's .osz on a mirror with HTTP range requests, so only the
-     * archive index, one small .osu file and the picture itself are transferred, never the audio.
-     */
+
     suspend fun resolveBackground(
         id: Long,
         allowRemote: Boolean,
@@ -716,15 +707,12 @@ class StreamResolver(
             }
         }
 
-    /**
-     * Probes every active mirror at the same time (like the audio resolver does) and takes the first
-     * one that can serve the picture. Only one mirror actually transfers it.
-     */
+
     private fun fetchBackground(
         id: Long,
         target: File,
     ): File? {
-        // Mirrors already proven to work for this song's audio go first.
+
         val known =
             archiveCandidates.entries
                 .filter { it.key.startsWith("$id:") }
@@ -748,8 +736,8 @@ class StreamResolver(
                             if (image.compressedSize <= 0L || image.uncompressedSize > BACKGROUND_MAX_BYTES) {
                                 return@Callable null
                             }
-                            // Several mirrors may answer at once; the first one transfers the image,
-                            // the others skip it (or take over if that transfer fails).
+
+
                             synchronized(lock) {
                                 winner.get()?.let { return@Callable it }
                                 val file = downloadBackgroundEntry(id, mirror, url, image, target)
@@ -815,7 +803,7 @@ class StreamResolver(
         return target.takeIf { it.isFile && it.length() > 0L }
     }
 
-    /** Prefers the file named by the .osu "Events" section; falls back to the largest picture. */
+
     private fun pickBackgroundEntry(
         entries: List<ZipEntryInfo>,
         source: RangeSource,

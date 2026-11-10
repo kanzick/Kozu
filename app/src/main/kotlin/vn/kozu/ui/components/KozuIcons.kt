@@ -31,7 +31,6 @@ import androidx.compose.material.icons.sharp.SkipPrevious
 import androidx.compose.ui.graphics.vector.ImageVector
 import vn.kozu.domain.model.IconStyle
 
-/** Transport and player icons in the family the user chose (rounded, outlined or sharp). */
 object KozuIcons {
     fun skipPrevious(style: IconStyle): ImageVector =
         when (style) {

@@ -3,20 +3,20 @@ package vn.kozu.ui.library
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.scan
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import vn.kozu.data.download.DownloadStatus
 import vn.kozu.data.local.DownloadedSet
@@ -126,12 +126,7 @@ class LibraryViewModel(
             sets to status
         }
 
-    // Playback writes a new history event as soon as a track starts. The history's natural
-    // RECENT order therefore moves the playing item to index 0, which makes a visible Library
-    // list jump while the user is browsing or shuffling. Keep the current session's row order
-    // stable, while still replacing each row with the latest metadata and dropping removed IDs.
-    // A new subscription (for example, reopening Library after leaving it) starts from the
-    // newest persisted history order again.
+
     private val stableRecentTracks =
         container.history.history
             .map { it.recent }
@@ -228,7 +223,7 @@ class LibraryViewModel(
         }
     }
 
-    /** Persist a drag result and immediately switch the active sort mode to Custom. */
+
     fun reorderTracks(tab: LibraryTab, orderedIds: List<Long>, playlistId: String? = null) {
         val normalized = orderedIds.filter { it > 0L }.distinct()
         if (normalized.isEmpty()) return
@@ -241,7 +236,7 @@ class LibraryViewModel(
         }
         when (tab) {
             LibraryTab.SONGS, LibraryTab.LIKED, LibraryTab.DOWNLOADS -> {
-                // Apply the order synchronously so Compose never snaps back while DataStore writes.
+
                 localCustomOrders.update { it + (tab.key to normalized) }
                 libraryOrderSaveJobs[tab.key]?.cancel()
                 libraryOrderSaveJobs[tab.key] = viewModelScope.launch {

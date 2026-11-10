@@ -10,12 +10,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
-/**
- * The little pill at the top of a bottom sheet.
- *
- * Material's own `DragHandle` is interactive: holding it pops a "Drag handle" tooltip. This one
- * is purely decorative; the sheet still drags from anywhere.
- */
 @Composable
 fun KozuSheetHandle(modifier: Modifier = Modifier) {
     Box(

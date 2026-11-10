@@ -1,4 +1,4 @@
-<h1 align="center">Kozu 🎵</h1>
+<h1 align="center">Kozu</h1>
 
 <p align="center">
   <a href="https://github.com/kanzick/Kozu/releases"><img src="https://img.shields.io/github/v/release/kanzick/Kozu?include_prereleases" alt="Release version" /></a>
@@ -8,27 +8,14 @@
 </p>
 
 <p align="center">
-  A simple osu! music player for Android.
+  A music app for osu! built with Kotlin.
 </p>
 
 ---
 
 ## Overview
 
-Kozu lets you listen to the music from your osu! collection on your phone without launching the base game. It aims to be small, fast and pleasant to use. 
-
-Kozu also intergrated Osu! mania mode to be playable on your mobile devices. Give it a try!
-
-**Technology stack used**
-
-- Kotlin
-- Jetpack Compose
-- Material 3
-- Gradle (Kotlin DSL)
-
-**Supported platforms**
-
-- Android
+Listen your favourite songs from osu! without launching the base game. It aims to be small, fast and pleasant to use. 
 
 **Quick links**
 
@@ -60,7 +47,7 @@ Download the latest APK from the [Releases](https://github.com/kanzick/Kozu/rele
 
 **Requirements**
 
-- [Android Studio](https://developer.android.com/studio) (a recent stable version)
+- [Android Studio](https://developer.android.com/studio)
 - JDK 17 or newer.
 - An Android device or emulator.
 
@@ -78,7 +65,7 @@ cd Kozu
 ./gradlew installDebug
 ```
 
-You can also open the project folder in Android Studio, let Gradle sync, and press **Run**.
+You can also open the project in Android Studio.
 
 
 ## Contributing
@@ -94,9 +81,7 @@ Please read the [Code of Conduct](CODE_OF_CONDUCT.md) before participating.
 
 ## License
 
-Kozu is licensed under the **GNU General Public License v3.0**. See [LICENSE](https://github.com/kanzick/Kozu?tab=GPL-3.0-1-ov-file) for the full text.
-
-## Disclaimer
+Kozu is licensed under the **GNU General Public License v3.0**. See [LICENSE](https://github.com/kanzick/Kozu?tab=GPL-3.0-1-ov-file).
 
 ## Acknowledgements
 

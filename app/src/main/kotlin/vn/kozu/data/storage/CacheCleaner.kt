@@ -25,7 +25,7 @@ class CacheCleaner(
     suspend fun cleanIfNeeded(): Boolean =
         withContext(Dispatchers.IO) {
             val current = settings.settings.first()
-            // The budget is enforced on every launch, even with automatic cleanup off.
+
             streams.trimTo(current.streamCacheMb)
             if (!current.autoCleanCache) return@withContext false
             val limit = current.streamCacheMb.coerceAtLeast(1) * 1024L * 1024L

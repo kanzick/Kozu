@@ -2,11 +2,13 @@ package vn.kozu.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import java.util.Calendar
+import java.util.Random
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import vn.kozu.di.AppContainer
 import vn.kozu.domain.model.Beatmap
@@ -14,8 +16,6 @@ import vn.kozu.domain.model.ListeningStats
 import vn.kozu.domain.model.OsuProfile
 import vn.kozu.domain.model.QuickPicksSource
 import vn.kozu.ui.containerFactory
-import java.util.Calendar
-import java.util.Random
 
 data class HomeUiState(
     val displayName: String = "",

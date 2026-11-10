@@ -1,18 +1,16 @@
 package vn.kozu.ui.settings
 
 import androidx.compose.foundation.clickable
-import vn.kozu.ui.i18n.kozuUiString
-
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -27,11 +25,11 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
-import vn.kozu.ui.i18n.KozuText as Text
+import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,10 +37,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -53,6 +52,7 @@ import vn.kozu.data.update.RecentCommit
 import vn.kozu.data.update.RecentCommitsResult
 import vn.kozu.data.update.UpdateResult
 import vn.kozu.domain.model.UpdateChannel
+import vn.kozu.R
 
 @Composable
 fun UpdatesPage(
@@ -64,7 +64,7 @@ fun UpdatesPage(
     val container = viewModel.appContainer
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val version = remember { vn.kozu.data.update.UpdateChecker.installedVersion(context) }
-    // Releases and history follow `main` only; the Dev channel is gone.
+
     val channel = UpdateChannel.STABLE
     val checked = settings.lastUpdateCheckAt.takeIf { it > 0L }?.let(::formatDateTime) ?: "Not checked"
 
@@ -107,7 +107,7 @@ fun UpdatesPage(
         }
     }
 
-    SettingsScaffold(title = "Updates", onBack = onBack) {
+    SettingsScaffold(title = stringResource(R.string.updates), onBack = onBack) {
         SettingsSection(null) {
             custom { shape ->
                 UpdateSummaryCard(
@@ -122,7 +122,7 @@ fun UpdatesPage(
                 )
             }
         }
-        SettingsSection("Commit history · ${commits.branch}") {
+        SettingsSection(stringResource(R.string.settings_commit_history_count, commits.branch)) {
             if (loadingCommits) {
                 custom { shape -> SettingsNote(shape, "Loading history…") }
             } else {
@@ -152,10 +152,9 @@ fun UpdatesPage(
     available?.let { update ->
         AlertDialog(
             onDismissRequest = { available = null },
-            title = { Text("Kozu v${update.version} is available") },
+            title = { Text(stringResource(R.string.kozu_available, update.version)) },
             text = {
-                Text(
-                    update.notes.ifBlank { "A new release is available." }.take(1_000),
+                Text(update.notes.ifBlank { "A new release is available." }.take(1_000),
                     style = MaterialTheme.typography.bodyMedium,
                 )
             },
@@ -165,9 +164,9 @@ fun UpdatesPage(
                         context.openLink(update.url)
                         available = null
                     },
-                ) { Text("Open release") }
+                ) { Text(stringResource(R.string.open_release)) }
             },
-            dismissButton = { TextButton(onClick = { available = null }) { Text("Later") } },
+            dismissButton = { TextButton(onClick = { available = null }) { Text(stringResource(R.string.later)) } },
         )
     }
 }
@@ -192,18 +191,18 @@ private fun UpdateSummaryCard(
                 IconBadge(Icons.Rounded.SystemUpdate)
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Kozu updates", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Text("v$version · $checked", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.kozu_updates), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.update_version_checked, version, checked), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 FilledTonalButton(onClick = onCheck, enabled = !checking) {
-                    if (checking) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else Text("Check")
+                    if (checking) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else Text(stringResource(R.string.check))
                 }
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Automatic checks", style = MaterialTheme.typography.titleSmall)
-                    Text("Once a day on launch", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.automatic_checks), style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.once_a_day_on_launch), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Switch(checked = autoUpdateCheck, onCheckedChange = onAutoUpdateChange)
             }
@@ -223,8 +222,7 @@ private fun CommitDayCard(
 ) {
     SettingCard(setting = null, shape = shape, onClick = null) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp)) {
-            Text(
-                text = dayLabel(day),
+            Text(text = dayLabel(day),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -259,7 +257,7 @@ private fun CommitRow(
         if (!commit.avatarUrl.isNullOrBlank()) {
             AsyncImage(
                 model = commit.avatarUrl,
-                contentDescription = kozuUiString("${commit.author} avatar"),
+                contentDescription = stringResource(R.string.avatar_for, commit.author),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.size(38.dp).clip(CircleShape),
             )
@@ -268,16 +266,14 @@ private fun CommitRow(
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            Text(
-                commit.title,
+            Text(commit.title,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    commit.author,
+                Text(commit.author,
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -290,8 +286,7 @@ private fun CommitRow(
                     color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 ) {
-                    Text(
-                        commit.sha.take(7),
+                    Text(commit.sha.take(7),
                         style = MaterialTheme.typography.labelSmall,
                         fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                         modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
@@ -327,7 +322,7 @@ private fun CommitPagination(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("Page $currentPage of $totalPages", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.page_of, currentPage, totalPages), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -395,8 +390,7 @@ private fun SettingsNote(
     message: String,
 ) {
     SettingCard(setting = null, shape = shape, onClick = null) {
-        Text(
-            message,
+        Text(message,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,

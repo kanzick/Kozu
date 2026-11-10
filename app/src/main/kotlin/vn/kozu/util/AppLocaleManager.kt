@@ -4,10 +4,9 @@ import android.content.Context
 import android.content.res.Configuration
 import android.os.Build
 import android.os.LocaleList
-import vn.kozu.domain.model.AppLanguage
 import java.util.Locale
+import vn.kozu.domain.model.AppLanguage
 
-/** Applies app-specific locales using Android's per-app language API and a legacy fallback. */
 object AppLocaleManager {
     private const val PREFERENCES_NAME = "app_locale_preferences"
     private const val KEY_LANGUAGE_TAG = "app_language_tag"
@@ -19,7 +18,12 @@ object AppLocaleManager {
             if (manager != null) {
                 migrateLegacyPreference(context, manager)
                 val platformTag = manager.applicationLocales.toLanguageTags().substringBefore(',')
-                return AppLanguage.normalize(platformTag)
+                val normalized = AppLanguage.normalize(platformTag)
+
+                if (platformTag.isNotBlank() && normalized.isBlank()) {
+                    manager.applicationLocales = LocaleList.getEmptyLocaleList()
+                }
+                return normalized
             }
             return AppLanguage.SYSTEM.tag
         }

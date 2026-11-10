@@ -1,22 +1,18 @@
 package vn.kozu.ui.library
 
-import vn.kozu.ui.i18n.kozuUiString
-import vn.kozu.ui.components.softTopEdge
-import vn.kozu.ui.components.KozuSheetHandle
-
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.Spring
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -24,45 +20,46 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
+import androidx.compose.material.icons.automirrored.rounded.Sort
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Check
@@ -76,12 +73,11 @@ import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
-import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.MyLocation
 import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material.icons.rounded.Shuffle
-import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.rounded.ViewAgenda
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetDefaults
@@ -94,78 +90,82 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.Surface
-import vn.kozu.ui.i18n.KozuText as Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.rememberBottomSheetState
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.compositeOver
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlin.math.PI
+import kotlin.math.sin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyGridState
 import sh.calvin.reorderable.rememberReorderableLazyListState
+import sh.calvin.reorderable.ReorderableItem
 import vn.kozu.data.download.DownloadStatus
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.LibraryDensity
 import vn.kozu.domain.model.LibraryNavigationMode
 import vn.kozu.domain.model.Playlist
+import vn.kozu.R
+import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.CoverCard
 import vn.kozu.ui.components.EmptyState
 import vn.kozu.ui.components.FitText
+import vn.kozu.ui.components.KozuSheetHandle
 import vn.kozu.ui.components.LocalAppSettings
 import vn.kozu.ui.components.LocalNowPlaying
 import vn.kozu.ui.components.LocalPerformanceMode
 import vn.kozu.ui.components.LocalTrackActions
 import vn.kozu.ui.components.MosaicCover
 import vn.kozu.ui.components.NamePlaylistDialog
-import vn.kozu.ui.components.RefreshIndicator
-import vn.kozu.ui.components.SettingsAction
 import vn.kozu.ui.components.NewsAction
-import vn.kozu.ui.components.TrackRow
-import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.playbackIconVector
+import vn.kozu.ui.components.RefreshIndicator
 import vn.kozu.ui.components.segmentedShape
+import vn.kozu.ui.components.SettingsAction
+import vn.kozu.ui.components.softTopEdge
+import vn.kozu.ui.components.TrackRow
 import vn.kozu.ui.settings.formatBytes
-import vn.kozu.ui.theme.KozuCookies
 import vn.kozu.ui.theme.isCompactLayout
-import kotlin.math.PI
-import kotlin.math.sin
+import vn.kozu.ui.theme.KozuCookies
 
-/** Pages in the infinite tab pager. Large and even, so the start page maps to any tab index. */
 private const val PAGER_PAGES = 1_000_000
 private const val PULL_REFRESH_MIN_VISIBLE_MS = 900L
 private const val PULL_REFRESH_MAX_VISIBLE_MS = 1_500L
 
-/** Corner used on the outside of a connected button group, and on the inside where buttons meet. */
+
 private val GroupOuter = 24.dp
 private val GroupInner = 6.dp
 
@@ -200,11 +200,11 @@ fun LibraryScreen(
     var showTabMenu by remember { mutableStateOf(false) }
     var showReorderTabs by remember { mutableStateOf(false) }
 
-    // The tab shown right now follows the pager while swiping, so the header reacts immediately.
+
     val shownIndex = pagerState.currentPage.mod(tabCount)
     val shownTab = ui.tabOrder.getOrNull(shownIndex) ?: ui.tab
 
-    // Jump to a tab picked from the menu by the shortest way around the infinite pager.
+
     LaunchedEffect(ui.tab, ui.tabOrder) {
         val target = ui.tabOrder.indexOf(ui.tab)
         if (target < 0) return@LaunchedEffect
@@ -216,9 +216,9 @@ fun LibraryScreen(
         }
     }
 
-    // Only react once the pager has settled, otherwise a long jump would select every tab on the way.
+
     LaunchedEffect(pagerState, ui.tabOrder) {
-        // After the tab order changes the same page index points at another tab, so realign first.
+
         val aligned = ui.tabOrder.indexOf(ui.tab)
         if (aligned >= 0 && aligned != pagerState.settledPage.mod(tabCount)) {
             var delta = (aligned - pagerState.settledPage.mod(tabCount)).mod(tabCount)
@@ -278,7 +278,7 @@ fun LibraryScreen(
             Spacer(Modifier.height(4.dp))
         }
 
-        // The content sits on a rounded surface that overlaps the tinted header, like PixelMusic.
+
         Surface(
             modifier = Modifier.weight(1f).fillMaxWidth(),
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
@@ -493,14 +493,7 @@ private fun libraryTabCount(
         LibraryTab.DOWNLOADS -> ui.downloads.size
     }
 
-// ---------------------------------------------------------------------------------------------
-// Header
-// ---------------------------------------------------------------------------------------------
 
-/**
- * Library header. In compact mode the title is a split button: the left part shows the current tab and
- * the right part opens the tab sheet, its chevron turning while the sheet is open.
- */
 @Composable
 private fun LibraryHeader(
     compact: Boolean,
@@ -522,8 +515,7 @@ private fun LibraryHeader(
             if (compact) {
                 SplitTitle(tab = tab, sheetOpen = sheetOpen, onClick = onOpenTabs)
             } else {
-                Text(
-                    "Library",
+                Text(stringResource(R.string.library),
                     style = MaterialTheme.typography.headlineSmall,
                     modifier = Modifier.padding(start = 6.dp),
                 )
@@ -552,7 +544,7 @@ private fun SplitTitle(
     val titlePressed by titleSource.collectIsPressedAsState()
     val chevronPressed by chevronSource.collectIsPressedAsState()
     val spec = spring<Dp>(dampingRatio = 0.65f, stiffness = Spring.StiffnessMedium)
-    // The facing corners of the two halves round up while pressed, like a connected button group.
+
     val titleInner by animateDpAsState(if (titlePressed) 26.dp else 6.dp, spec, label = "titleInner")
     val chevronInner by animateDpAsState(if (chevronPressed) 26.dp else 6.dp, spec, label = "chevronInner")
 
@@ -594,7 +586,7 @@ private fun SplitTitle(
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     Icons.Rounded.KeyboardArrowDown,
-                    contentDescription = kozuUiString("Choose library tab"),
+                    contentDescription = stringResource(R.string.choose_library_tab),
                     modifier = Modifier.graphicsLayer { rotationZ = chevron },
                 )
             }
@@ -602,7 +594,7 @@ private fun SplitTitle(
     }
 }
 
-/** Segmented dashes under the header; the selected one stretches and takes the accent colour. */
+
 @Composable
 private fun PageIndicator(
     selectedIndex: Int,
@@ -642,7 +634,7 @@ private fun PageIndicator(
     }
 }
 
-/** Animated wavy line shown under the header while the library syncs. */
+
 @Composable
 private fun SyncWave(visible: Boolean) {
     val performance = LocalPerformanceMode.current
@@ -672,9 +664,6 @@ private fun SyncWave(visible: Boolean) {
     }
 }
 
-// ---------------------------------------------------------------------------------------------
-// Action row
-// ---------------------------------------------------------------------------------------------
 
 private class GroupButton(
     val icon: ImageVector,
@@ -751,7 +740,7 @@ private fun LibraryActionRow(
     }
 }
 
-/** Icon buttons joined into one group: rounded on the outside, tight inside, and each rounds up while pressed. */
+
 @Composable
 private fun ConnectedButtonGroup(buttons: List<GroupButton>) {
     if (buttons.isEmpty()) return
@@ -840,8 +829,7 @@ private fun SortSheet(
                     .padding(bottom = 12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
-                "Sort by",
+            Text(stringResource(R.string.sort_by),
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.padding(top = 2.dp, bottom = 2.dp),
             )
@@ -879,17 +867,15 @@ private fun SortSheet(
                         }
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                            Text("Order", style = MaterialTheme.typography.labelSmall)
-                            Text(
-                                if (ui.ascending) "Ascending" else "Descending",
+                            Text(stringResource(R.string.order), style = MaterialTheme.typography.labelSmall)
+                            Text(if (ui.ascending) stringResource(R.string.ascending) else stringResource(R.string.descending),
                                 style = MaterialTheme.typography.titleSmall,
                             )
                         }
                     }
                 }
             } else {
-                Text(
-                    "Drag songs to set your own order.",
+                Text(stringResource(R.string.drag_songs_to_set_your_own_order),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -921,9 +907,6 @@ private fun SortSheet(
     }
 }
 
-// ---------------------------------------------------------------------------------------------
-// Tab sheets
-// ---------------------------------------------------------------------------------------------
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -961,16 +944,14 @@ private fun LibraryTabsSheet(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(3.dp),
             ) {
-                Text("Library tabs", style = MaterialTheme.typography.headlineSmall)
-                Text(
-                    "Choose a tab or change its order.",
+                Text(stringResource(R.string.library_tabs), style = MaterialTheme.typography.headlineSmall)
+                Text(stringResource(R.string.choose_a_tab_or_change_its_order),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
-            // Four tabs are presented as a compact 2×2 group. The sheet wraps its content
-            // instead of filling the window and leaving an empty dark area below the tiles.
+
             order.chunked(2).forEach { rowTabs ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1008,8 +989,7 @@ private fun LibraryTabsSheet(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     FitText(tab.label, style = MaterialTheme.typography.titleSmall, minScale = 0.75f)
                                     Spacer(Modifier.width(5.dp))
-                                    Text(
-                                        countFor(tab).toString(),
+                                    Text(countFor(tab).toString(),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = LocalContentColor.current.copy(alpha = 0.7f),
                                     )
@@ -1035,7 +1015,7 @@ private fun LibraryTabsSheet(
                 ) {
                     Icon(Icons.Rounded.Edit, contentDescription = null, modifier = Modifier.size(19.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("Reorder tabs", style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.reorder_tabs), style = MaterialTheme.typography.titleSmall)
                 }
             }
         }
@@ -1089,9 +1069,8 @@ private fun ReorderLibraryTabsSheet(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 3.dp),
                 verticalArrangement = Arrangement.spacedBy(3.dp),
             ) {
-                Text("Reorder library tabs", style = MaterialTheme.typography.headlineSmall)
-                Text(
-                    "Drag a tab to change its order.",
+                Text(stringResource(R.string.reorder_library_tabs), style = MaterialTheme.typography.headlineSmall)
+                Text(stringResource(R.string.drag_a_tab_to_change_its_order),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1122,7 +1101,7 @@ private fun ReorderLibraryTabsSheet(
                             ) {
                                 Icon(
                                     Icons.Rounded.DragIndicator,
-                                    contentDescription = kozuUiString("Drag to reorder ${tab.label}"),
+                                    contentDescription = stringResource(R.string.drag_reorder, tab.label),
                                     modifier = Modifier.draggableHandle(),
                                 )
                                 Spacer(Modifier.width(12.dp))
@@ -1144,7 +1123,7 @@ private fun ReorderLibraryTabsSheet(
                     onClick = { confirmReset = true },
                     modifier = Modifier.size(46.dp),
                 ) {
-                    Icon(Icons.Rounded.RestartAlt, contentDescription = kozuUiString("Reset tab order"))
+                    Icon(Icons.Rounded.RestartAlt, contentDescription = stringResource(R.string.reset_tab_order))
                 }
                 Button(
                     onClick = { onSave(orderedTabs.toList()) },
@@ -1153,7 +1132,7 @@ private fun ReorderLibraryTabsSheet(
                 ) {
                     Icon(Icons.Rounded.Check, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
-                    Text("Done")
+                    Text(stringResource(R.string.done))
                 }
             }
         }
@@ -1162,15 +1141,15 @@ private fun ReorderLibraryTabsSheet(
     if (confirmReset) {
         AlertDialog(
             onDismissRequest = { confirmReset = false },
-            title = { Text("Reset order") },
-            text = { Text("Reset tab order to the default?") },
+            title = { Text(stringResource(R.string.reset_order)) },
+            text = { Text(stringResource(R.string.reset_tab_order_to_the_default)) },
             confirmButton = {
                 TextButton(onClick = {
                     orderedTabs = LibraryTab.entries.toList()
                     confirmReset = false
-                }) { Text("Reset") }
+                }) { Text(stringResource(R.string.reset)) }
             },
-            dismissButton = { TextButton(onClick = { confirmReset = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { confirmReset = false }) { Text(stringResource(R.string.cancel)) } },
         )
     }
 }
@@ -1197,14 +1176,11 @@ private fun LibraryTabRow(
             )
         }
         IconButton(onClick = onReorder) {
-            Icon(Icons.Rounded.DragIndicator, contentDescription = kozuUiString("Reorder library tabs"))
+            Icon(Icons.Rounded.DragIndicator, contentDescription = stringResource(R.string.reorder_library_tabs))
         }
     }
 }
 
-// ---------------------------------------------------------------------------------------------
-// Collections
-// ---------------------------------------------------------------------------------------------
 
 @Composable
 private fun TrackCollection(
@@ -1267,7 +1243,7 @@ private fun TrackCollection(
                             contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         ) {
                             Box(Modifier.size(34.dp), contentAlignment = Alignment.Center) {
-                                Icon(Icons.Rounded.DragIndicator, contentDescription = kozuUiString("Reorder song"), modifier = Modifier.size(19.dp))
+                                Icon(Icons.Rounded.DragIndicator, contentDescription = stringResource(R.string.reorder_song), modifier = Modifier.size(19.dp))
                             }
                         }
                     }
@@ -1304,12 +1280,12 @@ private fun TrackCollection(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     Icons.Rounded.DragIndicator,
-                                    contentDescription = kozuUiString("Reorder song"),
+                                    contentDescription = stringResource(R.string.reorder_song),
                                     modifier = Modifier.draggableHandle().padding(8.dp).size(22.dp),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                                 IconButton(onClick = { actions.openMenu(beatmap) }) {
-                                    Icon(Icons.Rounded.MoreVert, contentDescription = kozuUiString("More options"))
+                                    Icon(Icons.Rounded.MoreVert, contentDescription = stringResource(R.string.more_options))
                                 }
                             }
                         },
@@ -1378,14 +1354,12 @@ private fun PlaylistGrid(
                     MosaicCover(playlist.tracks, tileSize = 22.dp)
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Text(
-                            playlist.name,
+                        Text(playlist.name,
                             style = MaterialTheme.typography.titleMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        Text(
-                            "${playlist.tracks.size} ${if (playlist.tracks.size == 1) "beatmap" else "beatmaps"}",
+                        Text(pluralStringResource(R.plurals.beatmap_count, playlist.tracks.size, playlist.tracks.size),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -1440,22 +1414,21 @@ private fun PlaylistDetail(
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = kozuUiString("Back"))
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
                 }
             }
             Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
                 Text(playlist.name, style = MaterialTheme.typography.headlineSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(
-                    "${playlist.tracks.size} ${if (playlist.tracks.size == 1) "song" else "songs"}",
+                Text(pluralStringResource(R.plurals.song_count, playlist.tracks.size, playlist.tracks.size),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             IconButton(onClick = { sortOpen = true }) {
-                Icon(Icons.AutoMirrored.Rounded.Sort, contentDescription = kozuUiString("Sort playlist"))
+                Icon(Icons.AutoMirrored.Rounded.Sort, contentDescription = stringResource(R.string.sort_playlist))
             }
-            IconButton(onClick = { showRename = true }) { Icon(Icons.Rounded.Edit, contentDescription = kozuUiString("Rename playlist")) }
-            IconButton(onClick = { showDelete = true }) { Icon(Icons.Rounded.Delete, contentDescription = kozuUiString("Delete playlist")) }
+            IconButton(onClick = { showRename = true }) { Icon(Icons.Rounded.Edit, contentDescription = stringResource(R.string.rename_playlist)) }
+            IconButton(onClick = { showDelete = true }) { Icon(Icons.Rounded.Delete, contentDescription = stringResource(R.string.delete_playlist_text)) }
         }
 
         Row(
@@ -1518,12 +1491,12 @@ private fun PlaylistDetail(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
                                         Icons.Rounded.DragIndicator,
-                                        contentDescription = kozuUiString("Reorder song"),
+                                        contentDescription = stringResource(R.string.reorder_song),
                                         modifier = Modifier.draggableHandle().padding(8.dp).size(22.dp),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                     IconButton(onClick = { onRemoveTrack(beatmap.id) }) {
-                                        Icon(Icons.Rounded.Close, contentDescription = kozuUiString("Remove from playlist"), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.remove_from_playlist), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                 }
                             },
@@ -1554,12 +1527,12 @@ private fun PlaylistDetail(
     if (showDelete) {
         AlertDialog(
             onDismissRequest = { showDelete = false },
-            title = { Text("Delete playlist?") },
-            text = { Text("\"${playlist.name}\" will be removed. Your songs are not deleted.") },
+            title = { Text(stringResource(R.string.delete_playlist)) },
+            text = { Text(stringResource(R.string.remove_playlist_confirmation, playlist.name)) },
             confirmButton = {
-                TextButton(onClick = { showDelete = false; onDelete() }) { Text("Delete") }
+                TextButton(onClick = { showDelete = false; onDelete() }) { Text(stringResource(R.string.delete)) }
             },
-            dismissButton = { TextButton(onClick = { showDelete = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { showDelete = false }) { Text(stringResource(R.string.cancel)) } },
         )
     }
 }
@@ -1636,7 +1609,7 @@ private fun DownloadsPane(
                     Icon(Icons.Rounded.DownloadDone, contentDescription = null)
                     Spacer(Modifier.width(14.dp))
                     Column {
-                        Text("${ui.downloads.size} ${if (ui.downloads.size == 1) "song" else "songs"} offline", style = MaterialTheme.typography.titleMedium)
+                        Text(pluralStringResource(R.plurals.offline_song_count, ui.downloads.size, ui.downloads.size), style = MaterialTheme.typography.titleMedium)
                         Text(formatBytes(ui.downloadedBytes), style = MaterialTheme.typography.bodyMedium)
                     }
                 }
@@ -1656,9 +1629,9 @@ private fun DownloadsPane(
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         Text(ui.queueTitles[entry.key]?.takeIf { it.isNotBlank() } ?: "Beatmap #${entry.key}", style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         when (status) {
-                            is DownloadStatus.Queued -> Text("Waiting in queue", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            is DownloadStatus.Queued -> Text(stringResource(R.string.waiting_in_queue), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             is DownloadStatus.Running -> {
-                                Text("Downloading · ${(status.progress * 100).toInt()}% · ${status.source}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(stringResource(R.string.download_status, (status.progress * 100).toInt(), status.source), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 LinearProgressIndicator(progress = { status.progress.coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth().padding(top = 2.dp))
                             }
                             is DownloadStatus.Failed -> Text(status.message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -1683,12 +1656,12 @@ private fun DownloadsPane(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 Icons.Rounded.DragIndicator,
-                                contentDescription = kozuUiString("Reorder download"),
+                                contentDescription = stringResource(R.string.reorder_download),
                                 modifier = Modifier.draggableHandle().padding(8.dp).size(22.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             IconButton(onClick = { onDelete(beatmap.id) }) {
-                                Icon(Icons.Rounded.Delete, contentDescription = kozuUiString("Delete download"), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Icon(Icons.Rounded.Delete, contentDescription = stringResource(R.string.delete_download), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     },
@@ -1697,4 +1670,3 @@ private fun DownloadsPane(
         }
     }
 }
-

@@ -1,93 +1,93 @@
 package vn.kozu.ui.home
 
-import vn.kozu.ui.i18n.kozuUiString
-
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Shuffle
-import androidx.compose.material3.Icon
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import vn.kozu.ui.i18n.KozuText as Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
+import java.text.NumberFormat
+import java.util.Calendar
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.ListeningStats
 import vn.kozu.domain.model.OsuProfile
-import vn.kozu.ui.components.softTopEdge
+import vn.kozu.R
 import vn.kozu.ui.components.BeatmapArt
-import vn.kozu.ui.components.rememberKozuHaptics
+import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.LocalAppSettings
-import vn.kozu.ui.components.RefreshIndicator
 import vn.kozu.ui.components.LocalTrackActions
+import vn.kozu.ui.components.NewsAction
+import vn.kozu.ui.components.RefreshIndicator
+import vn.kozu.ui.components.rememberKozuHaptics
 import vn.kozu.ui.components.ScreenHeader
 import vn.kozu.ui.components.SectionHeader
-import vn.kozu.ui.components.NewsAction
+import vn.kozu.ui.components.segmentedShape
 import vn.kozu.ui.components.SettingsAction
+import vn.kozu.ui.components.softTopEdge
 import vn.kozu.ui.components.TrackPill
 import vn.kozu.ui.components.TrackRow
-import vn.kozu.ui.components.bounceClick
-import vn.kozu.ui.components.segmentedShape
 import vn.kozu.ui.theme.KozuCookies
 import vn.kozu.ui.theme.KozuMotion
 import vn.kozu.util.formatDuration
-import java.util.Calendar
-import java.text.NumberFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -157,8 +157,7 @@ fun HomeScreen(
                             }
                         }
                         Spacer(Modifier.width(12.dp))
-                        Text(
-                            text = "Kozu",
+                        Text(text = stringResource(R.string.kozu),
                             style = MaterialTheme.typography.headlineMedium
                         )
                     }
@@ -199,7 +198,7 @@ fun HomeScreen(
                 }
 
                 if (appSettings.showMixCard) item(key = "mix") {
-                    // The order that was actually started, so the artwork preview matches what plays.
+
                     var playedOrder by remember(ui.mix) { mutableStateOf<List<Beatmap>?>(null) }
                     Column {
                         Spacer(Modifier.height(28.dp))
@@ -207,8 +206,8 @@ fun HomeScreen(
                             mix = playedOrder ?: ui.mix,
                             totalCount = ui.mix.size,
                             onShuffle = {
-                                // Shuffle the current snapshot only (no extra loading), as a full
-                                // smart shuffle of the whole list rather than a random start index.
+
+
                                 playedOrder = actions.playShuffledWithOrder(ui.mix)
                             }
                         )
@@ -289,14 +288,12 @@ private fun OsuPulseCard(profile: OsuProfile) {
                 )
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(
-                        text = profile.username,
+                    Text(text = profile.username,
                         style = MaterialTheme.typography.titleMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Text(
-                        text = "${profile.flag} ${profile.countryName} · ${profile.mode.uppercase()}",
+                    Text(text = "${profile.flag} ${profile.countryName} · ${profile.mode.uppercase()}",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -324,14 +321,12 @@ private fun OsuPulseCard(profile: OsuProfile) {
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    "90 days",
+                Text(stringResource(R.string.text_90_days),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(Modifier.weight(1f))
-                Text(
-                    "Today",
+                Text(stringResource(R.string.today),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -353,13 +348,11 @@ private fun OsuPulseCard(profile: OsuProfile) {
 @Composable
 private fun RankMetric(title: String, value: String, modifier: Modifier = Modifier) {
     Column(modifier) {
-        Text(
-            title,
+        Text(title,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Text(
-            value,
+        Text(value,
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.primary,
             maxLines = 1,
@@ -371,14 +364,12 @@ private fun RankMetric(title: String, value: String, modifier: Modifier = Modifi
 @Composable
 private fun OsuStat(label: String, value: String, modifier: Modifier = Modifier) {
     Column(modifier) {
-        Text(
-            label,
+        Text(label,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1
         )
-        Text(
-            value,
+        Text(value,
             style = MaterialTheme.typography.labelLarge,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
@@ -403,8 +394,7 @@ private fun OsuRankHistoryChart(values: List<Int>) {
     val color = MaterialTheme.colorScheme.primary
     val ranks = values.takeLast(90).filter { it > 0 }
     if (ranks.isEmpty()) {
-        Text(
-            "Rank history is not available yet",
+        Text(stringResource(R.string.rank_history_is_not_available_yet),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(vertical = 10.dp)
@@ -465,13 +455,11 @@ private fun Greeting(name: String) {
         else -> "Still up?"
     }
     Column(Modifier.padding(horizontal = 20.dp)) {
-        Text(
-            text = line,
+        Text(text = line,
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Text(
-            text = "${name.ifBlank { "osu! Player" }}",
+        Text(text = "${name.ifBlank { "osu! Player" }}",
             style = MaterialTheme.typography.displaySmall,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
@@ -493,11 +481,10 @@ private fun YourMixCard(mix: List<Beatmap>, totalCount: Int, onShuffle: () -> Un
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     val big = MaterialTheme.typography.displayLarge.copy(lineHeight = 56.sp)
-                    Text("Your", style = big)
-                    Text("Mix", style = big)
+                    Text(stringResource(R.string.your), style = big)
+                    Text(stringResource(R.string.mix), style = big)
                     Spacer(Modifier.height(6.dp))
-                    Text(
-                        text = "Today's mix for you",
+                    Text(text = stringResource(R.string.todays_mix_for_you),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.75f)
                     )
@@ -514,7 +501,7 @@ private fun YourMixCard(mix: List<Beatmap>, totalCount: Int, onShuffle: () -> Un
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             Icons.Rounded.Shuffle,
-                            contentDescription = kozuUiString("Play your mix shuffled"),
+                            contentDescription = stringResource(R.string.play_your_mix_shuffled),
                             modifier = Modifier.size(38.dp)
                         )
                     }
@@ -539,8 +526,7 @@ private fun YourMixCard(mix: List<Beatmap>, totalCount: Int, onShuffle: () -> Un
                         }
                     }
                     Spacer(Modifier.width(12.dp))
-                    Text(
-                        text = "$totalCount songs · refreshed daily",
+                    Text(text = stringResource(R.string.mix_refreshed_daily, totalCount),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
                     )
@@ -596,9 +582,8 @@ private fun ListeningStatsCard(
         Column(Modifier.padding(24.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Listening stats", style = MaterialTheme.typography.titleLarge)
-                    Text(
-                        "Week to date",
+                    Text(stringResource(R.string.listening_stats), style = MaterialTheme.typography.titleLarge)
+                    Text(stringResource(R.string.week_to_date),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -612,14 +597,13 @@ private fun ListeningStatsCard(
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = kozuUiString("Open history"))
+                        Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = stringResource(R.string.open_history))
                     }
                 }
             }
 
             Spacer(Modifier.height(20.dp))
-            Text(
-                text = formatDuration(stats.totalMs),
+            Text(text = formatDuration(stats.totalMs),
                 style = MaterialTheme.typography.displaySmall,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -634,19 +618,16 @@ private fun ListeningStatsCard(
             if (top != null) {
                 Spacer(Modifier.height(16.dp))
                 Column(Modifier.bounceClick(pressedScale = 0.98f) { onPlayTop(top) }) {
-                    Text(
-                        "Top track",
+                    Text(stringResource(R.string.top_track),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Text(
-                        top.title,
+                    Text(top.title,
                         style = MaterialTheme.typography.headlineSmall,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Text(
-                        "${top.artist} • ${stats.topTrackPlays} ${if (stats.topTrackPlays == 1) "play" else "plays"}",
+                    Text(stringResource(R.string.top_track_plays, top.artist, stats.topTrackPlays),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -655,8 +636,7 @@ private fun ListeningStatsCard(
                 }
             } else {
                 Spacer(Modifier.height(12.dp))
-                Text(
-                    "Play a few songs and your week will show up here.",
+                Text(stringResource(R.string.play_a_few_songs_and_your_week_will_show_up_here),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -717,8 +697,7 @@ private fun WeekBars(stats: ListeningStats) {
                     )
                 }
                 Spacer(Modifier.height(6.dp))
-                Text(
-                    text = letters[index],
+                Text(text = letters[index],
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

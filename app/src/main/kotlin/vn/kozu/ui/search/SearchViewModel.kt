@@ -2,15 +2,15 @@ package vn.kozu.ui.search
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import vn.kozu.data.repository.CatalogSource
 import vn.kozu.di.AppContainer
@@ -173,7 +173,7 @@ class SearchViewModel(
             }
     }
 
-    /** Only relevance searches are re-ranked; any explicit sort order is respected as-is. */
+
     private fun rankPage(filters: BrowseFilters, items: List<Beatmap>): List<Beatmap> =
         if (filters.sort.option == BrowseSortField.RELEVANCE && filters.trimmedQuery.isNotEmpty()) {
             SearchRanker.rank(vn.kozu.data.repository.OsuSearchSyntax.parse(filters.trimmedQuery).text, items)

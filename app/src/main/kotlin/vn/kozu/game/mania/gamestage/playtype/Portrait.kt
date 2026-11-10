@@ -6,14 +6,14 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import kotlin.math.max
+import kotlin.math.min
 import vn.kozu.game.mania.gamestage.chart.ManiaChart
 import vn.kozu.game.mania.gamestage.engine.JudgementEngine
 import vn.kozu.game.mania.gamestage.engine.NoteScroll
+import vn.kozu.game.mania.gamestage.ui.drawJudgmentXLine
 import vn.kozu.game.mania.gamestage.ui.PlayColors
 import vn.kozu.game.mania.gamestage.ui.PlayfieldLayout
-import vn.kozu.game.mania.gamestage.ui.drawJudgmentXLine
-import kotlin.math.max
-import kotlin.math.min
 
 object Portrait : PlayType(
     storageKey = "PORTRAIT",

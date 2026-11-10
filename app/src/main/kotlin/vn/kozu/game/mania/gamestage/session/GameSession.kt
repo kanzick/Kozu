@@ -6,10 +6,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
+import java.io.File
+import java.io.IOException
+import kotlin.coroutines.resume
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import vn.kozu.game.mania.gamestage.audio.GameAudio
 import vn.kozu.game.mania.gamestage.audio.HitSoundPlayer
 import vn.kozu.game.mania.gamestage.audio.SampleLookup
@@ -23,13 +30,6 @@ import vn.kozu.game.mania.gamestage.scoring.Judgement
 import vn.kozu.game.mania.gamestage.settings.GameSettings
 import vn.kozu.game.mania.previewstage.model.DifficultyRecord
 import vn.kozu.game.mania.previewstage.model.SongEntry
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.IOException
-import kotlin.coroutines.resume
 
 class GameSession(
     val song: SongEntry,

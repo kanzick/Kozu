@@ -4,21 +4,18 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import vn.kozu.game.mania.gamestage.chart.ManiaChart
-import vn.kozu.game.mania.gamestage.engine.JudgementEngine
-import vn.kozu.game.mania.gamestage.ui.PlayColors
-import vn.kozu.game.mania.gamestage.ui.PlayfieldLayout
-import vn.kozu.game.mania.gamestage.ui.drawJudgmentXLine
+import androidx.compose.ui.graphics.Path
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sqrt
+import vn.kozu.game.mania.gamestage.chart.ManiaChart
+import vn.kozu.game.mania.gamestage.engine.JudgementEngine
+import vn.kozu.game.mania.gamestage.ui.drawJudgmentXLine
+import vn.kozu.game.mania.gamestage.ui.PlayColors
+import vn.kozu.game.mania.gamestage.ui.PlayfieldLayout
 
-// This directory documents a gameplay mode that owns its lane projection and note-rendering behavior.
-// It is separate from skin selection and skin synchronization; do not couple those systems.
-// Before changing this mode, understand its projection, note timing, judgement line, hold-note rendering, and touch-input assumptions, then run the game-stage tests.
 object Landscape3DPerspective : PlayType(
     storageKey = "LANDSCAPE_3D_PERSPECTIVE",
     isLandscape = true,

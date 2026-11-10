@@ -7,11 +7,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.SingletonImageLoader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import vn.kozu.R
 
 private enum class DeveloperConfirm { RESET, CACHES }
 
@@ -29,8 +31,8 @@ fun DeveloperPage(
     var status by remember { mutableStateOf<String?>(null) }
     var working by remember { mutableStateOf(false) }
 
-    SettingsScaffold(title = "Developer Options", onBack = onBack) {
-        SettingsSection("Maintenance") {
+    SettingsScaffold(title = stringResource(R.string.developer_options_text), onBack = onBack) {
+        SettingsSection(stringResource(R.string.settings_maintenance)) {
             action(
                 Setting.REFRESH_CATALOG,
                 label = if (catalog.isRefreshing) "Refreshing…" else "Force refresh",

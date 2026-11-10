@@ -1,11 +1,11 @@
 package vn.kozu.game.mania.gamestage.engine
 
+import kotlin.math.abs
 import vn.kozu.game.mania.gamestage.chart.ChartNote
 import vn.kozu.game.mania.gamestage.chart.ManiaChart
 import vn.kozu.game.mania.gamestage.scoring.HitWindows
 import vn.kozu.game.mania.gamestage.scoring.Judgement
 import vn.kozu.game.mania.gamestage.scoring.ScoreTracker
-import kotlin.math.abs
 
 class JudgementEngine(
     private val chart: ManiaChart,
@@ -25,7 +25,7 @@ class JudgementEngine(
 
     val state = IntArray(notes.size)
     val broken = BooleanArray(notes.size)
-    /** True after a note's head was successfully pressed. */
+
     val hit = BooleanArray(notes.size)
     private val headError = DoubleArray(notes.size)
 

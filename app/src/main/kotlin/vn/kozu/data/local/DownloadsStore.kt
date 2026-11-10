@@ -1,18 +1,18 @@
 package vn.kozu.data.local
 
 import android.content.Context
-import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.stringPreferencesKey
-import kotlinx.coroutines.flow.Flow
+import java.io.File
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import vn.kozu.domain.model.Beatmap
-import java.io.File
 
 data class DownloadedSet(
     val beatmap: Beatmap,
@@ -44,7 +44,7 @@ class DownloadsStore(
             listOf(set) + list.filterNot { it.beatmap.id == set.beatmap.id }
         }
 
-    /** Updates the stored size of sets without touching their order. */
+
     suspend fun updateSizes(sizes: Map<Long, Long>) =
         update { list ->
             list.map { set -> sizes[set.beatmap.id]?.let { set.copy(sizeBytes = it) } ?: set }

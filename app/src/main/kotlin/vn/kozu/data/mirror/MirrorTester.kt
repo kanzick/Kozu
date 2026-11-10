@@ -1,13 +1,13 @@
 package vn.kozu.data.mirror
 
+import java.io.IOException
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import vn.kozu.domain.model.Mirror
 import vn.kozu.domain.model.Mirrors
-import java.io.IOException
-import java.util.concurrent.TimeUnit
 
 data class MirrorTestResult(
     val mirrorId: String,

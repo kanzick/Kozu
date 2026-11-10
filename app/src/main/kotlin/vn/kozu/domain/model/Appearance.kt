@@ -151,10 +151,7 @@ enum class IconStyle(
     }
 }
 
-/**
- * Full-player design. Each entry is a genuinely different layout (see `PlayerDesigns.kt`),
- * modelled on the design picker in ArchiveTune.
- */
+
 enum class PlayerLayoutStyle(
     override val key: String,
     override val label: String,
@@ -172,12 +169,12 @@ enum class PlayerLayoutStyle(
     EDITORIAL("editorial", "Editorial", "Cookie artwork and a magazine-style headline"),
     ;
 
-    /** True for the designs that have room for the optional volume slider. */
+
     val supportsVolumeBar: Boolean
         get() = this == IMMERSIVE || this == IMMERSIVE_EXTENDED || this == MATERIAL_EXTENDED
 
     companion object {
-        /** Maps the old four layouts onto their closest new design so nobody's choice is lost. */
+
         fun fromKey(key: String?): PlayerLayoutStyle =
             when (key) {
                 "balanced" -> CLASSIC

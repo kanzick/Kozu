@@ -1,17 +1,17 @@
 package vn.kozu.ui.components
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import java.io.File
 import vn.kozu.data.download.DownloadStatus
 import vn.kozu.domain.model.AppSettings
 import vn.kozu.domain.model.Beatmap
-import java.io.File
 
 interface TrackActions {
     fun play(
@@ -21,7 +21,7 @@ interface TrackActions {
 
     fun playShuffled(queue: List<Beatmap>)
 
-    /** Starts a shuffled queue and returns its exact order for surfaces that preview its artwork. */
+
     fun playShuffledWithOrder(queue: List<Beatmap>): List<Beatmap>
 
     fun toggleFavorite(beatmap: Beatmap)
@@ -97,8 +97,5 @@ val LocalPerformanceMode = staticCompositionLocalOf { false }
 
 val LocalMetered = compositionLocalOf { false }
 
-/**
- * Resolves the full-size, uncropped background of a beatmap set to a local file (or null).
- * The Boolean says whether the network may be used.
- */
+
 val LocalBackgroundResolver = staticCompositionLocalOf<(suspend (Long, Boolean) -> File?)?> { null }

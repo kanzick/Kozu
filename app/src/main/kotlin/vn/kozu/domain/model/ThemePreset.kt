@@ -2,12 +2,6 @@ package vn.kozu.domain.model
 
 import androidx.compose.ui.graphics.Color
 
-/**
- * Ready-made colour palettes, picked from the "Theme preset" sheet.
- *
- * [OSU] is the default: osu!'s pink, violet and blue. [DYNAMIC] uses the system wallpaper colours
- * (Android 12+) and [CUSTOM] defers to the single accent colour chosen in Appearance.
- */
 enum class ThemePreset(
     val key: String,
     val label: String,

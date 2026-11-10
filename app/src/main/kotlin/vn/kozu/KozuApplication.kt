@@ -1,11 +1,11 @@
 package vn.kozu
 
 import android.app.Application
+import coil3.disk.DiskCache
 import coil3.ImageLoader
+import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
-import coil3.disk.DiskCache
-import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -21,7 +21,7 @@ class KozuApplication :
 
     override fun onCreate() {
         super.onCreate()
-        // Migrate the pre-Android-13 locale preference before the first Activity is created.
+
         AppLocaleManager.currentLanguageTag(this)
     }
 

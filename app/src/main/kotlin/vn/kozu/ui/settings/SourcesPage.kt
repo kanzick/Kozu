@@ -2,11 +2,11 @@ package vn.kozu.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,7 +15,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
-import vn.kozu.ui.i18n.KozuText as Text
+import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -24,11 +24,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import vn.kozu.data.mirror.MirrorTestResult
 import vn.kozu.domain.model.Mirror
 import vn.kozu.domain.model.Mirrors
+import vn.kozu.R
 
 @Composable
 fun SourcesPage(
@@ -43,36 +45,33 @@ fun SourcesPage(
 
     val mirrors = Mirrors.builtIn + settings.customMirrors
 
-    SettingsScaffold(title = "Sources", onBack = onBack) {
+    SettingsScaffold(title = stringResource(R.string.sources), onBack = onBack) {
         SettingsGroup(
             title = null,
             items =
                 listOf({
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("How Kozu finds audio", style = MaterialTheme.typography.titleMedium)
-                        Text(
-                            "Full song mode tries the enabled public mirrors and only plays a full audio file. It never silently switches to a short preview. Preview mode is used only when you explicitly select it.\n\nGuests and signed-in users have the same catalog, streaming, and download access.",
+                        Text(stringResource(R.string.how_kozu_finds_audio), style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.full_song_mode_description),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             PrimaryPill(
-                                if (testing) "Testing…" else "Test sources",
+                                if (testing) stringResource(R.string.settings_testing) else stringResource(R.string.settings_test_sources),
                                 enabled = !testing,
                             ) { viewModel.testMirrors() }
                             Spacer(Modifier.width(12.dp))
                             when (official) {
                                 true -> {
-                                    Text(
-                                        "osu! preview reachable",
+                                    Text(stringResource(R.string.osu_preview_reachable),
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.primary,
                                     )
                                 }
 
                                 false -> {
-                                    Text(
-                                        "osu! preview unreachable",
+                                    Text(stringResource(R.string.osu_preview_unreachable),
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.error,
                                     )
@@ -86,7 +85,7 @@ fun SourcesPage(
         )
         Spacer(Modifier.height(24.dp))
         SettingsGroup(
-            title = "Mirrors",
+            title = stringResource(R.string.mirrors),
             items =
                 mirrors.map { mirror ->
                     @Composable {
@@ -101,8 +100,8 @@ fun SourcesPage(
                 } +
                     listOf<@Composable () -> Unit>({
                         ActionRow(
-                            "Add custom mirror",
-                            "Use {id} where the beatmapset id goes",
+                            stringResource(R.string.settings_add_custom_mirror),
+                            stringResource(R.string.settings_use_id_where_the_beatmapset_id_goes),
                             { showAdd = true },
                         )
                     }),
@@ -132,8 +131,7 @@ private fun MirrorRow(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(mirror.name, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    mirror.downloadUrl.substringAfter("://").substringBefore('/'),
+                Text(mirror.downloadUrl.substringAfter("://").substringBefore('/'),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -143,8 +141,7 @@ private fun MirrorRow(
         if (result != null) {
             Spacer(Modifier.height(6.dp))
             val color = if (result.reachable) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-            Text(
-                "${result.note} · ${result.millis} ms" +
+            Text("${result.note} · ${result.millis} ms" +
                     when (result.previewOk) {
                         true -> " · preview ok"
                         false -> " · preview failed"
@@ -155,7 +152,7 @@ private fun MirrorRow(
             )
         }
         if (onRemove != null) {
-            TextButton(onClick = onRemove) { Text("Remove") }
+            TextButton(onClick = onRemove) { Text(stringResource(R.string.remove)) }
         }
     }
 }
@@ -173,7 +170,7 @@ private fun AddMirrorDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         modifier = Modifier.imePadding(),
-        title = { Text("Add mirror") },
+        title = { Text(stringResource(R.string.add_mirror)) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -183,7 +180,7 @@ private fun AddMirrorDialog(
                     value = name,
                     onValueChange = { name = it.take(30) },
                     singleLine = true,
-                    label = { Text("Name") },
+                    label = { Text(stringResource(R.string.name)) },
                     shape = RoundedCornerShape(18.dp),
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -193,7 +190,7 @@ private fun AddMirrorDialog(
                     singleLine = false,
                     minLines = 1,
                     maxLines = 3,
-                    label = { Text("Download URL") },
+                    label = { Text(stringResource(R.string.download_url)) },
                     placeholder = { Text("https://example.com/d/{id}") },
                     shape = RoundedCornerShape(18.dp),
                     modifier = Modifier.fillMaxWidth(),
@@ -204,13 +201,13 @@ private fun AddMirrorDialog(
                     singleLine = false,
                     minLines = 1,
                     maxLines = 3,
-                    label = { Text("Preview URL (optional)") },
+                    label = { Text(stringResource(R.string.preview_url_optional)) },
                     shape = RoundedCornerShape(18.dp),
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
         },
-        confirmButton = { TextButton(onClick = { onAdd(name, download, preview) }, enabled = valid) { Text("Add") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { TextButton(onClick = { onAdd(name, download, preview) }, enabled = valid) { Text(stringResource(R.string.add)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }

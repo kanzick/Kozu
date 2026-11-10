@@ -3,40 +3,42 @@ package vn.kozu.ui.settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.rememberSliderState
-import vn.kozu.ui.i18n.KozuText as Text
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import vn.kozu.player.EqualizerProfile
-import vn.kozu.ui.components.KozuSlider
 import java.util.Locale
 import kotlin.math.abs
+import vn.kozu.player.EqualizerProfile
+import vn.kozu.R
+import vn.kozu.ui.components.KozuSlider
 
 private const val CUSTOM_PRESET = "Custom"
 
@@ -51,12 +53,12 @@ fun EqualizerPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
         .firstOrNull { preset -> preset.value.zip(draft).all { (a, b) -> abs(a - b) < 0.02f } }
         ?.key ?: CUSTOM_PRESET
 
-    SettingsScaffold(title = "Equalizer", onBack = onBack) {
+    SettingsScaffold(title = stringResource(R.string.equalizer), onBack = onBack) {
         SettingsSection(null) {
             switch(Setting.EQUALIZER_BANDS, enabled) { viewModel.setEqualizerEnabled(it) }
         }
-        SettingsSection("Presets") {
-            // A popup list instead of a row of chips, like every other choice in settings.
+        SettingsSection(stringResource(R.string.settings_presets)) {
+
             dropdown(
                 Setting.EQUALIZER_PRESET,
                 activePreset,
@@ -69,7 +71,7 @@ fun EqualizerPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                 viewModel.setEqualizerGains(gains)
             }
         }
-        SettingsSection("Frequency bands") {
+        SettingsSection(stringResource(R.string.settings_frequency_bands)) {
             custom { shape ->
                 BandsCard(
                     shape = shape,
@@ -84,7 +86,7 @@ fun EqualizerPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                 )
             }
         }
-        SettingsSection("Audio effects") {
+        SettingsSection(stringResource(R.string.settings_audio_effects)) {
             slider(
                 Setting.BASS_BOOST,
                 settings.bassBoost.toFloat(),
@@ -144,7 +146,7 @@ private fun BandsCard(
             ) {
                 Icon(Icons.Rounded.RestartAlt, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Reset")
+                Text(stringResource(R.string.reset))
             }
         }
     }
@@ -160,8 +162,7 @@ private fun Band(
 ) {
     val alpha = if (enabled) 1f else 0.5f
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(56.dp)) {
-        Text(
-            text = String.format(Locale.US, "%+.1f", gain * EqualizerProfile.MAX_GAIN_DB),
+        Text(text = String.format(Locale.US, "%+.1f", gain * EqualizerProfile.MAX_GAIN_DB),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary.copy(alpha = alpha)
         )
@@ -180,8 +181,7 @@ private fun Band(
             )
         }
         Spacer(Modifier.height(4.dp))
-        Text(
-            text = frequencyLabel(frequency),
+        Text(text = frequencyLabel(frequency),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha)
         )

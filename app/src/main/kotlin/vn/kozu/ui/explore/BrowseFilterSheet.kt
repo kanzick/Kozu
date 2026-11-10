@@ -1,17 +1,16 @@
 package vn.kozu.ui.explore
 
 import androidx.compose.foundation.layout.Arrangement
-import vn.kozu.ui.components.KozuSheetHandle
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -26,11 +25,11 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
-import vn.kozu.ui.i18n.KozuText as Text
+import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import vn.kozu.domain.model.BrowseExtra
 import vn.kozu.domain.model.BrowseFilters
@@ -49,6 +49,8 @@ import vn.kozu.domain.model.BrowseRank
 import vn.kozu.domain.model.BrowseSortField
 import vn.kozu.domain.model.BrowseStatus
 import vn.kozu.domain.model.ModeFilter
+import vn.kozu.R
+import vn.kozu.ui.components.KozuSheetHandle
 import vn.kozu.ui.components.LocalIsSupporter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -77,8 +79,7 @@ fun BrowseFilterSheet(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
         Column(Modifier.fillMaxWidth().navigationBarsPadding()) {
-            Text(
-                text = "Filters",
+            Text(text = stringResource(R.string.filters),
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
             )
@@ -184,13 +185,13 @@ fun BrowseFilterSheet(
                             }
                         },
                         enabled = draft.hasActiveFilters,
-                    ) { Text("Reset") }
+                    ) { Text(stringResource(R.string.reset)) }
                     Button(
                         onClick = {
                             onApply(if (modeLocked) draft.copy(mode = ModeFilter.MANIA) else draft)
                         },
                         modifier = Modifier.weight(1f),
-                    ) { Text("Apply") }
+                    ) { Text(stringResource(R.string.apply)) }
                 }
             }
         }
@@ -211,8 +212,7 @@ private fun FilterSection(
         Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
             Text(text = title, style = MaterialTheme.typography.titleMedium)
             if (hint != null) {
-                Text(
-                    text = hint,
+                Text(text = hint,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

@@ -5,17 +5,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
-import vn.kozu.ui.i18n.KozuText as Text
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import vn.kozu.game.mania.gamestage.chart.ManiaChart
 import vn.kozu.game.mania.gamestage.engine.JudgementEngine
 import vn.kozu.game.mania.gamestage.settings.GameSettings
 import vn.kozu.game.mania.gamestage.ui.PlayfieldLayout
+import vn.kozu.R
 
 object LandscapeVerticalScrolling : PlayType(
     storageKey = "LANDSCAPE_VERTICAL_SCROLLING",
@@ -55,8 +57,7 @@ internal fun LandscapePlayTypeOptions(
     onCommit: (GameSettings) -> Unit,
 ) {
     Column {
-        Text(
-            "Scrolling style",
+        Text(stringResource(R.string.scrolling_style),
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(top = 8.dp),
         )

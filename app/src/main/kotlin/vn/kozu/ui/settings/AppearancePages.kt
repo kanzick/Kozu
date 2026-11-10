@@ -3,32 +3,33 @@ package vn.kozu.ui.settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import vn.kozu.ui.i18n.KozuText as Text
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import vn.kozu.domain.model.AppFont
 import vn.kozu.domain.model.AppearancePrefs
+import vn.kozu.domain.model.AppFont
 import vn.kozu.domain.model.ArtworkShape
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.MiniPlayerColors
@@ -39,15 +40,12 @@ import vn.kozu.domain.model.PlayerLayoutStyle
 import vn.kozu.domain.model.SeekBarStyle
 import vn.kozu.domain.model.SliderStyle
 import vn.kozu.domain.model.TransportShape
+import vn.kozu.R
 import vn.kozu.ui.components.KozuSlider
-import vn.kozu.ui.components.WavySlider
 import vn.kozu.ui.components.playbackIconVector
 import vn.kozu.ui.components.toShape
+import vn.kozu.ui.components.WavySlider
 import vn.kozu.ui.player.MiniPlayer
-
-// ---------------------------------------------------------------------------------------------
-// Typography
-// ---------------------------------------------------------------------------------------------
 
 @Composable
 fun TypographyPage(
@@ -58,8 +56,8 @@ fun TypographyPage(
     val appearance = settings.appearance
     val flex = settings.appFont.hasWidthAxis
 
-    SettingsScaffold(title = "Typography", onBack = onBack) {
-        SettingsSection("Font") {
+    SettingsScaffold(title = stringResource(R.string.typography), onBack = onBack) {
+        SettingsSection(stringResource(R.string.settings_font)) {
             dropdown(
                 Setting.APP_FONT,
                 settings.appFont,
@@ -67,7 +65,7 @@ fun TypographyPage(
                 { it.label },
             ) { font -> viewModel.save { setAppFont(font) } }
         }
-        SettingsSection("Size & style") {
+        SettingsSection(stringResource(R.string.settings_size_style)) {
             slider(
                 Setting.TEXT_SIZE,
                 appearance.textScale.toFloat(),
@@ -99,7 +97,7 @@ fun TypographyPage(
                 unit = 10f,
             ) { value -> viewModel.updateAppearance { copy(fontRoundness = value.toInt()) } }
         }
-        SettingsSection("Preview") {
+        SettingsSection(stringResource(R.string.settings_preview)) {
             custom { shape -> TypographyPreview(shape) }
         }
         SettingsSection(null) {
@@ -125,15 +123,12 @@ private fun weightLabel(shift: Int): String =
 private fun TypographyPreview(shape: Shape) {
     SettingCard(setting = null, shape = shape, onClick = null) {
         Column(Modifier.padding(horizontal = 18.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("Headline sample", style = MaterialTheme.typography.headlineSmall)
-            Text("Title: Dracula (feat. JENNIE)", style = MaterialTheme.typography.titleMedium)
-            Text(
-                "Body text reads comfortably at any size. Everything in the app follows this font, so lists, " +
-                    "dialogs and the player always match.",
+            Text(stringResource(R.string.headline_sample), style = MaterialTheme.typography.headlineSmall)
+            Text(stringResource(R.string.title_dracula_feat_jennie), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.typography_preview_description),
                 style = MaterialTheme.typography.bodyMedium,
             )
-            Text(
-                "LABEL \u00b7 0123456789 \u00b7 Aa Bb Cc",
+            Text("LABEL \u00b7 0123456789 \u00b7 Aa Bb Cc",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
             )
@@ -141,9 +136,6 @@ private fun TypographyPreview(shape: Shape) {
     }
 }
 
-// ---------------------------------------------------------------------------------------------
-// Player & mini player
-// ---------------------------------------------------------------------------------------------
 
 @Composable
 fun PlayerStylePage(
@@ -154,11 +146,11 @@ fun PlayerStylePage(
     val appearance = settings.appearance
     var showDesigns by remember { mutableStateOf(false) }
 
-    SettingsScaffold(title = "Player & mini player", onBack = onBack) {
-        SettingsSection("Live preview") {
+    SettingsScaffold(title = stringResource(R.string.player_and_mini_player), onBack = onBack) {
+        SettingsSection(stringResource(R.string.settings_live_preview)) {
             custom { shape -> PlayerPreviewCard(shape, appearance.seekStyle) }
         }
-        SettingsSection("Player bar") {
+        SettingsSection(stringResource(R.string.settings_player_bar)) {
             dropdown(
                 Setting.MINI_STYLE,
                 appearance.miniStyle,
@@ -205,7 +197,7 @@ fun PlayerStylePage(
                 viewModel.updateAppearance { copy(miniSwipeToSkip = enabled) }
             }
         }
-        SettingsSection("Full player") {
+        SettingsSection(stringResource(R.string.settings_full_player)) {
             navigation(
                 Setting.PLAYER_LAYOUT,
                 value = appearance.playerLayoutStyle.label,
@@ -264,7 +256,7 @@ fun PlayerStylePage(
                 viewModel.save { setShowFileInfo(enabled) }
             }
         }
-        SettingsSection("Background") {
+        SettingsSection(stringResource(R.string.background)) {
             switch(Setting.BLUR_PLAYER, settings.blurPlayer, enabled = !settings.performanceMode) { enabled ->
                 viewModel.save { setBlurPlayer(enabled) }
             }
@@ -315,7 +307,7 @@ fun PlayerStylePage(
     }
 }
 
-/** Shows the real mini player and seek bar with the saved settings, so changes can be judged at a glance. */
+
 @Composable
 private fun PlayerPreviewCard(
     shape: Shape,
@@ -361,11 +353,7 @@ private fun PlayerPreviewCard(
     }
 }
 
-// ---------------------------------------------------------------------------------------------
-// Shared bits
-// ---------------------------------------------------------------------------------------------
 
-/** Small filled swatch showing an artwork shape inside a dropdown row. */
 @Composable
 internal fun ShapeSwatch(shape: ArtworkShape) {
     Surface(
@@ -375,7 +363,7 @@ internal fun ShapeSwatch(shape: ArtworkShape) {
     ) {}
 }
 
-/** Two demo sliders (smooth and stepped) so the slider style and its motion can be tried right away. */
+
 @Composable
 internal fun SliderPreviewCard(
     shape: Shape,
@@ -385,8 +373,7 @@ internal fun SliderPreviewCard(
     var stepped by remember { mutableFloatStateOf(4f) }
     SettingCard(setting = null, shape = shape, onClick = null) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-            Text(
-                "Try it",
+            Text(stringResource(R.string.try_it),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.SemiBold,

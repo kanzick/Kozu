@@ -4,8 +4,8 @@ import android.app.PendingIntent
 import android.content.Intent
 import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
-import android.media.AudioManager
 import android.media.audiofx.Equalizer
+import android.media.AudioManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -15,50 +15,50 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
-import androidx.media3.common.TrackSelectionParameters
 import androidx.media3.common.Tracks
+import androidx.media3.common.TrackSelectionParameters
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
-import androidx.media3.datasource.DataSource
-import androidx.media3.datasource.DataSpec
-import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.datasource.FileDataSource
-import androidx.media3.datasource.ResolvingDataSource
-import androidx.media3.datasource.TransferListener
 import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.CacheEvictor
 import androidx.media3.datasource.cache.CacheSpan
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
+import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.DataSpec
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.FileDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
+import androidx.media3.datasource.ResolvingDataSource
+import androidx.media3.datasource.TransferListener
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
+import java.io.File
+import java.io.IOException
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import vn.kozu.KozuApplication
-import vn.kozu.MainActivity
+import kotlinx.coroutines.SupervisorJob
 import vn.kozu.data.mirror.StreamResolver
 import vn.kozu.data.mirror.ZipAudioDataSource
 import vn.kozu.data.remote.osu.OsuApiFactory
 import vn.kozu.domain.model.AppSettings
-import java.io.File
-import java.io.IOException
-import java.util.concurrent.TimeUnit
+import vn.kozu.KozuApplication
+import vn.kozu.MainActivity
 
 @OptIn(UnstableApi::class)
 class PlaybackService : MediaSessionService() {
@@ -169,8 +169,8 @@ class PlaybackService : MediaSessionService() {
         currentSettings = initialSettings
         hiFiAtBuild = initialSettings.hiFiMode
         val configuredCacheMb = initialSettings.streamCacheMb.coerceIn(MIN_CACHE_MB, MAX_CACHE_MB)
-        // The stream cache setting is one budget shared with the full songs kept by StreamResolver,
-        // so this cache only gets its share of it.
+
+
         val cacheLimitBytes = configuredCacheMb.toLong() * BYTES_PER_MEGABYTE * MEDIA_CACHE_SHARE_PERCENT / 100L
 
         val evictor = DynamicLruEvictor(cacheLimitBytes)
@@ -210,9 +210,7 @@ class PlaybackService : MediaSessionService() {
                 .setUpstreamDataSourceFactory(routedUpstream)
                 .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
 
-        // Songs that already sit in a local file (downloads, fully cached streams) are read directly;
-        // only network data goes through the cache. Otherwise every local song would be copied into
-        // the cache a second time.
+
         val localFiles = FileDataSource.Factory()
         val localAware =
             DataSource.Factory {
@@ -536,7 +534,7 @@ class PlaybackService : MediaSessionService() {
         }
     }
 
-    /** Applies a changed "Stream cache limit" right away instead of after the next restart. */
+
     private fun updateCacheLimit(settings: AppSettings) {
         val evictor = mediaEvictor ?: return
         val cache = mediaCache ?: return
@@ -645,10 +643,7 @@ class PlaybackService : MediaSessionService() {
                 .sumOf { it.length() }
         }
 
-        /**
-         * Empties the playback cache. While the service runs it owns the cache folder, so entries are
-         * removed through the live cache; the folder cannot be deleted from outside at that point.
-         */
+
         fun clearMediaCache(context: android.content.Context) {
             val cache = liveCache
             if (cache == null) {
@@ -723,7 +718,7 @@ private class KozuRoutingDataSource(
     }
 }
 
-/** Reads local files directly and sends everything else through the caching data source. */
+
 @OptIn(UnstableApi::class)
 private class LocalAwareDataSource(
     private val local: DataSource,
@@ -761,10 +756,7 @@ private class LocalAwareDataSource(
     }
 }
 
-/**
- * Least-recently-used cache eviction like Media3's own, but with a limit that can change while the
- * cache is open, so the Stream cache limit setting takes effect immediately.
- */
+
 @OptIn(UnstableApi::class)
 private class DynamicLruEvictor(
     @Volatile var maxBytes: Long,

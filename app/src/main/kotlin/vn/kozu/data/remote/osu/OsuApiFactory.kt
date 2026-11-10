@@ -1,11 +1,11 @@
 package vn.kozu.data.remote.osu
 
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
-import vn.kozu.data.remote.ProxyController
 import java.util.concurrent.TimeUnit
+import okhttp3.logging.HttpLoggingInterceptor
+import okhttp3.OkHttpClient
+import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.Retrofit
+import vn.kozu.data.remote.ProxyController
 
 object OsuApiFactory {
     private const val BASE_URL = "https://osu.ppy.sh/api/v2/"

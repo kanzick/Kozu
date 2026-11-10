@@ -1,64 +1,52 @@
 package vn.kozu.ui.player
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.ui.draw.BlurredEdgeTreatment
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.TextUnit
-import vn.kozu.ui.theme.KozuCookies
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioManager
-import androidx.compose.animation.core.Spring
+import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.foundation.basicMarquee
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.automirrored.rounded.VolumeDown
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.MoreVert
@@ -66,44 +54,59 @@ import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.rememberSliderState
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
-import androidx.compose.material3.rememberSliderState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.TextUnit
 import androidx.core.content.ContextCompat
-import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
-import coil3.request.crossfade
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
+import coil3.request.crossfade
+import coil3.request.ImageRequest
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.StateFlow
@@ -112,26 +115,19 @@ import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.PlayerLayoutStyle
 import vn.kozu.domain.model.SeekBarStyle
 import vn.kozu.player.RepeatState
-import androidx.annotation.DrawableRes
-import androidx.compose.ui.res.vectorResource
 import vn.kozu.R
 import vn.kozu.ui.components.BeatmapArt
+import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.FullBeatmapArt
 import vn.kozu.ui.components.KozuIcons
 import vn.kozu.ui.components.LocalAppSettings
-import vn.kozu.ui.components.WavySlider
-import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.playbackIconVector
 import vn.kozu.ui.components.rememberKozuHaptics
 import vn.kozu.ui.components.toShape
-import vn.kozu.ui.i18n.KozuText as Text
-import vn.kozu.ui.i18n.kozuUiString
+import vn.kozu.ui.components.WavySlider
+import vn.kozu.ui.theme.KozuCookies
 import vn.kozu.util.formatTime
 
-/**
- * Everything a player design needs, so each design is a pure layout and the screen only has to
- * build this once.
- */
 class PlayerUi(
     val beatmap: Beatmap,
     val title: String,
@@ -190,14 +186,13 @@ fun PlayerDesignContent(
     }
 }
 
-/** Designs that paint their own full-bleed artwork hide the shared blurred backdrop. */
+
 fun PlayerLayoutStyle.drawsOwnBackground(): Boolean =
     this == PlayerLayoutStyle.IMMERSIVE ||
         this == PlayerLayoutStyle.IMMERSIVE_EXTENDED ||
         this == PlayerLayoutStyle.LITTLE ||
         this == PlayerLayoutStyle.EDITORIAL
 
-// ───────────────────────────── shared building blocks ─────────────────────────────
 
 @Composable
 private fun DesignColumn(
@@ -217,7 +212,7 @@ private fun DesignColumn(
     )
 }
 
-/** Swipe down closes, swipe sideways skips, like the original artwork gesture. */
+
 @Composable
 private fun Modifier.playerSwipe(ui: PlayerUi): Modifier {
     if (!ui.artworkSwipe) return this
@@ -287,7 +282,7 @@ private fun PlayerArt(
     }
 }
 
-/** Artwork cropped to fill its box edge to edge (no shape), for the immersive designs. */
+
 @Composable
 private fun FullBleedArt(
     ui: PlayerUi,
@@ -327,7 +322,6 @@ private fun FullBleedArt(
     }
 }
 
-// ───────────────────────────── shared building blocks ─────────────────────────────
 
 @Composable
 private fun at(@DrawableRes id: Int): ImageVector = ImageVector.vectorResource(id)
@@ -352,7 +346,7 @@ private fun pal(): Pal {
     )
 }
 
-/** Square artwork, centred in the space it is given, with the horizontal margin the design wants. */
+
 @Composable
 private fun ArtBox(
     ui: PlayerUi,
@@ -388,9 +382,8 @@ private fun PlayerHeader(
                 .bounceClick(pressedScale = 0.98f, onClick = ui.onClose),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("Now Playing", style = MaterialTheme.typography.headlineSmall, color = main)
-        Text(
-            text = ui.title,
+        Text(stringResource(R.string.now_playing), style = MaterialTheme.typography.headlineSmall, color = main)
+        Text(text = ui.title,
             style = MaterialTheme.typography.titleMedium,
             color = sub,
             maxLines = 1,
@@ -408,8 +401,7 @@ private fun TitleText(
     weight: FontWeight = FontWeight.Medium,
     modifier: Modifier = Modifier,
 ) {
-    Text(
-        text = ui.title,
+    Text(text = ui.title,
         fontSize = size,
         fontWeight = weight,
         color = color,
@@ -419,7 +411,7 @@ private fun TitleText(
     )
 }
 
-/** Artist (opens the artist page) and, after a dot, the mapper (opens the mapper page). */
+
 @Composable
 private fun SubLine(
     ui: PlayerUi,
@@ -427,8 +419,7 @@ private fun SubLine(
     size: TextUnit = 17.sp,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            text = ui.artist,
+        Text(text = ui.artist,
             fontSize = size,
             color = color,
             maxLines = 1,
@@ -441,8 +432,7 @@ private fun SubLine(
         )
         if (ui.mapper.isNotBlank()) {
             Text("  •  ", fontSize = size, color = color.copy(alpha = 0.6f), maxLines = 1)
-            Text(
-                text = ui.mapper,
+            Text(text = ui.mapper,
                 fontSize = (size.value - 3).sp,
                 color = color.copy(alpha = 0.85f),
                 maxLines = 1,
@@ -594,7 +584,6 @@ private fun SkipKey(
     )
 }
 
-// ───────────────────────────── seeking ─────────────────────────────
 
 private class SeekState(
     val fraction: Float,
@@ -626,7 +615,7 @@ private fun rememberSeek(ui: PlayerUi): SeekState {
     )
 }
 
-/** The standard Material 3 expressive slider: pill track, vertical handle. */
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SeekM3(
@@ -636,8 +625,8 @@ private fun SeekM3(
     modifier: Modifier = Modifier,
 ) {
     val sliderState = rememberSliderState(value = seek.fraction)
-    // Follow playback progress as well as external seek updates. During dragging,
-    // seek.fraction reflects the scrub value, so the thumb remains under the user's control.
+
+
     LaunchedEffect(seek.fraction) {
         sliderState.value = seek.fraction
     }
@@ -659,7 +648,7 @@ private fun SeekM3(
     )
 }
 
-/** A plain rounded bar that can be tapped or dragged. Optional round thumb. */
+
 @Composable
 private fun LineSeek(
     fraction: Float,
@@ -722,17 +711,14 @@ private fun SeekTimes(
     ) {
         Text(formatTime(seek.shownMs), fontSize = 14.sp, color = color)
         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { center?.invoke() }
-        Text(
-            text = if (remaining) "-" + formatTime((seek.durationMs - seek.shownMs).coerceAtLeast(0L)) else formatTime(seek.durationMs),
+        Text(text = if (remaining) "-" + formatTime((seek.durationMs - seek.shownMs).coerceAtLeast(0L)) else formatTime(seek.durationMs),
             fontSize = 14.sp,
             color = color,
         )
     }
 }
 
-// ───────────────────────────── volume ─────────────────────────────
 
-/** Media volume that stays in step with the hardware buttons. */
 @Composable
 fun PlayerVolumeBar(
     modifier: Modifier = Modifier,
@@ -779,7 +765,6 @@ fun PlayerVolumeBar(
     }
 }
 
-// ───────────────────────────── 1. Classic ─────────────────────────────
 
 @Composable
 private fun ClassicDesign(ui: PlayerUi) {
@@ -790,9 +775,9 @@ private fun ClassicDesign(ui: PlayerUi) {
         ArtBox(ui, Modifier.weight(1f), hPad = 32.dp)
         Spacer(Modifier.height(14.dp))
         TitleRow(ui, p, hPad = 32.dp) {
-            Btn(at(R.drawable.at_share), kozuUiString("Share"), ui.onShare, size = 40.dp, container = p.cream, content = p.onCream)
+            Btn(at(R.drawable.at_share), "Share", ui.onShare, size = 40.dp, container = p.cream, content = p.onCream)
             Spacer(Modifier.width(12.dp))
-            Btn(at(R.drawable.at_more_horiz), kozuUiString("More options"), ui.onMore, size = 40.dp, container = p.cream, content = p.onCream)
+            Btn(at(R.drawable.at_more_horiz), stringResource(R.string.more_options), ui.onMore, size = 40.dp, container = p.cream, content = p.onCream)
         }
         Spacer(Modifier.height(4.dp))
         SeekM3(seek, p, hPad = 28.dp)
@@ -819,12 +804,12 @@ private fun ClassicDesign(ui: PlayerUi) {
             Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextBtn(at(R.drawable.at_queue_music), kozuUiString("Queue"), ui.onQueue, p.cream, Modifier.weight(1f))
+            TextBtn(at(R.drawable.at_queue_music), stringResource(R.string.queue), ui.onQueue, p.cream, Modifier.weight(1f))
             TextBtn(
-                at(R.drawable.at_bedtime), kozuUiString("Sleep timer"), ui.onSleep,
+                at(R.drawable.at_bedtime), stringResource(R.string.sleep_timer), ui.onSleep,
                 if (ui.sleepActive) MaterialTheme.colorScheme.primary else p.cream, Modifier.weight(1f),
             )
-            TextBtn(at(R.drawable.at_more_vert), kozuUiString("More"), ui.onMore, p.cream, Modifier.weight(1f))
+            TextBtn(at(R.drawable.at_more_vert), "More", ui.onMore, p.cream, Modifier.weight(1f))
         }
     }
 }
@@ -851,7 +836,6 @@ private fun TextBtn(
     }
 }
 
-// ───────────────────────────── 2. Modern ─────────────────────────────
 
 @Composable
 private fun ModernDesign(ui: PlayerUi) {
@@ -862,14 +846,14 @@ private fun ModernDesign(ui: PlayerUi) {
         ArtBox(ui, Modifier.weight(1f), hPad = 32.dp)
         Spacer(Modifier.height(14.dp))
         TitleRow(ui, p, hPad = 32.dp, titleSize = 28.sp) {
-            // Share and favourite: one capsule split into two keys with a small gap.
+
             Btn(
-                at(R.drawable.at_share), kozuUiString("Share"), ui.onShare, size = 42.dp, container = p.cream, content = p.onCream,
+                at(R.drawable.at_share), "Share", ui.onShare, size = 42.dp, container = p.cream, content = p.onCream,
                 shape = RoundedCornerShape(topStart = 50.dp, bottomStart = 50.dp, topEnd = 10.dp, bottomEnd = 10.dp),
             )
             Spacer(Modifier.width(12.dp))
             Btn(
-                favoriteIcon(ui), kozuUiString("Favorite"), ui.onFavorite, size = 42.dp, container = p.cream,
+                favoriteIcon(ui), "Favorite", ui.onFavorite, size = 42.dp, container = p.cream,
                 content = if (ui.isFavorite) MaterialTheme.colorScheme.error else p.onCream,
                 shape = RoundedCornerShape(topStart = 10.dp, bottomStart = 10.dp, topEnd = 50.dp, bottomEnd = 50.dp),
             )
@@ -894,12 +878,12 @@ private fun ModernDesign(ui: PlayerUi) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedKey(at(R.drawable.at_queue_music), kozuUiString("Queue"), ui.onQueue, p, false)
-                OutlinedKey(at(R.drawable.at_bedtime), kozuUiString("Sleep timer"), ui.onSleep, p, ui.sleepActive)
+                OutlinedKey(at(R.drawable.at_queue_music), stringResource(R.string.queue), ui.onQueue, p, false)
+                OutlinedKey(at(R.drawable.at_bedtime), stringResource(R.string.sleep_timer), ui.onSleep, p, ui.sleepActive)
                 OutlinedKey(shuffleIcon(), "Shuffle", ui.onShuffle, p, ui.shuffle)
                 OutlinedKey(repeatIcon(ui), "Repeat", ui.onRepeat, p, ui.repeat != RepeatState.OFF)
             }
-            Btn(at(R.drawable.at_more_vert), kozuUiString("More options"), ui.onMore, size = 42.dp, container = p.cream, content = p.onCream)
+            Btn(at(R.drawable.at_more_vert), stringResource(R.string.more_options), ui.onMore, size = 42.dp, container = p.cream, content = p.onCream)
         }
     }
 }
@@ -948,7 +932,6 @@ private fun OutlinedKey(
     }
 }
 
-// ───────────────────────────── 3. Minimal ─────────────────────────────
 
 @Composable
 private fun MinimalDesign(ui: PlayerUi) {
@@ -960,9 +943,9 @@ private fun MinimalDesign(ui: PlayerUi) {
         ArtBox(ui, Modifier.weight(1f), hPad = 32.dp)
         Spacer(Modifier.height(14.dp))
         TitleRow(ui, p, hPad = 32.dp, titleSize = 28.sp) {
-            PlainBtn(at(R.drawable.at_share), kozuUiString("Share"), ui.onShare, size = 44.dp, iconSize = 26.dp, tint = p.cream.copy(alpha = 0.8f))
+            PlainBtn(at(R.drawable.at_share), "Share", ui.onShare, size = 44.dp, iconSize = 26.dp, tint = p.cream.copy(alpha = 0.8f))
             PlainBtn(
-                favoriteIcon(ui), kozuUiString("Favorite"), ui.onFavorite, size = 44.dp, iconSize = 26.dp,
+                favoriteIcon(ui), "Favorite", ui.onFavorite, size = 44.dp, iconSize = 26.dp,
                 tint = if (ui.isFavorite) colors.error else p.cream.copy(alpha = 0.8f),
             )
         }
@@ -995,7 +978,7 @@ private fun MinimalDesign(ui: PlayerUi) {
             Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextBtn(at(R.drawable.at_queue_music), kozuUiString("Queue"), ui.onQueue, p.cream, Modifier.weight(1f))
+            TextBtn(at(R.drawable.at_queue_music), stringResource(R.string.queue), ui.onQueue, p.cream, Modifier.weight(1f))
             TextBtn(
                 at(R.drawable.at_bedtime), null, ui.onSleep,
                 if (ui.sleepActive) colors.primary else p.cream, Modifier.weight(1f),
@@ -1005,7 +988,6 @@ private fun MinimalDesign(ui: PlayerUi) {
     }
 }
 
-// ───────────────────────────── 4. Cinematic ─────────────────────────────
 
 @Composable
 private fun CinematicDesign(ui: PlayerUi) {
@@ -1018,14 +1000,14 @@ private fun CinematicDesign(ui: PlayerUi) {
         Spacer(Modifier.height(14.dp))
         TitleRow(ui, p, hPad = 32.dp, titleSize = 28.sp) {
             val r = RoundedCornerShape(16.dp)
-            Btn(at(R.drawable.at_share), kozuUiString("Share"), ui.onShare, size = 44.dp, iconSize = 24.dp, container = p.faint, content = p.cream, shape = r)
+            Btn(at(R.drawable.at_share), "Share", ui.onShare, size = 44.dp, iconSize = 24.dp, container = p.faint, content = p.cream, shape = r)
             Spacer(Modifier.width(10.dp))
             Btn(
-                favoriteIcon(ui), kozuUiString("Favorite"), ui.onFavorite, size = 44.dp, iconSize = 24.dp, container = p.faint,
+                favoriteIcon(ui), "Favorite", ui.onFavorite, size = 44.dp, iconSize = 24.dp, container = p.faint,
                 content = if (ui.isFavorite) colors.error else p.cream, shape = r,
             )
             Spacer(Modifier.width(10.dp))
-            Btn(at(R.drawable.at_more_horiz), kozuUiString("More options"), ui.onMore, size = 44.dp, iconSize = 24.dp, container = p.faint, content = p.cream, shape = r)
+            Btn(at(R.drawable.at_more_horiz), stringResource(R.string.more_options), ui.onMore, size = 44.dp, iconSize = 24.dp, container = p.faint, content = p.cream, shape = r)
         }
         Spacer(Modifier.height(4.dp))
         SeekM3(seek, p, hPad = 28.dp)
@@ -1061,7 +1043,7 @@ private fun CinematicDesign(ui: PlayerUi) {
     }
 }
 
-/** Queue pill, sleep-timer circle, more pill: the bottom bar of Cinematic and Expressive. */
+
 @Composable
 private fun BottomPills(
     ui: PlayerUi,
@@ -1072,15 +1054,15 @@ private fun BottomPills(
         Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Pill(at(R.drawable.at_queue_music), kozuUiString("Queue"), ui.onQueue, p, Modifier.weight(1f))
+        Pill(at(R.drawable.at_queue_music), stringResource(R.string.queue), ui.onQueue, p, Modifier.weight(1f))
         Spacer(Modifier.width(12.dp))
         Btn(
-            at(R.drawable.at_bedtime), kozuUiString("Sleep timer"), ui.onSleep, size = 47.dp, iconSize = 24.dp,
+            at(R.drawable.at_bedtime), stringResource(R.string.sleep_timer), ui.onSleep, size = 47.dp, iconSize = 24.dp,
             container = if (ui.sleepActive) colors.primary.copy(alpha = 0.3f) else p.faint,
             content = if (ui.sleepActive) colors.primary else p.cream,
         )
         Spacer(Modifier.width(12.dp))
-        Pill(at(R.drawable.at_more_vert), kozuUiString("More"), ui.onMore, p, Modifier.weight(1f))
+        Pill(at(R.drawable.at_more_vert), "More", ui.onMore, p, Modifier.weight(1f))
     }
 }
 
@@ -1106,12 +1088,7 @@ private fun Pill(
     }
 }
 
-// ───────────────────────────── 5. Little ─────────────────────────────
 
-/**
- * ArchiveTune's "Little": a landscape layout turned a quarter turn, so the title runs down the
- * screen. The tinted band is the progress: drag up and down to seek, flick sideways to skip.
- */
 @Composable
 private fun LittleDesign(ui: PlayerUi) {
     val colors = MaterialTheme.colorScheme
@@ -1198,8 +1175,7 @@ private fun LittleContent(
             Spacer(Modifier.weight(1f))
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(Modifier.weight(1f)) {
-                    Text(
-                        text = ui.title,
+                    Text(text = ui.title,
                         color = text.copy(alpha = 0.95f),
                         fontSize = (62f * scale).sp,
                         fontWeight = FontWeight.Bold,
@@ -1209,8 +1185,7 @@ private fun LittleContent(
                     )
                     Spacer(Modifier.height((10f * scale).dp))
                     if (ui.mapper.isNotBlank()) {
-                        Text(
-                            text = "Mapped by ${ui.mapper}",
+                        Text(text = stringResource(R.string.mapped_by, ui.mapper),
                             color = text.copy(alpha = 0.6f),
                             style = MaterialTheme.typography.bodyMedium,
                             maxLines = 1,
@@ -1218,8 +1193,7 @@ private fun LittleContent(
                             modifier = Modifier.clip(RoundedCornerShape(8.dp)).bounceClick(pressedScale = 0.97f, onClick = ui.onMapper),
                         )
                     }
-                    Text(
-                        text = "by - ${ui.artist}",
+                    Text(text = stringResource(R.string.by_artist, ui.artist),
                         color = text.copy(alpha = 0.6f),
                         style = MaterialTheme.typography.bodyMedium,
                         maxLines = 1,
@@ -1228,8 +1202,7 @@ private fun LittleContent(
                     )
                 }
                 Spacer(Modifier.width((16f * scale).dp))
-                Text(
-                    text = timeText,
+                Text(text = timeText,
                     color = text.copy(alpha = 0.85f),
                     fontSize = (48f * scale).sp,
                     fontWeight = FontWeight.Medium,
@@ -1269,9 +1242,6 @@ private fun LittleContent(
 }
 
 
-
-// ───────────────────────────── 6. Expressive ─────────────────────────────
-
 @Composable
 private fun ExpressiveDesign(ui: PlayerUi) {
     val p = pal()
@@ -1283,17 +1253,17 @@ private fun ExpressiveDesign(ui: PlayerUi) {
         Spacer(Modifier.height(14.dp))
         TitleRow(ui, p, hPad = 32.dp, titleSize = 28.sp) {
             Btn(
-                at(R.drawable.at_share), kozuUiString("Share"), ui.onShare, size = 42.dp, iconSize = 22.dp, container = p.faint, content = p.cream,
+                at(R.drawable.at_share), "Share", ui.onShare, size = 42.dp, iconSize = 22.dp, container = p.faint, content = p.cream,
                 shape = RoundedCornerShape(topStart = 50.dp, bottomStart = 50.dp, topEnd = 8.dp, bottomEnd = 8.dp),
             )
             Spacer(Modifier.width(8.dp))
             Btn(
-                favoriteIcon(ui), kozuUiString("Favorite"), ui.onFavorite, size = 42.dp, iconSize = 22.dp, container = p.faint,
+                favoriteIcon(ui), "Favorite", ui.onFavorite, size = 42.dp, iconSize = 22.dp, container = p.faint,
                 content = if (ui.isFavorite) colors.error else p.cream,
             )
             Spacer(Modifier.width(8.dp))
             Btn(
-                at(R.drawable.at_more_horiz), kozuUiString("More options"), ui.onMore, size = 42.dp, iconSize = 22.dp, container = p.faint, content = p.cream,
+                at(R.drawable.at_more_horiz), stringResource(R.string.more_options), ui.onMore, size = 42.dp, iconSize = 22.dp, container = p.faint, content = p.cream,
                 shape = RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp, topEnd = 50.dp, bottomEnd = 50.dp),
             )
         }
@@ -1368,9 +1338,7 @@ private fun TrayKey(
     }
 }
 
-// ───────────────────────────── 7 & 8. Immersive / Immersive Extended ─────────────────────────────
 
-/** Artwork over the whole screen: sharp at the top, melting into a blur towards the controls. */
 @Composable
 private fun BlurFadeArt(ui: PlayerUi) {
     Box(Modifier.fillMaxSize()) {
@@ -1419,8 +1387,7 @@ private fun ImmersiveDesign(ui: PlayerUi, extended: Boolean) {
                 PlayerHeader(ui, p, onDark = true)
                 ArtBox(ui, Modifier.weight(1f), hPad = 22.dp)
             } else {
-                Text(
-                    text = "Playing from ${ui.title}",
+                Text(text = stringResource(R.string.playing_from, ui.title),
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Medium,
                     color = white,
@@ -1440,17 +1407,17 @@ private fun ImmersiveDesign(ui: PlayerUi, extended: Boolean) {
             TitleRow(ui, p, hPad = if (extended) 22.dp else 28.dp, titleSize = 30.sp, titleColor = white, subColor = whiteMuted) {
                 if (extended) {
                     Btn(
-                        at(R.drawable.at_more_vert), kozuUiString("More options"), ui.onMore, size = 48.dp, iconSize = 24.dp,
+                        at(R.drawable.at_more_vert), stringResource(R.string.more_options), ui.onMore, size = 48.dp, iconSize = 24.dp,
                         container = Color.White.copy(alpha = 0.2f), content = white,
                     )
                     Spacer(Modifier.width(12.dp))
                     Btn(
-                        favoriteIcon(ui), kozuUiString("Favorite"), ui.onFavorite, size = 48.dp, iconSize = 24.dp,
+                        favoriteIcon(ui), "Favorite", ui.onFavorite, size = 48.dp, iconSize = 24.dp,
                         container = Color.White.copy(alpha = 0.3f), content = white,
                     )
                 } else {
-                    PlainBtn(favoriteIcon(ui), kozuUiString("Favorite"), ui.onFavorite, size = 48.dp, iconSize = 30.dp, tint = white)
-                    PlainBtn(at(R.drawable.at_more_horiz), kozuUiString("More options"), ui.onMore, size = 48.dp, iconSize = 30.dp, tint = white)
+                    PlainBtn(favoriteIcon(ui), "Favorite", ui.onFavorite, size = 48.dp, iconSize = 30.dp, tint = white)
+                    PlainBtn(at(R.drawable.at_more_horiz), stringResource(R.string.more_options), ui.onMore, size = 48.dp, iconSize = 30.dp, tint = white)
                 }
             }
             Spacer(Modifier.height(12.dp))
@@ -1487,12 +1454,12 @@ private fun ImmersiveDesign(ui: PlayerUi, extended: Boolean) {
             if (extended) {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     val glass = Color.White.copy(alpha = 0.16f)
-                    Btn(at(R.drawable.at_queue_music), kozuUiString("Queue"), ui.onQueue, size = 42.dp, iconSize = 22.dp, container = glass, content = white)
+                    Btn(at(R.drawable.at_queue_music), stringResource(R.string.queue), ui.onQueue, size = 42.dp, iconSize = 22.dp, container = glass, content = white)
                     Spacer(Modifier.width(8.dp))
                     Btn(shuffleIcon(), "Shuffle", ui.onShuffle, size = 42.dp, iconSize = 22.dp, container = if (ui.shuffle) Color.White.copy(alpha = 0.4f) else glass, content = white)
                     Spacer(Modifier.width(8.dp))
                     Btn(
-                        at(R.drawable.at_bedtime), kozuUiString("Sleep timer"), ui.onSleep, size = 42.dp, iconSize = 22.dp,
+                        at(R.drawable.at_bedtime), stringResource(R.string.sleep_timer), ui.onSleep, size = 42.dp, iconSize = 22.dp,
                         container = if (ui.sleepActive) Color.White.copy(alpha = 0.4f) else glass, content = white,
                     )
                     Spacer(Modifier.weight(1f))
@@ -1503,8 +1470,7 @@ private fun ImmersiveDesign(ui: PlayerUi, extended: Boolean) {
                         Row(Modifier.padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
                             Icon(repeatIcon(ui), contentDescription = null, modifier = Modifier.size(22.dp))
                             Spacer(Modifier.width(10.dp))
-                            Text(
-                                when (ui.repeat) {
+                            Text(when (ui.repeat) {
                                     RepeatState.OFF -> "Repeat off"
                                     RepeatState.ONE -> "Repeat one"
                                     else -> "Repeat all"
@@ -1516,7 +1482,7 @@ private fun ImmersiveDesign(ui: PlayerUi, extended: Boolean) {
                 }
             } else {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 30.dp, vertical = 8.dp), verticalAlignment = Alignment.Top) {
-                    PlainBtn(at(R.drawable.at_bedtime), kozuUiString("Sleep timer"), ui.onSleep, size = 48.dp, iconSize = 28.dp, tint = if (ui.sleepActive) MaterialTheme.colorScheme.primary else white)
+                    PlainBtn(at(R.drawable.at_bedtime), stringResource(R.string.sleep_timer), ui.onSleep, size = 48.dp, iconSize = 28.dp, tint = if (ui.sleepActive) MaterialTheme.colorScheme.primary else white)
                     Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                         Surface(shape = RoundedCornerShape(24.dp), color = Color.Black.copy(alpha = 0.28f), contentColor = white) {
                             Row(Modifier.padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -1525,19 +1491,17 @@ private fun ImmersiveDesign(ui: PlayerUi, extended: Boolean) {
                                 PlainBtn(repeatIcon(ui), "Repeat", ui.onRepeat, size = 46.dp, iconSize = 24.dp, tint = if (ui.repeat != RepeatState.OFF) MaterialTheme.colorScheme.primary else white)
                             }
                         }
-                        Text(
-                            ui.fileInfo?.takeIf { it.isNotBlank() } ?: "Kozu",
+                        Text(ui.fileInfo?.takeIf { it.isNotBlank() } ?: stringResource(R.string.kozu),
                             fontSize = 14.sp, color = whiteMuted, modifier = Modifier.padding(top = 4.dp), maxLines = 1,
                         )
                     }
-                    PlainBtn(at(R.drawable.at_queue_music), kozuUiString("Queue"), ui.onQueue, size = 48.dp, iconSize = 28.dp, tint = white)
+                    PlainBtn(at(R.drawable.at_queue_music), stringResource(R.string.queue), ui.onQueue, size = 48.dp, iconSize = 28.dp, tint = white)
                 }
             }
         }
     }
 }
 
-// ───────────────────────────── 9. Material Extended ─────────────────────────────
 
 @Composable
 private fun MaterialExtendedDesign(ui: PlayerUi) {
@@ -1550,20 +1514,19 @@ private fun MaterialExtendedDesign(ui: PlayerUi) {
             Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = if (ui.compact) 4.dp else 12.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Btn(at(R.drawable.at_expand_more), kozuUiString("Close player"), ui.onClose, size = 56.dp, iconSize = 28.dp, container = container, content = p.cream)
-            Text(
-                text = "Now Playing",
+            Btn(at(R.drawable.at_expand_more), stringResource(R.string.close_player), ui.onClose, size = 56.dp, iconSize = 28.dp, container = container, content = p.cream)
+            Text(text = stringResource(R.string.now_playing),
                 fontSize = 24.sp, color = p.cream, maxLines = 1,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
             )
             Btn(
-                at(R.drawable.at_bedtime), kozuUiString("Sleep timer"), ui.onSleep, size = 56.dp, iconSize = 26.dp,
+                at(R.drawable.at_bedtime), stringResource(R.string.sleep_timer), ui.onSleep, size = 56.dp, iconSize = 26.dp,
                 container = if (ui.sleepActive) colors.primary.copy(alpha = 0.3f) else container,
                 content = if (ui.sleepActive) colors.primary else p.cream,
             )
             Spacer(Modifier.width(12.dp))
-            Btn(at(R.drawable.at_queue_music), kozuUiString("Queue"), ui.onQueue, size = 56.dp, iconSize = 26.dp, container = container, content = p.cream)
+            Btn(at(R.drawable.at_queue_music), stringResource(R.string.queue), ui.onQueue, size = 56.dp, iconSize = 26.dp, container = container, content = p.cream)
         }
         ArtBox(ui, Modifier.weight(1f), hPad = 27.dp, shape = RoundedCornerShape(36.dp), original = false)
         Spacer(Modifier.height(14.dp))
@@ -1575,7 +1538,7 @@ private fun MaterialExtendedDesign(ui: PlayerUi) {
             }
             Spacer(Modifier.width(8.dp))
             PlainBtn(
-                favoriteIcon(ui), kozuUiString("Favorite"), ui.onFavorite, size = 52.dp, iconSize = 34.dp,
+                favoriteIcon(ui), "Favorite", ui.onFavorite, size = 52.dp, iconSize = 34.dp,
                 tint = if (ui.isFavorite) colors.error else p.cream,
             )
         }
@@ -1648,7 +1611,6 @@ private fun SegmentKey(
     }
 }
 
-// ───────────────────────────── 10. Editorial ─────────────────────────────
 
 @Composable
 private fun EditorialDesign(ui: PlayerUi) {
@@ -1664,24 +1626,23 @@ private fun EditorialDesign(ui: PlayerUi) {
                 Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(top = if (ui.compact) 4.dp else 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Btn(at(R.drawable.at_expand_more), kozuUiString("Close player"), ui.onClose, size = 44.dp, iconSize = 26.dp, container = key, content = onAccent)
+                Btn(at(R.drawable.at_expand_more), stringResource(R.string.close_player), ui.onClose, size = 44.dp, iconSize = 26.dp, container = key, content = onAccent)
                 Spacer(Modifier.weight(1f))
                 PlainBtn(
-                    at(R.drawable.at_bedtime), kozuUiString("Sleep timer"), ui.onSleep, size = 44.dp, iconSize = 26.dp,
+                    at(R.drawable.at_bedtime), stringResource(R.string.sleep_timer), ui.onSleep, size = 44.dp, iconSize = 26.dp,
                     tint = if (ui.sleepActive) colors.onPrimaryContainer else accent,
                 )
                 Spacer(Modifier.width(12.dp))
-                Btn(at(R.drawable.at_queue_music), kozuUiString("Queue"), ui.onQueue, size = 44.dp, iconSize = 24.dp, container = key, content = onAccent)
+                Btn(at(R.drawable.at_queue_music), stringResource(R.string.queue), ui.onQueue, size = 44.dp, iconSize = 24.dp, container = key, content = onAccent)
                 Spacer(Modifier.width(12.dp))
-                Btn(at(R.drawable.at_more_vert), kozuUiString("More options"), ui.onMore, size = 44.dp, iconSize = 24.dp, container = key, content = onAccent)
+                Btn(at(R.drawable.at_more_vert), stringResource(R.string.more_options), ui.onMore, size = 44.dp, iconSize = 24.dp, container = key, content = onAccent)
             }
             ArtBox(
                 ui, Modifier.weight(1f), hPad = 60.dp,
                 shape = if (ui.useOriginalArtwork) ui.artShape else KozuCookies.Flower8, original = false,
             )
             Column(Modifier.padding(horizontal = 24.dp)) {
-                Text(
-                    text = ui.title,
+                Text(text = ui.title,
                     fontFamily = FontFamily.Serif,
                     fontStyle = FontStyle.Italic,
                     fontWeight = FontWeight.Bold,
@@ -1693,8 +1654,7 @@ private fun EditorialDesign(ui: PlayerUi) {
                 )
                 Spacer(Modifier.height(10.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = ui.artist.uppercase(),
+                    Text(text = ui.artist.uppercase(),
                         fontSize = 15.sp,
                         letterSpacing = 3.sp,
                         color = accent.copy(alpha = 0.72f),
@@ -1704,8 +1664,7 @@ private fun EditorialDesign(ui: PlayerUi) {
                     )
                     if (ui.mapper.isNotBlank()) {
                         Text("  •  ", fontSize = 15.sp, color = accent.copy(alpha = 0.5f))
-                        Text(
-                            text = ui.mapper,
+                        Text(text = ui.mapper,
                             fontSize = 13.sp,
                             letterSpacing = 1.sp,
                             color = accent.copy(alpha = 0.72f),
@@ -1747,7 +1706,7 @@ private fun EditorialDesign(ui: PlayerUi) {
             }
             Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
                 val soft = accent.copy(alpha = 0.15f)
-                Btn(favoriteIcon(ui), kozuUiString("Favorite"), ui.onFavorite, size = 47.dp, iconSize = 24.dp, container = soft, content = if (ui.isFavorite) colors.error else accent)
+                Btn(favoriteIcon(ui), "Favorite", ui.onFavorite, size = 47.dp, iconSize = 24.dp, container = soft, content = if (ui.isFavorite) colors.error else accent)
                 Spacer(Modifier.width(24.dp))
                 Btn(shuffleIcon(), "Shuffle", ui.onShuffle, size = 47.dp, iconSize = 24.dp, container = soft, content = if (ui.shuffle) colors.onPrimaryContainer else accent)
             }

@@ -1,43 +1,43 @@
 package vn.kozu.ui.components
 
-import androidx.compose.ui.res.vectorResource
-import vn.kozu.ui.i18n.kozuUiString
-import vn.kozu.data.news.NewsReadState
-
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import vn.kozu.ui.i18n.KozuText as Text
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import vn.kozu.data.news.NewsReadState
+import vn.kozu.R
 
 @Composable
 fun ScreenHeader(
@@ -86,8 +86,7 @@ fun CenteredHeader(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(Modifier.size(46.dp), contentAlignment = Alignment.Center) { leading() }
-            Text(
-                text = title,
+            Text(text = title,
                 modifier = Modifier.weight(1f),
                 style = if (compactWidth) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineMedium,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -101,8 +100,7 @@ fun CenteredHeader(
 
 @Composable
 fun HeaderTitle(text: String) {
-    Text(
-        text = text,
+    Text(text = text,
         style = MaterialTheme.typography.displaySmall,
         color = MaterialTheme.colorScheme.onSurface
     )
@@ -159,7 +157,7 @@ fun HeaderAction(
 fun SettingsAction(onClick: () -> Unit, startPadding: Dp = 8.dp) {
     HeaderAction(
         icon = Icons.Rounded.Settings,
-        contentDescription = kozuUiString("Settings"),
+        contentDescription = stringResource(R.string.settings),
         onClick = onClick,
         container = MaterialTheme.colorScheme.surfaceContainerHigh,
         content = MaterialTheme.colorScheme.onSurface,
@@ -167,7 +165,7 @@ fun SettingsAction(onClick: () -> Unit, startPadding: Dp = 8.dp) {
     )
 }
 
-/** Icon-only action that opens osu!'s news. */
+
 @Composable
 fun NewsAction(
     onClick: () -> Unit,
@@ -183,7 +181,7 @@ fun NewsAction(
         Box(contentAlignment = Alignment.Center) {
             Icon(
                 imageVector = androidx.compose.ui.graphics.vector.ImageVector.vectorResource(vn.kozu.R.drawable.at_newspaper),
-                contentDescription = kozuUiString("osu! Updates"),
+                contentDescription = stringResource(R.string.osu_updates),
                 modifier = Modifier.size(22.dp),
             )
             if (NewsReadState.hasUnread) {

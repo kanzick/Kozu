@@ -1,8 +1,8 @@
 package vn.kozu.domain.model
 
+import java.util.Calendar
 import vn.kozu.data.local.History
 import vn.kozu.util.dayKey
-import java.util.Calendar
 
 data class ListeningStats(
     val totalMs: Long = 0L,

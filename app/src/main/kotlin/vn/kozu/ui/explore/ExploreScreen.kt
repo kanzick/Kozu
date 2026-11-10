@@ -1,49 +1,50 @@
 package vn.kozu.ui.explore
 
-import vn.kozu.ui.i18n.kozuUiString
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
+import androidx.compose.material.icons.Icons
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import vn.kozu.ui.i18n.KozuText as Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import vn.kozu.domain.model.Beatmap
-import vn.kozu.ui.components.softTopEdge
+import vn.kozu.R
 import vn.kozu.ui.components.BeatmapArt
+import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.CoverCard
 import vn.kozu.ui.components.EmptyState
 import vn.kozu.ui.components.HeaderTitle
@@ -51,16 +52,16 @@ import vn.kozu.ui.components.KozuLoading
 import vn.kozu.ui.components.LocalAppSettings
 import vn.kozu.ui.components.LocalTrackActions
 import vn.kozu.ui.components.MosaicCover
+import vn.kozu.ui.components.NewsAction
+import vn.kozu.ui.components.playbackIconVector
 import vn.kozu.ui.components.RefreshIndicator
+import vn.kozu.ui.components.rememberKozuHaptics
 import vn.kozu.ui.components.ScreenHeader
 import vn.kozu.ui.components.SectionHeader
-import vn.kozu.ui.components.SettingsAction
-import vn.kozu.ui.components.NewsAction
-import vn.kozu.ui.components.TrackRow
-import vn.kozu.ui.components.bounceClick
-import vn.kozu.ui.components.playbackIconVector
-import vn.kozu.ui.components.rememberKozuHaptics
 import vn.kozu.ui.components.segmentedShape
+import vn.kozu.ui.components.SettingsAction
+import vn.kozu.ui.components.softTopEdge
+import vn.kozu.ui.components.TrackRow
 import vn.kozu.ui.theme.KozuCookies
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -192,8 +193,7 @@ fun ExploreScreen(
                             if (ui.isLoading) {
                                 KozuLoading()
                             } else {
-                                Text(
-                                    "The catalog is unavailable right now.",
+                                Text(stringResource(R.string.the_catalog_is_unavailable_right_now),
                                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -261,8 +261,7 @@ fun ExploreScreen(
                                     .padding(vertical = 1.5.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(
-                                text = (index + 1).toString(),
+                            Text(text = (index + 1).toString(),
                                 modifier = Modifier.width(40.dp),
                                 style = MaterialTheme.typography.headlineLarge,
                                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
@@ -324,14 +323,12 @@ private fun CollectionCard(
             MosaicCover(collection.tracks)
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
-                Text(
-                    text = collection.title,
+                Text(text = collection.title,
                     style = MaterialTheme.typography.titleLarge,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Text(
-                    text = "${collection.tracks.size} ${if (collection.tracks.size == 1) "song" else "songs"}",
+                Text(text = pluralStringResource(R.plurals.song_count, collection.tracks.size, collection.tracks.size),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -341,8 +338,7 @@ private fun CollectionCard(
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.tertiaryContainer,
                     ) {
-                        Text(
-                            text = collection.label,
+                        Text(text = collection.label,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onTertiaryContainer,
@@ -357,7 +353,7 @@ private fun CollectionCard(
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 playbackIconVector(LocalAppSettings.current.playbackIcon, false),
-                                contentDescription = kozuUiString("Play ${collection.title}"),
+                                contentDescription = stringResource(R.string.play_item, collection.title),
                                 tint = MaterialTheme.colorScheme.onPrimary,
                             )
                         }

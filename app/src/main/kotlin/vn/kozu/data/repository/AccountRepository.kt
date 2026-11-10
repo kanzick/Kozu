@@ -1,23 +1,23 @@
 package vn.kozu.data.repository
 
+import java.io.IOException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.SupervisorJob
 import vn.kozu.data.local.AccountStore
 import vn.kozu.data.remote.osu.OsuApi
 import vn.kozu.data.remote.osu.OsuAuth
 import vn.kozu.data.remote.osu.UserDto
 import vn.kozu.domain.model.OsuProfile
-import java.io.IOException
 
 class AccountRepository(
     private val auth: OsuAuth,

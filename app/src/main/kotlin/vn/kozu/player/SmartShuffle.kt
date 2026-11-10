@@ -1,17 +1,9 @@
 package vn.kozu.player
 
-import vn.kozu.domain.model.Beatmap
 import java.util.Locale
 import kotlin.random.Random
+import vn.kozu.domain.model.Beatmap
 
-/**
- * Shuffle that feels random to a listener, not just to a random number generator.
- *
- * 1. Every track gets an equal chance (a full shuffle of the whole list, not only a random start).
- * 2. Tracks the listener heard very recently ([deprioritized]) are moved to the back, so a new
- *    shuffle does not open with songs they just played.
- * 3. The same artist is never played back to back when another artist is available nearby.
- */
 object SmartShuffle {
     private const val LOOKAHEAD = 24
     private const val SAME_ARTIST_GAP = 2
@@ -26,11 +18,11 @@ object SmartShuffle {
         if (deprioritized.isEmpty()) return spread(shuffled)
 
         val (stale, fresh) = shuffled.partition { it.id in deprioritized }
-        // When everything is "recent" (tiny library) there is nothing to demote.
+
         return spread(if (fresh.isEmpty()) shuffled else fresh + stale)
     }
 
-    /** Keeps the order as is, but breaks up runs of the same artist using a small look-ahead window. */
+
     fun spread(input: List<Beatmap>): List<Beatmap> {
         if (input.size < 3) return input
         val remaining = ArrayList<Beatmap>(input)

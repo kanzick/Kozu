@@ -2,9 +2,9 @@ package vn.kozu.ui.theme
 
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
-import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
@@ -12,10 +12,9 @@ import androidx.compose.ui.unit.dp
 import vn.kozu.domain.model.AppearancePrefs
 import vn.kozu.domain.model.UiDensity
 
-/** The density preset currently applied to the whole app. */
 val LocalUiDensity = compositionLocalOf { UiDensity.COMFORTABLE }
 
-/** True when the app runs in a tighter layout (compact or dense). Components can drop optional detail. */
+
 val isCompactLayout: Boolean
     @Composable
     @ReadOnlyComposable
@@ -23,14 +22,7 @@ val isCompactLayout: Boolean
 
 private const val MAX_TOTAL_FONT_SCALE = 1.85f
 
-/**
- * Applies the user's layout density and text size to everything below it.
- *
- * Layout density scales the density of the composition, so every `dp` in the app (paddings, icons,
- * artwork, rows, bars, sheets) follows it without touching individual screens. The font scale is
- * divided by the same factor, which keeps text at the size the user picked instead of shrinking it
- * along with the layout.
- */
+
 @Composable
 fun ProvideKozuDensity(
     prefs: AppearancePrefs,

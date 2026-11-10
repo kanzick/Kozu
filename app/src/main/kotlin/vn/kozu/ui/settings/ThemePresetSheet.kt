@@ -1,18 +1,17 @@
 package vn.kozu.ui.settings
 
 import android.os.Build
-import vn.kozu.ui.components.KozuSheetHandle
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -20,31 +19,33 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.rememberBottomSheetState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import vn.kozu.domain.model.AccentColor
 import vn.kozu.domain.model.ThemePreset
+import vn.kozu.R
 import vn.kozu.ui.components.bounceClick
-import vn.kozu.ui.i18n.KozuText as Text
+import vn.kozu.ui.components.KozuSheetHandle
 import vn.kozu.ui.theme.kozuColorScheme
 
-/** The four swatches shown for a preset: primary, primary container, tertiary and surface. */
 @Composable
 fun rememberPresetSwatches(
     preset: ThemePreset,
@@ -73,7 +74,7 @@ fun rememberPresetSwatches(
     }
 }
 
-/** Overlapping colour dots, like the preview in the preset list. */
+
 @Composable
 fun SwatchDots(
     colors: List<Color>,
@@ -92,7 +93,7 @@ fun SwatchDots(
     }
 }
 
-/** One selectable preset row. Shared by the settings sheet and the first-run wizard. */
+
 @Composable
 fun ThemePresetRow(
     preset: ThemePreset,
@@ -115,8 +116,7 @@ fun ThemePresetRow(
         ) {
             Column(Modifier.weight(1f)) {
                 Text(preset.label, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    text = if (unavailable) "Requires Android 12 or newer" else preset.description,
+                Text(text = if (unavailable) "Requires Android 12 or newer" else preset.description,
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (selected) colors.onPrimaryContainer.copy(alpha = 0.8f) else colors.onSurfaceVariant,
                 )
@@ -130,7 +130,7 @@ fun ThemePresetRow(
     }
 }
 
-/** "Theme preset" bottom sheet. Choosing a preset applies it straight away. */
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ThemePresetSheet(
@@ -161,8 +161,7 @@ fun ThemePresetSheet(
                     .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
-                "Theme preset",
+            Text(stringResource(R.string.theme_preset),
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.padding(vertical = 8.dp),
             )
@@ -188,9 +187,8 @@ fun ThemePresetSheet(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text("Adapt to artwork", style = MaterialTheme.typography.titleMedium)
-                        Text(
-                            "While a song plays, colors follow its cover and override the preset.",
+                        Text(stringResource(R.string.adapt_to_artwork), style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.artwork_theme_hint),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

@@ -5,37 +5,38 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import vn.kozu.ui.i18n.KozuText as Text
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import java.text.DateFormat
+import java.util.Date
 import vn.kozu.data.repository.CatalogSource
 import vn.kozu.domain.model.AccentColor
-import vn.kozu.domain.model.ArtworkShape
-import vn.kozu.domain.model.SliderStyle
-import vn.kozu.domain.model.UiDensity
 import vn.kozu.domain.model.AppStyle
 import vn.kozu.domain.model.ArtworkQuality
+import vn.kozu.domain.model.ArtworkShape
 import vn.kozu.domain.model.CrossfadeDuration
 import vn.kozu.domain.model.LibraryDensity
 import vn.kozu.domain.model.LibraryNavigationMode
@@ -47,15 +48,16 @@ import vn.kozu.domain.model.PlaybackIcon
 import vn.kozu.domain.model.ProxySettings
 import vn.kozu.domain.model.QuickPicksLayout
 import vn.kozu.domain.model.QuickPicksSource
+import vn.kozu.domain.model.SliderStyle
 import vn.kozu.domain.model.StartTab
 import vn.kozu.domain.model.StatusFilter
 import vn.kozu.domain.model.StreamMode
 import vn.kozu.domain.model.ThemeMode
 import vn.kozu.domain.model.ThemePreset
 import vn.kozu.domain.model.TopSize
+import vn.kozu.domain.model.UiDensity
+import vn.kozu.R
 import vn.kozu.util.AppIcon
-import java.text.DateFormat
-import java.util.Date
 
 @Composable
 fun AppearancePage(
@@ -71,8 +73,8 @@ fun AppearancePage(
     val floating = settings.navigationStyle == NavigationStyle.FLOATING
     var showPresets by remember { mutableStateOf(false) }
 
-    SettingsScaffold(title = "Appearance", onBack = onBack) {
-        SettingsSection("Global theme") {
+    SettingsScaffold(title = stringResource(R.string.appearance), onBack = onBack) {
+        SettingsSection(stringResource(R.string.global_theme)) {
             dropdown(
                 Setting.APP_THEME,
                 settings.themeMode,
@@ -121,7 +123,7 @@ fun AppearancePage(
                 onSelect = viewModel::setAppStyle,
             )
         }
-        SettingsSection("Layout & density") {
+        SettingsSection(stringResource(R.string.layout_and_density)) {
             dropdown(
                 Setting.UI_DENSITY,
                 appearance.density,
@@ -133,7 +135,7 @@ fun AppearancePage(
                 viewModel.updateAppearance { copy(density = if (enabled) UiDensity.COMPACT else UiDensity.COMFORTABLE) }
             }
         }
-        SettingsSection("Shapes & sliders") {
+        SettingsSection(stringResource(R.string.shapes_and_sliders)) {
             dropdown(
                 Setting.ARTWORK_SHAPE,
                 appearance.artworkShape,
@@ -149,7 +151,7 @@ fun AppearancePage(
             ) { value -> viewModel.updateAppearance { copy(sliderStyle = value) } }
             custom { shape -> SliderPreviewCard(shape = shape, style = appearance.sliderStyle) }
         }
-        SettingsSection("Customize") {
+        SettingsSection(stringResource(R.string.customize)) {
             navigation(
                 Setting.TYPOGRAPHY_ENTRY,
                 value = settings.appFont.label,
@@ -161,7 +163,7 @@ fun AppearancePage(
                 onClick = onOpenPlayerStyle,
             )
         }
-        SettingsSection("Colors") {
+        SettingsSection(stringResource(R.string.colors)) {
             navigation(
                 Setting.THEME_PRESET,
                 value = settings.themePreset.label,
@@ -192,7 +194,7 @@ fun AppearancePage(
                 description = "Current: ${settings.paletteStyle.label}. ${settings.paletteStyle.description}.",
             ) { style -> viewModel.save { setPaletteStyle(style) } }
         }
-        SettingsSection("Display & performance") {
+        SettingsSection(stringResource(R.string.display_and_performance)) {
             switch(Setting.HIGH_REFRESH, settings.highRefreshRate) { enabled ->
                 viewModel.save { setHighRefreshRate(enabled) }
             }
@@ -200,7 +202,7 @@ fun AppearancePage(
                 viewModel.save { setPerformanceMode(enabled) }
             }
         }
-        SettingsSection("Navigation bar") {
+        SettingsSection(stringResource(R.string.navigation_bar)) {
             dropdown(
                 Setting.NAV_STYLE,
                 settings.navigationStyle,
@@ -221,7 +223,7 @@ fun AppearancePage(
                 ) { value -> viewModel.save { setNavCornerRadius(value.toInt()) } }
             }
         }
-        SettingsSection("App navigation") {
+        SettingsSection(stringResource(R.string.app_navigation)) {
             dropdown(
                 Setting.DEFAULT_TAB,
                 settings.startTab,
@@ -230,7 +232,7 @@ fun AppearancePage(
                 onSelect = viewModel::setStartTab,
             )
         }
-        SettingsSection("Library") {
+        SettingsSection(stringResource(R.string.library)) {
             dropdown(
                 Setting.LIBRARY_LAYOUT,
                 settings.libraryNavigationMode,
@@ -267,8 +269,8 @@ fun PlaybackPage(
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    SettingsScaffold(title = "Playback", onBack = onBack) {
-        SettingsSection("Background playback") {
+    SettingsScaffold(title = stringResource(R.string.playback), onBack = onBack) {
+        SettingsSection(stringResource(R.string.background_playback)) {
             switch(Setting.KEEP_PLAYING, settings.keepPlayingAfterClose) { enabled ->
                 viewModel.save { setKeepPlayingAfterClose(enabled) }
             }
@@ -276,7 +278,7 @@ fun PlaybackPage(
                 openBatterySettings(context)
             }
         }
-        SettingsSection("Headphones") {
+        SettingsSection(stringResource(R.string.headphones)) {
             switch(Setting.PAUSE_HEADSET, settings.pauseOnHeadsetDisconnect) { enabled ->
                 viewModel.save { setPauseOnHeadsetDisconnect(enabled) }
             }
@@ -284,7 +286,7 @@ fun PlaybackPage(
                 viewModel.save { setResumeOnHeadset(enabled) }
             }
         }
-        SettingsSection("Streaming & data saving") {
+        SettingsSection(stringResource(R.string.streaming_and_data_saving)) {
             dropdown(
                 Setting.STREAM_QUALITY,
                 settings.streamMode,
@@ -295,7 +297,7 @@ fun PlaybackPage(
             switch(Setting.WIFI_ONLY_STREAM, settings.wifiOnlyStreaming, onChange = viewModel::setWifiOnlyStreaming)
             switch(Setting.SKIP_SILENCE, settings.skipSilence, onChange = viewModel::setSkipSilence)
         }
-        SettingsSection("Queue and transitions") {
+        SettingsSection(stringResource(R.string.queue_and_transitions)) {
             dropdown(
                 Setting.CROSSFADE,
                 settings.crossfade,
@@ -323,7 +325,7 @@ fun PlaybackPage(
                 viewModel.save { setDedupeQueue(enabled) }
             }
         }
-        SettingsSection("Sound") {
+        SettingsSection(stringResource(R.string.sound)) {
             navigation(
                 Setting.EQUALIZER_BANDS,
                 value = if (settings.equalizerEnabled) "On" else "Off",
@@ -341,8 +343,8 @@ fun BehaviorPage(
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    SettingsScaffold(title = "Behavior", onBack = onBack) {
-        SettingsSection("Player") {
+    SettingsScaffold(title = stringResource(R.string.behavior), onBack = onBack) {
+        SettingsSection(stringResource(R.string.player)) {
             switch(Setting.ARTWORK_SWIPE, settings.artworkSwipe) { enabled ->
                 viewModel.save { setArtworkSwipe(enabled) }
             }
@@ -353,17 +355,17 @@ fun BehaviorPage(
                 viewModel.save { setKeepScreenOn(enabled) }
             }
         }
-        SettingsSection("Search") {
+        SettingsSection(stringResource(R.string.search)) {
             switch(Setting.DOUBLE_TAP_SEARCH, settings.doubleTapSearch) { enabled ->
                 viewModel.save { setDoubleTapSearch(enabled) }
             }
         }
-        SettingsSection("Haptics") {
+        SettingsSection(stringResource(R.string.haptics)) {
             switch(Setting.HAPTICS, settings.hapticFeedback) { enabled ->
                 viewModel.save { setHapticFeedback(enabled) }
             }
         }
-        SettingsSection("osu! link integration") {
+        SettingsSection(stringResource(R.string.osu_link_integration)) {
             action(Setting.OSU_LINKS, "Open system settings") { openDefaultLinkSettings(context) }
         }
     }
@@ -391,8 +393,8 @@ fun MusicPage(
             CatalogSource.NONE -> "Connecting"
         }
 
-    SettingsScaffold(title = "Music", onBack = onBack) {
-        SettingsSection("Default filters") {
+    SettingsScaffold(title = stringResource(R.string.settings_group_music), onBack = onBack) {
+        SettingsSection(stringResource(R.string.default_filters)) {
             dropdown(
                 Setting.DEFAULT_STATUS,
                 settings.statusFilter,
@@ -408,7 +410,7 @@ fun MusicPage(
                 onSelect = viewModel::setModeFilter,
             )
         }
-        SettingsSection("Sync and library") {
+        SettingsSection(stringResource(R.string.sync_and_library)) {
             action(
                 Setting.SYNC_NOW,
                 label = if (syncing) "Syncing…" else "Sync now",
@@ -419,7 +421,7 @@ fun MusicPage(
                 viewModel.save { setAutoSyncLibrary(enabled) }
             }
         }
-        SettingsSection("osu! catalog") {
+        SettingsSection(stringResource(R.string.osu_catalog)) {
             info(
                 icon = Setting.DEFAULT_MODE.icon,
                 title = "Catalog source",
@@ -432,7 +434,7 @@ fun MusicPage(
                 enabled = !catalog.isRefreshing,
             ) { viewModel.refreshCatalog() }
         }
-        SettingsSection("Visual quality") {
+        SettingsSection(stringResource(R.string.visual_quality)) {
             dropdown(
                 Setting.ARTWORK_WIFI,
                 settings.artworkQualityWifi,
@@ -463,13 +465,13 @@ fun ContentPage(
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
 
-    SettingsScaffold(title = "Content", onBack = onBack) {
-        SettingsSection("Catalog") {
+    SettingsScaffold(title = stringResource(R.string.content), onBack = onBack) {
+        SettingsSection(stringResource(R.string.catalog)) {
             switch(Setting.SHOW_EXPLICIT, settings.showExplicit) { enabled ->
                 viewModel.save { setShowExplicit(enabled) }
             }
         }
-        SettingsSection("Titles & cards") {
+        SettingsSection(stringResource(R.string.titles_and_cards)) {
             switch(Setting.PREFER_UNICODE, settings.preferUnicode) { enabled ->
                 viewModel.save { setPreferUnicode(enabled) }
             }
@@ -483,7 +485,7 @@ fun ContentPage(
                 { it.label },
             ) { size -> viewModel.save { setTopSize(size) } }
         }
-        SettingsSection("Home") {
+        SettingsSection(stringResource(R.string.home)) {
             switch(Setting.SHOW_MIX_CARD, settings.showMixCard) { enabled ->
                 viewModel.save { setShowMixCard(enabled) }
             }
@@ -501,14 +503,14 @@ fun ContentPage(
                 )
             }
         }
-        SettingsSection("Network") {
+        SettingsSection(stringResource(R.string.network)) {
             navigation(
                 Setting.PROXY,
                 value = proxySummary(settings.proxy),
                 onClick = onOpenProxy,
             )
         }
-        SettingsSection("Privacy") {
+        SettingsSection(stringResource(R.string.privacy)) {
             action(Setting.CLEAR_HISTORY, "Clear history", destructive = true) { viewModel.clearHistory() }
             action(Setting.CLEAR_SEARCHES, "Clear searches", destructive = true) { viewModel.clearSearches() }
         }
@@ -539,7 +541,7 @@ private fun DisplayNameItem(
                 shape =
                     androidx.compose.foundation.shape
                         .RoundedCornerShape(20.dp),
-                placeholder = { Text("Leave blank to use your osu! username") },
+                placeholder = { Text(stringResource(R.string.leave_blank_to_use_your_osu_username)) },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { onCommit(draft) }),
             )

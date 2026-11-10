@@ -1,40 +1,40 @@
 package vn.kozu.ui.settings
 
-import vn.kozu.ui.i18n.kozuUiString
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import vn.kozu.ui.i18n.KozuText as Text
+import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mikepenz.aboutlibraries.Libs
 import com.mikepenz.aboutlibraries.util.withContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext as withCoroutineContext
+import vn.kozu.R
 
 private data class DependencyLicense(
     val name: String,
@@ -156,8 +156,8 @@ fun LicensesPage(onBack: () -> Unit) {
         }
     }
 
-    SettingsScaffold(title = "Licenses", onBack = onBack) {
-        SettingsSection("Open-source dependencies · ${dependencies.size}") {
+    SettingsScaffold(title = stringResource(R.string.licenses), onBack = onBack) {
+        SettingsSection(stringResource(R.string.settings_open_source_dependencies_count, dependencies.size)) {
             if (loading) {
                 custom { shape ->
                     SettingCard(setting = null, shape = shape, onClick = null) {
@@ -167,7 +167,7 @@ fun LicensesPage(onBack: () -> Unit) {
                         ) {
                             CircularProgressIndicator(Modifier.width(22.dp), strokeWidth = 2.dp)
                             Spacer(Modifier.width(14.dp))
-                            Text("Reading generated dependency licenses…", style = MaterialTheme.typography.bodyMedium)
+                            Text(stringResource(R.string.reading_generated_dependency_licenses), style = MaterialTheme.typography.bodyMedium)
                         }
                     }
                 }
@@ -191,7 +191,7 @@ fun LicensesPage(onBack: () -> Unit) {
                 }
             }
         }
-        SettingsSection("Project, fonts & services") {
+        SettingsSection(stringResource(R.string.settings_project_fonts_services)) {
             attributions.forEach { entry ->
                 custom { shape -> AttributionCard(shape, entry) { context.openLink(entry.url) } }
             }
@@ -202,7 +202,7 @@ fun LicensesPage(onBack: () -> Unit) {
                 )
             }
         }
-        SettingsSection("Project notice") {
+        SettingsSection(stringResource(R.string.settings_project_notice)) {
             custom { shape ->
                 LicenseNote(
                     shape,
@@ -221,40 +221,37 @@ fun LicensesPage(onBack: () -> Unit) {
                     modifier = Modifier.verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Text(
-                        "${dependency.coordinate}:${dependency.version}",
+                    Text("${dependency.coordinate}:${dependency.version}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     if (dependency.licenses.isEmpty()) {
-                        Text(
-                            "No license information was provided by the dependency metadata. Check the upstream project before redistributing this build.",
+                        Text(stringResource(R.string.no_license_information_was_provided_by_the_dependenc),
                             style = MaterialTheme.typography.bodyMedium,
                         )
                     }
                     dependency.licenses.forEach { license ->
                         Text(license.name, style = MaterialTheme.typography.titleSmall)
                         license.spdxId?.let { id ->
-                            Text("SPDX: $id", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.spdx_label, id), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         val content = license.content?.takeIf(String::isNotBlank)
                         if (content != null) {
                             Text(content, style = MaterialTheme.typography.bodySmall)
                         } else {
-                            Text(
-                                "Full license text was not included in the generated metadata.",
+                            Text(stringResource(R.string.full_license_text_was_not_included_in_the_generated),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         license.url?.takeIf(String::isNotBlank)?.let { url ->
-                            TextButton(onClick = { context.openLink(url) }) { Text("Open license source") }
+                            TextButton(onClick = { context.openLink(url) }) { Text(stringResource(R.string.open_license_source)) }
                         }
                     }
                 }
             },
             confirmButton = {
-                TextButton(onClick = { selectedDependency = null }) { Text("Close") }
+                TextButton(onClick = { selectedDependency = null }) { Text(stringResource(R.string.close)) }
             },
         )
     }
@@ -273,8 +270,7 @@ private fun DependencyCard(
         ) {
             Text(entry.name, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Text(entry.version, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(
-                entry.licenseLabel,
+            Text(entry.licenseLabel,
                 style = MaterialTheme.typography.titleSmall,
                 color = if (entry.licenseLabel == "License metadata not provided" || entry.licenseLabel.contains("NOASSERTION", true)) {
                     MaterialTheme.colorScheme.error
@@ -282,8 +278,7 @@ private fun DependencyCard(
                     MaterialTheme.colorScheme.primary
                 },
             )
-            Text(
-                entry.coordinate,
+            Text(entry.coordinate,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -311,7 +306,7 @@ private fun AttributionCard(
                 Text(entry.url.removePrefix("https://"), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Spacer(Modifier.width(12.dp))
-            Icon(Icons.AutoMirrored.Rounded.OpenInNew, contentDescription = kozuUiString("Open source"), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.AutoMirrored.Rounded.OpenInNew, contentDescription = stringResource(R.string.open_source), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

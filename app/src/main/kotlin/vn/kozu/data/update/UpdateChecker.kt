@@ -2,6 +2,7 @@ package vn.kozu.data.update
 
 import android.content.Context
 import android.content.pm.PackageManager
+import java.io.IOException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -11,7 +12,6 @@ import okhttp3.Request
 import org.json.JSONArray
 import vn.kozu.data.local.SettingsStore
 import vn.kozu.domain.model.UpdateChannel
-import java.io.IOException
 
 data class RecentCommit(
     val sha: String,
@@ -53,11 +53,7 @@ class UpdateChecker(
     private val appContext = context.applicationContext
     private val currentVersion: String get() = installedVersion(appContext)
 
-    /**
-     * Looks for a newer release. There is a single track now (the `main` branch), so the channel
-     * argument is kept only for old callers and is ignored. The GitHub API is tried first; if it
-     * is rate limited or unreachable, the public releases feed answers instead.
-     */
+
     @Suppress("UNUSED_PARAMETER")
     suspend fun check(channel: UpdateChannel = UpdateChannel.STABLE): UpdateResult =
         withContext(Dispatchers.IO) {
@@ -97,7 +93,7 @@ class UpdateChecker(
         }
     }
 
-    /** `releases.atom` is a plain page, so it works when the API quota is used up. */
+
     private fun checkViaFeed(): UpdateResult? =
         try {
             val request = Request.Builder().url(RELEASES_FEED_URL).header("Accept", "application/atom+xml").build()
@@ -145,7 +141,7 @@ class UpdateChecker(
         page: Int = 1,
     ): RecentCommitsResult =
         withContext(Dispatchers.IO) {
-            // One track only: the main branch.
+
             @Suppress("UNUSED_VARIABLE") val ignored = channel
             val requestedBranch = DEFAULT_BRANCH
             loadRecentPage(requestedBranch, page)?.let { return@withContext it }
@@ -169,7 +165,7 @@ class UpdateChecker(
             )
         }
 
-    /** GitHub's commit API is newest-first; keep that order across pages and within each page. */
+
     private fun loadRecentPage(
         branch: String,
         requestedPage: Int,
@@ -267,8 +263,8 @@ class UpdateChecker(
             } catch (_: Exception) {
                 return UpdateResult.Failed("Unexpected response from GitHub")
             }
-        // Whether a release is flagged "pre-release" no longer matters: the newest published
-        // version wins. (Filtering on it hid 0.1.3 from anyone on 0.1.2.)
+
+
         val release =
             (0 until releases.length())
                 .mapNotNull { releases.optJSONObject(it) }

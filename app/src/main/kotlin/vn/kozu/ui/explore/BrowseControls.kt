@@ -1,15 +1,13 @@
 package vn.kozu.ui.explore
 
-import vn.kozu.ui.i18n.kozuUiString
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -26,23 +24,25 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import vn.kozu.ui.i18n.KozuText as Text
+import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import vn.kozu.data.repository.CatalogSource
-import vn.kozu.domain.model.ActiveBrowseFilter
-import vn.kozu.ui.components.HeaderAction
 import java.text.NumberFormat
 import java.util.Locale
+import vn.kozu.data.repository.CatalogSource
+import vn.kozu.domain.model.ActiveBrowseFilter
+import vn.kozu.R
+import vn.kozu.ui.components.HeaderAction
 
 @Composable
 fun FilterAction(
@@ -80,7 +80,7 @@ internal fun BrowseSearchField(
         query = query,
         onQueryChange = onQueryChange,
         onSearch = onSearch,
-        placeholder = kozuUiString("Search, or try stars<8 ranked=2025"),
+        placeholder = "Search, or try stars<8 ranked=2025",
         modifier = modifier,
     )
 }
@@ -103,14 +103,12 @@ internal fun BrowseSummary(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = count,
+        Text(text = count,
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.primary,
             maxLines = 1,
         )
-        Text(
-            text = "Sorted by ${ui.filters.sort.label}",
+        Text(text = stringResource(R.string.sorted_by, ui.filters.sort.label),
             modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -149,8 +147,7 @@ internal fun BrowseSourceNote(
                 tint = MaterialTheme.colorScheme.onSecondaryContainer,
                 modifier = Modifier.size(18.dp),
             )
-            Text(
-                text = text,
+            Text(text = text,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
@@ -182,12 +179,12 @@ fun ActiveFilterChips(
                 trailingIcon = {
                     Icon(
                         Icons.Rounded.Close,
-                        contentDescription = kozuUiString("Remove ${filter.label}"),
+                        contentDescription = stringResource(R.string.remove_item, filter.label),
                         modifier = Modifier.size(16.dp),
                     )
                 },
             )
         }
-        TextButton(onClick = onReset) { Text("Reset") }
+        TextButton(onClick = onReset) { Text(stringResource(R.string.reset)) }
     }
 }

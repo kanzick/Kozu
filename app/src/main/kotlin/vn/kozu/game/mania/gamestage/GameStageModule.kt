@@ -1,6 +1,9 @@
 package vn.kozu.game.mania.gamestage
 
 import android.content.Context
+import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import vn.kozu.game.mania.gamestage.audio.DefaultHitsound
 import vn.kozu.game.mania.gamestage.chart.ManiaChart
 import vn.kozu.game.mania.gamestage.chart.ManiaChartParser
@@ -8,20 +11,16 @@ import vn.kozu.game.mania.gamestage.scoring.GameResult
 import vn.kozu.game.mania.gamestage.session.GameSession
 import vn.kozu.game.mania.gamestage.settings.GameSettings
 import vn.kozu.game.mania.gamestage.settings.SettingsStore
-import vn.kozu.game.mania.previewstage.PreviewStageModule
 import vn.kozu.game.mania.previewstage.model.DifficultyRecord
 import vn.kozu.game.mania.previewstage.model.ScoreRecord
 import vn.kozu.game.mania.previewstage.model.SongEntry
+import vn.kozu.game.mania.previewstage.PreviewStageModule
 import vn.kozu.game.mania.previewstage.storage.ScoreDatabase
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import java.io.File
 
-/** Outcome of saving a score after a play session. */
 data class SubmitOutcome(
     val isNewBest: Boolean,
     val previousBest: ScoreRecord?,
-    /** False when the score did not make the difficulty's top 50 and was not stored. */
+
     val recorded: Boolean = true,
 )
 
@@ -70,7 +69,7 @@ class GameStageModule private constructor(
     suspend fun bestScore(song: SongEntry, difficulty: DifficultyRecord): ScoreRecord? =
         withContext(Dispatchers.IO) { scoreDb().bestScore(song.songId, difficulty.version, settings.playerName) }
 
-    /** Current player's best score for every difficulty in this song. */
+
     suspend fun bestScores(song: SongEntry): Map<String, ScoreRecord> =
         withContext(Dispatchers.IO) {
             scoreDb().bestScores(song.songId, settings.playerName).associateBy { it.difficulty }
@@ -81,7 +80,7 @@ class GameStageModule private constructor(
             scoreDb().latestPlayedAt(song.songId, settings.playerName)
         }
 
-    /** Leaderboard for this song and difficulty. */
+
     suspend fun leaderboard(song: SongEntry, difficulty: DifficultyRecord, limit: Int = 50): List<ScoreRecord> =
         withContext(Dispatchers.IO) { scoreDb().topScores(song.songId, difficulty.version, limit) }
 

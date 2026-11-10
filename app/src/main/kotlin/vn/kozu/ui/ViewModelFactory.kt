@@ -1,12 +1,12 @@
 package vn.kozu.ui
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import vn.kozu.KozuApplication
+import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import vn.kozu.di.AppContainer
+import vn.kozu.KozuApplication
 
 internal fun CreationExtras.container(): AppContainer = (this[APPLICATION_KEY] as KozuApplication).container
 

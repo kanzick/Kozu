@@ -1,17 +1,15 @@
 package vn.kozu.ui.components
 
-import vn.kozu.ui.i18n.kozuUiString
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,18 +25,20 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import vn.kozu.ui.i18n.KozuText as Text
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import vn.kozu.data.download.DownloadStatus
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.displayArtist
 import vn.kozu.domain.model.displayTitle
+import vn.kozu.R
 import vn.kozu.ui.theme.isCompactLayout
 
 @Composable
@@ -116,15 +116,13 @@ fun TrackRow(
             }
             Spacer(Modifier.width(if (compact) 10.dp else 14.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(if (compact) 1.dp else 2.dp)) {
-                Text(
-                    text = beatmap.displayTitle(LocalAppSettings.current.preferUnicode),
+                Text(text = beatmap.displayTitle(LocalAppSettings.current.preferUnicode),
                     style = if (compact) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
                     color = if (isCurrent) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    text = beatmap.displayArtist(LocalAppSettings.current.preferUnicode) + subtitleSuffix.orEmpty(),
+                Text(text = beatmap.displayArtist(LocalAppSettings.current.preferUnicode) + subtitleSuffix.orEmpty(),
                     style = if (compact) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -163,7 +161,7 @@ fun TrackRow(
                     IconButton(onClick = { actions.openMenu(beatmap) }) {
                         Icon(
                             imageVector = Icons.Rounded.MoreVert,
-                            contentDescription = kozuUiString("More options"),
+                            contentDescription = stringResource(R.string.more_options),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -194,12 +192,12 @@ private fun DownloadBadge(
                     )
                 }
                 Spacer(Modifier.width(6.dp))
-                Text("Downloading", style = MaterialTheme.typography.labelSmall, color = muted)
+                Text(stringResource(R.string.downloading), style = MaterialTheme.typography.labelSmall, color = muted)
             }
             status is DownloadStatus.Queued -> {
                 CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 2.dp)
                 Spacer(Modifier.width(6.dp))
-                Text("Queued", style = MaterialTheme.typography.labelSmall, color = muted)
+                Text(stringResource(R.string.queued), style = MaterialTheme.typography.labelSmall, color = muted)
             }
             status is DownloadStatus.Failed -> {
                 Icon(
@@ -209,7 +207,7 @@ private fun DownloadBadge(
                     tint = MaterialTheme.colorScheme.error
                 )
                 Spacer(Modifier.width(6.dp))
-                Text("Download failed", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                Text(stringResource(R.string.download_failed), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
             }
             isDownloaded -> {
                 Icon(
@@ -219,14 +217,12 @@ private fun DownloadBadge(
                     tint = MaterialTheme.colorScheme.primary
                 )
                 Spacer(Modifier.width(6.dp))
-                Text(
-                    if (isOutdated) "Offline · update available" else "Offline",
+                Text(if (isOutdated) "Offline · update available" else stringResource(R.string.offline),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary
                 )
             }
-            mapper.isNotBlank() -> Text(
-                text = "Mapped by $mapper",
+            mapper.isNotBlank() -> Text(text = stringResource(R.string.mapped_by, mapper),
                 style = MaterialTheme.typography.labelSmall,
                 color = muted,
                 maxLines = 1,

@@ -1,10 +1,10 @@
 package vn.kozu.game.mania.gamestage.engine
 
+import kotlin.math.max
 import vn.kozu.game.mania.gamestage.chart.ManiaChart
 import vn.kozu.game.mania.gamestage.scoring.GameResult
 import vn.kozu.game.mania.gamestage.scoring.ScoreTracker
 import vn.kozu.game.mania.gamestage.settings.GameSettings
-import kotlin.math.max
 
 class GameCore(
     val chart: ManiaChart,

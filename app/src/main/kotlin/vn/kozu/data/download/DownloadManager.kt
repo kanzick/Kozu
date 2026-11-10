@@ -3,22 +3,25 @@ package vn.kozu.data.download
 import android.content.Context
 import android.content.Intent
 import androidx.core.content.ContextCompat
+import java.io.File
+import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
@@ -32,9 +35,6 @@ import vn.kozu.data.remote.osu.OsuAuth
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.Mirrors
 import vn.kozu.util.NetworkInfo
-import java.io.File
-import java.io.IOException
-import java.util.concurrent.ConcurrentHashMap
 
 sealed interface DownloadStatus {
     data object Queued : DownloadStatus
@@ -147,7 +147,7 @@ class DownloadManager(
         }
     }
 
-    /** True for the files an offline song needs: its audio, its cover picture and the charts. */
+
     private fun isEssential(set: DownloadedSet, relative: String): Boolean {
         val name = relative.replace('\\', '/').lowercase()
         return name == set.audioFile.replace('\\', '/').lowercase() ||
@@ -164,16 +164,13 @@ class DownloadManager(
             .toList()
     }
 
-    /** Space that [slimDownloads] would give back. */
+
     suspend fun slimmableBytes(): Long =
         withContext(Dispatchers.IO) {
             store.sets.first().sumOf { set -> extraFiles(set).sumOf { it.length() } }
         }
 
-    /**
-     * Removes hitsounds, images, storyboards and everything else that an offline song does not need
-     * to play, keeping only audio, cover picture and charts. Returns the number of bytes freed.
-     */
+
     suspend fun slimDownloads(): Long =
         withContext(Dispatchers.IO) {
             var freed = 0L
