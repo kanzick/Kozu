@@ -1,6 +1,5 @@
 package vn.kozu.data.remote.osu
 
-import retrofit2.http.Body
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
@@ -9,8 +8,7 @@ import retrofit2.http.Headers
 import retrofit2.http.Path
 import retrofit2.http.POST
 import retrofit2.http.Query
-import vn.kozu.data.news.NewsCommentBundleDto
-import vn.kozu.data.news.NewsCommentCreateRequest
+import okhttp3.ResponseBody
 import vn.kozu.data.news.NewsListingDto
 import vn.kozu.data.news.NewsPostDto
 
@@ -44,41 +42,59 @@ interface OsuApi {
     ): TokenDto
 
 
-    @Headers("Accept: application/json", "Content-Type: application/json")
+    @Headers(
+        "Accept: application/json",
+        "Accept-Language: en-US,en;q=0.9",
+        "Referer: https://osu.ppy.sh/home/news",
+        "User-Agent: Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36 Kozu/2.1",
+    )
     @GET("news")
     suspend fun news(
         @Query("limit") limit: Int = 21,
+        @Query("year") year: Int? = null,
+        @Query("cursor_string") cursorString: String? = null,
+        @Header("Authorization") authorization: String? = null,
     ): NewsListingDto
 
-    @Headers("Accept: application/json", "Content-Type: application/json")
+    @Headers(
+        "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language: en-US,en;q=0.9",
+        "Referer: https://osu.ppy.sh/home/news",
+        "User-Agent: Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36 Kozu/2.1",
+    )
+    @GET("/home/news")
+    suspend fun newsWebPage(
+        @Query("limit") limit: Int = 21,
+        @Query("year") year: Int? = null,
+        @Query("cursor_string") cursorString: String? = null,
+    ): ResponseBody
+
+    @Headers(
+        "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language: en-US,en;q=0.9",
+        "Referer: https://osu.ppy.sh/home/news",
+        "User-Agent: Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36 Kozu/2.1",
+    )
+    @GET("/home/news/{slug}")
+    suspend fun newsWebArticle(
+        @Path("slug") slug: String,
+    ): ResponseBody
+
+    @Headers(
+        "Accept: application/json",
+        "Accept-Language: en-US,en;q=0.9",
+        "Referer: https://osu.ppy.sh/home/news",
+        "User-Agent: Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36 Kozu/2.1",
+    )
     @GET("news/{news}")
     suspend fun newsPost(
         @Path("news") slug: String,
         @Query("content_formats[]") contentFormats: List<String> = listOf("html"),
+        @Header("Authorization") authorization: String? = null,
     ): NewsPostDto
 
 
-    @Headers(
-        "Accept: application/json",
-        "Content-Type: application/json",
-        "X-Requested-With: XMLHttpRequest",
-    )
-    @GET("/comments")
-    suspend fun newsComments(
-        @Query("commentable_type") commentableType: String,
-        @Query("commentable_id") commentableId: Long,
-        @Query("sort") sort: String = "new",
-        @Query("parent_id") parentId: Long? = null,
-        @Query("after") after: String? = null,
-    ): NewsCommentBundleDto
 
-
-    @Headers("Accept: application/json", "Content-Type: application/json")
-    @POST("comments")
-    suspend fun postNewsComment(
-        @Header("Authorization") authorization: String,
-        @Body request: NewsCommentCreateRequest,
-    ): NewsCommentBundleDto
 
     @GET("me")
     suspend fun me(

@@ -145,8 +145,8 @@ fun KozuSlider(
     val insetPx =
         with(density) {
             when (effectiveStyle) {
-                SliderStyle.CLASSIC, SliderStyle.THIN -> 10.dp.toPx()
-                SliderStyle.EXPRESSIVE, SliderStyle.WAVY, SliderStyle.FLAT, SliderStyle.THICK -> ExpressiveHandleWidth.toPx() / 2f
+                SliderStyle.CLASSIC, SliderStyle.LINE -> 10.dp.toPx()
+                SliderStyle.EXPRESSIVE, SliderStyle.WAVY, SliderStyle.FLAT -> ExpressiveHandleWidth.toPx() / 2f
             }
         }
 
@@ -175,7 +175,7 @@ fun KozuSlider(
 
     val active = MaterialTheme.colorScheme.primary
     val inactive =
-        if (effectiveStyle == SliderStyle.CLASSIC || effectiveStyle == SliderStyle.THIN) {
+        if (effectiveStyle == SliderStyle.CLASSIC || effectiveStyle == SliderStyle.LINE) {
             MaterialTheme.colorScheme.surfaceContainerHighest
         } else {
             MaterialTheme.colorScheme.secondaryContainer
@@ -336,8 +336,8 @@ fun KozuSlider(
                     drawCircle(active, thumbRadius, if (vertical) Offset(cross / 2f, length - handleAlong) else Offset(handleAlong, cross / 2f))
                 }
 
-                SliderStyle.FLAT, SliderStyle.THICK -> {
-                    val thickness = if (effectiveStyle == SliderStyle.FLAT) 6.dp.toPx() else 16.dp.toPx()
+                SliderStyle.FLAT -> {
+                    val thickness = 6.dp.toPx()
                     val c0 = (cross - thickness) / 2f
                     val c1 = c0 + thickness
                     val lo = min(originAlong, handleAlong)
@@ -349,13 +349,12 @@ fun KozuSlider(
                     drawTicks(
                         vertical, length, cross, insetPx, usable, math.steps,
                         lo, hi,
-                        if (effectiveStyle == SliderStyle.FLAT) 1.5.dp.toPx() else 2.dp.toPx(),
-                        activeTick, inactiveTick, handleAlong,
-                        if (effectiveStyle == SliderStyle.FLAT) 10.dp.toPx() else 12.dp.toPx(),
+                        1.5.dp.toPx(),
+                        activeTick, inactiveTick, handleAlong, 10.dp.toPx(),
                     )
 
-                    val handleW = if (effectiveStyle == SliderStyle.FLAT) 5.dp.toPx() else 4.dp.toPx()
-                    val handleLen = (if (effectiveStyle == SliderStyle.FLAT) 24.dp else 34.dp).toPx().coerceAtMost(cross)
+                    val handleW = 5.dp.toPx()
+                    val handleLen = 24.dp.toPx().coerceAtMost(cross)
                     val handleRect =
                         if (vertical) {
                             Rect(
@@ -376,7 +375,7 @@ fun KozuSlider(
                     )
                 }
 
-                SliderStyle.THIN -> {
+                SliderStyle.LINE -> {
                     val thickness = 3.dp.toPx()
                     val c0 = (cross - thickness) / 2f
                     val c1 = c0 + thickness

@@ -190,7 +190,7 @@ fun NewsAction(
                         .align(Alignment.TopEnd)
                         .padding(top = 6.dp, end = 6.dp)
                         .size(10.dp)
-                        .background(MaterialTheme.colorScheme.error, CircleShape)
+                        .background(MaterialTheme.colorScheme.outline, CircleShape)
                         .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape),
                 )
             }

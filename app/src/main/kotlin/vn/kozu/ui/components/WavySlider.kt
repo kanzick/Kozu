@@ -196,32 +196,7 @@ fun WavySlider(
                 drawHandle(activeColor, thumbX, centerY, 5.dp.toPx() * pressScale, 24.dp.toPx())
             }
 
-            SliderStyle.THICK -> {
-                val thickness = 16.dp.toPx()
-                val gap = 6.dp.toPx()
-                val top = centerY - thickness / 2f
-                val activeEnd = (thumbX - gap).coerceAtLeast(0f)
-                val inactiveStart = (thumbX + gap).coerceAtMost(size.width)
-                if (inactiveStart < size.width) {
-                    drawRoundRect(
-                        color = inactiveColor,
-                        topLeft = Offset(inactiveStart, top),
-                        size = Size(size.width - inactiveStart, thickness),
-                        cornerRadius = CornerRadius(thickness / 2f),
-                    )
-                }
-                if (activeEnd > 0f) {
-                    drawRoundRect(
-                        color = activeColor,
-                        topLeft = Offset(0f, top),
-                        size = Size(activeEnd, thickness),
-                        cornerRadius = CornerRadius(min(thickness / 2f, activeEnd / 2f)),
-                    )
-                }
-                drawHandle(activeColor, thumbX, centerY, 4.dp.toPx() * pressScale, 34.dp.toPx())
-            }
-
-            SliderStyle.THIN -> {
+            SliderStyle.LINE -> {
                 val stroke = 3.dp.toPx()
                 drawLine(inactiveColor, Offset(0f, centerY), Offset(size.width, centerY), stroke, StrokeCap.Round)
                 drawLine(activeColor, Offset(0f, centerY), Offset(thumbX, centerY), stroke, StrokeCap.Round)

@@ -102,12 +102,15 @@ enum class SliderStyle(
     WAVY("wavy", "Wavy"),
     CLASSIC("classic", "Classic"),
     FLAT("flat", "Flat"),
-    THICK("thick", "Thick pill"),
-    THIN("thin", "Thin line"),
+    LINE("line", "Line"),
     ;
 
     companion object {
-        fun fromKey(key: String?): SliderStyle = entries.byKey(key, EXPRESSIVE)
+        fun fromKey(key: String?): SliderStyle =
+            when (key) {
+                "thin" -> LINE // Legacy key used by earlier releases.
+                else -> entries.byKey(key, EXPRESSIVE)
+            }
     }
 }
 

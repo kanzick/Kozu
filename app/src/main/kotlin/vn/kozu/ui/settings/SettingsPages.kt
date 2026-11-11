@@ -406,7 +406,7 @@ fun MusicPage(
     val catalogHint = catalog.error ?: stringResource(R.string.beatmap_listings_and_updates_come_from_osu)
     val refreshLabel = stringResource(if (catalog.isRefreshing) R.string.refreshing else R.string.refresh_catalog)
 
-    SettingsScaffold(title = stringResource(R.string.settings_group_music), onBack = onBack) {
+    SettingsScaffold(title = stringResource(R.string.music), onBack = onBack) {
         SettingsSection(stringResource(R.string.default_filters)) {
             dropdown(
                 Setting.DEFAULT_STATUS,

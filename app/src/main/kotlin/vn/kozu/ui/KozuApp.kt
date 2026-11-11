@@ -228,8 +228,6 @@ private fun KozuShell(
     LaunchedEffect(tab) { if (tab != KozuTab.SEARCH) lastMainTab = tab }
     var playerOpen by rememberSaveable { mutableStateOf(false) }
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
-    var settingsInitialPage by rememberSaveable { mutableStateOf(vn.kozu.ui.settings.SettingsPage.ROOT) }
-    var reopenNewsAfterAccountSettings by rememberSaveable { mutableStateOf(false) }
     var statsOpen by rememberSaveable { mutableStateOf(false) }
     var newsOpen by rememberSaveable { mutableStateOf(false) }
     var personName by rememberSaveable { mutableStateOf<String?>(null) }
@@ -374,10 +372,6 @@ private fun KozuShell(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_START) {
                 NewsReadState.initialize(context)
-                scope.launch {
-                    runCatching { container.news.load() }
-                        .onSuccess { posts -> NewsReadState.updateLatest(context, posts) }
-                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -576,15 +570,7 @@ private fun KozuShell(
                     exit = slideOutHorizontally(tween(180, easing = FastOutSlowInEasing)) { it / 6 } + fadeOut(tween(150)),
                 ) {
                     SettingsScreen(
-                        initialPage = settingsInitialPage,
-                        onBack = {
-                            settingsOpen = false
-                            settingsInitialPage = vn.kozu.ui.settings.SettingsPage.ROOT
-                            if (reopenNewsAfterAccountSettings) {
-                                newsOpen = true
-                                reopenNewsAfterAccountSettings = false
-                            }
-                        },
+                        onBack = { settingsOpen = false },
                     )
                 }
 
@@ -632,12 +618,6 @@ private fun KozuShell(
                 ) {
                     vn.kozu.ui.news.NewsScreen(
                         onBack = { newsOpen = false },
-                        onOpenAccountSettings = {
-                            reopenNewsAfterAccountSettings = true
-                            newsOpen = false
-                            settingsInitialPage = vn.kozu.ui.settings.SettingsPage.ACCOUNT
-                            settingsOpen = true
-                        },
                         container = container,
                     )
                 }
