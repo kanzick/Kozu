@@ -163,7 +163,7 @@
     <string name="update_version_checked">v%1$s · %2$s</string>
     <string name="updates">Cập nhật</string>
     <string name="used_to_check_published_kozu_releases_and_display_re">Dùng để kiểm tra bản phát hành Kozu và hiển thị các commit mã nguồn gần đây. Có thể tắt kiểm tra cập nhật trong Cài đặt.</string>
-    <string name="version_release">version release</string>
+    <string name="version_release">Phiên bản phát hành</string>
     <string name="your_charts">Chart của bạn</string>
     <string name="your_oauth_application_details_will_be_requested_in">Thông tin ứng dụng OAuth sẽ được yêu cầu ở bước tiếp theo.</string>
     <string name="your_osu_profile_is_loading_refresh_it_if_it_takes_t">Hồ sơ osu! đang tải. Hãy làm mới nếu quá lâu.</string>
