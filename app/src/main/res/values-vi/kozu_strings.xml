@@ -26,7 +26,6 @@
     <string name="choose_how_kozu_looks_and_feels">Tùy chỉnh giao diện và cảm nhận khi dùng Kozu.</string>
     <string name="choose_the_default_beatmap_status">Chọn trạng thái beatmap mặc định.</string>
     <string name="choose_the_screen_kozu_opens_with">Chọn màn hình mở ra khi khởi động Kozu.</string>
-    <string name="comment_as_osu_account">Bình luận bằng tài khoản osu! của bạn</string>
     <string name="connect_your_osu_account">Kết nối tài khoản osu!</string>
     <string name="connect_your_osu_profile_to_show_your_avatar_ranks_a">Kết nối hồ sơ osu! để hiển thị ảnh đại diện, thứ hạng và thống kê tại đây. Bạn vẫn có thể khám phá, tìm kiếm và nghe nhạc mà không cần đăng nhập.</string>
     <string name="could_not_load_beatmap_details">Không thể tải thông tin beatmap.</string>
@@ -78,6 +77,15 @@
     <string name="new_releases">Bản phát hành mới</string>
     <string name="new_releases_text">Bản phát hành mới</string>
     <string name="news_title">Tin tức</string>
+    <string name="news_search_placeholder">Tìm tin tức</string>
+    <string name="news_archive_all">Tất cả</string>
+    <string name="news_archive_year">Năm</string>
+    <string name="news_archive_month">Tháng</string>
+    <string name="news_archive_all_years">Tất cả năm</string>
+    <string name="news_by_author">bởi %1$s</string>
+    <string name="news_load_failed">Không thể tải tin tức</string>
+    <string name="news_connection_error">Tin tức công khai và không cần đăng nhập, nhưng hiện không thể kết nối tới osu!. Hãy kiểm tra mạng hoặc DNS rồi thử lại.</string>
+    <string name="news_forbidden_error">osu! từ chối yêu cầu News (HTTP 403). App cũng đã thử nguồn tin công khai dự phòng. Hãy kiểm tra mạng hoặc proxy rồi thử lại.</string>
     <string name="no_beatmaps_found">Không tìm thấy beatmap</string>
     <string name="no_difficulty_details">Không có thông tin độ khó cho map này.</string>
     <string name="no_difficulty_details_are_available_for_this_beatmap">Không có thông tin độ khó cho beatmap này.</string>
@@ -144,7 +152,6 @@
     <string name="settings_use_id_where_the_beatmapset_id_goes">Dùng {id} ở vị trí ID beatmapset</string>
     <string name="share_kozu_with_others">Chia sẻ Kozu với mọi người.</string>
     <string name="show_mapper_names">Hiển thị tên mapper</string>
-    <string name="sign_in_comment_hint">Đăng nhập bằng tài khoản osu! để viết hoặc trả lời bình luận. Bạn vẫn có thể đọc bình luận mà không cần đăng nhập.</string>
     <string name="sign_in_with_osu">Đăng nhập bằng osu!</string>
     <string name="spotlight_beatmaps">Beatmap nổi bật</string>
     <string name="subscribed_mappers">Mapper đã theo dõi</string>

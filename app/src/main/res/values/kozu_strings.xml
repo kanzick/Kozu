@@ -27,7 +27,6 @@
     <string name="choose_how_kozu_looks_and_feels">Choose how Kozu looks and feels.</string>
     <string name="choose_the_default_beatmap_status">Choose the default beatmap status.</string>
     <string name="choose_the_screen_kozu_opens_with">Choose the screen Kozu opens with.</string>
-    <string name="comment_as_osu_account">Comment as your osu! account</string>
     <string name="connect_your_osu_account">Connect your osu! account</string>
     <string name="connect_your_osu_profile_to_show_your_avatar_ranks_a">Connect your osu! profile to show your avatar, ranks and statistics here. Browsing, searching and listening remain available without signing in.</string>
     <string name="could_not_load_beatmap_details">Could not load beatmap details.</string>
@@ -79,6 +78,15 @@
     <string name="new_releases">New releases</string>
     <string name="new_releases_text">New Releases</string>
     <string name="news_title">News</string>
+    <string name="news_search_placeholder">Search news</string>
+    <string name="news_archive_all">All</string>
+    <string name="news_archive_year">Year</string>
+    <string name="news_archive_month">Month</string>
+    <string name="news_archive_all_years">All years</string>
+    <string name="news_by_author">by %1$s</string>
+    <string name="news_load_failed">Could not load news</string>
+    <string name="news_connection_error">News is public and does not require sign-in, but osu! cannot be reached right now. Check your internet or DNS connection and try again.</string>
+    <string name="news_forbidden_error">osu! refused the News request (HTTP 403). The app also tried its public feed. Check your network or proxy, then retry.</string>
     <string name="no_beatmaps_found">No beatmaps found</string>
     <string name="no_difficulty_details">No difficulty details are available for this map.</string>
     <string name="no_difficulty_details_are_available_for_this_beatmap">No difficulty details are available for this beatmap.</string>
@@ -145,7 +153,6 @@
     <string name="settings_use_id_where_the_beatmapset_id_goes">Use {id} where the beatmapset id goes</string>
     <string name="share_kozu_with_others">Share Kozu with others.</string>
     <string name="show_mapper_names">Show mapper names</string>
-    <string name="sign_in_comment_hint">Sign in with your osu! account to write a comment or reply. You can still read all comments without signing in.</string>
     <string name="sign_in_with_osu">Sign in with osu!</string>
     <string name="spotlight_beatmaps">Spotlight beatmaps</string>
     <string name="subscribed_mappers">Subscribed mappers</string>

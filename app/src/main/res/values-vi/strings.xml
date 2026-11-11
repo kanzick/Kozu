@@ -136,9 +136,6 @@
     <string name="collections">Bộ sưu tập</string>
     <string name="colors">Màu sắc</string>
     <string name="comfortable">Thoải mái</string>
-    <string name="comment_as_username">Bình luận với tên %1$s</string>
-    <string name="comment_deleted">Bình luận này đã bị xóa.</string>
-    <string name="comments">Bình luận</string>
     <string name="compact">Thu gọn</string>
     <string name="compact_cards">Thẻ thu gọn</string>
     <string name="compact_mode">Chế độ thu gọn</string>
@@ -320,7 +317,6 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="headline_sample">Mẫu tiêu đề</string>
     <string name="headphones">Tai nghe</string>
     <string name="hi_fi_mode">Chế độ Hi-Fi</string>
-    <string name="hide_replies">Ẩn câu trả lời</string>
     <string name="high_original">Cao (gốc)</string>
     <string name="high_refresh_rate">Tần số quét cao</string>
     <string name="hip_hop">Hip Hop</string>
@@ -377,7 +373,6 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="listening_history">Lịch sử nghe</string>
     <string name="listening_stats">Thống kê nghe nhạc</string>
     <string name="listening_stats_text">Thống kê nghe nhạc</string>
-    <string name="load_more_comments">Tải thêm bình luận</string>
     <string name="loading_personal_scores">Đang tải điểm cá nhân…</string>
     <string name="loading_scores">Đang tải điểm…</string>
     <string name="loading_video_preview">Đang tải bản xem trước video…</string>
@@ -442,7 +437,6 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="new_playlist">Danh sách phát mới</string>
     <string name="newest">Mới nhất</string>
     <string name="next">Tiếp theo</string>
-    <string name="no_comments_yet">Chưa có bình luận nào.</string>
     <string name="no_matching_maps">Không tìm thấy bản đồ phù hợp</string>
     <string name="no_playlists_yet">Chưa có danh sách phát</string>
     <string name="no_settings_found">Không tìm thấy cài đặt</string>
@@ -680,11 +674,6 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="settings_font">Phông chữ</string>
     <string name="settings_frequency_bands">Các dải tần</string>
     <string name="settings_full_player">Trình phát đầy đủ</string>
-    <string name="settings_group_app">Ứng dụng</string>
-    <string name="settings_group_library_data">Thư viện &amp; dữ liệu</string>
-    <string name="settings_group_music">Âm nhạc</string>
-    <string name="settings_group_personalize">Cá nhân hóa</string>
-    <string name="settings_group_system">Hệ thống</string>
     <string name="settings_language_subtitle">Chọn ngôn ngữ ứng dụng.</string>
     <string name="settings_language_title">Ngôn ngữ</string>
     <string name="settings_last_result">Kết quả gần nhất</string>
@@ -728,7 +717,6 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="shuffle_repeat_favorite">shuffle repeat favorite</string>
     <string name="sign_in_again">Đăng nhập lại</string>
     <string name="sign_in_and_api_access">Đăng nhập và truy cập API</string>
-    <string name="sign_in_to_comment">Đăng nhập để bình luận</string>
     <string name="sign_out">Đăng xuất</string>
     <string name="signed_in">Đã đăng nhập</string>
     <string name="silver_s">S bạc</string>
@@ -869,9 +857,6 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="video_game">Trò chơi điện tử</string>
     <string name="video_game_text">Trò chơi điện tử</string>
     <string name="video_preview">Xem trước video</string>
-    <plurals name="view_replies">
-        <item quantity="other">Xem %1$d câu trả lời</item>
-    </plurals>
     <string name="visible_tab_row">Hàng tab hiển thị</string>
     <string name="visual_quality">Chất lượng hình ảnh</string>
     <string name="wait_for_wi_fi_before_downloading_songs">Chờ Wi-Fi trước khi tải bài hát</string>
@@ -885,7 +870,6 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="wi_fi_only_streaming">Chỉ phát trực tuyến qua Wi-Fi</string>
     <string name="will_play_next">Sẽ phát tiếp theo</string>
     <string name="will_play_next_text">Sẽ phát tiếp theo</string>
-    <string name="write_comment">Viết bình luận…</string>
     <string name="yellow">Vàng</string>
     <string name="your">Của bạn</string>
     <string name="your_downloaded_charts_all_in_one_place">Tất cả biểu đồ đã tải xuống ở cùng một nơi.</string>

@@ -136,9 +136,6 @@
     <string name="collections">Collections</string>
     <string name="colors">Colors</string>
     <string name="comfortable">Comfortable</string>
-    <string name="comment_as_username">Comment as %1$s</string>
-    <string name="comment_deleted">This comment has been deleted.</string>
-    <string name="comments">Comments</string>
     <string name="compact">Compact</string>
     <string name="compact_cards">Compact cards</string>
     <string name="compact_mode">Compact mode</string>
@@ -320,7 +317,6 @@ Guests and signed-in users have the same catalog, streaming, and download access
     <string name="headline_sample">Headline sample</string>
     <string name="headphones">Headphones</string>
     <string name="hi_fi_mode">Hi-Fi mode</string>
-    <string name="hide_replies">Hide replies</string>
     <string name="high_original">High (original)</string>
     <string name="high_refresh_rate">High refresh rate</string>
     <string name="hip_hop">Hip Hop</string>
@@ -377,7 +373,6 @@ Guests and signed-in users have the same catalog, streaming, and download access
     <string name="listening_history">Listening history</string>
     <string name="listening_stats">Listening stats</string>
     <string name="listening_stats_text">Listening Stats</string>
-    <string name="load_more_comments">Load more comments</string>
     <string name="loading_personal_scores">Loading personal scores…</string>
     <string name="loading_scores">Loading scores…</string>
     <string name="loading_video_preview">Loading video preview…</string>
@@ -442,7 +437,6 @@ Guests and signed-in users have the same catalog, streaming, and download access
     <string name="new_playlist">New playlist</string>
     <string name="newest">Newest</string>
     <string name="next">Next</string>
-    <string name="no_comments_yet">No comments yet.</string>
     <string name="no_matching_maps">No matching maps</string>
     <string name="no_playlists_yet">No playlists yet</string>
     <string name="no_settings_found">No settings found</string>
@@ -683,11 +677,6 @@ Guests and signed-in users have the same catalog, streaming, and download access
     <string name="settings_font">Font</string>
     <string name="settings_frequency_bands">Frequency bands</string>
     <string name="settings_full_player">Full player</string>
-    <string name="settings_group_app">App</string>
-    <string name="settings_group_library_data">Library &amp; data</string>
-    <string name="settings_group_music">Music</string>
-    <string name="settings_group_personalize">Personalize</string>
-    <string name="settings_group_system">System</string>
     <string name="settings_language_subtitle">Choose your app language.</string>
     <string name="settings_language_title">Language</string>
     <string name="settings_last_result">Last result</string>
@@ -731,7 +720,6 @@ Guests and signed-in users have the same catalog, streaming, and download access
     <string name="shuffle_repeat_favorite">shuffle repeat favorite</string>
     <string name="sign_in_again">Sign in again</string>
     <string name="sign_in_and_api_access">Sign-in and API access</string>
-    <string name="sign_in_to_comment">Sign in to comment</string>
     <string name="sign_out">Sign out</string>
     <string name="signed_in">Signed in</string>
     <string name="silver_s">Silver S</string>
@@ -874,10 +862,6 @@ Guests and signed-in users have the same catalog, streaming, and download access
     <string name="video_game">Video Game</string>
     <string name="video_game_text">Video game</string>
     <string name="video_preview">Video preview</string>
-    <plurals name="view_replies">
-        <item quantity="one">View %1$d reply</item>
-        <item quantity="other">View %1$d replies</item>
-    </plurals>
     <string name="visible_tab_row">Visible tab row</string>
     <string name="visual_quality">Visual quality</string>
     <string name="wait_for_wi_fi_before_downloading_songs">Wait for Wi-Fi before downloading songs</string>
@@ -891,7 +875,6 @@ Guests and signed-in users have the same catalog, streaming, and download access
     <string name="wi_fi_only_streaming">Wi-Fi only streaming</string>
     <string name="will_play_next">Will play next</string>
     <string name="will_play_next_text">Will play next</string>
-    <string name="write_comment">Write a comment…</string>
     <string name="yellow">Yellow</string>
     <string name="your">Your</string>
     <string name="your_downloaded_charts_all_in_one_place">Your downloaded charts, all in one place.</string>
