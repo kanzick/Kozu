@@ -64,6 +64,8 @@ fun GameStageHost(
     requestedMapId: Long?,
     onMapOpenHandled: (Long) -> Unit,
     onAddMaps: () -> Unit,
+    customOrderIds: List<Long> = emptyList(),
+    onReorderCharts: (List<Long>) -> Unit = {},
     onGameplayChanged: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
@@ -203,6 +205,8 @@ fun GameStageHost(
             PreviewStageScreen(
                 module = preview,
                 onAddMaps = onAddMaps,
+                customOrderIds = customOrderIds,
+                onReorderCharts = onReorderCharts,
                 contentPadding = contentPadding,
                 onDifficultyClick = { song, diff -> popup = Selection(song, diff) },
                 loadBestScores = game::bestScores,

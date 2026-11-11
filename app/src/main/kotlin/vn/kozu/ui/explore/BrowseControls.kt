@@ -1,22 +1,13 @@
 package vn.kozu.ui.explore
 
-import android.os.Build
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Info
@@ -24,22 +15,14 @@ import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -48,61 +31,22 @@ import java.util.Locale
 import vn.kozu.R
 import vn.kozu.data.repository.CatalogSource
 import vn.kozu.domain.model.ActiveBrowseFilter
-import vn.kozu.domain.model.ThemeMode
-import vn.kozu.domain.model.ThemePreset
 import vn.kozu.ui.components.HeaderAction
-import vn.kozu.ui.components.LocalAppSettings
-import vn.kozu.ui.components.LocalNowPlaying
+import vn.kozu.ui.components.headerIndicatorColor
 
 @Composable
 fun FilterAction(
     active: Boolean,
     onClick: () -> Unit,
 ) {
-    val indicatorColor = if (active) {
-        val appSettings = LocalAppSettings.current
-        val isPlaying = LocalNowPlaying.current.isPlaying
-        val context = LocalContext.current
-        val dark = when (appSettings.themeMode) {
-            ThemeMode.SYSTEM -> isSystemInDarkTheme()
-            ThemeMode.LIGHT -> false
-            ThemeMode.DARK -> true
-        }
-        val dynamicPresetColor = androidx.compose.runtime.remember(context, dark) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                if (dark) dynamicDarkColorScheme(context).primary else dynamicLightColorScheme(context).primary
-            } else {
-                ThemePreset.DYNAMIC.seed
-            }
-        }
-        when {
-            isPlaying -> MaterialTheme.colorScheme.primary
-            appSettings.themePreset == ThemePreset.CUSTOM -> appSettings.accent.color
-            appSettings.themePreset == ThemePreset.DYNAMIC -> dynamicPresetColor
-            else -> appSettings.themePreset.seed
-        }
-    } else {
-        Color.Unspecified
-    }
-
-    Box {
-        HeaderAction(
-            icon = Icons.Rounded.Tune,
-            contentDescription = if (active) "Filters, some active" else "Filters",
-            onClick = onClick,
-            startPadding = 0.dp,
-        )
-        if (active) {
-            Box(
-                modifier =
-                    Modifier
-                        .align(Alignment.TopEnd)
-                        .size(10.dp)
-                        .background(indicatorColor, CircleShape)
-                        .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape),
-            )
-        }
-    }
+    HeaderAction(
+        icon = Icons.Rounded.Tune,
+        contentDescription = if (active) "Filters, some active" else "Filters",
+        onClick = onClick,
+        startPadding = 0.dp,
+        showIndicator = active,
+        indicatorColor = if (active) headerIndicatorColor() else MaterialTheme.colorScheme.primary,
+    )
 }
 
 @Composable

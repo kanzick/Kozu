@@ -372,6 +372,10 @@ private fun KozuShell(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_START) {
                 NewsReadState.initialize(context)
+                scope.launch {
+                    runCatching { container.news.load() }
+                        .onSuccess { page -> NewsReadState.updateLatest(context, page.posts) }
+                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -485,8 +489,7 @@ private fun KozuShell(
                             isSelected = tab == KozuTab.GAME,
                             bottomPadding = bottomPadding,
                             onOpenSettings = { settingsOpen = true },
-                            onRefresh = ::refreshApp,
-                            isAppRefreshing = isAppRefreshing,
+                            onOpenNews = { newsOpen = true },
                             onGameplayChanged = { active ->
                                 if (active != gamePlayActive) {
                                     gamePlayActive = active

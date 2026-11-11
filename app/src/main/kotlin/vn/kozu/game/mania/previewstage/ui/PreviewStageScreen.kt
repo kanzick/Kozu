@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -25,6 +24,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.DragIndicator
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material.icons.rounded.SportsEsports
@@ -53,6 +54,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -71,6 +74,10 @@ import vn.kozu.ui.components.BeatmapArt
 import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.EmptyState
 import vn.kozu.ui.components.SectionHeader
+import vn.kozu.ui.components.KozuSearchField
+import vn.kozu.ui.components.HeaderAction
+import vn.kozu.ui.components.LocalAppSettings
+import vn.kozu.domain.model.LibraryDensity
 
 private data class DifficultyEntry(val song: SongEntry, val difficulty: DifficultyRecord)
 
@@ -96,6 +103,8 @@ private sealed interface ChartListItem {
 fun PreviewStageScreen(
     module: PreviewStageModule,
     onAddMaps: () -> Unit,
+    customOrderIds: List<Long> = emptyList(),
+    onReorderCharts: (List<Long>) -> Unit = {},
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
     onDifficultyClick: ((SongEntry, DifficultyRecord) -> Unit)? = null,
@@ -116,13 +125,15 @@ fun PreviewStageScreen(
     var deletingSongId by remember { mutableStateOf<Long?>(null) }
     var previewError by remember { mutableStateOf<Pair<Long, String>?>(null) }
     var searchQuery by remember { mutableStateOf("") }
+    var localCustomOrder by remember(customOrderIds) { mutableStateOf(customOrderIds) }
+    val compactRows = LocalAppSettings.current.libraryDensity == LibraryDensity.COMPACT
     val songs by module.catalog.entries.collectAsState()
     var expandedId by remember { mutableStateOf<Long?>(null) }
     var requestedScrollSongId by remember { mutableStateOf<Long?>(null) }
     var sort by remember { mutableStateOf(MapSort.DEFAULT) }
     var group by remember { mutableStateOf(MapGroup.NONE) }
-    var showSortOptions by remember { mutableStateOf(true) }
-    var showGroupOptions by remember { mutableStateOf(true) }
+    var showSortOptions by remember(compactRows) { mutableStateOf(!compactRows) }
+    var showGroupOptions by remember(compactRows) { mutableStateOf(!compactRows) }
     var expandedGroups by remember { mutableStateOf<Set<String>>(emptySet()) }
     var bpms by remember { mutableStateOf<Map<String, Double>>(emptyMap()) }
     var lengths by remember { mutableStateOf<Map<String, Long>>(emptyMap()) }
@@ -176,11 +187,12 @@ fun PreviewStageScreen(
 
     val listItems = remember(
         visibleSongs, sort, group, expandedGroups, bpms, lengths, rankedDates,
-        bestScoresBySong, latestPlayedAtBySong, osuUsername,
+        bestScoresBySong, latestPlayedAtBySong, osuUsername, localCustomOrder,
     ) {
         buildChartListItems(
             songs = visibleSongs,
             sort = sort,
+            customOrderIds = localCustomOrder,
             group = group,
             expandedGroups = expandedGroups,
             bpms = bpms,
@@ -191,6 +203,72 @@ fun PreviewStageScreen(
             osuUsername = osuUsername,
         )
     }
+
+    LaunchedEffect(customOrderIds) {
+        localCustomOrder = customOrderIds
+        if (customOrderIds.isNotEmpty() && sort == MapSort.DEFAULT) {
+            sort = MapSort.CUSTOM
+        }
+    }
+
+    // Drop metadata for charts removed from disk so a long-lived Game screen does not retain stale entries.
+    LaunchedEffect(songs, report?.loadedSongs) {
+        val validSongIds = songs.mapTo(mutableSetOf()) { it.songId }
+        val validDifficultyKeys = songs.asSequence()
+            .flatMap { song -> song.difficulties.asSequence().map { bpmKey(it) } }
+            .toHashSet()
+        bpms = bpms.filterKeys { it in validDifficultyKeys }
+        lengths = lengths.filterKeys { it in validDifficultyKeys }
+        rankedDates = rankedDates.filterKeys { it in validSongIds }
+        metadataErrors = metadataErrors.filterKeys { it in validSongIds }
+        bestScoresBySong = bestScoresBySong.filterKeys { it in validSongIds }
+        latestPlayedAtBySong = latestPlayedAtBySong.filterKeys { it in validSongIds }
+        scoreErrors = scoreErrors.filterKeys { it in validSongIds }
+        if (expandedId != null && expandedId !in validSongIds) {
+            expandedId = null
+            previewError = null
+            module.stopPreview()
+        }
+        requestedScrollSongId?.let { if (it !in validSongIds) requestedScrollSongId = null }
+        loadingScoresFor?.let { if (it !in validSongIds) loadingScoresFor = null }
+        collectionTarget?.let { if (it.songId !in validSongIds) collectionTarget = null }
+        if (report != null) {
+            val retainedOrder = localCustomOrder.filter { it in validSongIds }
+            if (retainedOrder != localCustomOrder) {
+                localCustomOrder = retainedOrder
+                onReorderCharts(retainedOrder)
+            }
+        }
+    }
+
+    val canReorderSongs = group == MapGroup.NONE && searchQuery.isBlank() &&
+        listItems.isNotEmpty() && listItems.all { it is ChartListItem.Song }
+    val chartItemsStartIndex = 1 +
+        (if (report != null && error == null) 1 else 0) +
+        (if (report != null && error == null && songs.isNotEmpty()) 1 else 0) +
+        (if (deleteError != null) 1 else 0) +
+        (if (metadataErrors.values.distinct().isNotEmpty()) 1 else 0) +
+        (if (scoreErrors.values.distinct().isNotEmpty()) 1 else 0) +
+        (if (report?.failed?.isNotEmpty() == true) 1 else 0)
+    val reorderableState = rememberReorderableLazyListState(
+        lazyListState = listState,
+        onMove = { from, to ->
+            if (!canReorderSongs) return@rememberReorderableLazyListState
+            val fromIndex = from.index - chartItemsStartIndex
+            val toIndex = to.index - chartItemsStartIndex
+            val currentIds = listItems.filterIsInstance<ChartListItem.Song>().map { it.song.songId }
+            if (fromIndex in currentIds.indices && toIndex in currentIds.indices && fromIndex != toIndex) {
+                val reordered = currentIds.toMutableList().apply { add(toIndex, removeAt(fromIndex)) }
+                localCustomOrder = reordered
+                if (sort != MapSort.CUSTOM) {
+                    sort = MapSort.CUSTOM
+                    expandedId = null
+                    module.stopPreview()
+                }
+                onReorderCharts(reordered)
+            }
+        },
+    )
 
     LaunchedEffect(openSongId, songs) {
         val songId = openSongId ?: return@LaunchedEffect
@@ -360,10 +438,10 @@ fun PreviewStageScreen(
         state = listState,
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
-            top = 12.dp,
+            top = if (compactRows) 8.dp else 12.dp,
             bottom = 24.dp + contentPadding.calculateBottomPadding()
         ),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(if (compactRows) 6.dp else 12.dp)
     ) {
         item(key = "header") {
             SectionHeader(
@@ -377,23 +455,20 @@ fun PreviewStageScreen(
         if (report != null && error == null) {
             item(key = "search-and-random") {
                 Row(
-                    modifier = Modifier.padding(horizontal = 20.dp).fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
+                    KozuSearchField(
+                        query = searchQuery,
+                        onQueryChange = { searchQuery = it },
+                        onSearch = { /* Local filtering is immediate. */ },
+                        placeholder = stringResource(R.string.search_maps),
                         modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        shape = RoundedCornerShape(20.dp),
-                        placeholder = { Text(stringResource(R.string.search_maps)) },
-                        leadingIcon = {
-                            Icon(Icons.Rounded.Search, contentDescription = null)
-                        },
                     )
-                    Button(
-                        enabled = visibleSongs.any { it.difficulties.isNotEmpty() } && onDifficultyClick != null,
+                    HeaderAction(
+                        icon = Icons.Rounded.Shuffle,
+                        contentDescription = stringResource(R.string.random),
                         onClick = {
                             val candidates = visibleSongs.flatMap { song ->
                                 song.difficulties.map { difficulty -> song to difficulty }
@@ -403,11 +478,19 @@ fun PreviewStageScreen(
                                 onDifficultyClick?.invoke(song, difficulty)
                             }
                         },
-                    ) {
-                        Icon(Icons.Rounded.Shuffle, contentDescription = null)
-                        Spacer(Modifier.width(6.dp))
-                        Text(stringResource(R.string.random))
-                    }
+                        startPadding = 0.dp,
+                        enabled = visibleSongs.any { it.difficulties.isNotEmpty() } && onDifficultyClick != null,
+                        container = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        content = MaterialTheme.colorScheme.onSurface,
+                    )
+                    HeaderAction(
+                        icon = Icons.Rounded.Add,
+                        contentDescription = stringResource(R.string.add_maps),
+                        onClick = onAddMaps,
+                        startPadding = 0.dp,
+                        container = MaterialTheme.colorScheme.primaryContainer,
+                        content = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
                 }
             }
         }
@@ -563,79 +646,85 @@ fun PreviewStageScreen(
                 )
             }
             else -> items(listItems, key = { it.key }) { item ->
-                when (item) {
-                    is ChartListItem.GroupHeader -> Surface(
-                        modifier = Modifier
-                            .padding(horizontal = 20.dp)
-                            .fillMaxWidth()
-                            .bounceClick(pressedScale = 0.99f) {
-                                expandedGroups = if (item.key in expandedGroups) {
-                                    expandedGroups - item.key
-                                } else {
-                                    expandedGroups + item.key
-                                }
-                            },
-                        shape = RoundedCornerShape(18.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    ) {
-                        Row(
-                            Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
+                ReorderableItem(reorderableState, key = item.key) { isDragging ->
+                    when (item) {
+                        is ChartListItem.GroupHeader -> Surface(
+                            modifier = Modifier
+                                .padding(horizontal = 20.dp)
+                                .fillMaxWidth()
+                                .bounceClick(pressedScale = 0.99f) {
+                                    expandedGroups = if (item.key in expandedGroups) {
+                                        expandedGroups - item.key
+                                    } else {
+                                        expandedGroups + item.key
+                                    }
+                                },
+                            shape = RoundedCornerShape(if (compactRows) 14.dp else 18.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
                         ) {
-                            Text(item.title,
-                                modifier = Modifier.weight(1f),
-                                style = MaterialTheme.typography.titleSmall,
-                            )
-                            Text("${item.count}  ${if (item.key in expandedGroups) "−" else "+"}",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            Row(
+                                Modifier.padding(horizontal = if (compactRows) 12.dp else 16.dp, vertical = if (compactRows) 8.dp else 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(item.title,
+                                    modifier = Modifier.weight(1f),
+                                    style = MaterialTheme.typography.titleSmall,
+                                )
+                                Text("${item.count}  ${if (item.key in expandedGroups) "−" else "+"}",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                        is ChartListItem.Song -> {
+                            val song = item.song
+                            ChartSetCard(
+                                song = song,
+                                expanded = expandedId == song.songId,
+                                onToggle = {
+                                    if (expandedId == song.songId) {
+                                        expandedId = null
+                                        previewError = null
+                                        module.stopPreview()
+                                    } else {
+                                        expandedId = song.songId
+                                        previewError = null
+                                        song.defaultPreview?.let { playPreview(song, it) }
+                                    }
+                                },
+                                onPreview = { song.defaultPreview?.let { playPreview(song, it) } },
+                                previewError = previewError?.takeIf { it.first == song.songId }?.second,
+                                bestScores = bestScoresBySong[song.songId],
+                                scoreError = scoreErrors[song.songId],
+                                scoresLoading = loadingScoresFor == song.songId,
+                                onDifficultyClick = { difficulty ->
+                                    playPreview(song, difficulty)
+                                    onDifficultyClick?.invoke(song, difficulty)
+                                },
+                                onManageCollections = { openCollectionEditor(song) },
+                                onDelete = { deleteTarget = song },
+                                deleting = deletingSongId == song.songId,
+                                compactRows = compactRows,
+                                showDragHandle = canReorderSongs,
+                                dragHandleModifier = if (canReorderSongs) Modifier.draggableHandle() else Modifier,
+                                isDragging = isDragging,
                             )
                         }
-                    }
-                    is ChartListItem.Song -> {
-                        val song = item.song
-                        ChartSetCard(
-                            song = song,
-                            expanded = expandedId == song.songId,
-                            onToggle = {
-                                if (expandedId == song.songId) {
-                                    expandedId = null
-                                    previewError = null
-                                    module.stopPreview()
-                                } else {
-                                    expandedId = song.songId
-                                    previewError = null
-                                    song.defaultPreview?.let { playPreview(song, it) }
-                                }
-                            },
-                            onPreview = { song.defaultPreview?.let { playPreview(song, it) } },
-                            previewError = previewError?.takeIf { it.first == song.songId }?.second,
-                            bestScores = bestScoresBySong[song.songId],
-                            scoreError = scoreErrors[song.songId],
-                            scoresLoading = loadingScoresFor == song.songId,
-                            onDifficultyClick = { difficulty ->
-                                playPreview(song, difficulty)
-                                onDifficultyClick?.invoke(song, difficulty)
-                            },
-                            onManageCollections = { openCollectionEditor(song) },
-                            onDelete = { deleteTarget = song },
-                            deleting = deletingSongId == song.songId,
-                        )
-                    }
-                    is ChartListItem.Difficulty -> {
-                        val song = item.entry.song
-                        val difficulty = item.entry.difficulty
-                        DifficultyCard(
-                            song = song,
-                            difficulty = difficulty,
-                            bpm = bpms[bpmKey(difficulty)],
-                            lengthMs = lengths[bpmKey(difficulty)],
-                            score = bestScoresBySong[song.songId]?.get(difficulty.version),
-                            onDelete = { deleteTarget = song },
-                            onClick = {
-                                playPreview(song, difficulty)
-                                onDifficultyClick?.invoke(song, difficulty)
-                            },
-                        )
+                        is ChartListItem.Difficulty -> {
+                            val song = item.entry.song
+                            val difficulty = item.entry.difficulty
+                            DifficultyCard(
+                                song = song,
+                                difficulty = difficulty,
+                                bpm = bpms[bpmKey(difficulty)],
+                                lengthMs = lengths[bpmKey(difficulty)],
+                                score = bestScoresBySong[song.songId]?.get(difficulty.version),
+                                onDelete = { deleteTarget = song },
+                                onClick = {
+                                    playPreview(song, difficulty)
+                                    onDifficultyClick?.invoke(song, difficulty)
+                                },
+                            )
+                        }
                     }
                 }
             }
@@ -768,6 +857,10 @@ private fun ChartSetCard(
     onManageCollections: () -> Unit,
     onDelete: () -> Unit,
     deleting: Boolean,
+    compactRows: Boolean,
+    showDragHandle: Boolean,
+    dragHandleModifier: Modifier,
+    isDragging: Boolean,
 ) {
     val title = song.displayTitle.ifBlank { "Beatmap ${song.songId}" }
     val artist = song.displayArtist.ifBlank { "Unknown artist" }
@@ -780,19 +873,23 @@ private fun ChartSetCard(
             .padding(horizontal = 20.dp)
             .fillMaxWidth()
             .animateContentSize(),
-        shape = RoundedCornerShape(30.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer
+        shape = RoundedCornerShape(if (compactRows) 16.dp else 24.dp),
+        color = if (isDragging) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer
     ) {
         Column {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .bounceClick(pressedScale = 0.98f, onClick = onToggle)
-                    .padding(12.dp),
+                    .padding(if (compactRows) 8.dp else 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                BeatmapArt(beatmap, Modifier.size(60.dp), shape = RoundedCornerShape(20.dp))
-                Spacer(Modifier.width(14.dp))
+                BeatmapArt(
+                    beatmap,
+                    Modifier.size(if (compactRows) 52.dp else 60.dp),
+                    shape = RoundedCornerShape(if (compactRows) 14.dp else 20.dp),
+                )
+                Spacer(Modifier.width(if (compactRows) 10.dp else 14.dp))
                 Column(Modifier.weight(1f)) {
                     Text(title,
                         style = MaterialTheme.typography.titleMedium,
@@ -819,7 +916,15 @@ private fun ChartSetCard(
                             )
                         }
                 }
-                IconButton(onClick = onDelete, enabled = !deleting) {
+                if (showDragHandle) {
+                    Icon(
+                        Icons.Rounded.DragIndicator,
+                        contentDescription = stringResource(R.string.reorder_song),
+                        modifier = dragHandleModifier.padding(horizontal = 4.dp).size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                IconButton(onClick = onDelete, enabled = !deleting, modifier = Modifier.size(if (compactRows) 40.dp else 48.dp)) {
                     Icon(
                         Icons.Rounded.Delete,
                         contentDescription = stringResource(R.string.delete_map_text),
@@ -829,6 +934,7 @@ private fun ChartSetCard(
                 IconButton(
                     onClick = onPreview,
                     enabled = song.defaultPreview != null,
+                    modifier = Modifier.size(if (compactRows) 40.dp else 48.dp),
                 ) {
                     Icon(
                         Icons.Rounded.PlayArrow,
@@ -837,7 +943,7 @@ private fun ChartSetCard(
                     )
                 }
                 Surface(
-                    modifier = Modifier.size(44.dp),
+                    modifier = Modifier.size(if (compactRows) 36.dp else 44.dp),
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.secondaryContainer
                 ) {
@@ -859,8 +965,8 @@ private fun ChartSetCard(
             }
             AnimatedVisibility(visible = expanded) {
                 Column(
-                    modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 14.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                    modifier = Modifier.padding(start = 8.dp, end = 8.dp, bottom = if (compactRows) 8.dp else 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(if (compactRows) 4.dp else 6.dp)
                 ) {
                     if (scoresLoading && bestScores == null) {
                         Text(stringResource(R.string.loading_personal_scores),
@@ -898,13 +1004,13 @@ private fun DifficultyRow(
 ) {
     Surface(
         modifier = Modifier.bounceClick(pressedScale = 0.98f, onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(14.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 10.dp),
+                .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(Modifier.weight(1f)) {
@@ -964,6 +1070,7 @@ private fun fmt(value: Double): String =
 
 private enum class MapSort(val label: String, val perDifficulty: Boolean = false) {
     DEFAULT("Default"),
+    CUSTOM("Custom"),
     TITLE("Title"),
     ARTIST("Artist"),
     CREATOR("Creator"),
@@ -1040,9 +1147,20 @@ private fun readLengthMs(folder: java.io.File, difficulty: DifficultyRecord): Lo
     return lastObjectTime
 }
 
+private fun applyGameCustomOrder(songs: List<SongEntry>, orderedIds: List<Long>): List<SongEntry> {
+    if (songs.size < 2 || orderedIds.isEmpty()) return songs
+    val byId = songs.associateBy { it.songId }
+    val seen = orderedIds.toHashSet()
+    return buildList(songs.size) {
+        orderedIds.forEach { id -> byId[id]?.let(::add) }
+        songs.filterNot { it.songId in seen }.forEach(::add)
+    }
+}
+
 private fun buildChartListItems(
     songs: List<SongEntry>,
     sort: MapSort,
+    customOrderIds: List<Long>,
     group: MapGroup,
     expandedGroups: Set<String>,
     bpms: Map<String, Double>,
@@ -1053,6 +1171,7 @@ private fun buildChartListItems(
     osuUsername: String,
 ): List<ChartListItem> {
     val sortedSongs = when (sort) {
+        MapSort.CUSTOM -> applyGameCustomOrder(songs, customOrderIds)
         MapSort.TITLE -> songs.sortedBy { it.displayTitle.lowercase(Locale.ROOT) }
         MapSort.ARTIST -> songs.sortedBy { it.displayArtist.lowercase(Locale.ROOT) }
         MapSort.CREATOR -> songs.sortedBy { it.difficulties.firstOrNull()?.creator.orEmpty().lowercase(Locale.ROOT) }
@@ -1060,7 +1179,12 @@ private fun buildChartListItems(
         MapSort.DATE_RANKED -> songs.sortedByDescending { rankedDates[it.songId] ?: 0L }
         else -> songs
     }
-    val diffEntries = songs.flatMap { song -> song.difficulties.map { DifficultyEntry(song, it) } }
+    val showDifficulties = sort.perDifficulty || group.perDifficulty
+    val diffEntries = if (showDifficulties) {
+        songs.flatMap { song -> song.difficulties.map { DifficultyEntry(song, it) } }
+    } else {
+        emptyList()
+    }
     val sortedDiffs = when (sort) {
         MapSort.TITLE -> diffEntries.sortedBy { it.song.displayTitle.lowercase(Locale.ROOT) }
         MapSort.ARTIST -> diffEntries.sortedBy { it.song.displayArtist.lowercase(Locale.ROOT) }
@@ -1080,9 +1204,8 @@ private fun buildChartListItems(
         MapSort.LAST_PLAYED -> diffEntries.sortedByDescending {
             latestPlayedAt[it.song.songId]?.get(it.difficulty.version) ?: 0L
         }
-        MapSort.DEFAULT -> diffEntries
+        MapSort.DEFAULT, MapSort.CUSTOM -> diffEntries
     }
-    val showDifficulties = sort.perDifficulty || group.perDifficulty
     val rows = if (showDifficulties) {
         sortedDiffs.map { ChartListItem.Difficulty(it) }
     } else {

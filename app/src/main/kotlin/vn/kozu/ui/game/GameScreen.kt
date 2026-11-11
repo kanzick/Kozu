@@ -3,14 +3,6 @@ package vn.kozu.ui.game
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -18,26 +10,22 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import vn.kozu.game.mania.gamestage.ui.GameStageHost
 import vn.kozu.game.ui.game.GameViewModel
-import vn.kozu.R
 import vn.kozu.ui.components.HeaderTitle
-import vn.kozu.ui.components.RefreshIndicator
 import vn.kozu.ui.components.ScreenHeader
 import vn.kozu.ui.components.SettingsAction
+import vn.kozu.ui.components.NewsAction
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GameScreen(
     isSelected: Boolean,
     bottomPadding: Dp,
     onOpenSettings: () -> Unit,
-    onRefresh: () -> Unit,
-    isAppRefreshing: Boolean,
+    onOpenNews: () -> Unit,
     onGameplayChanged: (Boolean) -> Unit,
     onOpenAllBeatmapsFromPreview: (GameViewModel) -> Unit,
     modifier: Modifier = Modifier,
@@ -47,19 +35,13 @@ fun GameScreen(
     val playerName by viewModel.playerName.collectAsState()
     val osuUsername by viewModel.osuUsername.collectAsState()
     val requestedMapId by viewModel.requestedMapId.collectAsState()
-    val pullState = rememberPullToRefreshState()
+    val customOrderIds by viewModel.customOrderIds.collectAsState()
     Column(modifier.fillMaxSize()) {
         if (!gameplayActive) {
             ScreenHeader(
                 leading = { HeaderTitle("Game") },
                 actions = {
-                    IconButton(onClick = { onOpenAllBeatmapsFromPreview(viewModel) }) {
-                        Icon(
-                            Icons.Rounded.Add,
-                            contentDescription = stringResource(R.string.add_maps),
-                            tint = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
+                    NewsAction(onOpenNews)
                     SettingsAction(onOpenSettings)
                 },
             )
@@ -75,6 +57,8 @@ fun GameScreen(
             requestedMapId = requestedMapId,
             onMapOpenHandled = viewModel::consumeOpenMapRequest,
             onAddMaps = { onOpenAllBeatmapsFromPreview(viewModel) },
+            customOrderIds = customOrderIds,
+            onReorderCharts = viewModel::saveCustomOrder,
             onGameplayChanged = {
                 gameplayActive = it
                 onGameplayChanged(it)
