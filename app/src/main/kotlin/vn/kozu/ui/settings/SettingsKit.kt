@@ -278,7 +278,7 @@ class SettingsGroupScope {
         setting: Setting,
         checked: Boolean,
         enabled: Boolean = true,
-        description: String = setting.description,
+        description: String? = null,
         onChange: (Boolean) -> Unit,
     ) = custom { shape ->
         SwitchItem(setting, checked, enabled, description, shape, onChange)
@@ -288,8 +288,8 @@ class SettingsGroupScope {
         setting: Setting,
         value: T,
         options: List<T>,
-        label: (T) -> String,
-        description: String = setting.description,
+        label: @Composable (T) -> String,
+        description: String? = null,
         leading: (@Composable (T) -> Unit)? = null,
         enabled: Boolean = true,
         onSelect: (T) -> Unit,
@@ -304,7 +304,7 @@ class SettingsGroupScope {
         valueLabel: (Float) -> String,
         steps: Int = 0,
         enabled: Boolean = true,
-        description: String = setting.description,
+        description: String? = null,
 
         unit: Float = 0f,
         onChange: (Float) -> Unit,
@@ -321,7 +321,7 @@ class SettingsGroupScope {
     fun navigation(
         setting: Setting,
         value: String? = null,
-        description: String = setting.description,
+        description: String? = null,
         onClick: () -> Unit,
     ) = custom { shape ->
         NavigationItem(setting, value, description, shape, onClick)
@@ -330,7 +330,7 @@ class SettingsGroupScope {
     fun action(
         setting: Setting,
         label: String,
-        description: String = setting.description,
+        description: String? = null,
         enabled: Boolean = true,
         destructive: Boolean = false,
         onClick: () -> Unit,
@@ -488,7 +488,7 @@ private fun SwitchItem(
     setting: Setting,
     checked: Boolean,
     enabled: Boolean,
-    description: String,
+    description: String?,
     shape: Shape,
     onChange: (Boolean) -> Unit,
 ) {
@@ -508,7 +508,7 @@ private fun SwitchItem(
         ) {
             IconBadge(setting.icon, enabled)
             Spacer(Modifier.width(14.dp))
-            ItemText(setting.title, description, enabled, Modifier.weight(1f))
+            ItemText(setting.titleText(), description ?: setting.descriptionText(), enabled, Modifier.weight(1f))
             Spacer(Modifier.width(12.dp))
             Switch(
                 checked = checked,
@@ -534,8 +534,8 @@ private fun <T> DropdownItem(
     setting: Setting,
     value: T,
     options: List<T>,
-    label: (T) -> String,
-    description: String,
+    label: @Composable (T) -> String,
+    description: String?,
     leading: (@Composable (T) -> Unit)?,
     shape: Shape,
     enabled: Boolean,
@@ -552,7 +552,7 @@ private fun <T> DropdownItem(
         ) {
             IconBadge(setting.icon)
             Spacer(Modifier.width(14.dp))
-            ItemText(setting.title, description, modifier = Modifier.weight(1f)) {
+            ItemText(setting.titleText(), description ?: setting.descriptionText(), modifier = Modifier.weight(1f)) {
                 Spacer(Modifier.height(10.dp))
                 ValueChip(label(value), leading?.let { { it(value) } })
             }
@@ -560,7 +560,7 @@ private fun <T> DropdownItem(
     }
     if (open) {
         OptionSheet(
-            title = setting.title,
+            title = setting.titleText(),
             options = options,
             selected = value,
             label = label,
@@ -606,7 +606,7 @@ fun <T> OptionSheet(
     title: String,
     options: List<T>,
     selected: T,
-    label: (T) -> String,
+    label: @Composable (T) -> String,
     leading: (@Composable (T) -> Unit)? = null,
     onSelect: (T) -> Unit,
     onDismiss: () -> Unit,
@@ -692,7 +692,7 @@ private fun SliderItem(
     steps: Int,
     valueLabel: (Float) -> String,
     enabled: Boolean,
-    description: String,
+    description: String?,
     shape: Shape,
     onChange: (Float) -> Unit,
 ) {
@@ -711,8 +711,8 @@ private fun SliderItem(
 
 
                 ItemText(
-                    title = setting.title,
-                    description = description,
+                    title = setting.titleText(),
+                    description = description ?: setting.descriptionText(),
                     enabled = enabled,
                     modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                     titleMaxLines = 1,
@@ -741,7 +741,7 @@ private fun SliderItem(
                 enabled = enabled,
 
 
-                contentDescription = setting.title,
+                contentDescription = setting.titleText(),
                 modifier = Modifier.padding(top = 10.dp),
             )
         }
@@ -752,7 +752,7 @@ private fun SliderItem(
 private fun NavigationItem(
     setting: Setting,
     value: String?,
-    description: String,
+    description: String?,
     shape: Shape,
     onClick: () -> Unit,
 ) {
@@ -763,7 +763,7 @@ private fun NavigationItem(
         ) {
             IconBadge(setting.icon)
             Spacer(Modifier.width(14.dp))
-            ItemText(setting.title, description, modifier = Modifier.weight(1f)) {
+            ItemText(setting.titleText(), description ?: setting.descriptionText(), modifier = Modifier.weight(1f)) {
                 if (value != null) {
                     Spacer(Modifier.height(10.dp))
                     ValueChip(value)
@@ -782,7 +782,7 @@ private fun NavigationItem(
 private fun ActionItem(
     setting: Setting,
     label: String,
-    description: String,
+    description: String?,
     enabled: Boolean,
     destructive: Boolean,
     shape: Shape,
@@ -795,7 +795,7 @@ private fun ActionItem(
         ) {
             IconBadge(setting.icon, enabled)
             Spacer(Modifier.width(14.dp))
-            ItemText(setting.title, description, enabled, Modifier.weight(1f)) {
+            ItemText(setting.titleText(), description ?: setting.descriptionText(), enabled, Modifier.weight(1f)) {
                 Spacer(Modifier.height(12.dp))
                 if (destructive) {
                     OutlinedButton(onClick = onClick, enabled = enabled) {

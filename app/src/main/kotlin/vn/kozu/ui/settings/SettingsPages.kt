@@ -73,6 +73,14 @@ fun AppearancePage(
     val floating = settings.navigationStyle == NavigationStyle.FLOATING
     var showPresets by remember { mutableStateOf(false) }
 
+    // The settings DSL lambdas are not composable, so resolve these strings here first.
+    val amoledDescription =
+        stringResource(
+            if (settings.amoled) R.string.on_true_black_background_with_darker_cards_applies_i
+            else R.string.off_standard_dark_surfaces_turn_on_for_a_true_black,
+        )
+    val accentDescription = stringResource(R.string.accent_switches_to_custom)
+
     SettingsScaffold(title = stringResource(R.string.appearance), onBack = onBack) {
         SettingsSection(stringResource(R.string.global_theme)) {
             dropdown(
@@ -85,12 +93,7 @@ fun AppearancePage(
             switch(
                 Setting.PURE_BLACK,
                 settings.amoled,
-                description =
-                    if (settings.amoled) {
-                        "On \u00b7 true black background with darker cards. Applies in Dark Theme."
-                    } else {
-                        "Off \u00b7 standard dark surfaces. Turn on for a true black OLED-friendly background."
-                    },
+                description = amoledDescription,
                 onChange = viewModel::setAmoled,
             )
             dropdown(
@@ -140,7 +143,7 @@ fun AppearancePage(
                 Setting.ARTWORK_SHAPE,
                 appearance.artworkShape,
                 ArtworkShape.entries.toList(),
-                { if (it == ArtworkShape.DEFAULT) "Default (per screen)" else it.label },
+                { if (it == ArtworkShape.DEFAULT) stringResource(R.string.default_per_screen) else it.label },
                 leading = { value -> ShapeSwatch(value) },
             ) { value -> viewModel.updateAppearance { copy(artworkShape = value) } }
             dropdown(
@@ -178,7 +181,7 @@ fun AppearancePage(
                 leading = { accent ->
                     Surface(Modifier.size(22.dp), shape = CircleShape, color = accent.color) {}
                 },
-                description = "Choosing an accent switches to the Custom accent preset.",
+                description = accentDescription,
             ) { accent ->
                 viewModel.save {
                     setAccent(accent)
@@ -207,7 +210,7 @@ fun AppearancePage(
                 Setting.NAV_STYLE,
                 settings.navigationStyle,
                 NavigationStyle.entries.toList(),
-                { if (it == NavigationStyle.FLOATING) "Expressive pill" else "Classic" },
+                { stringResource(if (it == NavigationStyle.FLOATING) R.string.expressive_pill else R.string.classic) },
                 onSelect = viewModel::setNavigationStyle,
             )
             switch(Setting.COMPACT_NAV, settings.compactNavigation, enabled = floating) { enabled ->
@@ -269,12 +272,15 @@ fun PlaybackPage(
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
+    val batteryLabel = stringResource(R.string.open_battery_settings)
+    val equalizerValue = stringResource(if (settings.equalizerEnabled) R.string.on else R.string.off)
+
     SettingsScaffold(title = stringResource(R.string.playback), onBack = onBack) {
         SettingsSection(stringResource(R.string.background_playback)) {
             switch(Setting.KEEP_PLAYING, settings.keepPlayingAfterClose) { enabled ->
                 viewModel.save { setKeepPlayingAfterClose(enabled) }
             }
-            action(Setting.BATTERY_OPT, "Open battery settings") {
+            action(Setting.BATTERY_OPT, batteryLabel) {
                 openBatterySettings(context)
             }
         }
@@ -328,7 +334,7 @@ fun PlaybackPage(
         SettingsSection(stringResource(R.string.sound)) {
             navigation(
                 Setting.EQUALIZER_BANDS,
-                value = if (settings.equalizerEnabled) "On" else "Off",
+                value = equalizerValue,
                 onClick = onOpenEqualizer,
             )
         }
@@ -342,6 +348,8 @@ fun BehaviorPage(
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val context = LocalContext.current
+
+    val systemSettingsLabel = stringResource(R.string.open_system_settings)
 
     SettingsScaffold(title = stringResource(R.string.behavior), onBack = onBack) {
         SettingsSection(stringResource(R.string.player)) {
@@ -366,7 +374,7 @@ fun BehaviorPage(
             }
         }
         SettingsSection(stringResource(R.string.osu_link_integration)) {
-            action(Setting.OSU_LINKS, "Open system settings") { openDefaultLinkSettings(context) }
+            action(Setting.OSU_LINKS, systemSettingsLabel) { openDefaultLinkSettings(context) }
         }
     }
 }
@@ -383,15 +391,20 @@ fun MusicPage(
         if (settings.lastSyncAt > 0L) {
             DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(settings.lastSyncAt))
         } else {
-            "Never"
+            stringResource(R.string.never)
         }
     val source =
         when (catalog.mixSource) {
-            CatalogSource.OFFICIAL_OSU -> "Official osu!"
-            CatalogSource.PUBLIC_MIRROR -> "Public fallback"
-            CatalogSource.MIXED -> "Official + fallback"
-            CatalogSource.NONE -> "Connecting"
+            CatalogSource.OFFICIAL_OSU -> stringResource(R.string.official_osu)
+            CatalogSource.PUBLIC_MIRROR -> stringResource(R.string.public_fallback)
+            CatalogSource.MIXED -> stringResource(R.string.official_fallback)
+            CatalogSource.NONE -> stringResource(R.string.connecting)
         }
+    val syncLabel = stringResource(if (syncing) R.string.syncing else R.string.sync_now)
+    val syncDescription = stringResource(R.string.sync_now_description, lastSync)
+    val catalogSourceTitle = stringResource(R.string.catalog_source)
+    val catalogHint = catalog.error ?: stringResource(R.string.beatmap_listings_and_updates_come_from_osu)
+    val refreshLabel = stringResource(if (catalog.isRefreshing) R.string.refreshing else R.string.refresh_catalog)
 
     SettingsScaffold(title = stringResource(R.string.settings_group_music), onBack = onBack) {
         SettingsSection(stringResource(R.string.default_filters)) {
@@ -413,8 +426,8 @@ fun MusicPage(
         SettingsSection(stringResource(R.string.sync_and_library)) {
             action(
                 Setting.SYNC_NOW,
-                label = if (syncing) "Syncing…" else "Sync now",
-                description = "Refresh favourites, playlists and downloads. Last sync: $lastSync",
+                label = syncLabel,
+                description = syncDescription,
                 enabled = !syncing,
             ) { viewModel.syncNow() }
             switch(Setting.AUTO_SYNC, settings.autoSyncLibrary) { enabled ->
@@ -424,13 +437,13 @@ fun MusicPage(
         SettingsSection(stringResource(R.string.osu_catalog)) {
             info(
                 icon = Setting.DEFAULT_MODE.icon,
-                title = "Catalog source",
+                title = catalogSourceTitle,
                 value = source,
-                description = catalog.error ?: "Beatmap listings and updates come from osu!.",
+                description = catalogHint,
             )
             action(
                 Setting.REFRESH_CATALOG,
-                label = if (catalog.isRefreshing) "Refreshing…" else "Refresh catalog",
+                label = refreshLabel,
                 enabled = !catalog.isRefreshing,
             ) { viewModel.refreshCatalog() }
         }
@@ -464,6 +477,9 @@ fun ContentPage(
     onBack: () -> Unit,
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+
+    val clearHistoryLabel = stringResource(R.string.clear_history)
+    val clearSearchesLabel = stringResource(R.string.clear_searches)
 
     SettingsScaffold(title = stringResource(R.string.content), onBack = onBack) {
         SettingsSection(stringResource(R.string.catalog)) {
@@ -511,8 +527,8 @@ fun ContentPage(
             )
         }
         SettingsSection(stringResource(R.string.privacy)) {
-            action(Setting.CLEAR_HISTORY, "Clear history", destructive = true) { viewModel.clearHistory() }
-            action(Setting.CLEAR_SEARCHES, "Clear searches", destructive = true) { viewModel.clearSearches() }
+            action(Setting.CLEAR_HISTORY, clearHistoryLabel, destructive = true) { viewModel.clearHistory() }
+            action(Setting.CLEAR_SEARCHES, clearSearchesLabel, destructive = true) { viewModel.clearSearches() }
         }
     }
 }
@@ -526,7 +542,7 @@ private fun DisplayNameItem(
     var draft by remember(name) { mutableStateOf(name) }
     SettingCard(setting = Setting.DISPLAY_NAME, shape = shape, onClick = null) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-            ItemText(Setting.DISPLAY_NAME.title, Setting.DISPLAY_NAME.description)
+            ItemText(Setting.DISPLAY_NAME.titleText(), Setting.DISPLAY_NAME.descriptionText())
             Spacer(Modifier.height(10.dp))
             OutlinedTextField(
                 value = draft,

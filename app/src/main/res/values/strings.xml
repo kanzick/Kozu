@@ -2,7 +2,10 @@
 <resources>
     <string name="a_backup_is_a_single_file_you_save_wherever_you_like">A backup is a single file you save wherever you like. It holds the sections you choose: settings, favorites, playlists and listening history.</string>
     <string name="accent_color">Accent color</string>
+    <string name="accent_switches_to_custom">Choosing an accent switches to the Custom accent preset.</string>
     <string name="account">Account</string>
+    <string name="account_manage_summary">osu! profile · manage account</string>
+    <string name="account_sign_in_summary">Sign in to sync with osu!</string>
     <string name="adapt_to_artwork">Adapt to artwork</string>
     <string name="add">Add</string>
     <string name="add_a_map_to_build_your_personal_play_list">Add a map to build your personal play list.</string>
@@ -249,6 +252,8 @@
     <string name="english">English</string>
     <string name="enter_a_valid_host_name_or_ip_address">Enter a valid host name or IP address</string>
     <string name="equalizer">Equalizer</string>
+    <string name="equalizer_preset">Preset</string>
+    <string name="equalizer_preset_desc">Pick a ready-made sound profile.</string>
     <string name="error_prefix">Error: %1$s</string>
     <string name="every_recorded_play_and_your_listening_statistics_wi">Every recorded play and your listening statistics will be removed from this device.</string>
     <string name="everything">Everything</string>
@@ -307,6 +312,7 @@ Guests and signed-in users have the same catalog, streaming, and download access
     <string name="green">Green</string>
     <string name="greeting_username">greeting username</string>
     <string name="group">Group</string>
+    <string name="guest">Guest</string>
     <string name="haptic_feedback">Haptic feedback</string>
     <string name="haptics">Haptics</string>
     <string name="hardware_audio_offload">Hardware audio offload</string>
@@ -464,6 +470,7 @@ Guests and signed-in users have the same catalog, streaming, and download access
         <item quantity="other">%1$d songs offline</item>
     </plurals>
     <string name="offline_songs_will_be_removed_from_this_device_you_c">Offline songs will be removed from this device. You can download them again anytime.</string>
+    <string name="on">On</string>
     <string name="on_true_black_background_with_darker_cards_applies_i">On · true black background with darker cards. Applies in Dark Theme.</string>
     <string name="once_a_day_on_launch">Once a day on launch</string>
     <string name="online_and_offline">Online &amp; offline</string>
@@ -515,6 +522,8 @@ Guests and signed-in users have the same catalog, streaming, and download access
     <string name="player_artwork_shape">Player artwork shape</string>
     <string name="player_bar_color_theme">player bar color theme</string>
     <string name="player_bar_layout">player bar layout</string>
+    <string name="player_design_style">Player design style</string>
+    <string name="player_design_style_desc">Choose how the full player looks: Classic, Modern, Minimal, Cinematic, Little, Expressive, Immersive, Material Extended or Editorial.</string>
     <string name="player_icon_style">Player icon style</string>
     <string name="player_name">Player name</string>
     <string name="player_name_label">Player: %1$s</string>
@@ -717,6 +726,8 @@ Guests and signed-in users have the same catalog, streaming, and download access
     <string name="show_queue_history">Show queue history</string>
     <string name="show_quick_controls_in_the_player">Show quick controls in the player.</string>
     <string name="show_the_artist_name">Show the artist name.</string>
+    <string name="show_volume_bar">Show volume bar</string>
+    <string name="show_volume_bar_desc">Adds a media volume slider. Available with the Immersive, Immersive Extended and Material Extended designs.</string>
     <string name="show_your_mix">Show Your Mix</string>
     <string name="shuffle">Shuffle</string>
     <string name="shuffle_repeat_and_like_row">Shuffle, repeat and like row</string>
@@ -733,6 +744,8 @@ Guests and signed-in users have the same catalog, streaming, and download access
     <string name="skip_not_now">Skip / Not now</string>
     <string name="skip_quiet_sections_of_a_track">Skip quiet sections of a track.</string>
     <string name="skip_silence">Skip silence</string>
+    <string name="slim_down_downloads">Slim down downloads</string>
+    <string name="slim_down_downloads_desc">Remove hitsounds, images and storyboards from offline songs.</string>
     <string name="sleep_timer">Sleep timer</string>
     <string name="slider_style">Slider style</string>
     <string name="smart_storage">smart storage</string>
@@ -782,6 +795,7 @@ Guests and signed-in users have the same catalog, streaming, and download access
     <string name="sync_favorites_playlists_and_downloads">Sync favorites, playlists and downloads.</string>
     <string name="sync_library">Sync library</string>
     <string name="sync_now">Sync now</string>
+    <string name="sync_now_description">Refresh favourites, playlists and downloads. Last sync: %1$s</string>
     <string name="sync_on_launch">Sync on launch</string>
     <string name="sync_the_library_on_launch">Sync the library on launch.</string>
     <string name="syncing">Syncing…</string>
@@ -809,6 +823,7 @@ Guests and signed-in users have the same catalog, streaming, and download access
     <string name="theme_and_layout">Theme and layout</string>
     <string name="theme_color_seed">theme color seed</string>
     <string name="theme_preset">Theme preset</string>
+    <string name="theme_preset_desc">Pick a ready-made palette: osu!, Dynamic, Sage Green, Sunset Orange, Purple Pink, Ocean Blue, Sunny Yellow or Dark &amp; Grey.</string>
     <string name="timing">Timing</string>
     <string name="title">Title</string>
     <string name="title_dracula_feat_jennie">Title: Dracula (feat. JENNIE)</string>

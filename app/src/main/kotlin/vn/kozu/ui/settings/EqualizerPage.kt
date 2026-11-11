@@ -98,7 +98,6 @@ fun EqualizerPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                 Setting.VIRTUALIZER,
                 settings.virtualizer > 0,
                 enabled = enabled,
-                description = Setting.VIRTUALIZER.description
             ) { checked -> viewModel.save { setVirtualizer(if (checked) 1000 else 0) } }
             slider(
                 Setting.LOUDNESS,

@@ -2,7 +2,10 @@
 <resources>
     <string name="a_backup_is_a_single_file_you_save_wherever_you_like">Bản sao lưu là một tệp duy nhất mà bạn có thể lưu ở bất cứ đâu. Tệp chứa các mục bạn chọn: cài đặt, bài yêu thích, danh sách phát và lịch sử nghe.</string>
     <string name="accent_color">Màu nhấn</string>
+    <string name="accent_switches_to_custom">Chọn màu nhấn sẽ chuyển sang thiết lập màu nhấn tùy chỉnh.</string>
     <string name="account">Tài khoản</string>
+    <string name="account_manage_summary">Hồ sơ osu! · quản lý tài khoản</string>
+    <string name="account_sign_in_summary">Đăng nhập để đồng bộ với osu!</string>
     <string name="adapt_to_artwork">Thích ứng với ảnh bìa</string>
     <string name="add">Thêm</string>
     <string name="add_a_map_to_build_your_personal_play_list">Thêm bản đồ để tạo danh sách phát của riêng bạn.</string>
@@ -249,6 +252,8 @@
     <string name="english">Tiếng Anh</string>
     <string name="enter_a_valid_host_name_or_ip_address">Nhập tên máy chủ hoặc địa chỉ IP hợp lệ</string>
     <string name="equalizer">Bộ chỉnh âm</string>
+    <string name="equalizer_preset">Thiết lập sẵn</string>
+    <string name="equalizer_preset_desc">Chọn cấu hình âm thanh có sẵn.</string>
     <string name="error_prefix">Lỗi: %1$s</string>
     <string name="every_recorded_play_and_your_listening_statistics_wi">Toàn bộ lượt phát đã ghi nhận và thống kê nghe sẽ bị xóa khỏi thiết bị này.</string>
     <string name="everything">Tất cả</string>
@@ -307,6 +312,7 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="green">Xanh lá</string>
     <string name="greeting_username">greeting username</string>
     <string name="group">Nhóm</string>
+    <string name="guest">Khách</string>
     <string name="haptic_feedback">Phản hồi rung</string>
     <string name="haptics">Rung phản hồi</string>
     <string name="hardware_audio_offload">Giải mã âm thanh bằng phần cứng</string>
@@ -463,6 +469,7 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
         <item quantity="other">%1$d bài hát ngoại tuyến</item>
     </plurals>
     <string name="offline_songs_will_be_removed_from_this_device_you_c">Bài hát ngoại tuyến sẽ bị xóa khỏi thiết bị này. Bạn có thể tải lại bất cứ lúc nào.</string>
+    <string name="on">Bật</string>
     <string name="on_true_black_background_with_darker_cards_applies_i">Bật · nền đen tuyệt đối cùng thẻ tối hơn. Áp dụng trong giao diện tối.</string>
     <string name="once_a_day_on_launch">Mỗi ngày một lần khi mở ứng dụng</string>
     <string name="online_and_offline">Trực tuyến &amp; ngoại tuyến</string>
@@ -513,6 +520,8 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="player_artwork_shape">Hình ảnh trình phát</string>
     <string name="player_bar_color_theme">Chủ đề màu thanh phát nhạc</string>
     <string name="player_bar_layout">Bố cục thanh phát nhạc</string>
+    <string name="player_design_style">Kiểu thiết kế trình phát</string>
+    <string name="player_design_style_desc">Chọn giao diện của trình phát toàn màn hình: Classic, Modern, Minimal, Cinematic, Little, Expressive, Immersive, Material Extended hoặc Editorial.</string>
     <string name="player_icon_style">Kiểu biểu tượng trình phát</string>
     <string name="player_name">Tên người chơi</string>
     <string name="player_name_label">Người chơi: %1$s</string>
@@ -714,6 +723,8 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="show_queue_history">Hiện lịch sử hàng đợi</string>
     <string name="show_quick_controls_in_the_player">Hiển thị nút điều khiển nhanh trong trình phát.</string>
     <string name="show_the_artist_name">Hiển thị tên nghệ sĩ.</string>
+    <string name="show_volume_bar">Hiển thị thanh âm lượng</string>
+    <string name="show_volume_bar_desc">Thêm thanh trượt âm lượng đa phương tiện. Có sẵn với các thiết kế Immersive, Immersive Extended và Material Extended.</string>
     <string name="show_your_mix">Hiển thị Your Mix</string>
     <string name="shuffle">Phát ngẫu nhiên</string>
     <string name="shuffle_repeat_and_like_row">Hàng nút trộn, lặp và yêu thích</string>
@@ -730,6 +741,8 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="skip_not_now">Bỏ qua / Để sau</string>
     <string name="skip_quiet_sections_of_a_track">Bỏ qua những đoạn âm lượng nhỏ.</string>
     <string name="skip_silence">Bỏ qua đoạn im lặng</string>
+    <string name="slim_down_downloads">Thu gọn bản tải xuống</string>
+    <string name="slim_down_downloads_desc">Xóa hitsound, hình ảnh và storyboard khỏi các bài hát ngoại tuyến.</string>
     <string name="sleep_timer">Hẹn giờ tắt nhạc</string>
     <string name="slider_style">Kiểu thanh trượt</string>
     <string name="smart_storage">smart storage</string>
@@ -777,6 +790,7 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="sync_favorites_playlists_and_downloads">Đồng bộ bài yêu thích, danh sách phát và nội dung tải xuống.</string>
     <string name="sync_library">Đồng bộ thư viện</string>
     <string name="sync_now">Đồng bộ ngay</string>
+    <string name="sync_now_description">Làm mới mục yêu thích, danh sách phát và bản tải xuống. Lần đồng bộ gần nhất: %1$s</string>
     <string name="sync_on_launch">Đồng bộ khi mở ứng dụng</string>
     <string name="sync_the_library_on_launch">Đồng bộ thư viện khi khởi động.</string>
     <string name="syncing">Đang đồng bộ…</string>
@@ -804,6 +818,7 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="theme_and_layout">Giao diện và bố cục</string>
     <string name="theme_color_seed">theme color seed</string>
     <string name="theme_preset">Thiết lập giao diện</string>
+    <string name="theme_preset_desc">Chọn bảng màu có sẵn: osu!, Dynamic, Sage Green, Sunset Orange, Purple Pink, Ocean Blue, Sunny Yellow hoặc Dark &amp; Grey.</string>
     <string name="timing">Canh thời gian</string>
     <string name="title">Tiêu đề</string>
     <string name="title_dracula_feat_jennie">Tiêu đề: Dracula (feat. JENNIE)</string>
