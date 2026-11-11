@@ -305,14 +305,10 @@ private fun SettingsGroupCard(
         ) {
             Column {
                 group.pages.forEachIndexed { index, page ->
-                    val title = when (page) {
-                        SettingsPage.LANGUAGE -> stringResource(R.string.settings_language_title)
-                        else -> page.title
-                    }
+                    val title = page.titleText()
                     val subtitle = when (page) {
                         SettingsPage.UPDATES -> "v$installedVersion · ${updateChannel.label}"
-                        SettingsPage.LANGUAGE -> stringResource(R.string.settings_language_subtitle)
-                        else -> page.subtitle
+                        else -> page.subtitleText()
                     }
                     Row(
                         modifier = Modifier
@@ -370,7 +366,8 @@ private fun SettingsSearchOverlay(onClose: () -> Unit, onPick: (Setting) -> Unit
     var query by rememberSaveable { mutableStateOf("") }
     val focus = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
-    val results = remember(query) { SettingsSearch.search(query) }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val results = remember(query, context) { SettingsSearch.search(context, query) }
 
     LaunchedEffect(Unit) {
         delay(120)
@@ -457,21 +454,9 @@ private fun SettingsSearchOverlay(onClose: () -> Unit, onPick: (Setting) -> Unit
             ) {
                 items(results, key = { it.name }) { setting ->
                     val index = results.indexOf(setting)
-                    val resultTitle = if (setting == Setting.LANGUAGE) {
-                        stringResource(R.string.settings_language_title)
-                    } else {
-                        setting.title
-                    }
-                    val resultDescription = if (setting == Setting.LANGUAGE) {
-                        stringResource(R.string.settings_language_subtitle)
-                    } else {
-                        setting.description
-                    }
-                    val resultPageTitle = if (setting.page == SettingsPage.LANGUAGE) {
-                        stringResource(R.string.settings_language_title)
-                    } else {
-                        setting.page.title
-                    }
+                    val resultTitle = setting.titleText()
+                    val resultDescription = setting.descriptionText()
+                    val resultPageTitle = setting.page.titleText()
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -609,12 +594,12 @@ private fun AccountSummaryCard(profile: OsuProfile?, loggedIn: Boolean, onClick:
             }
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
-                Text(text = if (loggedIn && profile != null) profile.username else "Guest",
+                Text(text = if (loggedIn && profile != null) profile.username else stringResource(R.string.guest),
                     style = MaterialTheme.typography.titleLarge,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(text = if (loggedIn) "osu! profile · manage account" else "Sign in to sync with osu!",
+                Text(text = stringResource(if (loggedIn) R.string.account_manage_summary else R.string.account_sign_in_summary),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant,
                     maxLines = 1,
