@@ -15,7 +15,9 @@ val hasReleaseSigning = listOf(
     releaseKeyAlias,
     releaseKeyPassword
 ).all { !it.isNullOrBlank() }
+
 val defaultAppVersionName = "0.1.4"
+
 val appVersionName = providers.gradleProperty("appVersion")
     .orElse(defaultAppVersionName)
     .get()
@@ -24,11 +26,10 @@ val appVersionName = providers.gradleProperty("appVersion")
 
 android {
     namespace = "vn.kozu"
-
     compileSdk {
         version = release(37)
     }
-
+    buildToolsVersion = "37.0.0"
     signingConfigs {
         if (hasReleaseSigning) {
             create("release") {
