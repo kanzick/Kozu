@@ -310,7 +310,7 @@ enum class Setting(
         Icons.Rounded.LinearScale,
         R.string.slider_style,
         R.string.choose_the_slider_style,
-        "seek bar wavy expressive thumb",
+        "seek bar wavy expressive flat thick pill thin line thumb music progress",
     ),
     ICON_STYLE(
         SettingsPage.PLAYER_STYLE,
@@ -402,13 +402,6 @@ enum class Setting(
         R.string.player_design_style,
         R.string.player_design_style_desc,
         "now playing layout design style classic modern minimal cinematic little expressive immersive extended material editorial",
-    ),
-    SEEK_STYLE(
-        SettingsPage.PLAYER_STYLE,
-        Icons.Rounded.GraphicEq,
-        R.string.seek_bar_style,
-        R.string.choose_the_full_player_progress_style,
-        "progress slider wavy",
     ),
     PLAYER_ART_SHAPE(
         SettingsPage.PLAYER_STYLE,

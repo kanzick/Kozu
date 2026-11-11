@@ -36,7 +36,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Person
@@ -72,6 +71,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -84,27 +84,23 @@ import vn.kozu.R
 import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.scrollReveal
 
-private data class SettingsGroup(
-    val titleRes: Int,
-    val pages: List<SettingsPage>,
-)
-
-private val rootGroups = listOf(
-    SettingsGroup(R.string.settings_group_personalize, listOf(SettingsPage.APPEARANCE, SettingsPage.BEHAVIOR, SettingsPage.LANGUAGE)),
-    SettingsGroup(
-        R.string.settings_group_music,
-        listOf(
-            SettingsPage.MUSIC,
-            SettingsPage.CONTENT,
-            SettingsPage.PLAYBACK,
-            SettingsPage.EQUALIZER,
-            SettingsPage.SOURCES,
-            SettingsPage.DOWNLOADS,
-        ),
-    ),
-    SettingsGroup(R.string.settings_group_library_data, listOf(SettingsPage.STATS, SettingsPage.STORAGE, SettingsPage.BACKUP)),
-    SettingsGroup(R.string.settings_group_system, listOf(SettingsPage.DEVICE, SettingsPage.DEVELOPER)),
-    SettingsGroup(R.string.settings_group_app, listOf(SettingsPage.UPDATES, SettingsPage.ABOUT)),
+private val rootPages = listOf(
+    SettingsPage.APPEARANCE,
+    SettingsPage.BEHAVIOR,
+    SettingsPage.LANGUAGE,
+    SettingsPage.MUSIC,
+    SettingsPage.CONTENT,
+    SettingsPage.PLAYBACK,
+    SettingsPage.EQUALIZER,
+    SettingsPage.SOURCES,
+    SettingsPage.DOWNLOADS,
+    SettingsPage.STATS,
+    SettingsPage.STORAGE,
+    SettingsPage.BACKUP,
+    SettingsPage.DEVICE,
+    SettingsPage.DEVELOPER,
+    SettingsPage.UPDATES,
+    SettingsPage.ABOUT,
 )
 
 private fun parentOf(page: SettingsPage): SettingsPage = when (page) {
@@ -260,102 +256,90 @@ private fun SettingsRoot(
     SettingsPageScaffold(title = stringResource(R.string.settings), onBack = onBack) {
         Spacer(Modifier.height(4.dp))
         SearchEntryBar(onClick = onSearch)
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(8.dp))
         AccountSummaryCard(profile = profile, loggedIn = loggedIn, onClick = { onOpen(SettingsPage.ACCOUNT) })
-        Spacer(Modifier.height(16.dp))
-        rootGroups.forEachIndexed { index, group ->
-            SettingsGroupCard(
-                group = group,
+        Spacer(Modifier.height(4.dp))
+        rootPages.forEachIndexed { index, page ->
+            SettingsPageCard(
+                page = page,
                 installedVersion = version,
                 updateChannel = updateChannel,
-                groupIndex = index,
+                itemIndex = index,
                 onOpen = onOpen,
             )
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(2.dp))
         }
     }
 }
 
 @Composable
-private fun SettingsGroupCard(
-    group: SettingsGroup,
+private fun SettingsPageCard(
+    page: SettingsPage,
     installedVersion: String,
     updateChannel: UpdateChannel,
-    groupIndex: Int,
+    itemIndex: Int,
     onOpen: (SettingsPage) -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
-    val (iconContainer, iconContent) = when (groupIndex % 4) {
+    // Keep the selected app font family/weight and the user's global text scale,
+    // while making the settings list labels slightly easier to read by default.
+    val pageTitleStyle = MaterialTheme.typography.titleMedium.copy(
+        fontSize = 19.sp,
+        lineHeight = 24.sp,
+    )
+    val pageSubtitleStyle = MaterialTheme.typography.bodySmall.copy(
+        fontSize = 15.sp,
+        lineHeight = 20.sp,
+    )
+    val (iconContainer, iconContent) = when (itemIndex % 4) {
         0 -> colors.primaryContainer to colors.onPrimaryContainer
         1 -> colors.secondaryContainer to colors.onSecondaryContainer
         2 -> colors.tertiaryContainer to colors.onTertiaryContainer
         else -> colors.surfaceContainerHighest to colors.onSurface
     }
+    val subtitle = when (page) {
+        SettingsPage.UPDATES -> "v$installedVersion · ${updateChannel.label}"
+        else -> page.subtitleText()
+    }
 
-    Column {
-        Text(text = stringResource(group.titleRes),
-            style = MaterialTheme.typography.titleSmall,
-            color = colors.primary,
-            modifier = Modifier.padding(start = 16.dp, bottom = 8.dp),
-        )
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(26.dp),
-            color = colors.surfaceContainer,
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        color = colors.surfaceContainer,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .scrollReveal()
+                .bounceClick(pressedScale = 0.99f) { onOpen(page) }
+                .padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column {
-                group.pages.forEachIndexed { index, page ->
-                    val title = page.titleText()
-                    val subtitle = when (page) {
-                        SettingsPage.UPDATES -> "v$installedVersion · ${updateChannel.label}"
-                        else -> page.subtitleText()
-                    }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .scrollReveal()
-                            .bounceClick(pressedScale = 0.99f) { onOpen(page) }
-                            .padding(horizontal = 16.dp, vertical = 13.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Surface(
-                            modifier = Modifier.size(48.dp),
-                            shape = CircleShape,
-                            color = iconContainer,
-                            contentColor = iconContent,
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(page.icon, contentDescription = null, modifier = Modifier.size(24.dp))
-                            }
-                        }
-                        Spacer(Modifier.width(14.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(text = title,
-                                style = MaterialTheme.typography.titleMedium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text(text = subtitle,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = colors.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                        Icon(
-                            Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                            contentDescription = null,
-                            tint = colors.onSurfaceVariant,
-                        )
-                    }
-                    if (index < group.pages.lastIndex) {
-                        HorizontalDivider(
-                            modifier = Modifier.padding(start = 78.dp, end = 16.dp),
-                            color = colors.outlineVariant.copy(alpha = 0.35f),
-                            thickness = 0.5.dp,
-                        )
-                    }
+            Surface(
+                modifier = Modifier.size(48.dp),
+                shape = CircleShape,
+                color = iconContainer,
+                contentColor = iconContent,
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(page.icon, contentDescription = null, modifier = Modifier.size(24.dp))
                 }
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = page.titleText(),
+                    style = pageTitleStyle,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = subtitle,
+                    style = pageSubtitleStyle,
+                    color = colors.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }

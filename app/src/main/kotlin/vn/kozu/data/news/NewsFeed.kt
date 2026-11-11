@@ -1,21 +1,24 @@
 package vn.kozu.data.news
 
+import com.google.gson.Gson
+import com.google.gson.JsonParser
 import java.io.IOException
-import java.net.HttpURLConnection
-import java.net.URL
-import java.time.format.DateTimeFormatter
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
+import retrofit2.HttpException
 import vn.kozu.data.remote.osu.OsuApi
 
+/** A lightweight view model for an osu! news post. Article HTML is fetched only when opened. */
 data class NewsPost(
-
     val id: Long,
     val slug: String,
     val title: String,
@@ -26,187 +29,188 @@ data class NewsPost(
     val imageUrl: String?,
     val url: String,
     val contentHtml: String? = null,
-
-    val commentableId: Long? = id,
 )
 
+data class NewsFeedPage(
+    val posts: List<NewsPost>,
+    val years: List<Int>,
+    val currentYear: Int,
+    val cursorString: String? = null,
+)
+
+data class NewsPostsPage(
+    val posts: List<NewsPost>,
+    val cursorString: String?,
+)
+
+private fun NewsPost.year(): Int? {
+    if (dateMillis <= 0L) return null
+    return runCatching {
+        Instant.ofEpochMilli(dateMillis).atZone(ZoneId.systemDefault()).year
+    }.getOrNull()
+}
 
 class NewsFeed(
     private val api: OsuApi,
+    private val publicTokenProvider: suspend () -> String? = { null },
 ) {
-    suspend fun load(): List<NewsPost> {
-        val apiPosts = try {
-            api.news(limit = 21).newsPosts.mapNotNull(::toPost)
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (_: Exception) {
-            emptyList()
-        }
-        if (apiPosts.isNotEmpty()) return apiPosts.sortedByDescending { it.dateMillis }
+    // Serialize first-page refreshes so repeated taps cannot launch overlapping loads.
+    private val latestLoadMutex = Mutex()
+    private val gson = Gson()
 
-        val atomPosts = loadAtomFeed()
-        if (atomPosts.isNotEmpty()) return atomPosts.sortedByDescending { it.dateMillis }
-
-        throw IOException("osu! returned no news posts from the API or Atom feed")
+    /** Always requests fresh data. No persistent or in-memory article/feed cache is used. */
+    suspend fun load(): NewsFeedPage = latestLoadMutex.withLock {
+        val listing = requestListing()
+        val newestPosts = listing.newsPosts.mapNotNull(::toPost)
+        val sidebarPosts = listing.newsSidebar?.newsPosts.orEmpty().mapNotNull(::toPost)
+        val posts = (sidebarPosts + newestPosts)
+            .distinctBy { it.id }
+            .sortedByDescending { it.dateMillis }
+        val currentYear = listing.newsSidebar?.currentYear
+            ?.takeIf { it > 0 }
+            ?: posts.firstNotNullOfOrNull(NewsPost::year)
+            ?: java.time.Year.now().value
+        val years = listing.newsSidebar?.years.orEmpty()
+            .filter { it in 2007..java.time.Year.now().value + 1 }
+            .distinct()
+            .sortedDescending()
+        NewsFeedPage(
+            posts = posts,
+            years = years,
+            currentYear = currentYear,
+            cursorString = listing.cursorString,
+        )
     }
 
+    suspend fun loadYear(year: Int, cursorString: String? = null): NewsPostsPage {
+        require(year in 2007..java.time.Year.now().value + 1) { "Invalid news archive year" }
+        val listing = requestListing(year = year, cursorString = cursorString)
+        return NewsPostsPage(
+            posts = listing.newsPosts.mapNotNull(::toPost)
+                .distinctBy { it.id }
+                .sortedByDescending { it.dateMillis },
+            cursorString = listing.cursorString,
+        )
+    }
+
+    suspend fun loadNextPage(year: Int?, cursorString: String): NewsPostsPage {
+        val listing = requestListing(year = year, cursorString = cursorString)
+        return NewsPostsPage(
+            posts = listing.newsPosts.mapNotNull(::toPost)
+                .distinctBy { it.id }
+                .sortedByDescending { it.dateMillis },
+            cursorString = listing.cursorString,
+        )
+    }
+
+    /** Fetches full article content on demand; only the lightweight list item is kept beforehand. */
     suspend fun loadDetail(post: NewsPost): NewsPost {
+        val detail = requestNewsPost(post.slug)
+        val content = detail.content
+            ?.takeIf { it.isNotBlank() }
+            ?: detail.contentMarkdown?.takeIf { it.isNotBlank() }?.let(::markdownFallback)
+            ?: throw IOException("osu! returned an empty article")
+        val mapped = toPost(detail) ?: throw IOException("osu! returned an invalid article")
+        return mapped.copy(
+            imageUrl = post.imageUrl ?: mapped.imageUrl,
+            summary = post.summary.ifBlank { mapped.summary },
+            contentHtml = content,
+        )
+    }
 
-
-        if (!post.contentHtml.isNullOrBlank() && post.commentableId != null) return post
-        return try {
-            val detail = api.newsPost(post.slug, listOf("html"))
-            val apiPost = toPost(detail)
-            if (apiPost == null) {
-                post
-            } else {
-                apiPost.copy(
-                    imageUrl = post.imageUrl ?: apiPost.imageUrl,
-                    contentHtml = detail.content ?: detail.contentMarkdown?.let(::markdownFallback) ?: post.contentHtml,
-                    commentableId = detail.id.takeIf { it > 0L } ?: post.commentableId,
-                )
-            }
+    private suspend fun requestListing(
+        year: Int? = null,
+        cursorString: String? = null,
+    ): NewsListingDto = try {
+        // osu!'s public website embeds the same listing payload and avoids the API 403
+        // that this client can receive. Try it first to avoid a slow failed request.
+        requestWebListing(year, cursorString)
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (webError: Exception) {
+        try {
+            requestApiListing(year, cursorString)
         } catch (cancelled: CancellationException) {
             throw cancelled
-        } catch (_: Exception) {
-            post
+        } catch (apiError: Exception) {
+            throw IOException(
+                "Unable to load osu! News (website: ${webError.message ?: "unavailable"}; API: ${apiError.message ?: "unavailable"})",
+                webError,
+            ).also { it.addSuppressed(apiError) }
         }
     }
 
-    suspend fun loadComments(
-        postId: Long,
-        sort: String = "new",
-
-        parentId: Long? = 0L,
-        after: String? = null,
-    ): NewsCommentBundleDto =
-        api.newsComments(
-            commentableType = "news_post",
-            commentableId = postId,
-            sort = sort,
-            parentId = parentId,
-            after = after,
-        )
-
-
-    suspend fun postComment(
-        accessToken: String,
-        postId: Long,
-        message: String,
-        parentId: Long? = null,
-    ): NewsCommentBundleDto {
-        val cleanMessage = message.trim()
-        require(cleanMessage.isNotEmpty()) { "Write a comment first." }
-        require(cleanMessage.length <= 1000) { "Comments must be 1000 characters or fewer." }
-        return api.postNewsComment(
-            authorization = "Bearer $accessToken",
-            request = NewsCommentCreateRequest(
-                comment = NewsCommentCreateDto(
-                    commentableId = postId.takeIf { parentId == null },
-                    commentableType = "news_post".takeIf { parentId == null },
-                    message = cleanMessage,
-                    parentId = parentId,
-                ),
-            ),
+    private suspend fun requestApiListing(year: Int?, cursorString: String?): NewsListingDto = try {
+        api.news(limit = PAGE_SIZE, year = year, cursorString = cursorString)
+    } catch (error: HttpException) {
+        if (error.code() !in setOf(401, 403)) throw error
+        val authorization = publicAuthorization() ?: throw error
+        api.news(
+            limit = PAGE_SIZE,
+            year = year,
+            cursorString = cursorString,
+            authorization = authorization,
         )
     }
 
-    private suspend fun loadAtomFeed(): List<NewsPost> = withContext(Dispatchers.IO) {
-        val connection = URL(FEED_URL).openConnection() as HttpURLConnection
-        try {
-            connection.connectTimeout = 12_000
-            connection.readTimeout = 18_000
-            connection.instanceFollowRedirects = true
-            connection.setRequestProperty("User-Agent", BROWSER_USER_AGENT)
-            connection.setRequestProperty("Accept", "application/atom+xml, application/xml;q=0.9, */*;q=0.8")
-            connection.setRequestProperty("Accept-Language", "en-US,en;q=0.9")
-            val code = connection.responseCode
-            if (code !in 200..299) {
-                throw IOException("osu! Atom feed returned HTTP $code")
+    /** The public HTML page embeds the same listing JSON used by osu!'s website React screen. */
+    private suspend fun requestWebListing(year: Int?, cursorString: String?): NewsListingDto =
+        withContext(Dispatchers.IO) {
+            api.newsWebPage(year = year, cursorString = cursorString).use { response ->
+                val document = Jsoup.parse(response.string(), SITE_URL)
+                val props = document
+                    .selectFirst(".js-react[data-react=news-index][data-props]")
+                    ?.attr("data-props")
+                    ?.takeIf { it.isNotBlank() }
+                    ?: throw IOException("osu! News page did not include archive metadata")
+                val root = JsonParser.parseString(props).asJsonObject
+                val data = root.getAsJsonObject("data") ?: root
+                gson.fromJson(data, NewsListingDto::class.java)
+                    ?: throw IOException("osu! News page returned invalid listing data")
             }
-            val xml = connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
-            parseAtom(xml)
-        } finally {
-            connection.disconnect()
+        }
+
+    private suspend fun requestNewsPost(slug: String): NewsPostDto = try {
+        // Fetch the article page directly: its embedded JSON contains the full article
+        // body, and avoids waiting for the API endpoint when it responds with 403.
+        withContext(Dispatchers.IO) {
+            api.newsWebArticle(slug).use { response ->
+                val document = Jsoup.parse(response.string(), "$SITE_URL/$slug")
+                val json = document.getElementById("json-show")
+                    ?.let { it.data().ifBlank { it.html() } }
+                    ?.takeIf { it.isNotBlank() }
+                    ?: throw IOException("osu! article page did not include article data")
+                gson.fromJson(JsonParser.parseString(json), NewsPostDto::class.java)
+                    ?: throw IOException("osu! article page returned invalid data")
+            }
+        }
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (webError: Exception) {
+        try {
+            requestApiNewsPost(slug)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (apiError: Exception) {
+            throw IOException(
+                "Unable to load this osu! article (website: ${webError.message ?: "unavailable"}; API: ${apiError.message ?: "unavailable"})",
+                webError,
+            ).also { it.addSuppressed(apiError) }
         }
     }
 
-    private fun parseAtom(xml: String): List<NewsPost> {
-        val entries =
-            Regex("<entry\\b[^>]*>([\\s\\S]*?)</entry>", RegexOption.IGNORE_CASE)
-                .findAll(xml).map { it.groupValues[1] }.toList()
-                .ifEmpty {
-                    Regex("<item\\b[^>]*>([\\s\\S]*?)</item>", RegexOption.IGNORE_CASE)
-                        .findAll(xml).map { it.groupValues[1] }.toList()
-                }
-
-        return entries.mapNotNull { entry ->
-            val title = tag(entry, "title")?.let(::plainText)?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
-            val link =
-                Regex("<link\\b[^>]*?href=[\"']([^\"']+)[\"'][^>]*/?>", RegexOption.IGNORE_CASE)
-                    .findAll(entry).map { it.groupValues[1] }
-                    .firstOrNull { it.contains("/home/news/") }
-                    ?: tag(entry, "link")?.let(::plainText)
-                    ?: return@mapNotNull null
-            val slug = link.substringAfter("/home/news/", "").substringBefore('?').substringBefore('#')
-                .takeIf { it.isNotBlank() } ?: return@mapNotNull null
-            val rawId = tag(entry, "id")?.let(::plainText).orEmpty()
-            val realCommentId = rawId.toLongOrNull()
-                ?: Regex("(?:NewsPost|news_posts?|news)[/:](\\d+)", RegexOption.IGNORE_CASE)
-                    .find(rawId)?.groupValues?.getOrNull(1)?.toLongOrNull()
-            val stableKey = realCommentId ?: (slug.hashCode().toLong() and 0x7fffffffL)
-            val author =
-                Regex("<author\\b[^>]*>[\\s\\S]*?<name[^>]*>([\\s\\S]*?)</name>[\\s\\S]*?</author>", RegexOption.IGNORE_CASE)
-                    .find(entry)?.groupValues?.get(1)?.let(::plainText)
-                    ?: tag(entry, "dc:creator")?.let(::plainText)
-                    ?: "osu!"
-            val dateRaw = tag(entry, "published") ?: tag(entry, "updated") ?: tag(entry, "pubDate")
-            val dateMillis = parseDate(dateRaw)
-            val rawContent = tag(entry, "content") ?: tag(entry, "summary") ?: tag(entry, "description").orEmpty()
-            val html = decodeXmlContent(rawContent)
-            val fragment = Jsoup.parseBodyFragment(html, "https://osu.ppy.sh/")
-            val textContent = fragment.text().trim()
-            val image = fragment.selectFirst("img[src]")?.absUrl("src")?.takeIf { it.isNotBlank() }
-                ?: Regex("<media:thumbnail[^>]*?url=[\"']([^\"']+)[\"']", RegexOption.IGNORE_CASE)
-                    .find(entry)?.groupValues?.getOrNull(1)
-            val dateLabel = if (dateMillis > 0L) {
-                DATE_FORMAT.format(Instant.ofEpochMilli(dateMillis).atZone(ZoneId.systemDefault()))
-            } else ""
-
-            NewsPost(
-                id = stableKey,
-                slug = slug,
-                title = title,
-                author = author.ifBlank { "osu!" },
-                dateMillis = dateMillis,
-                dateLabel = dateLabel,
-                summary = textContent.take(240),
-                imageUrl = image,
-                url = link,
-                contentHtml = html.takeIf { it.isNotBlank() },
-                commentableId = realCommentId,
-            )
-        }
+    private suspend fun requestApiNewsPost(slug: String): NewsPostDto = try {
+        api.newsPost(slug, listOf("html"))
+    } catch (error: HttpException) {
+        if (error.code() !in setOf(401, 403)) throw error
+        val authorization = publicAuthorization() ?: throw error
+        api.newsPost(slug, listOf("html"), authorization)
     }
 
-    private fun tag(entry: String, name: String): String? =
-        Regex("<${Regex.escape(name)}(?:\\s[^>]*)?>([\\s\\S]*?)</${Regex.escape(name)}>", RegexOption.IGNORE_CASE)
-            .find(entry)?.groupValues?.get(1)
-
-    private fun plainText(value: String): String =
-        Jsoup.parseBodyFragment(decodeXmlContent(value)).text().trim()
-
-    private fun decodeXmlContent(value: String): String =
-        value.replace("<![CDATA[", "", ignoreCase = true)
-            .replace("]]>", "")
-            .replace("&lt;", "<", ignoreCase = true)
-            .replace("&gt;", ">", ignoreCase = true)
-            .replace("&quot;", "\"")
-            .replace("&apos;", "'")
-            .replace("&#39;", "'")
-            .replace("&nbsp;", " ")
-            .replace("&amp;", "&")
-            .trim()
+    private suspend fun publicAuthorization(): String? =
+        runCatching {
+            publicTokenProvider()?.takeIf { it.isNotBlank() }?.let { "Bearer $it" }
+        }.getOrNull()
 
     private fun toPost(dto: NewsPostDto): NewsPost? {
         if (dto.slug.isBlank() || dto.title.isBlank()) return null
@@ -215,17 +219,16 @@ class NewsFeed(
             DATE_FORMAT.format(Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()))
         } else ""
         return NewsPost(
-            id = dto.id,
+            id = dto.id.takeIf { it > 0L } ?: dto.slug.hashCode().toLong(),
             slug = dto.slug,
             title = dto.title,
             author = dto.author.ifBlank { "osu!" },
             dateMillis = millis,
             dateLabel = label,
             summary = dto.preview.orEmpty(),
-            imageUrl = dto.firstImage2x ?: dto.firstImage,
-            url = "https://osu.ppy.sh/home/news/${dto.slug}",
+            imageUrl = dto.firstImage ?: dto.firstImage2x,
+            url = "$SITE_URL/${dto.slug}",
             contentHtml = dto.content,
-            commentableId = dto.id.takeIf { it > 0L },
         )
     }
 
@@ -241,9 +244,7 @@ class NewsFeed(
 
     companion object {
         const val SITE_URL = "https://osu.ppy.sh/home/news"
-        const val FEED_URL = "$SITE_URL?format=atom"
-        private const val BROWSER_USER_AGENT =
-            "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+        private const val PAGE_SIZE = 21
         private val DATE_FORMAT = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault())
     }
 }

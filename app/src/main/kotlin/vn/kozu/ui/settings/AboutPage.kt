@@ -58,13 +58,13 @@ import vn.kozu.ui.onboarding.LocalReplayOnboarding
 
 private const val GITHUB_URL = "https://github.com/kanzick/Kozu"
 private const val OSU_URL = "https://osu.ppy.sh"
-private const val TAGLINE = "Listen to your favorite osu! songs online or offline, with a Material 3 Expressive design."
+private const val TAGLINE = "Simple osu! music player."
 private const val PRIVACY_TEXT =
-    "Kozu does not include ads, analytics or trackers, and it has no Kozu account or server of its own.\n\n" +
-        "Your settings, favorites, playlists, listening history and downloaded songs stay on this device. Backups are files you create and store yourself, and they never contain credentials.\n\n" +
-        "To work, Kozu contacts: osu! (osu.ppy.sh and assets.ppy.sh) for the catalog, covers and sign-in; the community beatmap mirrors you leave enabled to stream or download songs, which can see your IP address and the beatmap IDs you request; and GitHub to look for updates, which you can turn off.\n\n" +
+    "Kozu does not include ads, analytics or trackers and it has no account or server of its own.\n\n" +
+        "Your settings, favorites, playlists, listening history and downloaded songs stay on this device. Backups are files you create, store yourself and they never contain credentials.\n\n" +
+        "osu! (osu.ppy.sh and assets.ppy.sh) for the catalog, covers and sign-in; the community beatmap mirrors you leave enabled to stream or download songs and GitHub to look for updates, which you can turn off.\n\n" +
         "If you sign in with osu!, the access tokens are stored only on this device. If you configure a proxy, your network traffic goes through it.\n\n" +
-        "Uninstalling Kozu removes all of its local data."
+        "Uninstalling app removes all of its local data."
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

@@ -65,6 +65,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import vn.kozu.domain.model.ArtworkShape
 import vn.kozu.domain.model.Beatmap
+import vn.kozu.domain.model.AppearancePrefs
 import vn.kozu.domain.model.displayArtist
 import vn.kozu.domain.model.displayTitle
 import vn.kozu.domain.model.IconStyle
@@ -182,9 +183,11 @@ fun MiniPlayer(
     val target = if (dur > 0L) (pos.toFloat() / dur).coerceIn(0f, 1f) else 0f
     val progress by animateFloatAsState(target, tween(220, easing = LinearEasing), label = "miniProgress")
 
+    val cornerTarget = prefs.miniCorner.coerceIn(0, AppearancePrefs.MINI_CORNER_MAX).toFloat()
     val corner by animateFloatAsState(
-        targetValue = prefs.miniCorner.toFloat(),
-        animationSpec = spring(dampingRatio = 0.75f, stiffness = Spring.StiffnessMedium),
+        targetValue = cornerTarget,
+        // Avoid spring overshoot beyond the supported corner-radius range.
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
         label = "miniCorner",
     )
 
@@ -235,9 +238,9 @@ fun MiniPlayer(
 
     val shape: Shape =
         when (style) {
-            MiniPlayerStyle.DOCKED -> RoundedCornerShape(topStart = corner.coerceAtMost(28f).dp, topEnd = corner.coerceAtMost(28f).dp)
-            MiniPlayerStyle.CARD -> RoundedCornerShape(corner.coerceAtMost(36f).dp)
-            else -> RoundedCornerShape(corner.dp)
+            MiniPlayerStyle.DOCKED -> RoundedCornerShape(topStart = corner.coerceIn(0f, 28f).dp, topEnd = corner.coerceIn(0f, 28f).dp)
+            MiniPlayerStyle.CARD -> RoundedCornerShape(corner.coerceIn(0f, 36f).dp)
+            else -> RoundedCornerShape(corner.coerceIn(0f, AppearancePrefs.MINI_CORNER_MAX.toFloat()).dp)
         }
     val outerPadding =
         when (style) {

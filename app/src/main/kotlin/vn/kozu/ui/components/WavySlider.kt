@@ -34,7 +34,7 @@ import kotlin.math.PI
 import kotlin.math.sin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import vn.kozu.domain.model.SeekBarStyle
+import vn.kozu.domain.model.SliderStyle
 import vn.kozu.ui.theme.KozuMotion
 
 @Composable
@@ -47,7 +47,7 @@ fun WavySlider(
     inactiveColor: Color,
     modifier: Modifier = Modifier,
     animated: Boolean = true,
-    style: SeekBarStyle = LocalAppSettings.current.appearance.seekStyle,
+    style: SliderStyle = LocalAppSettings.current.appearance.sliderStyle,
 ) {
     var dragging by remember { mutableStateOf(false) }
     var lastFraction by remember { mutableFloatStateOf(0f) }
@@ -57,7 +57,7 @@ fun WavySlider(
     var gliding by remember { mutableStateOf(false) }
 
     val amplitude by animateFloatAsState(
-        targetValue = if (animated && isPlaying && !dragging && style == SeekBarStyle.WAVY) 1f else 0f,
+        targetValue = if (animated && isPlaying && !dragging && style == SliderStyle.WAVY) 1f else 0f,
         animationSpec = KozuMotion.spatial(),
         label = "waveAmplitude",
     )
@@ -68,7 +68,7 @@ fun WavySlider(
     )
 
     LaunchedEffect(isPlaying, animated, style) {
-        if (!isPlaying || !animated || style != SeekBarStyle.WAVY) return@LaunchedEffect
+        if (!isPlaying || !animated || style != SliderStyle.WAVY) return@LaunchedEffect
         var last = 0L
         while (true) {
             androidx.compose.runtime.withFrameNanos { now ->
@@ -127,7 +127,7 @@ fun WavySlider(
         val thumbX = (size.width * shown.coerceIn(0f, 1f)).coerceIn(0f, size.width)
 
         when (style) {
-            SeekBarStyle.WAVY -> {
+            SliderStyle.WAVY -> {
                 val stroke = 5.dp.toPx()
                 val gap = 8.dp.toPx()
                 val waveLength = 30.dp.toPx()
@@ -150,25 +150,9 @@ fun WavySlider(
                 drawHandle(activeColor, thumbX, centerY, 5.dp.toPx() * pressScale, 24.dp.toPx())
             }
 
-            SeekBarStyle.FLAT -> {
-                val stroke = 6.dp.toPx()
-                val gap = 8.dp.toPx()
-                val inactiveStart = (thumbX + gap).coerceAtMost(size.width)
-                if (inactiveStart < size.width) {
-                    drawLine(inactiveColor, Offset(inactiveStart, centerY), Offset(size.width, centerY), stroke, StrokeCap.Round)
-                }
-                val activeEnd = (thumbX - gap).coerceAtLeast(0f)
-                if (activeEnd > 0f) {
-                    drawLine(activeColor, Offset(0f, centerY), Offset(activeEnd, centerY), stroke, StrokeCap.Round)
-                }
-                drawHandle(activeColor, thumbX, centerY, 5.dp.toPx() * pressScale, 24.dp.toPx())
-            }
-
-            SeekBarStyle.THICK -> {
+            SliderStyle.EXPRESSIVE -> {
                 val thickness = 16.dp.toPx()
                 val gap = 6.dp.toPx()
-                val outer = thickness / 2f
-                val inner = 3.dp.toPx()
                 val top = centerY - thickness / 2f
                 val activeEnd = (thumbX - gap).coerceAtLeast(0f)
                 val inactiveStart = (thumbX + gap).coerceAtMost(size.width)
@@ -177,7 +161,7 @@ fun WavySlider(
                         color = inactiveColor,
                         topLeft = Offset(inactiveStart, top),
                         size = Size(size.width - inactiveStart, thickness),
-                        cornerRadius = CornerRadius(min(inner, outer)),
+                        cornerRadius = CornerRadius(thickness / 2f),
                     )
                 }
                 if (activeEnd > 0f) {
@@ -185,13 +169,34 @@ fun WavySlider(
                         color = activeColor,
                         topLeft = Offset(0f, top),
                         size = Size(activeEnd, thickness),
-                        cornerRadius = CornerRadius(min(outer, activeEnd / 2f)),
+                        cornerRadius = CornerRadius(min(thickness / 2f, activeEnd / 2f)),
                     )
                 }
-                drawHandle(activeColor, thumbX, centerY, 4.dp.toPx() * pressScale, 34.dp.toPx())
+                drawHandle(activeColor, thumbX, centerY, 4.dp.toPx() * pressScale, 38.dp.toPx())
             }
 
-            SeekBarStyle.THIN -> {
+            SliderStyle.CLASSIC -> {
+                val stroke = 4.dp.toPx()
+                drawLine(inactiveColor, Offset(0f, centerY), Offset(size.width, centerY), stroke, StrokeCap.Round)
+                drawLine(activeColor, Offset(0f, centerY), Offset(thumbX, centerY), stroke, StrokeCap.Round)
+                drawCircle(activeColor, 10.dp.toPx() * (0.75f + 0.25f * pressScale), Offset(thumbX, centerY))
+            }
+
+            SliderStyle.FLAT -> {
+                val stroke = 6.dp.toPx()
+                val gap = 8.dp.toPx()
+                val inactiveStart = (thumbX + gap).coerceAtMost(size.width)
+                val activeEnd = (thumbX - gap).coerceAtLeast(0f)
+                if (inactiveStart < size.width) {
+                    drawLine(inactiveColor, Offset(inactiveStart, centerY), Offset(size.width, centerY), stroke, StrokeCap.Round)
+                }
+                if (activeEnd > 0f) {
+                    drawLine(activeColor, Offset(0f, centerY), Offset(activeEnd, centerY), stroke, StrokeCap.Round)
+                }
+                drawHandle(activeColor, thumbX, centerY, 5.dp.toPx() * pressScale, 24.dp.toPx())
+            }
+
+            SliderStyle.LINE -> {
                 val stroke = 3.dp.toPx()
                 drawLine(inactiveColor, Offset(0f, centerY), Offset(size.width, centerY), stroke, StrokeCap.Round)
                 drawLine(activeColor, Offset(0f, centerY), Offset(thumbX, centerY), stroke, StrokeCap.Round)

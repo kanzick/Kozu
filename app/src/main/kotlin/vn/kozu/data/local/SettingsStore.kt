@@ -199,11 +199,11 @@ class SettingsStore(
         store.data.map { prefs -> decodeLibraryCustomOrders(prefs[Keys.libraryCustomOrder]) }.distinctUntilChanged()
 
     suspend fun setLibraryCustomOrder(collection: String, beatmapIds: List<Long>) {
-        val allowed = setOf("songs", "liked", "downloads")
+        val allowed = setOf("songs", "liked", "downloads", "game")
         if (collection !in allowed) return
         store.edit { prefs ->
             val current = decodeLibraryCustomOrders(prefs[Keys.libraryCustomOrder]).toMutableMap()
-            current[collection] = beatmapIds.filter { it > 0L }.distinct()
+            current[collection] = beatmapIds.asSequence().filter { it > 0L }.distinct().take(20_000).toList()
             val json = JSONObject()
             current.forEach { (key, ids) ->
                 if (key in allowed) json.put(key, JSONArray(ids))
@@ -215,9 +215,9 @@ class SettingsStore(
     private fun decodeLibraryCustomOrders(raw: String?): Map<String, List<Long>> =
         try {
             val root = JSONObject(raw.orEmpty())
-            listOf("songs", "liked", "downloads").associateWith { key ->
+            listOf("songs", "liked", "downloads", "game").associateWith { key ->
                 val array = root.optJSONArray(key) ?: JSONArray()
-                List(array.length()) { index -> array.optLong(index) }.filter { it > 0L }.distinct()
+                List(minOf(array.length(), 20_000)) { index -> array.optLong(index) }.filter { it > 0L }.distinct()
             }.filterValues { it.isNotEmpty() }
         } catch (_: JSONException) {
             emptyMap()

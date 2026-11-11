@@ -94,21 +94,6 @@ enum class ArtworkShape(
 }
 
 
-enum class SeekBarStyle(
-    override val key: String,
-    override val label: String,
-) : KeyedOption {
-    WAVY("wavy", "Wavy"),
-    FLAT("flat", "Flat"),
-    THICK("thick", "Thick pill"),
-    THIN("thin", "Thin line"),
-    ;
-
-    companion object {
-        fun fromKey(key: String?): SeekBarStyle = entries.byKey(key, WAVY)
-    }
-}
-
 enum class SliderStyle(
     override val key: String,
     override val label: String,
@@ -116,10 +101,16 @@ enum class SliderStyle(
     EXPRESSIVE("expressive", "Expressive"),
     WAVY("wavy", "Wavy"),
     CLASSIC("classic", "Classic"),
+    FLAT("flat", "Flat"),
+    LINE("line", "Line"),
     ;
 
     companion object {
-        fun fromKey(key: String?): SliderStyle = entries.byKey(key, EXPRESSIVE)
+        fun fromKey(key: String?): SliderStyle =
+            when (key) {
+                "thin" -> LINE // Legacy key used by earlier releases.
+                else -> entries.byKey(key, EXPRESSIVE)
+            }
     }
 }
 
@@ -202,7 +193,6 @@ data class AppearancePrefs(
     val miniShowArtist: Boolean = true,
     val miniSpinArtwork: Boolean = true,
     val miniSwipeToSkip: Boolean = true,
-    val seekStyle: SeekBarStyle = SeekBarStyle.WAVY,
     val playerLayoutStyle: PlayerLayoutStyle = PlayerLayoutStyle.CLASSIC,
     val playerArtShape: ArtworkShape = ArtworkShape.DEFAULT,
     val transportShape: TransportShape = TransportShape.PILL,
@@ -223,12 +213,11 @@ data class AppearancePrefs(
             .put("miniColors", miniColors.key)
             .put("miniProgress", miniProgress.key)
             .put("miniArtShape", miniArtShape.key)
-            .put("miniCorner", miniCorner)
+            .put("miniCorner", miniCorner.coerceIn(0, MINI_CORNER_MAX))
             .put("miniShowControls", miniShowControls)
             .put("miniShowArtist", miniShowArtist)
             .put("miniSpinArtwork", miniSpinArtwork)
             .put("miniSwipeToSkip", miniSwipeToSkip)
-            .put("seekStyle", seekStyle.key)
             .put("playerLayoutStyle", playerLayoutStyle.key)
             .put("playerArtShape", playerArtShape.key)
             .put("transportShape", transportShape.key)
@@ -245,6 +234,26 @@ data class AppearancePrefs(
         const val WIDTH_MAX = 125
         const val MINI_CORNER_MAX = 40
 
+        /**
+         * Merges the former independent seek-bar preference into the global slider style.
+         * Keep the global style when it was customized; otherwise preserve a non-default
+         * legacy seek-bar choice so existing users do not lose their previous selection.
+         */
+        private fun parseSliderStyle(o: JSONObject, defaults: AppearancePrefs): SliderStyle {
+            val globalKey = o.optString("sliderStyle").takeIf { it.isNotBlank() }
+            val legacySeekKey = o.optString("seekStyle").takeIf { it.isNotBlank() }
+            val globalStyle = globalKey?.let(SliderStyle::fromKey)
+            val legacySeekStyle = legacySeekKey?.let(SliderStyle::fromKey)
+
+            return when {
+                globalKey == null -> legacySeekStyle ?: defaults.sliderStyle
+                globalStyle == SliderStyle.EXPRESSIVE &&
+                    legacySeekStyle != null &&
+                    legacySeekStyle != SliderStyle.WAVY -> legacySeekStyle
+                else -> globalStyle ?: defaults.sliderStyle
+            }
+        }
+
         fun fromJson(json: String?): AppearancePrefs {
             if (json.isNullOrBlank()) return AppearancePrefs()
             return try {
@@ -258,7 +267,7 @@ data class AppearancePrefs(
                     fontRoundness = o.optInt("fontRoundness", d.fontRoundness).coerceIn(0, 100),
                     artworkShape = ArtworkShape.fromKey(o.optString("artworkShape")),
                     iconStyle = IconStyle.fromKey(o.optString("iconStyle")),
-                    sliderStyle = SliderStyle.fromKey(o.optString("sliderStyle")),
+                    sliderStyle = parseSliderStyle(o, d),
                     miniStyle = MiniPlayerStyle.fromKey(o.optString("miniStyle")),
                     miniColors = MiniPlayerColors.fromKey(o.optString("miniColors")),
                     miniProgress = MiniPlayerProgress.fromKey(o.optString("miniProgress")),
@@ -271,7 +280,6 @@ data class AppearancePrefs(
                     miniShowArtist = o.optBoolean("miniShowArtist", d.miniShowArtist),
                     miniSpinArtwork = o.optBoolean("miniSpinArtwork", d.miniSpinArtwork),
                     miniSwipeToSkip = o.optBoolean("miniSwipeToSkip", d.miniSwipeToSkip),
-                    seekStyle = SeekBarStyle.fromKey(o.optString("seekStyle")),
                     playerLayoutStyle = PlayerLayoutStyle.fromKey(o.optString("playerLayoutStyle")),
                     playerArtShape = ArtworkShape.fromKey(o.optString("playerArtShape")),
                     transportShape = TransportShape.fromKey(o.optString("transportShape")),

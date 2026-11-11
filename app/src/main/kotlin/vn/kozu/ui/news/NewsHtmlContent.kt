@@ -29,6 +29,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -58,6 +59,8 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import coil3.compose.AsyncImage
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
@@ -101,112 +104,124 @@ internal fun NewsHtmlContent(
     onOpenUrl: (String) -> Unit,
     compact: Boolean = false,
 ) {
-    val blocks = remember(html) { parseNewsHtml(html) }
-    Column(verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 12.dp)) {
-        blocks.forEachIndexed { index, block ->
-            when (block) {
-                is NewsBlock.TextBlock -> {
-                    if (block.text.isNotBlank()) {
-                        val typography = MaterialTheme.typography
-                        val style = when (block.heading) {
-                            1 -> typography.headlineSmall
-                            2 -> typography.titleLarge
-                            3 -> typography.titleMedium
-                            4 -> typography.titleSmall
-                            else -> typography.bodyLarge
-                        }
-                        if (block.quote) {
-                            Surface(
-                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                shape = RoundedCornerShape(18.dp),
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
+    val parsedBlocks by produceState<List<NewsBlock>?>(initialValue = null, key1 = html) {
+        value = withContext(Dispatchers.Default) { parseNewsHtml(html) }
+    }
+    val blocks = parsedBlocks
+    if (blocks == null) {
+        Box(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 18.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+        }
+    } else {
+        Column(verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 12.dp)) {
+            blocks.forEachIndexed { index, block ->
+                when (block) {
+                    is NewsBlock.TextBlock -> {
+                        if (block.text.isNotBlank()) {
+                            val typography = MaterialTheme.typography
+                            val style = when (block.heading) {
+                                1 -> typography.headlineSmall
+                                2 -> typography.titleLarge
+                                3 -> typography.titleMedium
+                                4 -> typography.titleSmall
+                                else -> typography.bodyLarge
+                            }
+                            if (block.quote) {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    shape = RoundedCornerShape(18.dp),
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text(
+                                        text = block.text,
+                                        style = style.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                                    )
+                                }
+                            } else {
                                 Text(
                                     text = block.text,
-                                    style = style.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                                    style = style.copy(
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        fontFamily = if (block.code) FontFamily.Monospace else style.fontFamily,
+                                        fontWeight = if (block.heading > 0) FontWeight.SemiBold else style.fontWeight,
+                                    ),
                                 )
                             }
+                        }
+                    }
+                    is NewsBlock.ImageBlock -> {
+                        val imageModifier = if (block.maxWidthDp != null || block.maxHeightDp != null) {
+                            Modifier
+                                .widthIn(max = (block.maxWidthDp ?: 160).dp)
+                                .heightIn(max = (block.maxHeightDp ?: 120).dp)
                         } else {
-                            Text(
-                                text = block.text,
-                                style = style.copy(
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontFamily = if (block.code) FontFamily.Monospace else style.fontFamily,
-                                    fontWeight = if (block.heading > 0) FontWeight.SemiBold else style.fontWeight,
-                                ),
-                            )
+                            Modifier.fillMaxWidth().heightIn(max = 520.dp)
                         }
+                        AsyncImage(
+                            model = block.url,
+                            contentDescription = block.alt.ifBlank { null },
+                            contentScale = ContentScale.Fit,
+                            modifier = imageModifier.clip(RoundedCornerShape(if (block.maxWidthDp != null) 8.dp else 18.dp)),
+                        )
                     }
-                }
-                is NewsBlock.ImageBlock -> {
-                    val imageModifier = if (block.maxWidthDp != null || block.maxHeightDp != null) {
-                        Modifier
-                            .widthIn(max = (block.maxWidthDp ?: 160).dp)
-                            .heightIn(max = (block.maxHeightDp ?: 120).dp)
-                    } else {
-                        Modifier.fillMaxWidth().heightIn(max = 520.dp)
-                    }
-                    AsyncImage(
-                        model = block.url,
-                        contentDescription = block.alt.ifBlank { null },
-                        contentScale = ContentScale.Fit,
-                        modifier = imageModifier.clip(RoundedCornerShape(if (block.maxWidthDp != null) 8.dp else 18.dp)),
+                    is NewsBlock.MediaBlock -> NewsVideoPlayer(
+                        url = block.url,
+                        poster = block.thumbnail,
                     )
-                }
-                is NewsBlock.MediaBlock -> NewsVideoPlayer(
-                    url = block.url,
-                    poster = block.thumbnail,
-                )
-                is NewsBlock.UnsupportedEmbedBlock -> {
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        shape = RoundedCornerShape(18.dp),
-                        modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f),
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            block.thumbnail?.let { image ->
-                                AsyncImage(
-                                    model = image,
-                                    contentDescription = stringResource(R.string.video_preview),
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize(),
-                                )
-                            }
-                            Text(
-                                stringResource(R.string.unsupported_video_format),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.88f))
-                                    .padding(horizontal = 14.dp, vertical = 10.dp),
-                            )
-                        }
-                    }
-                }
-                is NewsBlock.ListBlock -> {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        block.items.forEachIndexed { itemIndex, item ->
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
+                    is NewsBlock.UnsupportedEmbedBlock -> {
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            shape = RoundedCornerShape(18.dp),
+                            modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                block.thumbnail?.let { image ->
+                                    AsyncImage(
+                                        model = image,
+                                        contentDescription = stringResource(R.string.video_preview),
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
+                                }
                                 Text(
-                                    if (block.ordered) "${itemIndex + 1}." else "•",
-                                    style = MaterialTheme.typography.bodyLarge,
+                                    stringResource(R.string.unsupported_video_format),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                Text(
-                                    text = item,
-                                    style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
-                                    modifier = Modifier.weight(1f),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.88f))
+                                        .padding(horizontal = 14.dp, vertical = 10.dp),
                                 )
                             }
                         }
                     }
+                    is NewsBlock.ListBlock -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            block.items.forEachIndexed { itemIndex, item ->
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
+                                    Text(
+                                        if (block.ordered) "${itemIndex + 1}." else "•",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    Text(
+                                        text = item,
+                                        style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    is NewsBlock.TableBlock -> NewsArticleTable(block)
+                    NewsBlock.DividerBlock -> androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 }
-                is NewsBlock.TableBlock -> NewsArticleTable(block)
-                NewsBlock.DividerBlock -> androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                if (compact && index < blocks.lastIndex && block is NewsBlock.ImageBlock) Spacer(Modifier.height(2.dp))
             }
-            if (compact && index < blocks.lastIndex && block is NewsBlock.ImageBlock) Spacer(Modifier.height(2.dp))
         }
     }
 }

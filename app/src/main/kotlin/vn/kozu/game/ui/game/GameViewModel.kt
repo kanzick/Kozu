@@ -7,16 +7,16 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import vn.kozu.data.download.DownloadManager
-import vn.kozu.data.repository.BeatmapRepository
 import vn.kozu.di.AppContainer
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.BeatmapDifficulty
@@ -60,6 +60,21 @@ class GameViewModel(private val container: AppContainer) : ViewModel() {
         if (loggedIn) profile?.username.orEmpty() else ""
     }.stateIn(viewModelScope, SharingStarted.Eagerly, "")
 
+    val customOrderIds: StateFlow<List<Long>> = container.settings.libraryCustomOrders
+        .map { it[GAME_ORDER_KEY].orEmpty() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun saveCustomOrder(ids: List<Long>) {
+        val normalized = ids.asSequence().filter { it > 0L }.distinct().take(MAX_CUSTOM_ORDER_SIZE).toList()
+        if (normalized == lastRequestedCustomOrder) return
+        lastRequestedCustomOrder = normalized
+        customOrderSaveJob?.cancel()
+        customOrderSaveJob = viewModelScope.launch {
+            delay(CUSTOM_ORDER_SAVE_DEBOUNCE_MS)
+            container.settings.setLibraryCustomOrder(GAME_ORDER_KEY, normalized)
+        }
+    }
+
     suspend fun rankedAt(song: vn.kozu.game.mania.previewstage.model.SongEntry): Long =
         container.catalog.setInfo(song.songId)?.beatmap?.rankedAt ?: 0L
 
@@ -75,6 +90,8 @@ class GameViewModel(private val container: AppContainer) : ViewModel() {
 
     private val jobs = mutableMapOf<Long, Job>()
     private var previewJob: Job? = null
+    private var customOrderSaveJob: Job? = null
+    private var lastRequestedCustomOrder: List<Long> = emptyList()
 
     init {
         viewModelScope.launch {
@@ -83,7 +100,8 @@ class GameViewModel(private val container: AppContainer) : ViewModel() {
                 _localMapIds.value = localIds
                 _downloads.update { states ->
                     states.filter { (songId, state) ->
-                        songId in localIds || state.progress != 1f || state.error != null
+                        songId !in localIds || state.error != null || state.ratingWarning != null ||
+                            (state.progress != null && state.progress < 1f)
                     }
                 }
             }
@@ -135,14 +153,12 @@ class GameViewModel(private val container: AppContainer) : ViewModel() {
         if (beatmap.id in _localMapIds.value || jobs[beatmap.id]?.isActive == true) return
 
         jobs[beatmap.id] = viewModelScope.launch {
-            _downloads.update { it + (beatmap.id to GameMapDownloadState(progress = 0f)) }
+            setDownloadState(beatmap.id, GameMapDownloadState(progress = 0f))
             try {
                 val destination = File(previewModule.paths.downloads, "${beatmap.id}.osz")
                 withContext(Dispatchers.IO) {
                     container.downloads.downloadArchive(beatmap, destination) { progress ->
-                        _downloads.update {
-                            it + (beatmap.id to GameMapDownloadState(progress = progress))
-                        }
+                        setDownloadState(beatmap.id, GameMapDownloadState(progress = progress))
                     }
                 }
                 previewModule.importArchive(destination)
@@ -162,18 +178,31 @@ class GameViewModel(private val container: AppContainer) : ViewModel() {
                 } catch (e: Exception) {
                     ratingWarning = "Map added, but star ratings could not be loaded: ${e.message ?: "request failed"}"
                 }
-                _downloads.update {
-                    it + (beatmap.id to GameMapDownloadState(progress = 1f, ratingWarning = ratingWarning))
+                if (ratingWarning == null) {
+                    _downloads.update { it - beatmap.id }
+                } else {
+                    setDownloadState(beatmap.id, GameMapDownloadState(progress = 1f, ratingWarning = ratingWarning))
                 }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _downloads.update {
-                    it + (beatmap.id to GameMapDownloadState(error = e.message ?: "Download failed"))
-                }
+                setDownloadState(beatmap.id, GameMapDownloadState(error = e.message ?: "Download failed"))
             } finally {
                 jobs.remove(beatmap.id)
             }
+        }
+    }
+
+    private fun setDownloadState(songId: Long, state: GameMapDownloadState) {
+        _downloads.update { current ->
+            val updated = current.toMutableMap().apply { put(songId, state) }
+            while (updated.size > MAX_DOWNLOAD_HISTORY) {
+                val oldestFinished = updated.entries.firstOrNull { (id, value) ->
+                    id != songId && (value.error != null || value.ratingWarning != null)
+                }?.key ?: break
+                updated.remove(oldestFinished)
+            }
+            updated.toMap()
         }
     }
 
@@ -183,6 +212,10 @@ class GameViewModel(private val container: AppContainer) : ViewModel() {
     }
 
     companion object {
+        private const val GAME_ORDER_KEY = "game"
+        private const val MAX_CUSTOM_ORDER_SIZE = 20_000
+        private const val MAX_DOWNLOAD_HISTORY = 40
+        private const val CUSTOM_ORDER_SAVE_DEBOUNCE_MS = 160L
         val Factory = containerFactory { GameViewModel(it) }
     }
 }

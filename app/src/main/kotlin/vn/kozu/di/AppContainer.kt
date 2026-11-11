@@ -44,7 +44,7 @@ class AppContainer(
     val httpClient = OsuApiFactory.client()
     private val api = OsuApiFactory.create(httpClient)
     val auth = OsuAuth(api, settings, accountStore)
-    val news = NewsFeed(api)
+    val news = NewsFeed(api) { auth.clientBearer() }
 
     val accounts = AccountRepository(auth, api, accountStore)
     val catalog = BeatmapRepository(api, auth, settings, httpClient)
