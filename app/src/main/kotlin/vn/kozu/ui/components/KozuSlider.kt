@@ -76,9 +76,6 @@ private val ExpressiveGap = 6.dp
 private val InnerCorner = 3.dp
 
 
-private val FollowSpring = spring<Float>(dampingRatio = 0.72f, stiffness = Spring.StiffnessMedium)
-
-
 private val TravelSpring = spring<Float>(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow)
 
 private class SliderMath(
@@ -126,6 +123,7 @@ fun KozuSlider(
 
     val position = remember { Animatable(math.snap(math.fraction(value))) }
     var dragging by remember { mutableStateOf(false) }
+    var dragFraction by remember { mutableFloatStateOf(math.snap(math.fraction(value))) }
     var pressed by remember { mutableStateOf(false) }
     var lastEmitted by remember { mutableStateOf(value) }
     var trackLength by remember { mutableFloatStateOf(0f) }
@@ -141,14 +139,14 @@ fun KozuSlider(
         }
     }
 
-    val effectiveStyle = if (vertical && style == SliderStyle.WAVY) SliderStyle.EXPRESSIVE else style
+    val effectiveStyle = style
 
 
     val insetPx =
         with(density) {
             when (effectiveStyle) {
-                SliderStyle.CLASSIC -> 10.dp.toPx()
-                SliderStyle.EXPRESSIVE, SliderStyle.WAVY -> ExpressiveHandleWidth.toPx() / 2f
+                SliderStyle.CLASSIC, SliderStyle.THIN -> 10.dp.toPx()
+                SliderStyle.EXPRESSIVE, SliderStyle.WAVY, SliderStyle.FLAT, SliderStyle.THICK -> ExpressiveHandleWidth.toPx() / 2f
             }
         }
 
@@ -177,7 +175,7 @@ fun KozuSlider(
 
     val active = MaterialTheme.colorScheme.primary
     val inactive =
-        if (effectiveStyle == SliderStyle.CLASSIC) {
+        if (effectiveStyle == SliderStyle.CLASSIC || effectiveStyle == SliderStyle.THIN) {
             MaterialTheme.colorScheme.surfaceContainerHighest
         } else {
             MaterialTheme.colorScheme.secondaryContainer
@@ -256,32 +254,32 @@ fun KozuSlider(
                     val length = { if (vertical) size.height.toFloat() else size.width.toFloat() }
                     val onStart: (Offset) -> Unit = { offset ->
                         dragging = true
-                        val raw = fractionAt(offset, length())
-                        val snapped = math.snap(raw)
-                        emit(snapped)
-                        scope.launch {
-                            if (math.steps > 0) position.animateTo(snapped, FollowSpring) else position.snapTo(raw)
-                        }
+                        dragFraction = math.snap(fractionAt(offset, length()))
+                        emit(dragFraction)
                     }
                     val onMove: (Offset) -> Unit = { offset ->
-                        val raw = fractionAt(offset, length())
-                        val snapped = math.snap(raw)
-                        emit(snapped)
-                        scope.launch {
-                            if (math.steps > 0) position.animateTo(snapped, FollowSpring) else position.snapTo(raw)
-                        }
+                        dragFraction = math.snap(fractionAt(offset, length()))
+                        emit(dragFraction)
                     }
                     val onEnd: () -> Unit = {
-                        dragging = false
-                        val settled = math.snap(position.targetValue)
-                        scope.launch { position.animateTo(settled, TravelSpring) }
+                        val released = dragFraction
+                        scope.launch {
+                            position.snapTo(released)
+                            dragging = false
+                        }
                         finish()
                     }
                     if (vertical) {
                         detectVerticalDragGestures(
                             onDragStart = onStart,
                             onDragEnd = onEnd,
-                            onDragCancel = { dragging = false },
+                            onDragCancel = {
+                                val released = dragFraction
+                                scope.launch {
+                                    position.snapTo(released)
+                                    dragging = false
+                                }
+                            },
                             onVerticalDrag = { change, _ ->
                                 change.consume()
                                 onMove(change.position)
@@ -291,7 +289,13 @@ fun KozuSlider(
                         detectHorizontalDragGestures(
                             onDragStart = onStart,
                             onDragEnd = onEnd,
-                            onDragCancel = { dragging = false },
+                            onDragCancel = {
+                                val released = dragFraction
+                                scope.launch {
+                                    position.snapTo(released)
+                                    dragging = false
+                                }
+                            },
                             onHorizontalDrag = { change, _ ->
                                 change.consume()
                                 onMove(change.position)
@@ -300,11 +304,12 @@ fun KozuSlider(
                     }
                 },
     ) {
+        val shownFraction = if (dragging) dragFraction else position.value
         Canvas(Modifier.fillMaxSize().graphicsLayer { this.alpha = alpha }) {
             val length = if (vertical) size.height else size.width
             val cross = if (vertical) size.width else size.height
             val usable = (length - 2f * insetPx).coerceAtLeast(1f)
-            val handleAlong = insetPx + position.value * usable
+            val handleAlong = insetPx + shownFraction * usable
 
 
             val originFraction = origin?.let { math.fraction(it) } ?: 0f
@@ -331,9 +336,67 @@ fun KozuSlider(
                     drawCircle(active, thumbRadius, if (vertical) Offset(cross / 2f, length - handleAlong) else Offset(handleAlong, cross / 2f))
                 }
 
+                SliderStyle.FLAT, SliderStyle.THICK -> {
+                    val thickness = if (effectiveStyle == SliderStyle.FLAT) 6.dp.toPx() else 16.dp.toPx()
+                    val c0 = (cross - thickness) / 2f
+                    val c1 = c0 + thickness
+                    val lo = min(originAlong, handleAlong)
+                    val hi = max(originAlong, handleAlong)
+                    val radius = thickness / 2f
+                    segment(vertical, length, 0f, lo, c0, c1, radius, radius, inactive)
+                    segment(vertical, length, hi, length, c0, c1, radius, radius, inactive)
+                    segment(vertical, length, lo, hi, c0, c1, radius, radius, active)
+                    drawTicks(
+                        vertical, length, cross, insetPx, usable, math.steps,
+                        lo, hi,
+                        if (effectiveStyle == SliderStyle.FLAT) 1.5.dp.toPx() else 2.dp.toPx(),
+                        activeTick, inactiveTick, handleAlong,
+                        if (effectiveStyle == SliderStyle.FLAT) 10.dp.toPx() else 12.dp.toPx(),
+                    )
+
+                    val handleW = if (effectiveStyle == SliderStyle.FLAT) 5.dp.toPx() else 4.dp.toPx()
+                    val handleLen = (if (effectiveStyle == SliderStyle.FLAT) 24.dp else 34.dp).toPx().coerceAtMost(cross)
+                    val handleRect =
+                        if (vertical) {
+                            Rect(
+                                cross / 2f - handleLen / 2f, length - handleAlong - handleW / 2f,
+                                cross / 2f + handleLen / 2f, length - handleAlong + handleW / 2f,
+                            )
+                        } else {
+                            Rect(
+                                handleAlong - handleW / 2f, cross / 2f - handleLen / 2f,
+                                handleAlong + handleW / 2f, cross / 2f + handleLen / 2f,
+                            )
+                        }
+                    drawRoundRect(
+                        color = active,
+                        topLeft = handleRect.topLeft,
+                        size = handleRect.size,
+                        cornerRadius = CornerRadius(min(handleRect.width, handleRect.height) / 2f),
+                    )
+                }
+
+                SliderStyle.THIN -> {
+                    val thickness = 3.dp.toPx()
+                    val c0 = (cross - thickness) / 2f
+                    val c1 = c0 + thickness
+                    val lo = min(originAlong, handleAlong)
+                    val hi = max(originAlong, handleAlong)
+                    val radius = thickness / 2f
+                    segment(vertical, length, 0f, lo, c0, c1, radius, radius, inactive)
+                    segment(vertical, length, hi, length, c0, c1, radius, radius, inactive)
+                    segment(vertical, length, lo, hi, c0, c1, radius, radius, active)
+                    drawTicks(
+                        vertical, length, cross, insetPx, usable, math.steps,
+                        lo, hi, 1.5.dp.toPx(), activeTick, inactiveTick, handleAlong, 10.dp.toPx(),
+                    )
+                    val thumbRadius = 8.dp.toPx()
+                    drawCircle(active, thumbRadius, if (vertical) Offset(cross / 2f, length - handleAlong) else Offset(handleAlong, cross / 2f))
+                }
+
                 SliderStyle.WAVY -> {
                     val stroke = 5.dp.toPx()
-                    val centerY = cross / 2f
+                    val center = cross / 2f
                     val gap = ExpressiveGap.toPx()
                     val handleAtEnd = handleAlong <= insetPx + 0.5f || handleAlong >= length - insetPx - 0.5f
                     val endGap = if (handleAtEnd) 0f else gap
@@ -346,7 +409,9 @@ fun KozuSlider(
 
                     fun line(a: Float, b: Float) {
                         if (b - a > 0.5f) {
-                            drawLine(inactive, Offset(a, centerY), Offset(b, centerY), stroke, StrokeCap.Round)
+                            val start = if (vertical) Offset(center, length - a) else Offset(a, center)
+                            val finish = if (vertical) Offset(center, length - b) else Offset(b, center)
+                            drawLine(inactive, start, finish, stroke, StrokeCap.Round)
                         }
                     }
                     line(0f, if (handleIsHi) lo else lo - endGap)
@@ -356,21 +421,40 @@ fun KozuSlider(
                     val a1 = if (handleIsHi) hi - endGap else hi
                     if (a1 - a0 > 0.5f) {
                         val path = Path()
-                        var x = a0
-                        path.moveTo(x, centerY + amp * sin(x / waveLength * 2f * PI.toFloat() + phase))
-                        while (x < a1) {
-                            x = min(x + 3f, a1)
-                            path.lineTo(x, centerY + amp * sin(x / waveLength * 2f * PI.toFloat() + phase))
+                        var along = a0
+                        fun waveOffset(position: Float): Float = amp * sin(position / waveLength * 2f * PI.toFloat() + phase)
+                        path.moveTo(
+                            if (vertical) center + waveOffset(along) else along,
+                            if (vertical) length - along else center + waveOffset(along),
+                        )
+                        while (along < a1) {
+                            along = min(along + 3f, a1)
+                            path.lineTo(
+                                if (vertical) center + waveOffset(along) else along,
+                                if (vertical) length - along else center + waveOffset(along),
+                            )
                         }
                         drawPath(path, active, style = Stroke(stroke, cap = StrokeCap.Round, join = StrokeJoin.Round))
                     }
 
                     val handleW = ExpressiveHandleWidth.toPx()
                     val handleLen = 28.dp.toPx()
+                    val handleTopLeft =
+                        if (vertical) {
+                            Offset(center - handleLen / 2f, length - handleAlong - handleW / 2f)
+                        } else {
+                            Offset(handleAlong - handleW / 2f, center - handleLen / 2f)
+                        }
+                    val handleSize =
+                        if (vertical) {
+                            androidx.compose.ui.geometry.Size(handleLen, handleW)
+                        } else {
+                            androidx.compose.ui.geometry.Size(handleW, handleLen)
+                        }
                     drawRoundRect(
                         color = active,
-                        topLeft = Offset(handleAlong - handleW / 2f, centerY - handleLen / 2f),
-                        size = androidx.compose.ui.geometry.Size(handleW, handleLen),
+                        topLeft = handleTopLeft,
+                        size = handleSize,
                         cornerRadius = CornerRadius(handleW / 2f),
                     )
                 }
@@ -438,7 +522,7 @@ fun KozuSlider(
                         .width(88.dp)
                         .offset {
                             val usable = (trackLength - 2f * insetPx).coerceAtLeast(1f)
-                            val x = insetPx + position.value * usable
+                            val x = insetPx + shownFraction * usable
                             IntOffset((x - 44.dp.toPx()).roundToInt(), (-30).dp.roundToPx())
                         }
                         .graphicsLayer {
@@ -450,7 +534,7 @@ fun KozuSlider(
                 color = MaterialTheme.colorScheme.inverseSurface,
                 contentColor = MaterialTheme.colorScheme.inverseOnSurface,
             ) {
-                Text(text = bubbleLabel(math.value(math.snap(position.value))),
+                Text(text = bubbleLabel(math.value(math.snap(shownFraction))),
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
                     style = MaterialTheme.typography.labelMedium,
                     textAlign = TextAlign.Center,

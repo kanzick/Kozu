@@ -51,12 +51,8 @@ import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.MusicNote
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.rememberSliderState
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -113,7 +109,6 @@ import kotlinx.coroutines.flow.StateFlow
 import vn.kozu.domain.model.ArtworkShape
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.PlayerLayoutStyle
-import vn.kozu.domain.model.SeekBarStyle
 import vn.kozu.player.RepeatState
 import vn.kozu.R
 import vn.kozu.ui.components.BeatmapArt
@@ -616,35 +611,41 @@ private fun rememberSeek(ui: PlayerUi): SeekState {
 }
 
 
-@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PlayerSeekBar(
+    ui: PlayerUi,
+    seek: SeekState,
+    active: Color,
+    inactive: Color,
+    modifier: Modifier = Modifier,
+) {
+    WavySlider(
+        progress = seek.fraction,
+        isPlaying = ui.isPlaying,
+        onScrub = seek.onScrub,
+        onScrubFinished = { seek.onFinish() },
+        activeColor = active,
+        inactiveColor = inactive,
+        modifier = modifier.fillMaxWidth(),
+        animated = ui.animated,
+        style = LocalAppSettings.current.appearance.sliderStyle,
+    )
+}
+
 @Composable
 private fun SeekM3(
+    ui: PlayerUi,
     seek: SeekState,
     p: Pal,
     hPad: Dp = 24.dp,
     modifier: Modifier = Modifier,
 ) {
-    val sliderState = rememberSliderState(value = seek.fraction)
-
-
-    LaunchedEffect(seek.fraction) {
-        sliderState.value = seek.fraction
-    }
-
-    Slider(
-        state = sliderState,
-        onValueChange = { value ->
-            sliderState.value = value
-            seek.onScrub(value)
-        },
-        onValueChangeFinished = seek.onFinish,
-        modifier = modifier.fillMaxWidth().padding(horizontal = hPad),
-        colors =
-            SliderDefaults.colors(
-                thumbColor = p.cream,
-                activeTrackColor = p.cream,
-                inactiveTrackColor = p.cream.copy(alpha = 0.2f),
-            ),
+    PlayerSeekBar(
+        ui = ui,
+        seek = seek,
+        active = p.cream,
+        inactive = p.cream.copy(alpha = 0.2f),
+        modifier = modifier.padding(horizontal = hPad),
     )
 }
 
@@ -780,7 +781,7 @@ private fun ClassicDesign(ui: PlayerUi) {
             Btn(at(R.drawable.at_more_horiz), stringResource(R.string.more_options), ui.onMore, size = 40.dp, container = p.cream, content = p.onCream)
         }
         Spacer(Modifier.height(4.dp))
-        SeekM3(seek, p, hPad = 28.dp)
+        SeekM3(ui, seek, p, hPad = 28.dp)
         SeekTimes(seek, p.muted, hPad = 28.dp)
         Spacer(Modifier.height(10.dp))
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -859,7 +860,7 @@ private fun ModernDesign(ui: PlayerUi) {
             )
         }
         Spacer(Modifier.height(4.dp))
-        SeekM3(seek, p, hPad = 28.dp)
+        SeekM3(ui, seek, p, hPad = 28.dp)
         SeekTimes(seek, p.muted, hPad = 28.dp)
         Spacer(Modifier.height(10.dp))
         BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -950,7 +951,7 @@ private fun MinimalDesign(ui: PlayerUi) {
             )
         }
         Spacer(Modifier.height(4.dp))
-        SeekM3(seek, p, hPad = 28.dp)
+        SeekM3(ui, seek, p, hPad = 28.dp)
         SeekTimes(seek, p.muted, hPad = 28.dp)
         Spacer(Modifier.height(10.dp))
         Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -1010,7 +1011,7 @@ private fun CinematicDesign(ui: PlayerUi) {
             Btn(at(R.drawable.at_more_horiz), stringResource(R.string.more_options), ui.onMore, size = 44.dp, iconSize = 24.dp, container = p.faint, content = p.cream, shape = r)
         }
         Spacer(Modifier.height(4.dp))
-        SeekM3(seek, p, hPad = 28.dp)
+        SeekM3(ui, seek, p, hPad = 28.dp)
         SeekTimes(seek, p.muted, hPad = 28.dp)
         Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
@@ -1268,7 +1269,7 @@ private fun ExpressiveDesign(ui: PlayerUi) {
             )
         }
         Spacer(Modifier.height(4.dp))
-        SeekM3(seek, p, hPad = 28.dp)
+        SeekM3(ui, seek, p, hPad = 28.dp)
         SeekTimes(seek, p.muted, hPad = 28.dp)
         Spacer(Modifier.height(8.dp))
         Surface(
@@ -1422,9 +1423,11 @@ private fun ImmersiveDesign(ui: PlayerUi, extended: Boolean) {
             }
             Spacer(Modifier.height(12.dp))
             val hPad = if (extended) 22.dp else 25.dp
-            LineSeek(
-                fraction = seek.fraction, onScrub = seek.onScrub, onFinish = seek.onFinish,
-                height = if (extended) 9.dp else 5.dp, active = white, inactive = Color.White.copy(alpha = 0.32f),
+            PlayerSeekBar(
+                ui = ui,
+                seek = seek,
+                active = white,
+                inactive = Color.White.copy(alpha = 0.32f),
                 modifier = Modifier.padding(horizontal = hPad),
             )
             SeekTimes(seek, whiteMuted, hPad = hPad, remaining = !extended) {
@@ -1543,9 +1546,11 @@ private fun MaterialExtendedDesign(ui: PlayerUi) {
             )
         }
         Spacer(Modifier.height(6.dp))
-        LineSeek(
-            fraction = seek.fraction, onScrub = seek.onScrub, onFinish = seek.onFinish,
-            height = 4.dp, active = p.cream, inactive = p.cream.copy(alpha = 0.22f), thumb = 14.dp,
+        PlayerSeekBar(
+            ui = ui,
+            seek = seek,
+            active = p.cream,
+            inactive = p.cream.copy(alpha = 0.22f),
             modifier = Modifier.padding(horizontal = 24.dp),
         )
         SeekTimes(seek, p.muted, hPad = 24.dp)
@@ -1697,9 +1702,11 @@ private fun EditorialDesign(ui: PlayerUi) {
                 Btn(at(R.drawable.at_skip_previous), "Previous", ui.onPrevious, size = 80.dp, iconSize = 34.dp, container = key, content = onAccent)
                 Spacer(Modifier.width(16.dp))
                 Column(Modifier.weight(1f)) {
-                    LineSeek(
-                        fraction = seek.fraction, onScrub = seek.onScrub, onFinish = seek.onFinish,
-                        height = 4.dp, active = accent, inactive = accent.copy(alpha = 0.3f), thumb = 8.dp,
+                    PlayerSeekBar(
+                        ui = ui,
+                        seek = seek,
+                        active = accent,
+                        inactive = accent.copy(alpha = 0.3f),
                     )
                     SeekTimes(seek, accent.copy(alpha = 0.75f), hPad = 0.dp)
                 }

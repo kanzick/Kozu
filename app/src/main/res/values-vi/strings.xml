@@ -102,11 +102,10 @@
     <string name="choose_the_app_font">Chọn phông chữ ứng dụng.</string>
     <string name="choose_the_app_icon">Chọn biểu tượng ứng dụng.</string>
     <string name="choose_the_app_language">Chọn ngôn ngữ ứng dụng.</string>
-    <string name="choose_the_full_player_progress_style">Chọn kiểu thanh tiến trình của trình phát toàn màn hình.</string>
     <string name="choose_the_navigation_style">Chọn kiểu thanh điều hướng.</string>
     <string name="choose_the_play_icon">Chọn biểu tượng phát.</string>
     <string name="choose_the_progress_indicator">Chọn kiểu hiển thị tiến trình.</string>
-    <string name="choose_the_slider_style">Chọn kiểu thanh trượt.</string>
+    <string name="choose_the_slider_style">Chọn kiểu thanh trượt dùng chung cho toàn ứng dụng và thanh tua nhạc.</string>
     <string name="classic">Cổ điển</string>
     <string name="classical">Cổ điển</string>
     <string name="clean_all">Dọn dẹp tất cả</string>
@@ -664,8 +663,6 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="search_maps">Tìm bản đồ</string>
     <string name="search_settings">Tìm cài đặt</string>
     <string name="see_all">Xem tất cả %1$s</string>
-    <string name="seek_bar_style">Kiểu thanh tua</string>
-    <string name="seek_bar_wavy_expressive_thumb">seek bar wavy expressive thumb</string>
     <string name="selected">Đã chọn</string>
     <string name="set_artwork_shape_throughout_the_app">Thiết lập hình dạng ảnh bìa trên toàn ứng dụng.</string>
     <string name="set_navigation_bar_corners">Thiết lập độ bo góc thanh điều hướng.</string>

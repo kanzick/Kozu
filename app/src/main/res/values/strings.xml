@@ -102,11 +102,10 @@
     <string name="choose_the_app_font">Choose the app font.</string>
     <string name="choose_the_app_icon">Choose the app icon.</string>
     <string name="choose_the_app_language">Choose the app language.</string>
-    <string name="choose_the_full_player_progress_style">Choose the full player progress style.</string>
     <string name="choose_the_navigation_style">Choose the navigation style.</string>
     <string name="choose_the_play_icon">Choose the play icon.</string>
     <string name="choose_the_progress_indicator">Choose the progress indicator.</string>
-    <string name="choose_the_slider_style">Choose the slider style.</string>
+    <string name="choose_the_slider_style">Choose the slider style throughout the app, including music playback.</string>
     <string name="classic">Classic</string>
     <string name="classical">Classical</string>
     <string name="clean_all">Clean all</string>
@@ -667,8 +666,6 @@ Guests and signed-in users have the same catalog, streaming, and download access
     <string name="search_maps">Search maps</string>
     <string name="search_settings">Search settings</string>
     <string name="see_all">See all %1$s</string>
-    <string name="seek_bar_style">Seek bar style</string>
-    <string name="seek_bar_wavy_expressive_thumb">seek bar wavy expressive thumb</string>
     <string name="selected">Selected</string>
     <string name="set_artwork_shape_throughout_the_app">Set artwork shape throughout the app.</string>
     <string name="set_navigation_bar_corners">Set navigation bar corners.</string>

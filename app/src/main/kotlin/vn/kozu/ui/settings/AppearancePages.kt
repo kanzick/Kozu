@@ -37,7 +37,6 @@ import vn.kozu.domain.model.MiniPlayerProgress
 import vn.kozu.domain.model.MiniPlayerStyle
 import vn.kozu.domain.model.PlaybackIcon
 import vn.kozu.domain.model.PlayerLayoutStyle
-import vn.kozu.domain.model.SeekBarStyle
 import vn.kozu.domain.model.SliderStyle
 import vn.kozu.domain.model.TransportShape
 import vn.kozu.R
@@ -148,7 +147,7 @@ fun PlayerStylePage(
 
     SettingsScaffold(title = stringResource(R.string.player_and_mini_player), onBack = onBack) {
         SettingsSection(stringResource(R.string.settings_live_preview)) {
-            custom { shape -> PlayerPreviewCard(shape, appearance.seekStyle) }
+            custom { shape -> PlayerPreviewCard(shape, appearance.sliderStyle) }
         }
         SettingsSection(stringResource(R.string.settings_player_bar)) {
             dropdown(
@@ -179,11 +178,15 @@ fun PlayerStylePage(
             ) { value -> viewModel.updateAppearance { copy(miniArtShape = value) } }
             slider(
                 Setting.MINI_CORNER,
-                appearance.miniCorner.toFloat(),
+                appearance.miniCorner.coerceIn(0, AppearancePrefs.MINI_CORNER_MAX).toFloat(),
                 0f..AppearancePrefs.MINI_CORNER_MAX.toFloat(),
                 valueLabel = { "${it.toInt()} dp" },
                 unit = 1f,
-            ) { value -> viewModel.updateAppearance { copy(miniCorner = value.toInt()) } }
+            ) { value ->
+                viewModel.updateAppearance {
+                    copy(miniCorner = value.toInt().coerceIn(0, AppearancePrefs.MINI_CORNER_MAX))
+                }
+            }
             switch(Setting.MINI_CONTROLS, appearance.miniShowControls, enabled = appearance.miniStyle != MiniPlayerStyle.MINIMAL) { enabled ->
                 viewModel.updateAppearance { copy(miniShowControls = enabled) }
             }
@@ -204,12 +207,6 @@ fun PlayerStylePage(
                 description = appearance.playerLayoutStyle.description,
                 onClick = { showDesigns = true },
             )
-            dropdown(
-                Setting.SEEK_STYLE,
-                appearance.seekStyle,
-                SeekBarStyle.entries.toList(),
-                { it.label },
-            ) { value -> viewModel.updateAppearance { copy(seekStyle = value) } }
             dropdown(
                 Setting.PLAYER_ART_SHAPE,
                 appearance.playerArtShape,
@@ -282,7 +279,6 @@ fun PlayerStylePage(
                         miniShowArtist = true,
                         miniSpinArtwork = true,
                         miniSwipeToSkip = true,
-                        seekStyle = SeekBarStyle.WAVY,
                         playerLayoutStyle = PlayerLayoutStyle.CLASSIC,
                         showVolumeBar = true,
                         playerArtShape = ArtworkShape.DEFAULT,
@@ -311,7 +307,7 @@ fun PlayerStylePage(
 @Composable
 private fun PlayerPreviewCard(
     shape: Shape,
-    seekStyle: SeekBarStyle,
+    sliderStyle: SliderStyle,
 ) {
     val sample = remember { Beatmap(id = 0L, title = "Dracula (feat. JENNIE)", artist = "Tame Impala") }
     val duration = remember { MutableStateFlow(214_000L) }
@@ -346,7 +342,7 @@ private fun PlayerPreviewCard(
                     onScrubFinished = { seek = it },
                     activeColor = MaterialTheme.colorScheme.primary,
                     inactiveColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    style = seekStyle,
+                    style = sliderStyle,
                 )
             }
         }
