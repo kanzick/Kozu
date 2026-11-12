@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -47,6 +48,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import vn.kozu.R
 import vn.kozu.domain.model.NavigationStyle
 import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.FitText
@@ -171,6 +173,7 @@ private fun RowScope.PillItem(
         animationSpec = tween(200),
         label = "navItemContent",
     )
+    val title = stringResource(tab.titleRes)
 
     Box(
         modifier =
@@ -183,7 +186,7 @@ private fun RowScope.PillItem(
                 .semantics(mergeDescendants = true) {
                     role = Role.Tab
                     this.selected = isSelected
-                    contentDescription = tab.title
+                    contentDescription = title
                 },
         contentAlignment = Alignment.Center,
     ) {
@@ -199,7 +202,7 @@ private fun RowScope.PillItem(
                 enter = fadeIn(tween(160)) + expandHorizontally(KozuMotion.spatial()),
                 exit = fadeOut(tween(90)) + shrinkHorizontally(tween(160)),
             ) {
-                Text(text = tab.title,
+                Text(text = title,
                     modifier = Modifier.padding(start = 8.dp),
                     style = MaterialTheme.typography.labelLarge,
                     color = content,
@@ -230,6 +233,7 @@ private fun SearchButton(
         animationSpec = tween(200),
         label = "searchContent",
     )
+    val searchTitle = stringResource(KozuTab.SEARCH.titleRes)
     Box(
         modifier =
             Modifier
@@ -240,7 +244,7 @@ private fun SearchButton(
                 .semantics(mergeDescendants = true) {
                     role = Role.Tab
                     this.selected = isSelected
-                    contentDescription = KozuTab.SEARCH.title
+                    contentDescription = searchTitle
                 },
         contentAlignment = Alignment.Center,
     ) {
@@ -315,7 +319,7 @@ private fun ClassicItem(
             modifier = Modifier.size(22.dp),
         )
         FitText(
-            text = tab.title,
+            text = stringResource(tab.titleRes),
             style = MaterialTheme.typography.labelSmall,
             color = tint,
             minScale = 0.7f,

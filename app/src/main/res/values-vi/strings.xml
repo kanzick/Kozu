@@ -94,7 +94,7 @@
     <string name="chinese">Tiếng Trung</string>
     <string name="choose_a_mini_player_layout">Chọn bố cục mini player.</string>
     <string name="choose_a_tab_or_change_its_order">Chọn tab hoặc thay đổi thứ tự.</string>
-    <string name="choose_how_many_songs_play_when_you_shuffle_your_mix">Chọn số bài hát phát khi trộn Your Mix.</string>
+    <string name="choose_how_many_songs_play_when_you_shuffle_your_mix">Chọn số bài hát được phát khi bạn phát ngẫu nhiên Mix của bạn.</string>
     <string name="choose_library_tab">Chọn tab thư viện</string>
     <string name="choose_light_dark_or_system_theme">Chọn giao diện sáng, tối hoặc theo hệ thống.</string>
     <string name="choose_mini_player_colors">Chọn màu mini player.</string>
@@ -406,7 +406,6 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="minutes">%1$d phút</string>
     <string name="minutes_english">%1$d min</string>
     <string name="mirrors">Máy chủ mirror</string>
-    <string name="mix">Trộn</string>
     <string name="mix_refreshed_daily">%1$d bài hát · làm mới mỗi ngày</string>
     <string name="mix_shuffle_queue_songs_count">mix shuffle queue songs count</string>
     <string name="mixed_picks">Lựa chọn pha trộn</string>
@@ -503,7 +502,7 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="play_item">Phát %1$s</string>
     <string name="play_pause_control_icon">Biểu tượng phát / tạm dừng</string>
     <string name="play_preview">Phát thử</string>
-    <string name="play_your_mix_shuffled">Phát ngẫu nhiên Your Mix</string>
+    <string name="play_your_mix_shuffled">Phát ngẫu nhiên Mix của bạn</string>
     <string name="playback">Phát nhạc</string>
     <string name="playback_cache_size">Dung lượng bộ nhớ đệm phát nhạc</string>
     <string name="playback_icon">Biểu tượng phát</string>
@@ -711,7 +710,7 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="show_the_artist_name">Hiển thị tên nghệ sĩ.</string>
     <string name="show_volume_bar">Hiển thị thanh âm lượng</string>
     <string name="show_volume_bar_desc">Thêm thanh trượt âm lượng đa phương tiện. Có sẵn với các thiết kế Immersive, Immersive Extended và Material Extended.</string>
-    <string name="show_your_mix">Hiển thị Your Mix</string>
+    <string name="show_your_mix">Hiển thị Mix của bạn</string>
     <string name="shuffle">Phát ngẫu nhiên</string>
     <string name="shuffle_repeat_and_like_row">Hàng nút trộn, lặp và yêu thích</string>
     <string name="shuffle_repeat_favorite">shuffle repeat favorite</string>
@@ -810,8 +809,8 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="titles_and_cards">Tiêu đề &amp; thẻ</string>
     <string name="titles_and_catalog_preferences">Tùy chọn tiêu đề và kho beatmap</string>
     <string name="today">Hôm nay</string>
-    <string name="today_s_mix_for_you">Bản trộn dành cho bạn hôm nay</string>
-    <string name="todays_mix_for_you">Bản phối hôm nay dành cho bạn</string>
+    <string name="today_s_mix_for_you">Mix hôm nay dành cho bạn</string>
+    <string name="todays_mix_for_you">Mix hôm nay dành cho bạn</string>
     <string name="tonal_spot">Tông màu dịu</string>
     <string name="tonal_vibrant_expressive_neutral_monochrome">tonal vibrant expressive neutral monochrome</string>
     <string name="top_songs">Bài hát hàng đầu</string>
@@ -871,8 +870,7 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="will_play_next">Sẽ phát tiếp theo</string>
     <string name="will_play_next_text">Sẽ phát tiếp theo</string>
     <string name="yellow">Vàng</string>
-    <string name="your">Của bạn</string>
     <string name="your_downloaded_charts_all_in_one_place">Tất cả biểu đồ đã tải xuống ở cùng một nơi.</string>
     <string name="your_library">Thư viện của bạn</string>
-    <string name="your_mix_size">Số bài trong Your Mix</string>
+    <string name="your_mix_size">Số bài trong Mix của bạn</string>
 </resources>
