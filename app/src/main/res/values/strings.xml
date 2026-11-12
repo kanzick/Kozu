@@ -406,7 +406,6 @@ Guests and signed-in users have the same catalog, streaming, and download access
     <string name="minutes">%1$d min</string>
     <string name="minutes_english">%1$d min</string>
     <string name="mirrors">Mirrors</string>
-    <string name="mix">Mix</string>
     <string name="mix_refreshed_daily">%1$d songs · refreshed daily</string>
     <string name="mix_shuffle_queue_songs_count">mix shuffle queue songs count</string>
     <string name="mixed_picks">Mixed picks</string>
@@ -876,7 +875,6 @@ Guests and signed-in users have the same catalog, streaming, and download access
     <string name="will_play_next">Will play next</string>
     <string name="will_play_next_text">Will play next</string>
     <string name="yellow">Yellow</string>
-    <string name="your">Your</string>
     <string name="your_downloaded_charts_all_in_one_place">Your downloaded charts, all in one place.</string>
     <string name="your_library">Your Library</string>
     <string name="your_mix_size">Your Mix size</string>

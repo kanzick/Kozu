@@ -1273,7 +1273,7 @@ private fun NavPreview(
                                             enter = fadeIn(tween(160)) + expandHorizontally(KozuMotion.spatial()),
                                             exit = fadeOut(tween(90)) + shrinkHorizontally(tween(160)),
                                         ) {
-                                            Text(text = tab.title,
+                                            Text(text = stringResource(tab.titleRes),
                                                 modifier = Modifier.padding(start = 8.dp),
                                                 style = MaterialTheme.typography.labelLarge,
                                                 color = itemContent,
