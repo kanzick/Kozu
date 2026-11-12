@@ -78,6 +78,7 @@ import vn.kozu.ui.components.FullBeatmapArt
 import vn.kozu.ui.components.KozuIcons
 import vn.kozu.ui.components.LocalAppSettings
 import vn.kozu.ui.components.LocalPerformanceMode
+import vn.kozu.ui.components.loopingMarquee
 import vn.kozu.ui.components.playbackIconVector
 import vn.kozu.ui.components.rememberKozuHaptics
 import vn.kozu.ui.components.resolveArtworkShape
@@ -496,14 +497,18 @@ private fun CardBody(
                     style = MaterialTheme.typography.titleMedium,
                     color = palette.content,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    softWrap = false,
+                    overflow = TextOverflow.Clip,
+                    modifier = Modifier.loopingMarquee(),
                 )
                 if (showArtist) {
                     Text(text = artist,
                         style = MaterialTheme.typography.bodyMedium,
                         color = palette.secondary,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                        softWrap = false,
+                        overflow = TextOverflow.Clip,
+                        modifier = Modifier.loopingMarquee(),
                     )
                 }
             }
@@ -654,14 +659,18 @@ private fun MiniTexts(
             style = if (compact) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
             color = palette.content,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+            softWrap = false,
+            overflow = TextOverflow.Clip,
+            modifier = Modifier.loopingMarquee(),
         )
         if (showArtist) {
             Text(text = artist,
                 style = MaterialTheme.typography.bodySmall,
                 color = palette.secondary,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                softWrap = false,
+                overflow = TextOverflow.Clip,
+                modifier = Modifier.loopingMarquee(),
             )
         }
     }

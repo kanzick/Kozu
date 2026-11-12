@@ -68,6 +68,7 @@ import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.EqualizerBars
 import vn.kozu.ui.components.KozuSheetHandle
 import vn.kozu.ui.components.LocalAppSettings
+import vn.kozu.ui.components.loopingMarquee
 import vn.kozu.ui.components.rememberKozuHaptics
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -188,13 +189,17 @@ fun QueueSheet(
                                 Text(text = current.displayTitle(settings.preferUnicode),
                                     style = MaterialTheme.typography.headlineMedium,
                                     maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Clip,
+                                    modifier = Modifier.loopingMarquee(),
                                 )
                                 Text(text = current.displayArtist(settings.preferUnicode),
                                     style = MaterialTheme.typography.titleLarge,
                                     color = colors.onSurfaceVariant,
                                     maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Clip,
+                                    modifier = Modifier.loopingMarquee(),
                                 )
                             }
                             IconButton(onClick = onFavorite) {
@@ -362,14 +367,18 @@ fun QueueSheet(
                                             style = MaterialTheme.typography.titleLarge,
                                             color = if (isCurrent) colors.onPrimaryContainer else colors.onSurface,
                                             maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
+                                            softWrap = false,
+                                            overflow = TextOverflow.Clip,
+                                            modifier = Modifier.loopingMarquee(),
                                         )
                                         Text(beatmap.displayArtist(settings.preferUnicode) +
                                                 if (beatmap.mapper.isNotBlank()) " • ${beatmap.mapper}" else "",
                                             style = MaterialTheme.typography.bodyLarge,
                                             color = if (isCurrent) colors.onPrimaryContainer.copy(alpha = 0.8f) else colors.onSurfaceVariant,
                                             maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
+                                            softWrap = false,
+                                            overflow = TextOverflow.Clip,
+                                            modifier = Modifier.loopingMarquee(),
                                         )
                                     }
                                     QueueRowMenu(
