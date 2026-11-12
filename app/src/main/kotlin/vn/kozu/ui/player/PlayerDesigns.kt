@@ -116,6 +116,7 @@ import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.FullBeatmapArt
 import vn.kozu.ui.components.KozuIcons
 import vn.kozu.ui.components.LocalAppSettings
+import vn.kozu.ui.components.loopingMarquee
 import vn.kozu.ui.components.playbackIconVector
 import vn.kozu.ui.components.rememberKozuHaptics
 import vn.kozu.ui.components.toShape
@@ -382,8 +383,9 @@ private fun PlayerHeader(
             style = MaterialTheme.typography.titleMedium,
             color = sub,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 32.dp),
+            softWrap = false,
+            overflow = TextOverflow.Clip,
+            modifier = Modifier.padding(horizontal = 32.dp).loopingMarquee(),
         )
     }
 }
@@ -402,7 +404,7 @@ private fun TitleText(
         color = color,
         maxLines = 1,
         softWrap = false,
-        modifier = if (ui.previewMode) modifier else modifier.basicMarquee(iterations = Int.MAX_VALUE),
+        modifier = if (ui.previewMode) modifier else modifier.loopingMarquee(),
     )
 }
 
@@ -810,7 +812,7 @@ private fun ClassicDesign(ui: PlayerUi) {
                 at(R.drawable.at_bedtime), stringResource(R.string.sleep_timer), ui.onSleep,
                 if (ui.sleepActive) MaterialTheme.colorScheme.primary else p.cream, Modifier.weight(1f),
             )
-            TextBtn(at(R.drawable.at_more_vert), "More", ui.onMore, p.cream, Modifier.weight(1f))
+            TextBtn(at(R.drawable.at_more_vert), stringResource(R.string.more), ui.onMore, p.cream, Modifier.weight(1f))
         }
     }
 }
@@ -831,7 +833,7 @@ private fun TextBtn(
             Icon(icon, contentDescription = label, tint = tint, modifier = Modifier.size(24.dp))
             if (label != null) {
                 Spacer(Modifier.width(10.dp))
-                Text(label, fontSize = 16.sp, color = tint, maxLines = 1)
+                Text(label, fontSize = 16.sp, color = tint, maxLines = 1, softWrap = false, modifier = Modifier.loopingMarquee())
             }
         }
     }
@@ -1063,7 +1065,7 @@ private fun BottomPills(
             content = if (ui.sleepActive) colors.primary else p.cream,
         )
         Spacer(Modifier.width(12.dp))
-        Pill(at(R.drawable.at_more_vert), "More", ui.onMore, p, Modifier.weight(1f))
+        Pill(at(R.drawable.at_more_vert), stringResource(R.string.more), ui.onMore, p, Modifier.weight(1f))
     }
 }
 
@@ -1084,7 +1086,7 @@ private fun Pill(
         Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, contentDescription = label, modifier = Modifier.size(22.dp))
             Spacer(Modifier.width(10.dp))
-            Text(label, fontSize = 16.sp, maxLines = 1)
+            Text(label, fontSize = 16.sp, maxLines = 1, softWrap = false, modifier = Modifier.loopingMarquee())
         }
     }
 }
@@ -1584,7 +1586,7 @@ private fun MaterialExtendedDesign(ui: PlayerUi) {
                 )
                 SegmentKey(repeatIcon(ui), "Repeat", ui.onRepeat, ui.repeat != RepeatState.OFF, p, RoundedCornerShape(8.dp), Modifier.weight(1f))
                 SegmentKey(
-                    at(R.drawable.at_more_horiz), "More", ui.onMore, false, p,
+                    at(R.drawable.at_more_horiz), stringResource(R.string.more), ui.onMore, false, p,
                     RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp, topEnd = 32.dp, bottomEnd = 32.dp), Modifier.weight(1f),
                 )
             }

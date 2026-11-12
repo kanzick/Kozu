@@ -206,4 +206,5 @@
     <string name="weekday_letter_fri">F</string>
     <string name="weekday_letter_sat">S</string>
     <string name="weekday_letter_sun">S</string>
+    <string name="more">More</string>
 </resources>

@@ -727,7 +727,7 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="skip_silence">Bỏ qua đoạn im lặng</string>
     <string name="slim_down_downloads">Thu gọn bản tải xuống</string>
     <string name="slim_down_downloads_desc">Xóa hitsound, hình ảnh và storyboard khỏi các bài hát ngoại tuyến.</string>
-    <string name="sleep_timer">Hẹn giờ tắt nhạc</string>
+    <string name="sleep_timer">Hẹn giờ</string>
     <string name="slider_style">Kiểu thanh trượt</string>
     <string name="smart_storage">smart storage</string>
     <string name="some_archives_could_not_be_imported">Không thể nhập một số tệp lưu trữ</string>

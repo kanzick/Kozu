@@ -52,6 +52,7 @@ import vn.kozu.R
 import vn.kozu.domain.model.NavigationStyle
 import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.FitText
+import vn.kozu.ui.components.loopingMarquee
 import vn.kozu.ui.theme.KozuMotion
 
 @Composable
@@ -203,12 +204,12 @@ private fun RowScope.PillItem(
                 exit = fadeOut(tween(90)) + shrinkHorizontally(tween(160)),
             ) {
                 Text(text = title,
-                    modifier = Modifier.padding(start = 8.dp),
+                    modifier = Modifier.padding(start = 8.dp).loopingMarquee(),
                     style = MaterialTheme.typography.labelLarge,
                     color = content,
                     maxLines = 1,
                     softWrap = false,
-                    overflow = TextOverflow.Ellipsis,
+                    overflow = TextOverflow.Clip,
                 )
             }
         }
