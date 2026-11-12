@@ -1,5 +1,7 @@
 package vn.kozu.game.mania.previewstage.ui
 
+import android.content.res.Resources
+import androidx.annotation.StringRes
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.horizontalScroll
@@ -51,6 +53,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -127,6 +130,8 @@ fun PreviewStageScreen(
     var searchQuery by remember { mutableStateOf("") }
     var localCustomOrder by remember(customOrderIds) { mutableStateOf(customOrderIds) }
     val compactRows = LocalAppSettings.current.libraryDensity == LibraryDensity.COMPACT
+    val context = LocalContext.current
+    val resources = context.resources
     val songs by module.catalog.entries.collectAsState()
     var expandedId by remember { mutableStateOf<Long?>(null) }
     var requestedScrollSongId by remember { mutableStateOf<Long?>(null) }
@@ -166,7 +171,7 @@ fun PreviewStageScreen(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                collectionError = e.message ?: "Could not load collections"
+                collectionError = e.message ?: context.getString(R.string.game_load_collections_failed)
             }
         }
     }
@@ -186,7 +191,7 @@ fun PreviewStageScreen(
     }
 
     val listItems = remember(
-        visibleSongs, sort, group, expandedGroups, bpms, lengths, rankedDates,
+        resources, visibleSongs, sort, group, expandedGroups, bpms, lengths, rankedDates,
         bestScoresBySong, latestPlayedAtBySong, osuUsername, localCustomOrder,
     ) {
         buildChartListItems(
@@ -201,6 +206,7 @@ fun PreviewStageScreen(
             bestScores = bestScoresBySong,
             latestPlayedAt = latestPlayedAtBySong,
             osuUsername = osuUsername,
+            resources = resources,
         )
     }
 
@@ -332,7 +338,7 @@ fun PreviewStageScreen(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            error = e.message ?: "Could not load Mania charts"
+            error = e.message ?: context.getString(R.string.game_load_charts_failed)
         }
     }
     LaunchedEffect(expandedId, scoresRefreshKey, songs, loadBestScores) {
@@ -346,7 +352,7 @@ fun PreviewStageScreen(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            scoreErrors = scoreErrors + (songId to (e.message ?: "Could not load scores"))
+            scoreErrors = scoreErrors + (songId to (e.message ?: context.getString(R.string.game_load_scores_failed)))
         } finally {
             if (loadingScoresFor == songId) loadingScoresFor = null
         }
@@ -364,7 +370,7 @@ fun PreviewStageScreen(
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    failures[song.songId] = "${song.displayTitle}: ${e.message ?: "Could not read BPM"}"
+                    failures[song.songId] = "${song.displayTitle}: ${e.message ?: context.getString(R.string.game_read_bpm_failed)}"
                 }
             }
             loaded to failures
@@ -385,7 +391,7 @@ fun PreviewStageScreen(
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    failures[song.songId] = "${song.displayTitle}: ${e.message ?: "Could not read length"}"
+                    failures[song.songId] = "${song.displayTitle}: ${e.message ?: context.getString(R.string.game_read_length_failed)}"
                 }
             }
             loaded to failures
@@ -403,7 +409,7 @@ fun PreviewStageScreen(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                metadataErrors = metadataErrors + (song.songId to (e.message ?: "Could not load ranked date"))
+                metadataErrors = metadataErrors + (song.songId to (e.message ?: context.getString(R.string.game_load_ranked_date_failed)))
             }
         }
     }
@@ -428,7 +434,7 @@ fun PreviewStageScreen(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                scoreErrors = scoreErrors + (s.songId to (e.message ?: "Could not load scores"))
+                scoreErrors = scoreErrors + (s.songId to (e.message ?: context.getString(R.string.game_load_scores_failed)))
             }
         }
     }
@@ -445,10 +451,10 @@ fun PreviewStageScreen(
     ) {
         item(key = "header") {
             SectionHeader(
-                title = "Your charts",
+                title = stringResource(R.string.your_charts),
                 subtitle = report?.let {
-                    "${songs.size} maps · ${it.loadedDifficulties} difficulties"
-                } ?: "Loading your Mania charts"
+                    stringResource(R.string.game_maps_and_difficulties, songs.size, it.loadedDifficulties)
+                } ?: stringResource(R.string.loading_your_mania_charts)
             )
         }
 
@@ -504,7 +510,7 @@ fun PreviewStageScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(stringResource(R.string.sort), modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
-                        Text(if (showSortOptions) "Hide" else "Show", style = MaterialTheme.typography.labelMedium)
+                        Text(stringResource(if (showSortOptions) R.string.hide else R.string.show), style = MaterialTheme.typography.labelMedium)
                     }
                     AnimatedVisibility(visible = showSortOptions) {
                         Row(
@@ -522,7 +528,7 @@ fun PreviewStageScreen(
                                             sort = option
                                         }
                                     },
-                                    label = { Text(option.label) }
+                                    label = { Text(stringResource(option.labelRes)) }
                                 )
                             }
                         }
@@ -533,7 +539,7 @@ fun PreviewStageScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(stringResource(R.string.group), modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
-                        Text(if (showGroupOptions) "Hide" else "Show", style = MaterialTheme.typography.labelMedium)
+                        Text(stringResource(if (showGroupOptions) R.string.hide else R.string.show), style = MaterialTheme.typography.labelMedium)
                     }
                     AnimatedVisibility(visible = showGroupOptions) {
                         Row(
@@ -548,7 +554,7 @@ fun PreviewStageScreen(
                                         expandedId = null
                                         expandedGroups = emptySet()
                                     },
-                                    label = { Text(option.label) }
+                                    label = { Text(stringResource(option.labelRes)) }
                                 )
                             }
                         }
@@ -580,7 +586,7 @@ fun PreviewStageScreen(
         }
         scoreErrors.values.distinct().takeIf { it.isNotEmpty() }?.let { messages ->
             item(key = "score-errors") {
-                Text(messages.joinToString("\n") { "Scores unavailable: $it" },
+                Text(messages.joinToString("\n") { context.getString(R.string.game_scores_unavailable, it) },
                     modifier = Modifier.padding(horizontal = 24.dp),
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
@@ -615,7 +621,7 @@ fun PreviewStageScreen(
             error != null -> item(key = "error") {
                 EmptyState(
                     icon = Icons.Rounded.SportsEsports,
-                    title = "Charts could not be loaded",
+                    title = stringResource(R.string.charts_could_not_be_loaded),
                     message = error.orEmpty(),
                     modifier = Modifier.padding(horizontal = 20.dp)
                 )
@@ -629,8 +635,8 @@ fun PreviewStageScreen(
             songs.isEmpty() -> item(key = "empty") {
                 EmptyState(
                     icon = Icons.Rounded.Download,
-                    title = "No Mania charts yet",
-                    message = "Add a map to build your personal play list.",
+                    title = stringResource(R.string.no_mania_charts_yet),
+                    message = stringResource(R.string.game_no_charts_message),
                     modifier = Modifier.padding(horizontal = 20.dp),
                     action = {
                         Button(onClick = onAddMaps) { Text(stringResource(R.string.add_maps)) }
@@ -640,8 +646,8 @@ fun PreviewStageScreen(
             visibleSongs.isEmpty() -> item(key = "no-search-results") {
                 EmptyState(
                     icon = Icons.Rounded.Search,
-                    title = "No matching maps",
-                    message = "Try another title, artist, mapper, or difficulty name.",
+                    title = stringResource(R.string.game_no_matching_maps),
+                    message = stringResource(R.string.try_another_title_artist_mapper_or_difficulty_name),
                     modifier = Modifier.padding(horizontal = 20.dp),
                 )
             }
@@ -737,7 +743,12 @@ fun PreviewStageScreen(
             title = { Text(stringResource(R.string.delete_map)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Remove \"${song.displayTitle.ifBlank { "Beatmap ${song.songId}" }}\" and its chart files from this device?")
+                    Text(
+                        stringResource(
+                            R.string.remove_chart_files,
+                            song.displayTitle.ifBlank { stringResource(R.string.beatmap_number, song.songId) },
+                        ),
+                    )
                     deleteError?.let {
                         Text(it, color = MaterialTheme.colorScheme.error)
                     }
@@ -757,14 +768,14 @@ fun PreviewStageScreen(
                             } catch (e: CancellationException) {
                                 throw e
                             } catch (e: Exception) {
-                                deleteError = e.message ?: "Could not delete this map"
+                                deleteError = e.message ?: context.getString(R.string.game_could_not_delete_map)
                             } finally {
                                 deletingSongId = null
                             }
                         }
                     },
                 ) {
-                    Text(if (deletingSongId == song.songId) "Deleting…" else stringResource(R.string.delete))
+                    Text(if (deletingSongId == song.songId) stringResource(R.string.game_deleting) else stringResource(R.string.delete))
                 }
             },
             dismissButton = {
@@ -830,7 +841,7 @@ fun PreviewStageScreen(
                             } catch (e: CancellationException) {
                                 throw e
                             } catch (e: Exception) {
-                                collectionError = e.message ?: "Could not save collections"
+                                collectionError = e.message ?: context.getString(R.string.game_save_collections_failed)
                             }
                         }
                     },
@@ -862,8 +873,8 @@ private fun ChartSetCard(
     dragHandleModifier: Modifier,
     isDragging: Boolean,
 ) {
-    val title = song.displayTitle.ifBlank { "Beatmap ${song.songId}" }
-    val artist = song.displayArtist.ifBlank { "Unknown artist" }
+    val title = song.displayTitle.ifBlank { stringResource(R.string.beatmap_number, song.songId) }
+    val artist = song.displayArtist.ifBlank { stringResource(R.string.game_unknown_artist) }
     val beatmap = remember(song.songId, title, artist) {
         Beatmap(song.songId, title, artist)
     }
@@ -1068,34 +1079,34 @@ private fun fmt(value: Double): String =
     if (value == value.toInt().toDouble()) value.toInt().toString()
     else "%.1f".format(java.util.Locale.ROOT, value)
 
-private enum class MapSort(val label: String, val perDifficulty: Boolean = false) {
-    DEFAULT("Default"),
-    CUSTOM("Custom"),
-    TITLE("Title"),
-    ARTIST("Artist"),
-    CREATOR("Creator"),
-    BPM("BPM", perDifficulty = true),
-    LENGTH("Length", perDifficulty = true),
-    DIFFICULTY("Difficulty", perDifficulty = true),
-    DATE_ADDED("Date added"),
-    DATE_RANKED("Date ranked"),
-    RANK_ACHIEVED("Rank achieved", perDifficulty = true),
-    LAST_PLAYED("Last played", perDifficulty = true),
+private enum class MapSort(@StringRes val labelRes: Int, val perDifficulty: Boolean = false) {
+    DEFAULT(R.string.game_sort_default),
+    CUSTOM(R.string.custom),
+    TITLE(R.string.title),
+    ARTIST(R.string.artist),
+    CREATOR(R.string.mapper),
+    BPM(R.string.game_bpm, perDifficulty = true),
+    LENGTH(R.string.game_length, perDifficulty = true),
+    DIFFICULTY(R.string.difficulty, perDifficulty = true),
+    DATE_ADDED(R.string.date_added),
+    DATE_RANKED(R.string.game_date_ranked),
+    RANK_ACHIEVED(R.string.rank_achieved, perDifficulty = true),
+    LAST_PLAYED(R.string.game_last_played, perDifficulty = true),
 }
 
-private enum class MapGroup(val label: String, val perDifficulty: Boolean = false) {
-    NONE("No grouping"),
-    DIFFICULTY("Difficulty", perDifficulty = true),
-    ARTIST("Artist"),
-    TITLE("Title"),
-    CREATOR("Creator"),
-    BPM("BPM", perDifficulty = true),
-    LENGTH("Length", perDifficulty = true),
-    DATE_ADDED("Date added"),
-    RANK_ACHIEVED("Rank achieved", perDifficulty = true),
-    LAST_PLAYED("Last played", perDifficulty = true),
-    COLLECTION("Collection"),
-    MY_MAPS("My maps"),
+private enum class MapGroup(@StringRes val labelRes: Int, val perDifficulty: Boolean = false) {
+    NONE(R.string.game_group_none),
+    DIFFICULTY(R.string.difficulty, perDifficulty = true),
+    ARTIST(R.string.artist),
+    TITLE(R.string.title),
+    CREATOR(R.string.mapper),
+    BPM(R.string.game_bpm, perDifficulty = true),
+    LENGTH(R.string.game_length, perDifficulty = true),
+    DATE_ADDED(R.string.date_added),
+    RANK_ACHIEVED(R.string.rank_achieved, perDifficulty = true),
+    LAST_PLAYED(R.string.game_last_played, perDifficulty = true),
+    COLLECTION(R.string.collections),
+    MY_MAPS(R.string.game_my_maps),
 }
 
 private fun bpmKey(difficulty: DifficultyRecord) = "${difficulty.songId}|${difficulty.osuFile}"
@@ -1169,6 +1180,7 @@ private fun buildChartListItems(
     bestScores: Map<Long, Map<String, ScoreRecord>>,
     latestPlayedAt: Map<Long, Map<String, Long>>,
     osuUsername: String,
+    resources: Resources,
 ): List<ChartListItem> {
     val sortedSongs = when (sort) {
         MapSort.CUSTOM -> applyGameCustomOrder(songs, customOrderIds)
@@ -1227,40 +1239,54 @@ private fun buildChartListItems(
             MapGroup.DIFFICULTY -> {
                 val stars = diff?.starRating ?: 0.0
                 val floor = stars.toInt().coerceAtLeast(0)
-                if (stars <= 0.0) listOf("star:unknown" to "Unrated")
+                if (stars <= 0.0) listOf("star:unknown" to resources.getString(R.string.game_unrated))
                 else listOf("star:$floor" to "$floor★ – ${floor + 1}★")
             }
-            MapGroup.ARTIST -> listOf("artist:${song.displayArtist}" to song.displayArtist.ifBlank { "Unknown artist" })
-            MapGroup.TITLE -> listOf("title:${song.displayTitle}" to song.displayTitle.ifBlank { "Untitled" })
+            MapGroup.ARTIST -> listOf("artist:${song.displayArtist}" to song.displayArtist.ifBlank { resources.getString(R.string.game_unknown_artist) })
+            MapGroup.TITLE -> listOf("title:${song.displayTitle}" to song.displayTitle.ifBlank { resources.getString(R.string.game_untitled) })
             MapGroup.CREATOR -> {
                 val creator = diff?.creator ?: song.difficulties.firstOrNull()?.creator.orEmpty()
-                listOf("creator:$creator" to creator.ifBlank { "Unknown mapper" })
+                listOf("creator:$creator" to creator.ifBlank { resources.getString(R.string.game_unknown_mapper) })
             }
             MapGroup.BPM -> {
                 val bpm = diff?.let { bpms[bpmKey(it)] }
                 val low = bpm?.let { (it.toInt() / 20) * 20 }
-                listOf("bpm:${low ?: -1}" to (low?.let { "$it–${it + 19} BPM" } ?: "Unknown BPM"))
+                listOf(
+                    "bpm:${low ?: -1}" to
+                        (low?.let { resources.getString(R.string.game_bpm_range, it, it + 19) }
+                            ?: resources.getString(R.string.game_unknown_bpm)),
+                )
             }
             MapGroup.LENGTH -> {
                 val duration = diff?.let { lengths[bpmKey(it)] }
                 val bucket = duration?.let { (it / 120_000L).toInt() }
-                listOf("length:${bucket ?: -1}" to (bucket?.let { "${it * 2}–${it * 2 + 2} min" } ?: "Unknown length"))
+                listOf(
+                    "length:${bucket ?: -1}" to
+                        (bucket?.let { resources.getString(R.string.game_length_range, it * 2, it * 2 + 2) }
+                            ?: resources.getString(R.string.game_unknown_length)),
+                )
             }
-            MapGroup.DATE_ADDED -> listOf("added:${dateBucket(song.importedAt)}" to dateBucketLabel(song.importedAt))
+            MapGroup.DATE_ADDED -> listOf("added:${dateBucket(song.importedAt)}" to dateBucketLabel(song.importedAt, resources))
             MapGroup.RANK_ACHIEVED -> {
-                val rank = score?.rank ?: "Unplayed"
+                val rank = score?.rank ?: resources.getString(R.string.unplayed)
                 listOf("rank:$rank" to rank)
             }
             MapGroup.LAST_PLAYED -> listOf(
                 "played:${dateBucket(latest ?: 0L)}" to
-                    if (latest == null) "Never played" else dateBucketLabel(latest),
+                    if (latest == null) resources.getString(R.string.game_never_played) else dateBucketLabel(latest, resources),
             )
-            MapGroup.COLLECTION -> song.collections.ifEmpty { listOf("Uncategorized") }
+            MapGroup.COLLECTION -> song.collections.ifEmpty { listOf(resources.getString(R.string.game_uncategorized)) }
                 .map { "collection:$it" to it }
             MapGroup.MY_MAPS -> {
                 val creator = diff?.creator ?: song.difficulties.firstOrNull()?.creator.orEmpty()
                 val mine = osuUsername.isNotBlank() && creator.equals(osuUsername, ignoreCase = true)
-                listOf(if (mine) "mine" to "My maps" else "others" to "Other maps")
+                listOf(
+                    if (mine) {
+                        "mine" to resources.getString(R.string.game_my_maps)
+                    } else {
+                        "others" to resources.getString(R.string.game_other_maps)
+                    },
+                )
             }
         }
     }
@@ -1302,7 +1328,7 @@ private fun groupOrderValue(group: MapGroup, key: String, label: String): String
         key.substringAfter(':').toIntOrNull()?.let {
             if (it < 0) "99999999" else "%08d".format(it + 10_000)
         } ?: "99999999"
-    MapGroup.RANK_ACHIEVED -> "%02d".format(rankSortValue(label.takeUnless { it == "Unplayed" }))
+    MapGroup.RANK_ACHIEVED -> "%02d".format(rankSortValue(label))
     MapGroup.DATE_ADDED, MapGroup.LAST_PLAYED -> when (key.substringAfter(':')) {
         "today" -> "0"
         "yesterday" -> "1"
@@ -1349,11 +1375,11 @@ private fun dateBucket(timestamp: Long): String {
     }
 }
 
-private fun dateBucketLabel(timestamp: Long): String = when (dateBucket(timestamp)) {
-    "today" -> "Today"
-    "yesterday" -> "Yesterday"
-    "this-week" -> "This week"
-    "unknown" -> "Unknown date"
+private fun dateBucketLabel(timestamp: Long, resources: Resources): String = when (dateBucket(timestamp)) {
+    "today" -> resources.getString(R.string.game_today)
+    "yesterday" -> resources.getString(R.string.game_yesterday)
+    "this-week" -> resources.getString(R.string.game_this_week)
+    "unknown" -> resources.getString(R.string.game_unknown_date)
     else -> SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(Date(timestamp))
 }
 
@@ -1367,8 +1393,8 @@ private fun DifficultyCard(
     onDelete: () -> Unit,
     onClick: () -> Unit,
 ) {
-    val title = song.displayTitle.ifBlank { "Beatmap ${song.songId}" }
-    val artist = song.displayArtist.ifBlank { "Unknown artist" }
+    val title = song.displayTitle.ifBlank { stringResource(R.string.beatmap_number, song.songId) }
+    val artist = song.displayArtist.ifBlank { stringResource(R.string.game_unknown_artist) }
     val beatmap = remember(song.songId, title, artist) { Beatmap(song.songId, title, artist) }
     Surface(
         modifier = Modifier
@@ -1388,7 +1414,7 @@ private fun DifficultyCard(
                             add(String.format(Locale.US, "%.2f★", difficulty.starRating))
                         }
                         add(artist)
-                        add("mapped by ${difficulty.creator}")
+                        add(stringResource(R.string.mapped_by, difficulty.creator))
                     }.joinToString(" · "),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1398,7 +1424,7 @@ private fun DifficultyCard(
                 Text(buildList {
                         add("[${difficulty.version}]")
                         add("${difficulty.circleSize.toInt()}K")
-                        add(bpm?.let { "${it.toInt()} BPM" } ?: "Unknown BPM")
+                        add(bpm?.let { stringResource(R.string.game_bpm_value, it.toInt()) } ?: stringResource(R.string.game_unknown_bpm))
                         lengthMs?.let { add(formatDuration(it)) }
                     }.joinToString(" · "),
                     style = MaterialTheme.typography.labelMedium,

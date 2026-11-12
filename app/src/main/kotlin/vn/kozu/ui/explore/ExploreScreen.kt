@@ -93,7 +93,7 @@ fun ExploreScreen(
 
     Column(modifier.fillMaxSize()) {
         ScreenHeader(
-            leading = { HeaderTitle("Explore") },
+            leading = { HeaderTitle(stringResource(R.string.explore)) },
             actions = {
                 NewsAction(onOpenNews)
                 SettingsAction(onOpenSettings)
@@ -120,7 +120,7 @@ fun ExploreScreen(
             ) {
                 item(key = "library") {
                     Column {
-                        SectionHeader(title = "Your Library", onAction = onOpenLibrary)
+                        SectionHeader(title = stringResource(R.string.your_library), onAction = onOpenLibrary)
                         Spacer(Modifier.height(14.dp))
                         if (ui.collections.isEmpty()) {
                             Surface(
@@ -134,8 +134,8 @@ fun ExploreScreen(
                             ) {
                                 EmptyState(
                                     icon = Icons.AutoMirrored.Rounded.QueueMusic,
-                                    title = "Start your collection",
-                                    message = "Like songs or build a playlist and it will live here.",
+                                    title = stringResource(R.string.start_your_collection),
+                                    message = stringResource(R.string.like_songs_or_build_a_playlist_and_it_will_live_here),
                                     shape = KozuCookies.Soft9,
                                 )
                             }
@@ -158,7 +158,7 @@ fun ExploreScreen(
                     item(key = "new") {
                         Column {
                             Spacer(Modifier.height(32.dp))
-                            SectionHeader(title = "New Releases")
+                            SectionHeader(title = stringResource(R.string.new_releases_text))
                             Spacer(Modifier.height(14.dp))
                             LazyRow(
                                 contentPadding = PaddingValues(horizontal = 20.dp),
@@ -169,7 +169,7 @@ fun ExploreScreen(
                                         beatmap = beatmap,
                                         size = 164.dp,
                                         shape = RoundedCornerShape(34.dp),
-                                        badge = beatmap.status.ifBlank { "New" },
+                                        badge = beatmap.status.ifBlank { stringResource(R.string.new_label) },
                                         showPlay = true,
                                         onClick = { actions.play(ui.newReleases, index) },
                                     )
@@ -185,7 +185,7 @@ fun ExploreScreen(
                     Column {
                         Spacer(Modifier.height(32.dp))
                         SectionHeader(
-                            title = "All beatmaps",
+                            title = stringResource(R.string.all_beatmaps),
                             onAction = onOpenAllBeatmaps,
                         )
                         Spacer(Modifier.height(14.dp))
@@ -212,7 +212,7 @@ fun ExploreScreen(
                                         beatmap = beatmap,
                                         size = 142.dp,
                                         shape = KozuCookies.forIndex(index),
-                                        badge = beatmap.status.ifBlank { "Beatmap" },
+                                        badge = beatmap.status.ifBlank { stringResource(R.string.beatmap_label) },
                                         onClick = { actions.play(preview, index) },
                                     )
                                 }
@@ -225,7 +225,7 @@ fun ExploreScreen(
                     item(key = "again") {
                         Column {
                             Spacer(Modifier.height(32.dp))
-                            SectionHeader(title = "Listen again")
+                            SectionHeader(title = stringResource(R.string.listen_again))
                             Spacer(Modifier.height(14.dp))
                             LazyRow(
                                 contentPadding = PaddingValues(horizontal = 20.dp),
@@ -248,7 +248,10 @@ fun ExploreScreen(
                     item(key = "trending-header") {
                         Column {
                             Spacer(Modifier.height(32.dp))
-                            SectionHeader(title = "Trending now", subtitle = "Most played ranked maps")
+                            SectionHeader(
+                                title = stringResource(R.string.trending_now),
+                                subtitle = stringResource(R.string.most_played_ranked_maps),
+                            )
                             Spacer(Modifier.height(14.dp))
                         }
                     }
@@ -280,7 +283,7 @@ fun ExploreScreen(
                     item(key = "loved") {
                         Column {
                             Spacer(Modifier.height(32.dp))
-                            SectionHeader(title = "Loved by the community")
+                            SectionHeader(title = stringResource(R.string.loved_by_the_community))
                             Spacer(Modifier.height(14.dp))
                             LazyRow(
                                 contentPadding = PaddingValues(horizontal = 20.dp),
@@ -308,6 +311,7 @@ private fun CollectionCard(
     collection: LibraryCollection,
     onClick: () -> Unit,
 ) {
+    val title = collection.titleRes?.let { stringResource(it) } ?: collection.title
     Surface(
         modifier =
             Modifier
@@ -323,7 +327,7 @@ private fun CollectionCard(
             MosaicCover(collection.tracks)
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
-                Text(text = collection.title,
+                Text(text = title,
                     style = MaterialTheme.typography.titleLarge,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -338,7 +342,7 @@ private fun CollectionCard(
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.tertiaryContainer,
                     ) {
-                        Text(text = collection.label,
+                        Text(text = stringResource(collection.labelRes),
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onTertiaryContainer,
@@ -353,7 +357,7 @@ private fun CollectionCard(
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 playbackIconVector(LocalAppSettings.current.playbackIcon, false),
-                                contentDescription = stringResource(R.string.play_item, collection.title),
+                                contentDescription = stringResource(R.string.play_item, title),
                                 tint = MaterialTheme.colorScheme.onPrimary,
                             )
                         }
