@@ -9,6 +9,8 @@ val releaseKeystorePath = providers.environmentVariable("ANDROID_KEYSTORE_PATH")
 val releaseKeystorePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD").orNull
 val releaseKeyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS").orNull
 val releaseKeyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD").orNull
+val supabaseUrl = providers.gradleProperty("supabaseUrl").orElse("").get()
+val supabaseAnonKey = providers.gradleProperty("supabaseAnonKey").orElse("").get()
 val hasReleaseSigning = listOf(
     releaseKeystorePath,
     releaseKeystorePassword,
@@ -66,6 +68,8 @@ android {
         targetSdk = 37
         versionCode = appVersionCode.toInt()
         versionName = appVersionName
+        buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseAnonKey\"")
     }
 
     buildTypes {
@@ -112,6 +116,7 @@ android {
     }
 
     buildFeatures {
+        buildConfig = true
         compose = true
     }
 
