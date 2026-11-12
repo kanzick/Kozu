@@ -92,8 +92,8 @@
     <string name="keep_the_full_osz_file_for_gameplay">Keep the full .osz file for gameplay.</string>
     <string name="kozu">Kozu</string>
     <string name="kozu_accesses_beatmap_metadata_covers_and_previews_f">Kozu accesses beatmap metadata, covers and previews from osu!. Beatmap audio and artwork remain owned by their respective creators; Kozu does not claim ownership.</string>
-    <string name="kozu_available">Kozu v%1$s is available</string>
-    <string name="kozu_available_english">Kozu v%1$s is available</string>
+    <string name="kozu_available">Kozu %1$s is available</string>
+    <string name="kozu_available_english">Kozu %1$s is available</string>
     <string name="kozu_is_an_unofficial_fan_project_and_is_not_affilia">Kozu is an unofficial fan project and is not affiliated with or endorsed by ppy Pty Ltd. osu! is a trademark of ppy Pty Ltd.</string>
     <string name="kozu_unrestricted">Kozu is unrestricted</string>
     <string name="kozu_updates">Kozu updates</string>
@@ -207,7 +207,7 @@
         <item quantity="other">%1$d updates needed</item>
     </plurals>
     <string name="update_needed_one">%1$d update needed</string>
-    <string name="update_version_checked">v%1$s · %2$s</string>
+    <string name="update_version_checked">%1$s · %2$s</string>
     <string name="updates">Updates</string>
     <string name="used_to_check_published_kozu_releases_and_display_re">Used to check published Kozu releases and display recent source commits. Update checks can be disabled in Settings.</string>
     <string name="version_release">version release</string>

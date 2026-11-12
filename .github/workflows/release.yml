@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Version name (MAJOR.MINOR / MAJOR.MINOR.PATCH)
+        description: vMajor.Minor / vMajor.Minor.Patch (v is optional)
         required: true
         type: string
 
@@ -51,18 +51,19 @@ jobs:
             exit 1
           fi
 
-          version="$raw_version"
-          if [[ "${version:0:1}" == "v" || "${version:0:1}" == "V" ]]; then
-            version="${version:1}"
+          normalized_version="$raw_version"
+          if [[ "${normalized_version:0:1}" == "v" || "${normalized_version:0:1}" == "V" ]]; then
+            normalized_version="${normalized_version:1}"
           fi
 
-          if [[ ! "$version" =~ ^(0|[1-9][0-9]?)\.(0|[1-9][0-9]?)(\.(0|[1-9][0-9]?))?$ ]]; then
-            echo "::error::Invalid version: $raw_version (expected MAJOR.MINOR or MAJOR.MINOR.PATCH, each component 0..99 with no leading zeros, optionally prefixed with v)."
+          if [[ ! "$normalized_version" =~ ^(0|[1-9][0-9]?)\.(0|[1-9][0-9]?)(\.(0|[1-9][0-9]?))?$ ]]; then
+            echo "::error::Invalid version: $raw_version (expected [v]MAJOR.MINOR or [v]MAJOR.MINOR.PATCH, each component 0..99 with no leading zeros)."
             exit 1
           fi
 
           echo "tag=$release_tag" >> "$GITHUB_OUTPUT"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "version=$raw_version" >> "$GITHUB_OUTPUT"
+          echo "normalized_version=$normalized_version" >> "$GITHUB_OUTPUT"
           echo "checkout_ref=$checkout_ref" >> "$GITHUB_OUTPUT"
 
       - name: Checkout selected branch or release tag
@@ -142,7 +143,7 @@ jobs:
       - name: Generate version code from version name
         id: version_code
         env:
-          VERSION: ${{ steps.version.outputs.version }}
+          VERSION: ${{ steps.version.outputs.normalized_version }}
         shell: bash
         run: |
           set -euo pipefail
@@ -416,7 +417,7 @@ jobs:
           print("Release contains exactly the five expected APK assets.")
           PY
 
-      - name: Generate download table at end of release description
+      - name: Generate download table
         if: github.event_name == 'release'
         env:
           GH_TOKEN: ${{ github.token }}

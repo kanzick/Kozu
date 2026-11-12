@@ -12,6 +12,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -248,6 +249,15 @@ private fun KozuShell(
     var gameMapPickerViewModel by remember { mutableStateOf<GameViewModel?>(null) }
     var gamePlayActive by remember { mutableStateOf(false) }
 
+    val settingsVisibility = remember { MutableTransitionState(false) }.apply { targetState = settingsOpen }
+    val allBeatmapsVisibility = remember { MutableTransitionState(false) }.apply { targetState = allBeatmapsOpen }
+    val statsVisibility = remember { MutableTransitionState(false) }.apply { targetState = statsOpen }
+    val newsVisibility = remember { MutableTransitionState(false) }.apply { targetState = newsOpen }
+    val playerVisibility = remember { MutableTransitionState(false) }.apply {
+        targetState = playerOpen && state.current != null && personName == null
+    }
+    val personVisibility = remember { MutableTransitionState(false) }.apply { targetState = personName != null }
+    val onboardingVisibility = remember { MutableTransitionState(false) }.apply { targetState = onboardingOpen }
 
     DisposableEffect(playback) {
         vn.kozu.game.mania.previewstage.audio.PreviewPlayer.onAudible = { playback.pause() }
@@ -261,12 +271,29 @@ private fun KozuShell(
     var infoTarget by remember { mutableStateOf<Beatmap?>(null) }
     var isAppRefreshing by remember { mutableStateOf(false) }
 
+    LaunchedEffect(settingsOpen, allBeatmapsOpen, statsOpen, newsOpen, personName, onboardingOpen) {
+        if (settingsOpen || allBeatmapsOpen || statsOpen || newsOpen || personName != null || onboardingOpen) {
+            menuTarget = null
+            playlistTarget = null
+            infoTarget = null
+        }
+    }
+
     val density = LocalDensity.current
     var chromeHeightPx by remember { mutableIntStateOf(0) }
     val bottomPadding = with(density) { chromeHeightPx.toDp() } + 16.dp
 
     var overlayMiniPx by remember { mutableIntStateOf(0) }
     val overlayScreenOpen = settingsOpen || allBeatmapsOpen || statsOpen || newsOpen
+    val mainPageVisible = !(
+        settingsVisibility.currentState || settingsVisibility.targetState ||
+            allBeatmapsVisibility.currentState || allBeatmapsVisibility.targetState ||
+            statsVisibility.currentState || statsVisibility.targetState ||
+            newsVisibility.currentState || newsVisibility.targetState ||
+            playerVisibility.currentState || playerVisibility.targetState ||
+            personVisibility.currentState || personVisibility.targetState ||
+            onboardingVisibility.currentState || onboardingVisibility.targetState
+    )
     val overlayMiniInset = if (state.current != null) with(density) { overlayMiniPx.toDp() } else 0.dp
     fun closeAllBeatmaps() {
         allBeatmapsOpen = false
@@ -395,7 +422,7 @@ private fun KozuShell(
     LaunchedEffect(container) { container.accounts.refreshIfSignedIn() }
     LaunchedEffect(container) {
         val result = runCatching { container.updates.checkIfDue(container.settings) }.getOrNull()
-        if (result is UpdateResult.Available) notify("Kozu v${result.version} is available")
+        if (result is UpdateResult.Available) notify("Kozu ${result.version} is available")
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
@@ -431,132 +458,134 @@ private fun KozuShell(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.surface),
         ) {
-            TabHost(selected = tab) { current ->
-                when (current) {
-                    KozuTab.HOME -> {
-                        HomeScreen(
-                            listState = homeList,
-                            bottomPadding = bottomPadding,
-                            onOpenSettings = { settingsOpen = true },
-                            onOpenExplore = { tab = KozuTab.EXPLORE },
-                            onOpenLibrary = { tab = KozuTab.LIBRARY },
-                            onOpenStats = { statsOpen = true },
-                            onOpenNews = { newsOpen = true },
-                            onRefresh = ::refreshApp,
-                            isAppRefreshing = isAppRefreshing,
-                        )
-                    }
+            if (mainPageVisible) {
+                TabHost(selected = tab) { current ->
+                    when (current) {
+                        KozuTab.HOME -> {
+                            HomeScreen(
+                                listState = homeList,
+                                bottomPadding = bottomPadding,
+                                onOpenSettings = { settingsOpen = true },
+                                onOpenExplore = { tab = KozuTab.EXPLORE },
+                                onOpenLibrary = { tab = KozuTab.LIBRARY },
+                                onOpenStats = { statsOpen = true },
+                                onOpenNews = { newsOpen = true },
+                                onRefresh = ::refreshApp,
+                                isAppRefreshing = isAppRefreshing,
+                            )
+                        }
 
-                    KozuTab.EXPLORE -> {
-                        ExploreScreen(
-                            listState = exploreList,
-                            bottomPadding = bottomPadding,
-                            onOpenSettings = { settingsOpen = true },
-                            onOpenNews = { newsOpen = true },
-                            onOpenLibrary = { tab = KozuTab.LIBRARY },
-                            onOpenSearch = { tab = KozuTab.SEARCH },
-                            onOpenAllBeatmaps = {
-                                formgamepage = false
-                                allBeatmapsOpen = true
-                            },
-                            onRefresh = ::refreshApp,
-                            isAppRefreshing = isAppRefreshing,
-                        )
-                    }
+                        KozuTab.EXPLORE -> {
+                            ExploreScreen(
+                                listState = exploreList,
+                                bottomPadding = bottomPadding,
+                                onOpenSettings = { settingsOpen = true },
+                                onOpenNews = { newsOpen = true },
+                                onOpenLibrary = { tab = KozuTab.LIBRARY },
+                                onOpenSearch = { tab = KozuTab.SEARCH },
+                                onOpenAllBeatmaps = {
+                                    formgamepage = false
+                                    allBeatmapsOpen = true
+                                },
+                                onRefresh = ::refreshApp,
+                                isAppRefreshing = isAppRefreshing,
+                            )
+                        }
 
-                    KozuTab.LIBRARY -> {
-                        LibraryScreen(
-                            listState = libraryList,
-                            bottomPadding = bottomPadding,
-                            onOpenSettings = { settingsOpen = true },
-                            onOpenNews = { newsOpen = true },
-                            onSyncError = ::notify,
-                        )
-                    }
+                        KozuTab.LIBRARY -> {
+                            LibraryScreen(
+                                listState = libraryList,
+                                bottomPadding = bottomPadding,
+                                onOpenSettings = { settingsOpen = true },
+                                onOpenNews = { newsOpen = true },
+                                onSyncError = ::notify,
+                            )
+                        }
 
-                    KozuTab.SEARCH -> {
-                        SearchScreen(
-                            focusSignal = searchFocusSignal,
-                            bottomPadding = bottomPadding,
-                            onOpenSettings = { settingsOpen = true },
-                            onRefresh = ::refreshApp,
-                            isAppRefreshing = isAppRefreshing,
-                        )
-                    }
+                        KozuTab.SEARCH -> {
+                            SearchScreen(
+                                focusSignal = searchFocusSignal,
+                                bottomPadding = bottomPadding,
+                                onOpenSettings = { settingsOpen = true },
+                                onRefresh = ::refreshApp,
+                                isAppRefreshing = isAppRefreshing,
+                            )
+                        }
 
-                    KozuTab.GAME -> {
-                        GameScreen(
-                            isSelected = tab == KozuTab.GAME,
-                            bottomPadding = bottomPadding,
-                            onOpenSettings = { settingsOpen = true },
-                            onOpenNews = { newsOpen = true },
-                            onGameplayChanged = { active ->
-                                if (active != gamePlayActive) {
-                                    gamePlayActive = active
-                                    if (active) playback.pause()
-                                }
-                            },
-                            onOpenAllBeatmapsFromPreview = { gameViewModel ->
-                                gameMapPickerViewModel = gameViewModel
-                                formgamepage = true
-                                allBeatmapsOpen = true
-                            },
-                        )
-                    }
-                }
-            }
-
-            if (!gamePlayActive) {
-                Column(
-                    modifier =
-                        Modifier
-                            .align(Alignment.BottomCenter)
-                            .background(
-                                Brush.verticalGradient(
-                                    0f to Color.Transparent,
-                                    0.3f to MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-                                    0.5f to MaterialTheme.colorScheme.surface,
-                                ),
-                            ).onSizeChanged { chromeHeightPx = it.height },
-                ) {
-                    AnimatedVisibility(
-                        visible = state.current != null,
-                        enter = slideInVertically(KozuMotion.spatial()) { it } + fadeIn(),
-                        exit = slideOutVertically { it } + fadeOut(),
-                    ) {
-                        state.current?.let { beatmap ->
-                            MiniPlayer(
-                                beatmap = beatmap,
-                                isPlaying = state.isPlaying,
-                                position = playback.position,
-                                duration = playback.duration,
-                                onOpen = { playerOpen = true },
-                                onPlayPause = playback::togglePlayPause,
-                                onPrevious = playback::previous,
-                                onNext = playback::next,
-                                onDismiss = playback::clearQueue,
+                        KozuTab.GAME -> {
+                            GameScreen(
+                                isSelected = tab == KozuTab.GAME,
+                                bottomPadding = bottomPadding,
+                                onOpenSettings = { settingsOpen = true },
+                                onOpenNews = { newsOpen = true },
+                                onGameplayChanged = { active ->
+                                    if (active != gamePlayActive) {
+                                        gamePlayActive = active
+                                        if (active) playback.pause()
+                                    }
+                                },
+                                onOpenAllBeatmapsFromPreview = { gameViewModel ->
+                                    gameMapPickerViewModel = gameViewModel
+                                    formgamepage = true
+                                    allBeatmapsOpen = true
+                                },
                             )
                         }
                     }
-                    FloatingNavBar(
-                        selected = tab,
-                        style = settings.navigationStyle,
-                        compact = settings.compactNavigation,
-                        cornerRadius = settings.navCornerRadius,
-                        onSelect = { target ->
-                            if (target == KozuTab.SEARCH && latestSettings.doubleTapSearch) {
-                                val now = SystemClock.elapsedRealtime()
-                                if (now - lastSearchTap <= 380L) searchFocusSignal++
-                                lastSearchTap = now
-                            }
-                            tab = target
-                        },
-                    )
                 }
-            }
 
-            if (tab == KozuTab.SEARCH && !settingsOpen && !allBeatmapsOpen && !statsOpen && !newsOpen && !playerOpen) {
-                BackHandler { tab = lastMainTab }
+                if (!gamePlayActive) {
+                    Column(
+                        modifier =
+                            Modifier
+                                .align(Alignment.BottomCenter)
+                                .background(
+                                    Brush.verticalGradient(
+                                        0f to Color.Transparent,
+                                        0.3f to MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                                        0.5f to MaterialTheme.colorScheme.surface,
+                                    ),
+                                ).onSizeChanged { chromeHeightPx = it.height },
+                    ) {
+                        AnimatedVisibility(
+                            visible = state.current != null,
+                            enter = slideInVertically(KozuMotion.spatial()) { it } + fadeIn(),
+                            exit = slideOutVertically { it } + fadeOut(),
+                        ) {
+                            state.current?.let { beatmap ->
+                                MiniPlayer(
+                                    beatmap = beatmap,
+                                    isPlaying = state.isPlaying,
+                                    position = playback.position,
+                                    duration = playback.duration,
+                                    onOpen = { playerOpen = true },
+                                    onPlayPause = playback::togglePlayPause,
+                                    onPrevious = playback::previous,
+                                    onNext = playback::next,
+                                    onDismiss = playback::clearQueue,
+                                )
+                            }
+                        }
+                        FloatingNavBar(
+                            selected = tab,
+                            style = settings.navigationStyle,
+                            compact = settings.compactNavigation,
+                            cornerRadius = settings.navCornerRadius,
+                            onSelect = { target ->
+                                if (target == KozuTab.SEARCH && latestSettings.doubleTapSearch) {
+                                    val now = SystemClock.elapsedRealtime()
+                                    if (now - lastSearchTap <= 380L) searchFocusSignal++
+                                    lastSearchTap = now
+                                }
+                                tab = target
+                            },
+                        )
+                    }
+                }
+
+                if (tab == KozuTab.SEARCH) {
+                    BackHandler { tab = lastMainTab }
+                }
             }
 
 
@@ -568,7 +597,7 @@ private fun KozuShell(
                 },
             ) {
                 AnimatedVisibility(
-                    visible = settingsOpen,
+                    visibleState = settingsVisibility,
                     enter = slideInHorizontally(tween(220, easing = FastOutSlowInEasing)) { it / 6 } + fadeIn(tween(180)),
                     exit = slideOutHorizontally(tween(180, easing = FastOutSlowInEasing)) { it / 6 } + fadeOut(tween(150)),
                 ) {
@@ -578,7 +607,7 @@ private fun KozuShell(
                 }
 
                 AnimatedVisibility(
-                    visible = allBeatmapsOpen,
+                    visibleState = allBeatmapsVisibility,
                     enter = slideInHorizontally(KozuMotion.spatial()) { it } + fadeIn(),
                     exit = slideOutHorizontally(tween(240)) { it } + fadeOut(),
                 ) {
@@ -597,7 +626,7 @@ private fun KozuShell(
 
 
                 AnimatedVisibility(
-                    visible = statsOpen,
+                    visibleState = statsVisibility,
                     enter = slideInHorizontally(KozuMotion.spatial()) { it } + fadeIn(),
                     exit = slideOutHorizontally(tween(240)) { it } + fadeOut(),
                 ) {
@@ -615,7 +644,7 @@ private fun KozuShell(
 
 
                 AnimatedVisibility(
-                    visible = newsOpen,
+                    visibleState = newsVisibility,
                     enter = slideInHorizontally(KozuMotion.spatial()) { it } + fadeIn(),
                     exit = slideOutHorizontally(tween(240)) { it } + fadeOut(),
                 ) {
@@ -629,7 +658,7 @@ private fun KozuShell(
             if (statsOpen && !settingsOpen) BackHandler { statsOpen = false }
 
             AnimatedVisibility(
-                visible = playerOpen && state.current != null,
+                visibleState = playerVisibility,
                 enter = slideInVertically(KozuMotion.spatial()) { it } + fadeIn(),
                 exit = slideOutVertically(tween(260)) { it } + fadeOut(),
             ) {
@@ -690,7 +719,7 @@ private fun KozuShell(
 
 
             AnimatedVisibility(
-                visible = personName != null,
+                visibleState = personVisibility,
                 enter = slideInHorizontally(KozuMotion.spatial()) { it } + fadeIn(),
                 exit = slideOutHorizontally(tween(240)) { it } + fadeOut(),
             ) {
@@ -732,6 +761,10 @@ private fun KozuShell(
                                 position = playback.position,
                                 duration = playback.duration,
                                 onOpen = {
+                                    settingsOpen = false
+                                    allBeatmapsOpen = false
+                                    statsOpen = false
+                                    newsOpen = false
                                     personName = null
                                     playerOpen = true
                                 },
@@ -765,7 +798,7 @@ private fun KozuShell(
 
 
             AnimatedVisibility(
-                visible = onboardingOpen,
+                visibleState = onboardingVisibility,
                 enter = fadeIn(tween(200)),
                 exit = fadeOut(tween(260)),
             ) {

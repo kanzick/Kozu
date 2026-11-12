@@ -128,11 +128,11 @@ fun PlayScreen(
 
     val frameTick = remember(session) { mutableLongStateOf(0L) }
     val drawTime = remember(session) { doubleArrayOf(0.0) }
-    LaunchedEffect(session) {
-        while (isActive) {
+    LaunchedEffect(session, phase) {
+        if (phase != GameSession.Phase.PLAYING) return@LaunchedEffect
+        while (isActive && session.phase == GameSession.Phase.PLAYING) {
             withFrameNanos { frameNanos ->
                 session.frame()
-
                 drawTime[0] = session.core.chartTimeAt(frameNanos)
                 frameTick.longValue = frameNanos
             }

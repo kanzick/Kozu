@@ -1,5 +1,6 @@
 package vn.kozu.ui.library
 
+import vn.kozu.ui.components.KozuSheetHandle
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
@@ -80,7 +81,6 @@ import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material.icons.rounded.ViewAgenda
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -143,7 +143,6 @@ import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.CoverCard
 import vn.kozu.ui.components.EmptyState
 import vn.kozu.ui.components.FitText
-import vn.kozu.ui.components.KozuSheetHandle
 import vn.kozu.ui.components.LocalAppSettings
 import vn.kozu.ui.components.LocalNowPlaying
 import vn.kozu.ui.components.LocalPerformanceMode

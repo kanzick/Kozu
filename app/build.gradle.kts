@@ -16,19 +16,17 @@ val hasReleaseSigning = listOf(
     releaseKeyPassword
 ).all { !it.isNullOrBlank() }
 
-val defaultAppVersionName = "1.0.0"
+val defaultAppVersionName = "0.0.0"
 val appVersionName = (project.findProperty("APP_VERSION_NAME") as? String)
     ?.trim()
-    ?.removePrefix("v")
-    ?.removePrefix("V")
     ?.takeIf { it.isNotBlank() }
     ?: defaultAppVersionName
 
 val appVersionMatch = Regex(
-    """^(0|[1-9][0-9]?)\.(0|[1-9][0-9]?)(?:\.(0|[1-9][0-9]?))?$"""
+    """^[vV]?(0|[1-9][0-9]?)\.(0|[1-9][0-9]?)(?:\.(0|[1-9][0-9]?))?$"""
 ).matchEntire(appVersionName) ?: throw GradleException(
-    "APP_VERSION_NAME must be MAJOR.MINOR / MAJOR.MINOR.PATCH, " +
-        "with each component between 0-99 & no leading zeros; got '$appVersionName'."
+    "APP_VERSION_NAME must be [v]Major.Minor / [v]Major.Minor.Patch, " +
+        "with each component between 0-99 and no leading zeros; got '$appVersionName'."
 )
 
 val versionMajor = appVersionMatch.groupValues[1].toInt()

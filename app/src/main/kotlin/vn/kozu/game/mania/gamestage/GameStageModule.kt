@@ -1,7 +1,9 @@
 package vn.kozu.game.mania.gamestage
 
 import android.content.Context
+import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import vn.kozu.game.mania.gamestage.audio.DefaultHitsound
@@ -55,8 +57,27 @@ class GameStageModule private constructor(
 
     suspend fun loadChart(song: SongEntry, difficulty: DifficultyRecord): ManiaChart =
         withContext(Dispatchers.IO) {
-            ManiaChartParser.parse(File(song.folder, difficulty.osuFile).readText(Charsets.UTF_8))
+            val chartFile = File(song.folder, difficulty.osuFile)
+            if (!chartFile.isFile) throw IOException("The selected chart file could not be found")
+            if (chartFile.length() > MAX_CHART_FILE_BYTES) throw IOException("The selected chart file is too large")
+            ManiaChartParser.parse(readChartText(chartFile))
         }
+
+    private fun readChartText(file: File): String {
+        val output = ByteArrayOutputStream(minOf(file.length(), 64L * 1024L).toInt())
+        file.inputStream().use { input ->
+            val buffer = ByteArray(8 * 1024)
+            var total = 0L
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                total += count
+                if (total > MAX_CHART_FILE_BYTES) throw IOException("The selected chart file is too large")
+                output.write(buffer, 0, count)
+            }
+        }
+        return String(output.toByteArray(), Charsets.UTF_8)
+    }
 
     fun newSession(song: SongEntry, difficulty: DifficultyRecord, chart: ManiaChart): GameSession =
         GameSession(song, difficulty, chart, settings, defaultHitFile)
@@ -107,6 +128,7 @@ class GameStageModule private constructor(
         }
 
     companion object {
+        private const val MAX_CHART_FILE_BYTES = 8L * 1024L * 1024L
         @Volatile private var instance: GameStageModule? = null
 
         fun get(context: Context, preview: PreviewStageModule): GameStageModule =

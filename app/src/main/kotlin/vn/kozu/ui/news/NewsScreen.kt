@@ -1,5 +1,6 @@
 package vn.kozu.ui.news
 
+import vn.kozu.ui.components.KozuSheetHandle
 import android.content.Intent
 import android.net.Uri
 import android.os.SystemClock
@@ -93,7 +94,6 @@ import vn.kozu.data.news.NewsReadState
 import vn.kozu.ui.explore.FilterAction
 import vn.kozu.di.AppContainer
 import vn.kozu.ui.components.KozuSearchField
-import vn.kozu.ui.components.KozuSheetHandle
 import vn.kozu.ui.components.LocalOverlayBottomInset
 import vn.kozu.ui.components.RefreshIndicator
 import vn.kozu.ui.components.bounceClick

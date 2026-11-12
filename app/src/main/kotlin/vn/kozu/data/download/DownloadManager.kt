@@ -59,6 +59,7 @@ class DownloadManager(
 ) {
     private companion object {
         const val BYTES_PER_MB = 1024L * 1024L
+        const val MAX_ARCHIVE_DOWNLOAD_BYTES = 2L * 1024L * 1024L * 1024L
     }
 
     private val appContext = context.applicationContext
@@ -280,7 +281,17 @@ class DownloadManager(
             val staging = File(destination.parentFile, "$id.tmp")
             staging.deleteRecursively()
 
-            val result = OszExtractor.extract(temp, staging, current.keepFullBeatmap)
+            val maxExtractBytes = if (current.downloadLimitMb > 0) {
+                current.downloadLimitMb.toLong() * BYTES_PER_MB
+            } else {
+                2L * 1024L * 1024L * 1024L
+            }
+            val result = try {
+                OszExtractor.extract(temp, staging, current.keepFullBeatmap, maxExtractBytes)
+            } catch (e: Exception) {
+                staging.deleteRecursively()
+                throw e
+            }
             if (!reserveSpace(id, result.sizeBytes, current.downloadLimitMb)) {
                 staging.deleteRecursively()
                 temp.delete()
@@ -292,6 +303,7 @@ class DownloadManager(
             }
             destination.deleteRecursively()
             if (!staging.renameTo(destination)) {
+                staging.deleteRecursively()
                 throw IOException("Could not store the beatmap files")
             }
             temp.delete()
@@ -400,6 +412,9 @@ class DownloadManager(
 
             val body = response.body
             val total = body.contentLength()
+            if (total > MAX_ARCHIVE_DOWNLOAD_BYTES) {
+                throw IOException("The beatmap archive exceeds the 2 GB download limit")
+            }
             var read = 0L
             var lastReport = 0L
 
@@ -411,6 +426,9 @@ class DownloadManager(
                         val count = input.read(buffer)
                         if (count < 0) break
 
+                        if (count.toLong() > MAX_ARCHIVE_DOWNLOAD_BYTES - read) {
+                            throw IOException("The beatmap archive exceeds the 2 GB download limit")
+                        }
                         output.write(buffer, 0, count)
                         read += count
 

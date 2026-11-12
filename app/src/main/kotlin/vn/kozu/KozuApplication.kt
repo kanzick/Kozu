@@ -6,10 +6,6 @@ import coil3.ImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeoutOrNull
 import okio.Path.Companion.toOkioPath
 import vn.kozu.di.AppContainer
 import vn.kozu.util.AppLocaleManager
@@ -26,14 +22,9 @@ class KozuApplication :
     }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader {
-        val limitMb =
-            runBlocking(Dispatchers.IO) {
-                withTimeoutOrNull(1_000L) {
-                    container.settings.settings
-                        .first()
-                        .imageCacheMb
-                }
-            } ?: DEFAULT_IMAGE_CACHE_MB
+        val limitMb = getSharedPreferences(IMAGE_CACHE_PREFS, MODE_PRIVATE)
+            .getInt(IMAGE_CACHE_KEY, DEFAULT_IMAGE_CACHE_MB)
+            .coerceIn(MIN_IMAGE_CACHE_MB, MAX_IMAGE_CACHE_MB)
         return ImageLoader
             .Builder(context)
             .components {
@@ -42,12 +33,16 @@ class KozuApplication :
                 DiskCache
                     .Builder()
                     .directory(cacheDir.resolve("image_cache").toOkioPath())
-                    .maxSizeBytes(limitMb.coerceIn(32, 1024) * 1024L * 1024L)
+                    .maxSizeBytes(limitMb.toLong() * 1024L * 1024L)
                     .build()
             }.build()
     }
 
     private companion object {
         const val DEFAULT_IMAGE_CACHE_MB = 128
+        const val MIN_IMAGE_CACHE_MB = 32
+        const val MAX_IMAGE_CACHE_MB = 1024
+        const val IMAGE_CACHE_PREFS = "kozu_theme_sync"
+        const val IMAGE_CACHE_KEY = "image_cache_mb"
     }
 }

@@ -10,6 +10,8 @@ import vn.kozu.game.mania.previewstage.osu.OsuBeatmap
 import vn.kozu.game.mania.previewstage.osu.OsuParser
 import vn.kozu.game.mania.previewstage.osu.OszExtractor
 
+private const val MAX_CHART_FILE_BYTES = 8L * 1024L * 1024L
+
 class ImportSummary(
     val imported: List<Long>,
     val skipped: List<Long>,
@@ -92,6 +94,7 @@ class SongImporter(
                 .sortedBy { it.path }
                 .mapNotNull { file ->
                     val beatmap = runCatching {
+                        if (file.length() > MAX_CHART_FILE_BYTES) throw IOException("Chart file is too large")
                         OsuParser.parse(file.readText(Charsets.UTF_8))
                     }.getOrNull()
                     if (beatmap == null || (onlyMania && beatmap.mode != OsuParser.MODE_MANIA)) {
