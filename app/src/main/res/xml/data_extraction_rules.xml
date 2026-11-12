@@ -5,11 +5,15 @@
 
 <data-extraction-rules>
     <cloud-backup>
+        <exclude domain="sharedpref" path="score_sync_session.xml" />
 
 
 
 
     </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="score_sync_session.xml" />
+    </device-transfer>
 
 
 

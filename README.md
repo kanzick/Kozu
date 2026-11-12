@@ -67,6 +67,23 @@ cd Kozu
 
 You can also open the project in Android Studio.
 
+### Online leaderboard
+
+Enable anonymous sign-ins and apply the Supabase leaderboard schema to your project.
+Configure `supabaseUrl` and `supabaseAnonKey` as Gradle properties (for example in
+your user-level `gradle.properties`). Use only a publishable/anon key, never a
+service-role key. Without these properties scores remain local.
+
+Scores are saved on the device first and queued for retry while the game module is
+running. Local top 5 includes all names used on this device. The global leaderboard
+shows up to 50 players and highlights the current anonymous account. Anonymous
+accounts are tied to the app installation; uninstalling the app loses that account.
+The default local name keeps the server-generated unique name. Other names must be
+2–24 characters and unique on the server; a name update failure is shown on the
+global leaderboard and retried without blocking score submissions.
+The supplied server schema deletes old plays, so retries after deletion may count
+the same play twice despite using the same client play ID.
+
 
 ## Contributing
 

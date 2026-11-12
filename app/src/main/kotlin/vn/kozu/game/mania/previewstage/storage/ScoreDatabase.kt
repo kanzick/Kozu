@@ -11,10 +11,17 @@ import vn.kozu.game.mania.previewstage.model.ScoreRecord
 class ScoreDatabase private constructor(private val db: SQLiteDatabase) : Closeable {
 
 
-    fun insert(s: ScoreRecord): Boolean {
+    fun insert(s: ScoreRecord, clientPlayId: String? = null, submission: String? = null): Boolean {
+        require((clientPlayId == null) == (submission == null))
         db.beginTransaction()
         try {
             val playedAt = if (s.playedAt > 0) s.playedAt else System.currentTimeMillis()
+            if (clientPlayId != null && submission != null) {
+                db.insertOrThrow("score_sync_queue", null, ContentValues().apply {
+                    put("client_play_id", clientPlayId)
+                    put("submission", submission)
+                })
+            }
             val existingPlayedAt = db.rawQuery(
                 """SELECT played_at FROM score_play_history
                    WHERE player_name = ? AND song_id = ? AND difficulty = ?""",
@@ -61,11 +68,14 @@ class ScoreDatabase private constructor(private val db: SQLiteDatabase) : Closea
                 )
             }
             val cutoff = db.rawQuery(
-                """SELECT score FROM score WHERE song_id = ? AND difficulty = ?
-                   ORDER BY score DESC, played_at ASC, id ASC LIMIT 1 OFFSET ${MAX_SCORES_PER_DIFFICULTY - 1}""",
+                """SELECT score, accuracy, played_at FROM score WHERE song_id = ? AND difficulty = ?
+                   ORDER BY score DESC, accuracy DESC, played_at ASC, id ASC LIMIT 1 OFFSET ${MAX_SCORES_PER_DIFFICULTY - 1}""",
                 arrayOf(s.songId.toString(), s.difficulty)
-            ).use { if (it.moveToFirst()) it.getLong(0) else null }
-            if (cutoff != null && s.score <= cutoff) {
+            ).use { if (it.moveToFirst()) Triple(it.getLong(0), it.getDouble(1), it.getLong(2)) else null }
+            if (cutoff != null && (s.score < cutoff.first ||
+                    (s.score == cutoff.first && s.accuracy < cutoff.second) ||
+                    (s.score == cutoff.first && s.accuracy == cutoff.second && playedAt >= cutoff.third))
+            ) {
                 db.setTransactionSuccessful()
                 return false
             }
@@ -84,7 +94,7 @@ class ScoreDatabase private constructor(private val db: SQLiteDatabase) : Closea
             db.execSQL(
                 """DELETE FROM score WHERE song_id = ? AND difficulty = ? AND id NOT IN (
                        SELECT id FROM score WHERE song_id = ? AND difficulty = ?
-                       ORDER BY score DESC, played_at ASC, id ASC LIMIT $MAX_SCORES_PER_DIFFICULTY)""",
+                       ORDER BY score DESC, accuracy DESC, played_at ASC, id ASC LIMIT $MAX_SCORES_PER_DIFFICULTY)""",
                 arrayOf<Any>(s.songId, s.difficulty, s.songId, s.difficulty)
             )
             db.setTransactionSuccessful()
@@ -101,35 +111,47 @@ class ScoreDatabase private constructor(private val db: SQLiteDatabase) : Closea
                       s.true_combo, s.max_combo, s.played_at
                FROM score s
                WHERE s.song_id = ? AND s.difficulty = ?
-               ORDER BY s.score DESC, s.played_at ASC, s.id ASC
+               ORDER BY s.score DESC, s.accuracy DESC, s.played_at ASC, s.id ASC
                LIMIT ?""",
             arrayOf(songId.toString(), difficulty, limit.toString())
         ).use { it.toRecords() }
 
-    fun bestScore(songId: Long, difficulty: String, playerName: String): ScoreRecord? =
+    fun pendingSubmissions(): List<Pair<String, String>> =
+        db.rawQuery("SELECT client_play_id, submission FROM score_sync_queue ORDER BY rowid", null).use { cursor ->
+            buildList {
+                while (cursor.moveToNext()) add(cursor.getString(0) to cursor.getString(1))
+            }
+        }
+
+    fun removeSubmission(clientPlayId: String) {
+        db.delete("score_sync_queue", "client_play_id = ?", arrayOf(clientPlayId))
+    }
+
+    fun bestScore(songId: Long, difficulty: String): ScoreRecord? =
         db.rawQuery(
             """SELECT player_name, song_id, difficulty, score, accuracy, "rank", true_combo, max_combo, played_at
                FROM score_personal_best
-               WHERE song_id = ? AND difficulty = ? AND player_name = ?
+               WHERE song_id = ? AND difficulty = ?
+               ORDER BY score DESC, accuracy DESC, played_at ASC
                LIMIT 1""",
-            arrayOf(songId.toString(), difficulty, playerName)
+            arrayOf(songId.toString(), difficulty)
         ).use { it.toRecords().firstOrNull() }
 
 
-    fun bestScores(songId: Long, playerName: String): List<ScoreRecord> =
+    fun bestScores(songId: Long): List<ScoreRecord> =
         db.rawQuery(
             """SELECT player_name, song_id, difficulty, score, accuracy, "rank", true_combo, max_combo, played_at
                FROM score_personal_best
-               WHERE song_id = ? AND player_name = ?
-               ORDER BY difficulty""",
-            arrayOf(songId.toString(), playerName)
+               WHERE song_id = ?
+               ORDER BY difficulty, score DESC, accuracy DESC, played_at ASC""",
+            arrayOf(songId.toString())
         ).use { it.toRecords() }
 
-    fun latestPlayedAt(songId: Long, playerName: String): Map<String, Long> =
+    fun latestPlayedAt(songId: Long): Map<String, Long> =
         db.rawQuery(
-            """SELECT difficulty, played_at FROM score_play_history
-               WHERE song_id = ? AND player_name = ?""",
-            arrayOf(songId.toString(), playerName),
+            """SELECT difficulty, MAX(played_at) FROM score_play_history
+               WHERE song_id = ? GROUP BY difficulty""",
+            arrayOf(songId.toString()),
         ).use { cursor ->
             buildMap {
                 while (cursor.moveToNext()) put(cursor.getString(0), cursor.getLong(1))
@@ -158,7 +180,7 @@ class ScoreDatabase private constructor(private val db: SQLiteDatabase) : Closea
 
     companion object {
         const val MAX_SCORES_PER_DIFFICULTY = 50
-        private const val SCHEMA_VERSION = 7
+        private const val SCHEMA_VERSION = 8
 
         fun open(file: File): ScoreDatabase {
             val db = SQLiteDatabase.openOrCreateDatabase(file, null)
@@ -239,8 +261,38 @@ class ScoreDatabase private constructor(private val db: SQLiteDatabase) : Closea
                                    )"""
                             )
                         }
+                        if (db.version in 1 until 8) {
+                            db.execSQL(
+                                """INSERT INTO score
+                                   (player_name, song_id, difficulty, score, accuracy, "rank", true_combo, max_combo, played_at)
+                                   SELECT pb.player_name, pb.song_id, pb.difficulty, pb.score, pb.accuracy, pb."rank",
+                                          pb.true_combo, pb.max_combo, pb.played_at
+                                   FROM score_personal_best pb
+                                   WHERE NOT EXISTS (
+                                       SELECT 1 FROM score s WHERE s.player_name = pb.player_name
+                                         AND s.song_id = pb.song_id AND s.difficulty = pb.difficulty
+                                         AND s.score = pb.score AND s.accuracy = pb.accuracy
+                                         AND s."rank" = pb."rank" AND s.true_combo IS pb.true_combo
+                                         AND s.max_combo IS pb.max_combo AND s.played_at = pb.played_at
+                                   )"""
+                            )
+                            db.execSQL(
+                                """DELETE FROM score WHERE id NOT IN (
+                                       SELECT s.id FROM score s
+                                       WHERE s.song_id = score.song_id AND s.difficulty = score.difficulty
+                                       ORDER BY s.score DESC, s.accuracy DESC, s.played_at ASC, s.id ASC
+                                       LIMIT $MAX_SCORES_PER_DIFFICULTY
+                                   )"""
+                            )
+                        }
                         db.execSQL(
                             "CREATE INDEX IF NOT EXISTS idx_score_song_diff ON score(song_id, difficulty, score DESC)"
+                        )
+                        db.execSQL(
+                            """CREATE TABLE IF NOT EXISTS score_sync_queue (
+                                client_play_id TEXT PRIMARY KEY NOT NULL,
+                                submission TEXT NOT NULL
+                            )"""
                         )
                         db.version = SCHEMA_VERSION
                     }

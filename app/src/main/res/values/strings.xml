@@ -375,6 +375,10 @@ Guests and signed-in users have the same catalog, streaming, and download access
     <string name="listening_stats_text">Listening Stats</string>
     <string name="loading_personal_scores">Loading personal scores…</string>
     <string name="loading_scores">Loading scores…</string>
+    <string name="local_top_five">Local top 5</string>
+    <string name="global_top_fifty">Global top 50</string>
+    <string name="scores_pending_sync">%1$d scores are waiting to sync.</string>
+    <string name="score_name_sync_failed">Could not sync the player name. Use a unique name of 2–24 characters.</string>
     <string name="loading_video_preview">Loading video preview…</string>
     <string name="local_charts_refresh_error">Local charts could not be refreshed: %1$s</string>
     <string name="locale_translation_system">locale translation system</string>

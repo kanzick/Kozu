@@ -24,6 +24,9 @@ val appVersionName = providers.gradleProperty("appVersion")
     .removePrefix("v")
     .removePrefix("V")
 
+fun buildStringValue(value: String): String =
+    "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+
 android {
     namespace = "vn.kozu"
     compileSdk {
@@ -50,6 +53,8 @@ android {
         targetSdk = 37
         versionCode = (System.currentTimeMillis() / 1000L).toInt()
         versionName = appVersionName
+        buildConfigField("String", "SUPABASE_URL", buildStringValue(providers.gradleProperty("supabaseUrl").orElse("").get()))
+        buildConfigField("String", "SUPABASE_ANON_KEY", buildStringValue(providers.gradleProperty("supabaseAnonKey").orElse("").get()))
     }
 
     buildTypes {
@@ -97,6 +102,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     lint {

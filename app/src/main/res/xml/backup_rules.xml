@@ -6,6 +6,7 @@
 
 
 <full-backup-content>
+    <exclude domain="sharedpref" path="score_sync_session.xml" />
 
 
 
