@@ -16,16 +16,29 @@ val hasReleaseSigning = listOf(
     releaseKeyPassword
 ).all { !it.isNullOrBlank() }
 
-val defaultAppVersionName = "0.1.4"
+val defaultAppVersionName = "1.0.0"
+val appVersionName = (project.findProperty("APP_VERSION_NAME") as? String)
+    ?.trim()
+    ?.removePrefix("v")
+    ?.removePrefix("V")
+    ?.takeIf { it.isNotBlank() }
+    ?: defaultAppVersionName
 
-val appVersionName = providers.gradleProperty("appVersion")
-    .orElse(defaultAppVersionName)
-    .get()
-    .removePrefix("v")
-    .removePrefix("V")
+val appVersionMatch = Regex(
+    """^(0|[1-9][0-9]?)\.(0|[1-9][0-9]?)(?:\.(0|[1-9][0-9]?))?$"""
+).matchEntire(appVersionName) ?: throw GradleException(
+    "APP_VERSION_NAME must be MAJOR.MINOR / MAJOR.MINOR.PATCH, " +
+        "with each component between 0-99 & no leading zeros; got '$appVersionName'."
+)
 
-fun buildStringValue(value: String): String =
-    "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+val versionMajor = appVersionMatch.groupValues[1].toInt()
+val versionMinor = appVersionMatch.groupValues[2].toInt()
+val hasVersionPatch = appVersionMatch.groupValues[3].isNotEmpty()
+val versionPatch = appVersionMatch.groupValues[3].takeIf { it.isNotEmpty() }?.toInt() ?: 0
+val appVersionCode = (
+    (versionMajor * 100 + versionMinor) * 101 +
+        (if (hasVersionPatch) versionPatch + 2 else 1)
+)
 
 android {
     namespace = "vn.kozu"
@@ -51,10 +64,8 @@ android {
         applicationId = "vn.kozu"
         minSdk = 28
         targetSdk = 37
-        versionCode = (System.currentTimeMillis() / 1000L).toInt()
+        versionCode = appVersionCode.toInt()
         versionName = appVersionName
-        buildConfigField("String", "SUPABASE_URL", buildStringValue(providers.gradleProperty("supabaseUrl").orElse("").get()))
-        buildConfigField("String", "SUPABASE_ANON_KEY", buildStringValue(providers.gradleProperty("supabaseAnonKey").orElse("").get()))
     }
 
     buildTypes {
@@ -102,7 +113,6 @@ android {
 
     buildFeatures {
         compose = true
-        buildConfig = true
     }
 
     lint {
