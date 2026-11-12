@@ -91,8 +91,8 @@
     <string name="keep_the_full_osz_file_for_gameplay">Giữ toàn bộ tệp .osz để chơi trong chế độ game.</string>
     <string name="kozu">Kozu</string>
     <string name="kozu_accesses_beatmap_metadata_covers_and_previews_f">Kozu lấy siêu dữ liệu beatmap, ảnh bìa và bản nghe thử từ osu!. Âm thanh và hình ảnh beatmap vẫn thuộc quyền sở hữu của tác giả tương ứng; Kozu không nhận quyền sở hữu.</string>
-    <string name="kozu_available">Có Kozu v%1$s</string>
-    <string name="kozu_available_english">Kozu v%1$s is available</string>
+    <string name="kozu_available">Có Kozu %1$s</string>
+    <string name="kozu_available_english">Kozu %1$s is available</string>
     <string name="kozu_is_an_unofficial_fan_project_and_is_not_affilia">Kozu là dự án do người hâm mộ phát triển, không liên kết hoặc được ppy Pty Ltd chứng thực. osu! là nhãn hiệu của ppy Pty Ltd.</string>
     <string name="kozu_unrestricted">Kozu không bị giới hạn</string>
     <string name="kozu_updates">Cập nhật Kozu</string>
@@ -205,7 +205,7 @@
         <item quantity="other">Cần cập nhật %1$d mục</item>
     </plurals>
     <string name="update_needed_one">Cần cập nhật %1$d mục</string>
-    <string name="update_version_checked">v%1$s · %2$s</string>
+    <string name="update_version_checked">%1$s · %2$s</string>
     <string name="updates">Cập nhật</string>
     <string name="used_to_check_published_kozu_releases_and_display_re">Dùng để kiểm tra bản phát hành Kozu và hiển thị các commit mã nguồn gần đây. Có thể tắt kiểm tra cập nhật trong Cài đặt.</string>
     <string name="version_release">Phiên bản phát hành</string>
