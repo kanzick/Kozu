@@ -377,8 +377,8 @@ fun LibraryScreen(
                                             listState = pageListStates.getValue(tab),
                                             bottomPadding = bottomPadding,
                                             emptyIcon = Icons.Rounded.FavoriteBorder,
-                                            emptyTitle = "Nothing liked yet",
-                                            emptyMessage = "Tap the heart on any song and it will live here.",
+                                            emptyTitle = stringResource(R.string.nothing_liked_yet),
+                                            emptyMessage = stringResource(R.string.tap_the_heart_on_any_song_and_it_will_live_here),
                                             onReorder = { ids -> viewModel.reorderTracks(LibraryTab.LIKED, ids) },
                                         )
 
@@ -390,8 +390,8 @@ fun LibraryScreen(
                                             listState = pageListStates.getValue(tab),
                                             bottomPadding = bottomPadding,
                                             emptyIcon = Icons.Rounded.History,
-                                            emptyTitle = "No songs played yet",
-                                            emptyMessage = "Everything you listen to will be collected here.",
+                                            emptyTitle = stringResource(R.string.no_songs_played_yet),
+                                            emptyMessage = stringResource(R.string.everything_you_listen_to_will_be_collected_here),
                                             onReorder = { ids -> viewModel.reorderTracks(LibraryTab.SONGS, ids) },
                                         )
 
@@ -462,8 +462,8 @@ fun LibraryScreen(
 
     if (showCreate) {
         NamePlaylistDialog(
-            title = "New playlist",
-            confirmLabel = "Create",
+            title = stringResource(R.string.new_playlist),
+            confirmLabel = stringResource(R.string.create),
             onDismiss = { showCreate = false },
             onConfirm = {
                 showCreate = false
@@ -571,7 +571,7 @@ private fun SplitTitle(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Icon(libraryTabIcon(current), contentDescription = null, modifier = Modifier.size(22.dp))
-                    FitText(current.label, style = MaterialTheme.typography.titleLarge, color = content, minScale = 0.7f)
+                    FitText(stringResource(current.labelRes), style = MaterialTheme.typography.titleLarge, color = content, minScale = 0.7f)
                 }
             }
         }
@@ -692,12 +692,12 @@ private fun LibraryActionRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         when (ui.tab) {
-            LibraryTab.PLAYLISTS -> PillButton(Icons.Rounded.Add, "New", onCreatePlaylist)
-            LibraryTab.DOWNLOADS -> PillButton(Icons.Rounded.Download, "Download liked", onDownloadLiked)
+            LibraryTab.PLAYLISTS -> PillButton(Icons.Rounded.Add, stringResource(R.string.new_label), onCreatePlaylist)
+            LibraryTab.DOWNLOADS -> PillButton(Icons.Rounded.Download, stringResource(R.string.download_liked), onDownloadLiked)
             LibraryTab.SONGS, LibraryTab.LIKED ->
                 PillButton(
                     icon = Icons.Rounded.Shuffle,
-                    label = "Shuffle",
+                    label = stringResource(R.string.shuffle),
                     onClick = onShuffle,
                     container = MaterialTheme.colorScheme.tertiaryContainer,
                     content = MaterialTheme.colorScheme.onTertiaryContainer,
@@ -709,19 +709,19 @@ private fun LibraryActionRow(
             when (ui.tab) {
                 LibraryTab.SONGS, LibraryTab.LIKED ->
                     buildList {
-                        if (canLocate) add(GroupButton(Icons.Rounded.MyLocation, "Show current song", onLocate))
-                        add(GroupButton(playIcon, "Play in order", onPlay))
+                        if (canLocate) add(GroupButton(Icons.Rounded.MyLocation, stringResource(R.string.show_current_song), onLocate))
+                        add(GroupButton(playIcon, stringResource(R.string.play_in_order), onPlay))
                         add(
                             GroupButton(
                                 icon = if (ui.grid) Icons.Rounded.ViewAgenda else Icons.Rounded.GridView,
-                                description = if (ui.grid) "Show as list" else "Show as grid",
+                                description = stringResource(if (ui.grid) R.string.show_as_list else R.string.show_as_grid),
                                 onClick = onToggleGrid,
                             ),
                         )
-                        add(GroupButton(Icons.AutoMirrored.Rounded.Sort, "Sort") { sortOpen = true })
+                        add(GroupButton(Icons.AutoMirrored.Rounded.Sort, stringResource(R.string.sort)) { sortOpen = true })
                     }
 
-                LibraryTab.DOWNLOADS -> listOf(GroupButton(Icons.AutoMirrored.Rounded.Sort, "Sort downloads") { sortOpen = true })
+                LibraryTab.DOWNLOADS -> listOf(GroupButton(Icons.AutoMirrored.Rounded.Sort, stringResource(R.string.sort_downloads)) { sortOpen = true })
                 LibraryTab.PLAYLISTS -> emptyList()
             }
         ConnectedButtonGroup(buttons)
@@ -898,7 +898,7 @@ private fun SortSheet(
                         modifier = Modifier.padding(start = 16.dp, end = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(option.label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+                        Text(stringResource(option.labelRes), modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
                         RadioButton(selected = selected, onClick = { onSort(option) })
                     }
                 }
@@ -987,7 +987,7 @@ private fun LibraryTabsSheet(
                                 }
                                 Spacer(Modifier.height(6.dp))
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    FitText(tab.label, style = MaterialTheme.typography.titleSmall, minScale = 0.75f)
+                                    FitText(stringResource(tab.labelRes), style = MaterialTheme.typography.titleSmall, minScale = 0.75f)
                                     Spacer(Modifier.width(5.dp))
                                     Text(countFor(tab).toString(),
                                         style = MaterialTheme.typography.labelSmall,
@@ -1101,13 +1101,13 @@ private fun ReorderLibraryTabsSheet(
                             ) {
                                 Icon(
                                     Icons.Rounded.DragIndicator,
-                                    contentDescription = stringResource(R.string.drag_reorder, tab.label),
+                                    contentDescription = stringResource(R.string.drag_reorder, stringResource(tab.labelRes)),
                                     modifier = Modifier.draggableHandle(),
                                 )
                                 Spacer(Modifier.width(12.dp))
                                 Icon(libraryTabIcon(tab), contentDescription = null, modifier = Modifier.size(20.dp))
                                 Spacer(Modifier.width(12.dp))
-                                Text(tab.label, style = MaterialTheme.typography.titleSmall)
+                                Text(stringResource(tab.labelRes), style = MaterialTheme.typography.titleSmall)
                             }
                         }
                     }
@@ -1171,7 +1171,7 @@ private fun LibraryTabRow(
             FilterChip(
                 selected = tab == selected,
                 onClick = { onSelect(tab) },
-                label = { Text(tab.label) },
+                label = { Text(stringResource(tab.labelRes)) },
                 leadingIcon = { Icon(libraryTabIcon(tab), contentDescription = null) },
             )
         }
@@ -1327,11 +1327,11 @@ private fun PlaylistGrid(
     if (playlists.isEmpty()) {
         RefreshableEmptyState(
             icon = Icons.AutoMirrored.Rounded.QueueMusic,
-            title = "No playlists yet",
-            message = "Create a playlist, then add beatmaps from the track menu.",
+            title = stringResource(R.string.no_playlists_yet),
+            message = stringResource(R.string.create_a_playlist_then_add_beatmaps_from_the_track_m),
             shape = KozuCookies.Bold6,
             modifier = Modifier.padding(top = 32.dp),
-            action = { PillButton(Icons.Rounded.Add, "New playlist", onCreate) },
+            action = { PillButton(Icons.Rounded.Add, stringResource(R.string.new_playlist), onCreate) },
         )
         return
     }
@@ -1437,19 +1437,19 @@ private fun PlaylistDetail(
         ) {
             PillButton(
                 icon = playbackIconVector(LocalAppSettings.current.playbackIcon, false),
-                label = "Play",
+                label = stringResource(R.string.play_playlist),
                 onClick = { actions.play(orderedTracks, 0) },
             )
             PillButton(
                 icon = Icons.Rounded.Shuffle,
-                label = "Shuffle",
+                label = stringResource(R.string.shuffle),
                 onClick = { actions.playShuffled(orderedTracks) },
                 container = MaterialTheme.colorScheme.tertiaryContainer,
                 content = MaterialTheme.colorScheme.onTertiaryContainer,
             )
             PillButton(
                 icon = Icons.Rounded.Download,
-                label = "Offline",
+                label = stringResource(R.string.offline),
                 onClick = { actions.downloadAll(orderedTracks) },
             )
         }
@@ -1457,8 +1457,8 @@ private fun PlaylistDetail(
         if (orderedTracks.isEmpty()) {
             RefreshableEmptyState(
                 icon = Icons.AutoMirrored.Rounded.QueueMusic,
-                title = "Empty playlist",
-                message = "Use the ⋮ menu on any song and choose \"Add to playlist\".",
+                title = stringResource(R.string.empty_playlist),
+                message = stringResource(R.string.use_the_menu_on_any_song_and_choose_add_to_playlist),
                 shape = KozuCookies.Flower8,
                 modifier = Modifier.padding(top = 24.dp),
             )
@@ -1517,8 +1517,8 @@ private fun PlaylistDetail(
     }
     if (showRename) {
         NamePlaylistDialog(
-            title = "Rename playlist",
-            confirmLabel = "Save",
+            title = stringResource(R.string.rename_playlist),
+            confirmLabel = stringResource(R.string.save),
             initial = playlist.name,
             onDismiss = { showRename = false },
             onConfirm = { showRename = false; onRename(it) },
@@ -1570,8 +1570,8 @@ private fun DownloadsPane(
     if (queue.isEmpty() && tracks.isEmpty()) {
         RefreshableEmptyState(
             icon = Icons.Rounded.Download,
-            title = "Nothing offline yet",
-            message = "Download songs from the ⋮ menu to play them without internet and use them in game mode.",
+            title = stringResource(R.string.nothing_offline_yet),
+            message = stringResource(R.string.download_songs_from_the_menu_to_play_them_without_in),
             shape = KozuCookies.Clover4,
             modifier = Modifier.padding(top = 32.dp),
         )
@@ -1627,7 +1627,13 @@ private fun DownloadsPane(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Text(ui.queueTitles[entry.key]?.takeIf { it.isNotBlank() } ?: "Beatmap #${entry.key}", style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            ui.queueTitles[entry.key]?.takeIf { it.isNotBlank() }
+                                ?: stringResource(R.string.beatmap_number, entry.key),
+                            style = MaterialTheme.typography.titleSmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                         when (status) {
                             is DownloadStatus.Queued -> Text(stringResource(R.string.waiting_in_queue), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             is DownloadStatus.Running -> {
@@ -1638,7 +1644,11 @@ private fun DownloadsPane(
                         }
                     }
                     IconButton(onClick = { if (status is DownloadStatus.Failed) onDismiss(entry.key) else onCancel(entry.key) }) {
-                        Icon(Icons.Rounded.Close, contentDescription = if (status is DownloadStatus.Failed) "Dismiss" else "Cancel download", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(
+                            Icons.Rounded.Close,
+                            contentDescription = stringResource(if (status is DownloadStatus.Failed) R.string.dismiss else R.string.cancel_download),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
             }

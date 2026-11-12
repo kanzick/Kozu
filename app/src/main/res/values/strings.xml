@@ -39,6 +39,7 @@
     <string name="appearance">Appearance</string>
     <string name="apply">Apply</string>
     <string name="artist">Artist</string>
+    <string name="auto">Auto</string>
     <string name="artwork_cache_limit">Artwork cache limit</string>
     <string name="artwork_colors">Artwork colors</string>
     <string name="artwork_gestures">Artwork gestures</string>
@@ -84,6 +85,7 @@
     <string name="cached_streams_artwork_and_catalog_pages_will_be_del">Cached streams, artwork and catalog pages will be deleted. Downloads are not affected.</string>
     <string name="callback_url">Callback URL</string>
     <string name="cancel">Cancel</string>
+    <string name="cancel_download">Cancel download</string>
     <string name="carousel">Carousel</string>
     <string name="catalog">Catalog</string>
     <string name="catalog_and_library_sync">Catalog and library sync</string>
@@ -292,6 +294,7 @@
 Guests and signed-in users have the same catalog, streaming, and download access.</string>
     <string name="gain_amplify">gain amplify</string>
     <string name="game">Game</string>
+    <string name="hide">Hide</string>
     <string name="game_paused">Game paused</string>
     <string name="game_settings">Game settings</string>
     <string name="game_settings_error">Could not save settings: %1$s</string>
@@ -360,6 +363,7 @@ Guests and signed-in users have the same catalog, streaming, and download access
     <string name="level">Level %1$d</string>
     <string name="level_english">Level %1$d</string>
     <string name="library">Library</string>
+    <string name="library_refresh_failed">Could not refresh your library. Check your connection and try again.</string>
     <string name="library_compact_dense_spacing">library compact dense spacing</string>
     <string name="library_navigation">Library navigation</string>
     <string name="library_rows">Library rows</string>
@@ -369,6 +373,7 @@ Guests and signed-in users have the same catalog, streaming, and download access
     <string name="like">Like</string>
     <string name="like_songs_or_build_a_playlist_and_it_will_live_here">Like songs or build a playlist and it will live here.</string>
     <string name="liked">Liked</string>
+    <string name="liked_songs">Liked songs</string>
     <string name="listen_again">Listen again</string>
     <string name="listening_history">Listening history</string>
     <string name="listening_stats">Listening stats</string>
@@ -492,6 +497,8 @@ Guests and signed-in users have the same catalog, streaming, and download access
     <string name="pill_floating_classic">pill floating classic</string>
     <string name="pink">Pink</string>
     <string name="play">Play</string>
+    <string name="play_in_order">Play in order</string>
+    <string name="play_playlist">Play</string>
     <string name="play_a_few_songs_and_your_week_will_show_up_here">Play a few songs and your week will show up here.</string>
     <string name="play_all">Play all</string>
     <string name="play_arrow">Play arrow</string>
@@ -525,6 +532,8 @@ Guests and signed-in users have the same catalog, streaming, and download access
     <string name="playing_from_your_queue">Playing from your queue</string>
     <string name="playlist_name">Playlist name</string>
     <string name="playlists">Playlists</string>
+    <string name="playlist">Playlist</string>
+    <string name="playlist_label_short">Playlist</string>
     <string name="plays">Plays</string>
     <string name="plays_and_favorites">Plays and favorites</string>
     <string name="plays_english">%1$d plays</string>
@@ -703,6 +712,10 @@ Guests and signed-in users have the same catalog, streaming, and download access
     <string name="share_app">Share app</string>
     <string name="sharpest_covers">Sharpest covers</string>
     <string name="show_artist">Show artist</string>
+    <string name="show_as_grid">Show as grid</string>
+    <string name="show_as_list">Show as list</string>
+    <string name="show">Show</string>
+    <string name="show_current_song">Show current song</string>
     <string name="show_audio_details_in_the_player">Show audio details in the player.</string>
     <string name="show_explicit_content">Show explicit content</string>
     <string name="show_player_file_info">Show player file info</string>
@@ -744,6 +757,7 @@ Guests and signed-in users have the same catalog, streaming, and download access
     </plurals>
     <string name="songs">Songs</string>
     <string name="sort">Sort</string>
+    <string name="sort_downloads">Sort downloads</string>
     <string name="sort_by">Sort by</string>
     <string name="sort_playlist">Sort playlist</string>
     <string name="sorted_by">Sorted by %1$s</string>

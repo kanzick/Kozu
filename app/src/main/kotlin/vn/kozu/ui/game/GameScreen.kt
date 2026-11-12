@@ -12,7 +12,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
+import vn.kozu.R
 import vn.kozu.game.mania.gamestage.ui.GameStageHost
 import vn.kozu.game.ui.game.GameViewModel
 import vn.kozu.ui.components.HeaderTitle
@@ -39,7 +41,7 @@ fun GameScreen(
     Column(modifier.fillMaxSize()) {
         if (!gameplayActive) {
             ScreenHeader(
-                leading = { HeaderTitle("Game") },
+                leading = { HeaderTitle(stringResource(R.string.game)) },
                 actions = {
                     NewsAction(onOpenNews)
                     SettingsAction(onOpenSettings)
