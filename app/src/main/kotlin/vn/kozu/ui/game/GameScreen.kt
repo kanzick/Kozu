@@ -3,7 +3,7 @@ package vn.kozu.ui.game
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,10 +34,10 @@ fun GameScreen(
     viewModel: GameViewModel = viewModel(factory = GameViewModel.Factory),
 ) {
     var gameplayActive by remember { mutableStateOf(false) }
-    val playerName by viewModel.playerName.collectAsState()
-    val osuUsername by viewModel.osuUsername.collectAsState()
-    val requestedMapId by viewModel.requestedMapId.collectAsState()
-    val customOrderIds by viewModel.customOrderIds.collectAsState()
+    val playerName by viewModel.playerName.collectAsStateWithLifecycle()
+    val osuUsername by viewModel.osuUsername.collectAsStateWithLifecycle()
+    val requestedMapId by viewModel.requestedMapId.collectAsStateWithLifecycle()
+    val customOrderIds by viewModel.customOrderIds.collectAsStateWithLifecycle()
     Column(modifier.fillMaxSize()) {
         if (!gameplayActive) {
             ScreenHeader(

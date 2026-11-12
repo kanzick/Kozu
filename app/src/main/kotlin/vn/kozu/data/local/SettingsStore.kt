@@ -8,9 +8,10 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONException
@@ -48,6 +49,16 @@ class SettingsStore(
     private val appContext = context.applicationContext
     private val store = appContext.kozuDataStore
     private val prefsCache = appContext.getSharedPreferences("kozu_theme_sync", Context.MODE_PRIVATE)
+
+    @Volatile
+    private var latestSnapshot = AppSettings()
+
+    val cachedSettings: AppSettings
+        get() = latestSnapshot.copy(
+            streamCacheMb = prefsCache.getInt("startup_stream_cache_mb", latestSnapshot.streamCacheMb).coerceIn(128, 2048),
+            hiFiMode = prefsCache.getBoolean("startup_hifi_mode", latestSnapshot.hiFiMode),
+            rememberShuffle = prefsCache.getBoolean("startup_remember_shuffle", latestSnapshot.rememberShuffle),
+        )
 
     val cachedThemeMode: ThemeMode get() = initialThemeMode(appContext)
 
@@ -226,7 +237,7 @@ class SettingsStore(
     val settings: Flow<AppSettings> =
         store.data
             .map { prefs ->
-                AppSettings(
+                val snapshot = AppSettings(
                     themeMode = ThemeMode.fromKey(prefs[Keys.theme]),
                     appStyle = AppStyle.fromKey(prefs[Keys.appStyle]),
                     navigationStyle = NavigationStyle.fromKey(prefs[Keys.navigationStyle]),
@@ -319,7 +330,25 @@ class SettingsStore(
                     lastUpdateCheckAt = prefs[Keys.lastUpdateCheck] ?: 0L,
                     updateChannel = UpdateChannel.fromKey(prefs[Keys.updateChannel]),
                 )
-            }.distinctUntilChanged()
+                latestSnapshot = snapshot
+                val cachedImageLimit = snapshot.imageCacheMb
+                val cacheEditor = prefsCache.edit()
+                if (prefsCache.getInt("image_cache_mb", -1) != cachedImageLimit) {
+                    cacheEditor.putInt("image_cache_mb", cachedImageLimit)
+                }
+                if (prefsCache.getInt("startup_stream_cache_mb", -1) != snapshot.streamCacheMb) {
+                    cacheEditor.putInt("startup_stream_cache_mb", snapshot.streamCacheMb.coerceIn(128, 2048))
+                }
+                if (prefsCache.getBoolean("startup_hifi_mode", !snapshot.hiFiMode) != snapshot.hiFiMode) {
+                    cacheEditor.putBoolean("startup_hifi_mode", snapshot.hiFiMode)
+                }
+                if (prefsCache.getBoolean("startup_remember_shuffle", !snapshot.rememberShuffle) != snapshot.rememberShuffle) {
+                    cacheEditor.putBoolean("startup_remember_shuffle", snapshot.rememberShuffle)
+                }
+                cacheEditor.apply()
+                snapshot
+            }.flowOn(Dispatchers.Default)
+                .distinctUntilChanged()
 
     val recentSearches: Flow<List<String>> =
         store.data
@@ -384,7 +413,15 @@ class SettingsStore(
 
     suspend fun setWifiOnlyStreaming(enabled: Boolean) = store.edit { it[Keys.wifiOnlyStreaming] = enabled }
 
-    suspend fun setStreamCacheMb(mb: Int) = store.edit { it[Keys.streamCacheMb] = mb }
+    suspend fun setStreamCacheMb(mb: Int) {
+        val normalized = mb.coerceIn(128, 2048)
+        withContext(Dispatchers.IO) {
+            check(prefsCache.edit().putInt("startup_stream_cache_mb", normalized).commit()) {
+                "Could not persist the startup audio cache preference"
+            }
+        }
+        store.edit { it[Keys.streamCacheMb] = normalized }
+    }
 
     suspend fun setSkipSilence(enabled: Boolean) = store.edit { it[Keys.skipSilence] = enabled }
 
@@ -472,7 +509,15 @@ class SettingsStore(
 
     suspend fun setArtworkQualityMobile(quality: ArtworkQuality) = store.edit { it[Keys.artworkQualityMobile] = quality.key }
 
-    suspend fun setImageCacheMb(value: Int) = store.edit { it[Keys.imageCacheMb] = value.coerceIn(32, 1024) }
+    suspend fun setImageCacheMb(value: Int) {
+        val normalized = value.coerceIn(32, 1024)
+        withContext(Dispatchers.IO) {
+            check(prefsCache.edit().putInt("image_cache_mb", normalized).commit()) {
+                "Could not persist the image cache limit"
+            }
+        }
+        store.edit { it[Keys.imageCacheMb] = normalized }
+    }
 
     suspend fun setKeepPlayingAfterClose(enabled: Boolean) = store.edit { it[Keys.keepPlayingAfterClose] = enabled }
 
@@ -482,11 +527,25 @@ class SettingsStore(
 
     suspend fun setCrossfade(duration: CrossfadeDuration) = store.edit { it[Keys.crossfade] = duration.key }
 
-    suspend fun setHiFiMode(enabled: Boolean) = store.edit { it[Keys.hiFiMode] = enabled }
+    suspend fun setHiFiMode(enabled: Boolean) {
+        withContext(Dispatchers.IO) {
+            check(prefsCache.edit().putBoolean("startup_hifi_mode", enabled).commit()) {
+                "Could not persist the startup Hi-Fi preference"
+            }
+        }
+        store.edit { it[Keys.hiFiMode] = enabled }
+    }
 
     suspend fun setHardwareOffload(enabled: Boolean) = store.edit { it[Keys.hardwareOffload] = enabled }
 
-    suspend fun setRememberShuffle(enabled: Boolean) = store.edit { it[Keys.rememberShuffle] = enabled }
+    suspend fun setRememberShuffle(enabled: Boolean) {
+        withContext(Dispatchers.IO) {
+            check(prefsCache.edit().putBoolean("startup_remember_shuffle", enabled).commit()) {
+                "Could not persist the startup shuffle preference"
+            }
+        }
+        store.edit { it[Keys.rememberShuffle] = enabled }
+    }
 
     suspend fun setShowQueueHistory(enabled: Boolean) = store.edit { it[Keys.showQueueHistory] = enabled }
 

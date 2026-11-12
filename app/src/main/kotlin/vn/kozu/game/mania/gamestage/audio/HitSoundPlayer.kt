@@ -25,7 +25,14 @@ class HitSoundPlayer {
     private var pending = 0
 
     suspend fun load(files: Collection<File>): Map<String, Int> {
-        val unique = synchronized(lock) { files.distinctBy { it.absolutePath }.filter { it.absolutePath !in loaded } }
+        val unique = withContext(Dispatchers.Default) {
+            synchronized(lock) {
+                files.asSequence()
+                    .distinctBy { it.absolutePath }
+                    .filterNot { it.absolutePath in loaded }
+                    .toList()
+            }
+        }
         if (unique.isNotEmpty()) {
             val signal = CompletableDeferred<Unit>()
             synchronized(lock) {

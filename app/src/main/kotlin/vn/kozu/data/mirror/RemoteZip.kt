@@ -39,6 +39,8 @@ object RemoteZip {
     private const val CENTRAL_SIGNATURE = 0x02014b50
     private const val LOCAL_SIGNATURE = 0x04034b50
     private const val TAIL_BYTES = 66_000L
+    private const val MAX_CENTRAL_DIRECTORY_BYTES = 32L * 1024 * 1024
+    private const val MAX_EXTRACTED_ENTRY_BYTES = 64L * 1024 * 1024
 
     fun readEntries(source: RangeSource): List<ZipEntryInfo> {
         val rangedTail = (source as? TailRangeSource)?.readTail(TAIL_BYTES)
@@ -62,13 +64,19 @@ object RemoteZip {
         val cdSize = le32(tail, eocd + 12).toLong() and 0xFFFFFFFFL
         val cdOffset = le32(tail, eocd + 16).toLong() and 0xFFFFFFFFL
         if (cdOffset == 0xFFFFFFFFL || count == 0xFFFF) throw IOException("Zip64 is not supported")
-        if (cdSize <= 0 || cdOffset + cdSize > total) throw IOException("Invalid central directory")
+        val cdEnd = cdOffset + cdSize
+        if (cdSize <= 0 || cdSize > MAX_CENTRAL_DIRECTORY_BYTES || cdEnd > total) {
+            throw IOException("Invalid or oversized central directory")
+        }
 
+        val tailEnd = tailStart + tail.size
         val central =
-            if (cdOffset >= tailStart) {
-                tail.copyOfRange((cdOffset - tailStart).toInt(), (cdOffset - tailStart + cdSize).toInt())
+            if (cdOffset >= tailStart && cdEnd <= tailEnd) {
+                val start = (cdOffset - tailStart).toInt()
+                val end = (cdEnd - tailStart).toInt()
+                tail.copyOfRange(start, end)
             } else {
-                readFully(source, cdOffset, cdOffset + cdSize - 1)
+                readFully(source, cdOffset, cdEnd - 1)
             }
 
         val entries = ArrayList<ZipEntryInfo>(count)
@@ -81,10 +89,11 @@ object RemoteZip {
             val extraLength = le16(central, p + 30)
             val commentLength = le16(central, p + 32)
             val localOffset = le32(central, p + 42).toLong() and 0xFFFFFFFFL
-            if (p + 46 + nameLength > central.size) break
+            val next = p.toLong() + 46L + nameLength + extraLength + commentLength
+            if (next > central.size) break
             val name = String(central, p + 46, nameLength, Charsets.UTF_8)
             entries.add(ZipEntryInfo(name, method, compressed, uncompressed, localOffset))
-            p += 46 + nameLength + extraLength + commentLength
+            p = next.toInt()
         }
         return entries
     }
@@ -153,36 +162,6 @@ object RemoteZip {
         }
     }
 
-    private fun readFully(
-        input: InputStream,
-        bytes: ByteArray,
-    ) {
-        var offset = 0
-        while (offset < bytes.size) {
-            val read = input.read(bytes, offset, bytes.size - offset)
-            if (read < 0) throw IOException("Unexpected end of ZIP local header")
-            offset += read
-        }
-    }
-
-    private fun skipFully(
-        input: InputStream,
-        amount: Long,
-    ) {
-        var remaining = amount
-        val scratch = ByteArray(1024)
-        while (remaining > 0L) {
-            val skipped = input.skip(remaining)
-            if (skipped > 0L) {
-                remaining -= skipped
-            } else {
-                val read = input.read(scratch, 0, minOf(scratch.size.toLong(), remaining).toInt())
-                if (read < 0) throw IOException("Unexpected end of ZIP extra fields")
-                remaining -= read
-            }
-        }
-    }
-
     fun extract(
         source: RangeSource,
         entry: ZipEntryInfo,
@@ -215,18 +194,35 @@ object RemoteZip {
                     throw IOException("Unsupported compression method ${entry.method}")
                 }
             }
+        val expectedSize = entry.uncompressedSize
+        if (expectedSize <= 0L || expectedSize > MAX_EXTRACTED_ENTRY_BYTES) {
+            stream.close()
+            throw IOException("ZIP entry exceeds the extraction size limit")
+        }
         target.parentFile?.mkdirs()
-        stream.use { input ->
-            target.outputStream().buffered().use { output ->
-                val buffer = ByteArray(32 * 1024)
-                while (true) {
-                    val n = input.read(buffer)
-                    if (n < 0) break
-                    output.write(buffer, 0, n)
+        var written = 0L
+        try {
+            stream.use { input ->
+                target.outputStream().buffered().use { output ->
+                    val buffer = ByteArray(32 * 1024)
+                    while (true) {
+                        val n = input.read(buffer)
+                        if (n < 0) break
+                        written += n
+                        if (written > expectedSize || written > MAX_EXTRACTED_ENTRY_BYTES) {
+                            throw IOException("ZIP entry exceeds its declared size")
+                        }
+                        output.write(buffer, 0, n)
+                    }
                 }
             }
+            if (written != expectedSize || target.length() != expectedSize) {
+                throw IOException("Extracted ZIP entry size does not match its directory record")
+            }
+        } catch (e: Exception) {
+            target.delete()
+            throw e
         }
-        if (target.length() <= 0L) throw IOException("Extracted file is empty")
     }
 
     private fun readFully(
@@ -234,8 +230,14 @@ object RemoteZip {
         start: Long,
         endInclusive: Long,
     ): ByteArray {
+        val expectedSize = endInclusive - start + 1L
+        if (start < 0L || expectedSize <= 0L || expectedSize > MAX_CENTRAL_DIRECTORY_BYTES) {
+            throw IOException("Invalid ZIP byte range")
+        }
         source.open(start, endInclusive).use { input ->
-            return input.readBytes()
+            val bytes = input.readBytes()
+            if (bytes.size.toLong() != expectedSize) throw IOException("Unexpected ZIP range length")
+            return bytes
         }
     }
 

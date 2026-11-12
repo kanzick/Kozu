@@ -135,21 +135,43 @@ class GameSession(
     private suspend fun buildSounds(): Int {
         val baseDir = File(song.folder, difficulty.osuFile).parentFile ?: song.folder
         val lookup = withContext(Dispatchers.IO) { SampleLookup(baseDir) }
-        val resolved = HashMap<String, File?>()
-        fun resolve(name: String): File? = resolved.getOrPut(name) {
-            lookup.find(name) ?: if (name.contains("hitnormal") || name.contains('.')) defaultHitFile else null
+        val (perNote, filesToLoad) = withContext(Dispatchers.Default) {
+            val resolved = HashMap<String, File?>()
+            val uniqueFiles = LinkedHashMap<String, File>()
+            val samples = ArrayList<List<File>>(chart.notes.size)
+            fun resolve(name: String): File? {
+                if (resolved.containsKey(name)) return resolved[name]
+                val file = lookup.find(name)
+                    ?: if (name.contains("hitnormal") || name.contains('.')) defaultHitFile else null
+                resolved[name] = file
+                return file
+            }
+            for (note in chart.notes) {
+                val noteFiles = note.sample.sampleNames().mapNotNull(::resolve)
+                samples += noteFiles
+                noteFiles.forEach { file -> uniqueFiles.putIfAbsent(file.absolutePath, file) }
+            }
+            samples to uniqueFiles.values.toList()
         }
-        val perNote = chart.notes.map { note -> note.sample.sampleNames().mapNotNull { resolve(it) } }
-        val ids = hitSounds.load(perNote.flatten())
+        val ids = hitSounds.load(filesToLoad)
         hitSounds.warmUp()
-        noteSounds = Array(chart.notes.size) { i -> perNote[i].mapNotNull { ids[it.absolutePath] }.toIntArray() }
-        val master = settings.hitsoundVolume / 100f
-        noteVolumes = FloatArray(chart.notes.size) { i -> chart.notes[i].sample.volume / 100f * master }
+        val (sounds, volumes) = withContext(Dispatchers.Default) {
+            val noteIds = Array(chart.notes.size) { index ->
+                perNote[index].mapNotNull { ids[it.absolutePath] }.toIntArray()
+            }
+            val master = settings.hitsoundVolume / 100f
+            val noteGains = FloatArray(chart.notes.size) { index ->
+                chart.notes[index].sample.volume / 100f * master
+            }
+            noteIds to noteGains
+        }
+        noteSounds = sounds
+        noteVolumes = volumes
         return ids.size
     }
 
     override fun onHit(note: ChartNote) {
-        if (note.id >= noteSounds.size) return
+        if (note.id !in noteSounds.indices || note.id !in noteVolumes.indices) return
         val volume = noteVolumes[note.id]
         for (id in noteSounds[note.id]) hitSounds.play(id, volume)
     }

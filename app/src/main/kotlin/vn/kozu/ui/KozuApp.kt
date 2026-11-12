@@ -285,16 +285,15 @@ private fun KozuShell(
 
     var overlayMiniPx by remember { mutableIntStateOf(0) }
     val overlayScreenOpen = settingsOpen || allBeatmapsOpen || statsOpen || newsOpen
-    val fullScreenPageVisible = listOf(
-        settingsVisibility,
-        allBeatmapsVisibility,
-        statsVisibility,
-        newsVisibility,
-        playerVisibility,
-        personVisibility,
-        onboardingVisibility,
-    ).any { it.currentState || it.targetState }
-    val mainPageVisible = !fullScreenPageVisible
+    val mainPageVisible = !(
+        settingsVisibility.currentState || settingsVisibility.targetState ||
+            allBeatmapsVisibility.currentState || allBeatmapsVisibility.targetState ||
+            statsVisibility.currentState || statsVisibility.targetState ||
+            newsVisibility.currentState || newsVisibility.targetState ||
+            playerVisibility.currentState || playerVisibility.targetState ||
+            personVisibility.currentState || personVisibility.targetState ||
+            onboardingVisibility.currentState || onboardingVisibility.targetState
+    )
     val overlayMiniInset = if (state.current != null) with(density) { overlayMiniPx.toDp() } else 0.dp
     fun closeAllBeatmaps() {
         allBeatmapsOpen = false

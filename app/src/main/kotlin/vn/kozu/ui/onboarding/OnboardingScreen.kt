@@ -119,6 +119,8 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.Lifecycle
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -145,6 +147,20 @@ val LocalReplayOnboarding = androidx.compose.runtime.compositionLocalOf<(() -> U
 
 private const val STEP_COUNT = 10
 private const val MAX_BACKUP_BYTES = 32 * 1024 * 1024
+
+private fun readLimitedBytes(input: InputStream, maxBytes: Int): ByteArray {
+    val output = ByteArrayOutputStream(minOf(maxBytes, 64 * 1024))
+    val buffer = ByteArray(8 * 1024)
+    var total = 0
+    while (true) {
+        val count = input.read(buffer)
+        if (count < 0) break
+        total += count
+        if (total > maxBytes) throw BackupException("That file is too large to be a backup")
+        output.write(buffer, 0, count)
+    }
+    return output.toByteArray()
+}
 
 @Composable
 fun OnboardingScreen(
@@ -758,14 +774,14 @@ private fun BackupStep(
         scope.launch {
             busy = true
             result = try {
-                val json = withContext(Dispatchers.IO) {
-                    val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                        ?: throw java.io.IOException("Could not open the selected file")
-                    if (bytes.size > MAX_BACKUP_BYTES) throw BackupException("That file is too large to be a backup")
-                    String(bytes, Charsets.UTF_8)
+                withContext(Dispatchers.IO) {
+                    val bytes = context.contentResolver.openInputStream(uri)?.use {
+                        readLimitedBytes(it, MAX_BACKUP_BYTES)
+                    } ?: throw java.io.IOException("Could not open the selected file")
+                    val json = String(bytes, Charsets.UTF_8)
+                    val info = container.backup.inspect(json)
+                    container.backup.restore(json, info.sections)
                 }
-                val info = container.backup.inspect(json)
-                container.backup.restore(json, info.sections)
             } catch (e: BackupException) {
                 e.message ?: "Invalid backup"
             } catch (e: Exception) {
