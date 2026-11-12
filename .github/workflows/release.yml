@@ -1,4 +1,4 @@
-name: Release
+name: Release APK
 
 on:
   release:
@@ -6,8 +6,8 @@ on:
 
   workflow_dispatch:
     inputs:
-      release_tag:
-        description: Release tag (7.2.7)
+      version:
+        description: Version name (MAJOR.MINOR / MAJOR.MINOR.PATCH)
         required: true
         type: string
 
@@ -15,50 +15,60 @@ permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.event.release.tag_name || inputs.release_tag || github.ref }}
+  group: release-${{ github.event.release.tag_name || inputs.version || github.ref }}
   cancel-in-progress: false
 
 jobs:
   release:
-    name: Build release APK
+    name: Build release or test APK
     runs-on: ubuntu-24.04
     timeout-minutes: 45
 
     steps:
-      - name: Determine release tag
+      - name: Determine version and checkout ref
         id: version
         shell: bash
         env:
           EVENT_NAME: ${{ github.event_name }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
-          INPUT_RELEASE_TAG: ${{ inputs.release_tag }}
+          INPUT_VERSION: ${{ inputs.version }}
+          SELECTED_REF: ${{ github.ref }}
         run: |
           set -euo pipefail
 
           if [[ "$EVENT_NAME" == "release" ]]; then
-            tag="$RELEASE_TAG"
+            raw_version="$RELEASE_TAG"
+            checkout_ref="$RELEASE_TAG"
+            release_tag="$RELEASE_TAG"
           else
-            tag="$INPUT_RELEASE_TAG"
+            raw_version="$INPUT_VERSION"
+            checkout_ref="$SELECTED_REF"
+            release_tag=""
           fi
 
-          if [[ -z "$tag" ]]; then
-            echo "::error::Release tag is empty."
+          if [[ -z "$raw_version" ]]; then
+            echo "::error::Version is empty."
             exit 1
           fi
 
-          tag_version="${tag#v}"
+          version="$raw_version"
+          if [[ "${version:0:1}" == "v" || "${version:0:1}" == "V" ]]; then
+            version="${version:1}"
+          fi
 
-          if [[ ! "$tag_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
-            echo "::error::Invalid release tag: $tag"
+          if [[ ! "$version" =~ ^(0|[1-9][0-9]?)\.(0|[1-9][0-9]?)(\.(0|[1-9][0-9]?))?$ ]]; then
+            echo "::error::Invalid version: $raw_version (expected MAJOR.MINOR or MAJOR.MINOR.PATCH, each component 0..99 with no leading zeros, optionally prefixed with v)."
             exit 1
           fi
 
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "tag=$release_tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "checkout_ref=$checkout_ref" >> "$GITHUB_OUTPUT"
 
-      - name: Checkout release tag
+      - name: Checkout selected branch or release tag
         uses: actions/checkout@v7
         with:
-          ref: ${{ steps.version.outputs.tag }}
+          ref: ${{ steps.version.outputs.checkout_ref }}
           fetch-depth: 0
 
       - name: Prepare Gradle wrapper
@@ -69,6 +79,7 @@ jobs:
           chmod +x gradlew
 
       - name: Check release exists
+        if: github.event_name == 'release'
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
@@ -128,26 +139,52 @@ jobs:
             -storepass "$ANDROID_KEYSTORE_PASSWORD" \
             -alias "$ANDROID_KEY_ALIAS" >/dev/null
 
+      - name: Generate version code from version name
+        id: version_code
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "$VERSION" == *.*.* ]]; then
+            IFS='.' read -r major minor patch <<< "$VERSION"
+            patch_slot=$((10#$patch + 2))
+          else
+            IFS='.' read -r major minor <<< "$VERSION"
+            patch_slot=1
+          fi
+
+          version_code=$(((10#$major * 100 + 10#$minor) * 101 + patch_slot))
+          if (( version_code < 1 || version_code > 2100000000 )); then
+            echo "::error::Generated versionCode is outside Android's supported range: $version_code"
+            exit 1
+          fi
+
+          echo "code=$version_code" >> "$GITHUB_OUTPUT"
+
       - name: Build Release APK
         env:
           ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/kozu-release.jks
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
         shell: bash
         run: |
           set -euo pipefail
-          release_version="${RELEASE_TAG#v}"
-          ./gradlew clean :app:assembleRelease -PappVersion="$release_version" --stacktrace
+          ./gradlew clean :app:assembleRelease \
+            "-PAPP_VERSION_NAME=$RELEASE_VERSION" \
+            --stacktrace
 
       - name: Verify package APK
         env:
-          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          EXPECTED_VERSION_CODE: ${{ steps.version_code.outputs.code }}
         shell: bash
         run: |
           set -euo pipefail
-          expected_version="${RELEASE_TAG#v}"
+          expected_version="$RELEASE_VERSION"
 
           tools="$(find "$ANDROID_HOME/build-tools" \
             -mindepth 1 -maxdepth 1 -type d |
@@ -265,6 +302,12 @@ jobs:
             }
 
             tr -d '\r' < badging.txt |
+              grep -Fq "versionCode='$EXPECTED_VERSION_CODE'" || {
+              echo "::error::APK versionCode does not match version $expected_version (expected $EXPECTED_VERSION_CODE): $filename"
+              exit 1
+            }
+
+            tr -d '\r' < badging.txt |
               grep -Fqx "sdkVersion:'28'" || {
               echo "::error::Unexpected or missing minimum SDK in $filename"
               exit 1
@@ -295,7 +338,8 @@ jobs:
 
           echo "All APKs passed verification."
 
-      - name: Upload APK
+      - name: Upload APK to GitHub Release
+        if: github.event_name == 'release'
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
@@ -319,7 +363,17 @@ jobs:
             dist/kozu-x86_64.apk \
             --clobber
 
+      - name: Upload test APK artifacts
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-test-${{ steps.version.outputs.version }}-${{ github.run_id }}
+          path: dist/*.apk
+          if-no-files-found: error
+          retention-days: 3
+
       - name: Verify APK
+        if: github.event_name == 'release'
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
@@ -363,6 +417,7 @@ jobs:
           PY
 
       - name: Generate download table at end of release description
+        if: github.event_name == 'release'
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
