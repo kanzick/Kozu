@@ -10,7 +10,6 @@ import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountCircle
-import androidx.compose.material.icons.rounded.Android
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Autorenew
 import androidx.compose.material.icons.rounded.BarChart
@@ -86,7 +85,7 @@ enum class SettingsPage(
     val icon: ImageVector,
 ) {
     ROOT(R.string.settings, 0, Icons.Rounded.Tune),
-    ACCOUNT(R.string.osu_account, R.string.sign_in_and_api_access, Icons.Rounded.AccountCircle),
+    ACCOUNT(R.string.account, R.string.account_sync_summary, Icons.Rounded.AccountCircle),
     MUSIC(R.string.music, R.string.catalog_and_library_sync, Icons.Rounded.LibraryMusic),
     CONTENT(R.string.content, R.string.titles_and_catalog_preferences, Icons.Rounded.Language),
     APPEARANCE(R.string.appearance, R.string.theme_and_layout, Icons.Rounded.Palette),
@@ -102,7 +101,7 @@ enum class SettingsPage(
     DEVICE(R.string.device, R.string.audio_and_decoder_support, Icons.Rounded.DeveloperBoard),
     DOWNLOADS(R.string.downloads, R.string.offline_beatmaps, Icons.Rounded.CloudDownload),
     SOURCES(R.string.audio_sources, R.string.streaming_mirrors, Icons.Rounded.Dns),
-    STATS(R.string.listening_history, R.string.plays_and_favorites, Icons.Rounded.BarChart),
+    STATS(R.string.listening_stats_text, R.string.listening_stats_description, Icons.Rounded.BarChart),
     UPDATES(R.string.updates, R.string.version_and_channel, Icons.Rounded.SystemUpdate),
     ABOUT(R.string.about, R.string.app_and_project_info, Icons.Rounded.Info),
     LICENSES(R.string.licenses, R.string.open_source_notices, Icons.Rounded.Layers),

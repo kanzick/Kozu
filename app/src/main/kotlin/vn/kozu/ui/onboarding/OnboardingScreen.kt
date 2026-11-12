@@ -636,7 +636,7 @@ private fun WelcomeStep() {
             color = colors.primary,
             textAlign = TextAlign.Center,
         )
-        Text(text = "v$version",
+        Text(text = version,
             style = MaterialTheme.typography.titleMedium.copy(fontSize = 19.sp),
             fontWeight = FontWeight.SemiBold,
             color = colors.onSurfaceVariant,

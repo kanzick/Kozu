@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -15,6 +16,7 @@ fun KozuSheetHandle(modifier: Modifier = Modifier) {
     Box(
         modifier =
             modifier
+                .clearAndSetSemantics { }
                 .padding(vertical = 14.dp)
                 .size(width = 36.dp, height = 4.dp)
                 .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f), RoundedCornerShape(2.dp)),

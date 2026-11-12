@@ -38,7 +38,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.SearchOff
 import androidx.compose.material3.HorizontalDivider
@@ -63,7 +62,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -75,32 +73,20 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil3.compose.AsyncImage
 import kotlinx.coroutines.delay
 import vn.kozu.data.update.UpdateChecker
-import vn.kozu.domain.model.OsuProfile
 import vn.kozu.domain.model.UpdateChannel
 import vn.kozu.R
 import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.scrollReveal
 
-private val rootPages = listOf(
-    SettingsPage.APPEARANCE,
-    SettingsPage.BEHAVIOR,
-    SettingsPage.LANGUAGE,
-    SettingsPage.MUSIC,
-    SettingsPage.CONTENT,
-    SettingsPage.PLAYBACK,
-    SettingsPage.EQUALIZER,
-    SettingsPage.SOURCES,
-    SettingsPage.DOWNLOADS,
-    SettingsPage.STATS,
-    SettingsPage.STORAGE,
-    SettingsPage.BACKUP,
-    SettingsPage.DEVICE,
-    SettingsPage.DEVELOPER,
-    SettingsPage.UPDATES,
-    SettingsPage.ABOUT,
+private val rootPageGroups = listOf(
+    listOf(SettingsPage.ACCOUNT, SettingsPage.STATS),
+    listOf(SettingsPage.APPEARANCE, SettingsPage.LANGUAGE, SettingsPage.CONTENT),
+    listOf(SettingsPage.MUSIC, SettingsPage.PLAYBACK, SettingsPage.EQUALIZER, SettingsPage.SOURCES),
+    listOf(SettingsPage.BEHAVIOR, SettingsPage.DEVICE, SettingsPage.DEVELOPER),
+    listOf(SettingsPage.DOWNLOADS, SettingsPage.STORAGE, SettingsPage.BACKUP),
+    listOf(SettingsPage.UPDATES, SettingsPage.ABOUT),
 )
 
 private fun parentOf(page: SettingsPage): SettingsPage = when (page) {
@@ -121,8 +107,6 @@ fun SettingsScreen(
     var highlight by rememberSaveable { mutableStateOf<String?>(null) }
     var searchOpen by rememberSaveable { mutableStateOf(false) }
     var proxyOpen by rememberSaveable { mutableStateOf(false) }
-    val profile by viewModel.profile.collectAsStateWithLifecycle()
-    val loggedIn by viewModel.loggedIn.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val keyboard = LocalSoftwareKeyboardController.current
 
@@ -172,8 +156,6 @@ fun SettingsScreen(
                 pageStateHolder.SaveableStateProvider(current.name) {
                     when (current) {
                         SettingsPage.ROOT -> SettingsRoot(
-                            profile = profile,
-                            loggedIn = loggedIn,
                             updateChannel = settings.updateChannel,
                             onBack = onBack,
                             onOpen = { page = it },
@@ -243,8 +225,6 @@ fun SettingsScreen(
 
 @Composable
 private fun SettingsRoot(
-    profile: OsuProfile?,
-    loggedIn: Boolean,
     updateChannel: UpdateChannel,
     onBack: () -> Unit,
     onOpen: (SettingsPage) -> Unit,
@@ -256,18 +236,21 @@ private fun SettingsRoot(
     SettingsPageScaffold(title = stringResource(R.string.settings), onBack = onBack) {
         Spacer(Modifier.height(4.dp))
         SearchEntryBar(onClick = onSearch)
-        Spacer(Modifier.height(8.dp))
-        AccountSummaryCard(profile = profile, loggedIn = loggedIn, onClick = { onOpen(SettingsPage.ACCOUNT) })
-        Spacer(Modifier.height(4.dp))
-        rootPages.forEachIndexed { index, page ->
-            SettingsPageCard(
-                page = page,
-                installedVersion = version,
-                updateChannel = updateChannel,
-                itemIndex = index,
-                onOpen = onOpen,
-            )
-            Spacer(Modifier.height(2.dp))
+        Spacer(Modifier.height(14.dp))
+        rootPageGroups.forEachIndexed { groupIndex, pages ->
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                pages.forEachIndexed { itemIndex, page ->
+                    SettingsPageCard(
+                        page = page,
+                        installedVersion = version,
+                        updateChannel = updateChannel,
+                        itemIndex = groupIndex + itemIndex,
+                        shape = groupShape(itemIndex, pages.size),
+                        onOpen = onOpen,
+                    )
+                }
+            }
+            if (groupIndex != rootPageGroups.lastIndex) Spacer(Modifier.height(12.dp))
         }
     }
 }
@@ -278,11 +261,10 @@ private fun SettingsPageCard(
     installedVersion: String,
     updateChannel: UpdateChannel,
     itemIndex: Int,
+    shape: androidx.compose.ui.graphics.Shape,
     onOpen: (SettingsPage) -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
-    // Keep the selected app font family/weight and the user's global text scale,
-    // while making the settings list labels slightly easier to read by default.
     val pageTitleStyle = MaterialTheme.typography.titleMedium.copy(
         fontSize = 19.sp,
         lineHeight = 24.sp,
@@ -298,13 +280,13 @@ private fun SettingsPageCard(
         else -> colors.surfaceContainerHighest to colors.onSurface
     }
     val subtitle = when (page) {
-        SettingsPage.UPDATES -> "v$installedVersion · ${updateChannel.label}"
+        SettingsPage.UPDATES -> "$installedVersion · ${updateChannel.label}"
         else -> page.subtitleText()
     }
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = shape,
         color = colors.surfaceContainer,
     ) {
         Row(
@@ -536,70 +518,6 @@ private fun SearchEntryBar(onClick: () -> Unit) {
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-        }
-    }
-}
-
-@Composable
-private fun AccountSummaryCard(profile: OsuProfile?, loggedIn: Boolean, onClick: () -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .bounceClick(pressedScale = 0.985f, onClick = onClick),
-        shape = RoundedCornerShape(30.dp),
-        color = colors.surfaceContainer
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                modifier = Modifier.size(64.dp),
-                shape = CircleShape,
-                color = colors.primaryContainer,
-                contentColor = colors.onPrimaryContainer
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    val avatar = profile?.avatarUrl?.takeIf { loggedIn && it.isNotBlank() }
-                    if (avatar != null) {
-                        AsyncImage(
-                            model = avatar,
-                            contentDescription = stringResource(R.string.avatar),
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    } else {
-                        Text(text = (profile?.username?.firstOrNull() ?: 'G').uppercase(),
-                            style = MaterialTheme.typography.headlineMedium
-                        )
-                    }
-                }
-            }
-            Spacer(Modifier.width(16.dp))
-            Column(Modifier.weight(1f)) {
-                Text(text = if (loggedIn && profile != null) profile.username else stringResource(R.string.guest),
-                    style = MaterialTheme.typography.titleLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(text = stringResource(if (loggedIn) R.string.account_manage_summary else R.string.account_sign_in_summary),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colors.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-            Surface(
-                modifier = Modifier.size(44.dp),
-                shape = CircleShape,
-                color = colors.secondaryContainer,
-                contentColor = colors.onSecondaryContainer
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(Icons.Rounded.Person, contentDescription = null, modifier = Modifier.size(22.dp))
-                }
-            }
         }
     }
 }

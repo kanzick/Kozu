@@ -1,5 +1,6 @@
 package vn.kozu.ui.settings
 
+import vn.kozu.ui.components.KozuSheetHandle
 import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
@@ -43,7 +44,6 @@ import vn.kozu.domain.model.AccentColor
 import vn.kozu.domain.model.ThemePreset
 import vn.kozu.R
 import vn.kozu.ui.components.bounceClick
-import vn.kozu.ui.components.KozuSheetHandle
 import vn.kozu.ui.theme.kozuColorScheme
 
 @Composable

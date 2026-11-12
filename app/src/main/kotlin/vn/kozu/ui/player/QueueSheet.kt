@@ -1,5 +1,6 @@
 package vn.kozu.ui.player
 
+import vn.kozu.ui.components.KozuSheetHandle
 import android.os.SystemClock
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
@@ -66,7 +67,6 @@ import vn.kozu.R
 import vn.kozu.ui.components.BeatmapArt
 import vn.kozu.ui.components.bounceClick
 import vn.kozu.ui.components.EqualizerBars
-import vn.kozu.ui.components.KozuSheetHandle
 import vn.kozu.ui.components.LocalAppSettings
 import vn.kozu.ui.components.loopingMarquee
 import vn.kozu.ui.components.rememberKozuHaptics

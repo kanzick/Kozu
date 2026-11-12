@@ -1,5 +1,6 @@
 package vn.kozu.ui.settings
 
+import vn.kozu.ui.components.KozuSheetHandle
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -50,8 +51,6 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import vn.kozu.R
 import vn.kozu.ui.components.bounceClick
-import vn.kozu.ui.components.KozuSheetHandle
-
 @Composable
 fun SettingsScaffold(
     title: String,
