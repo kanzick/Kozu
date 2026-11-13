@@ -78,6 +78,9 @@ fun LeaderboardDialog(
                 }
                 if (global) {
                     val remote = globalRows
+                    if (remote != null && !remote.signedIn) {
+                        Text(stringResource(R.string.score_sign_in_required), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                     if (remote != null && remote.pendingCount > 0) {
                         Text(stringResource(R.string.scores_pending_sync, remote.pendingCount), color = MaterialTheme.colorScheme.error)
                     }

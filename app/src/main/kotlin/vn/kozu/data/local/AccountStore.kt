@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import org.json.JSONArray
@@ -44,16 +45,33 @@ class AccountStore(
     val rankHistoryFetchedAt: Flow<Long> =
         store.data.map { it[rankHistoryFetchedKey] ?: 0L }.distinctUntilChanged()
 
-    suspend fun saveSession(session: OsuSession) {
+    suspend fun currentSignedInProfile(): OsuProfile? {
+        val prefs = store.data.first()
+        if (prefs[accessKey].isNullOrBlank()) return null
+        return decodeProfile(prefs[profileKey])
+    }
+
+    suspend fun saveSession(session: OsuSession, clearProfile: Boolean = false) {
         store.edit {
+            if (clearProfile) {
+                it.remove(profileKey)
+                it.remove(rankHistoryFetchedKey)
+            }
             it[accessKey] = session.accessToken
             it[refreshKey] = session.refreshToken
             it[expiresKey] = session.expiresAtMs
         }
     }
 
-    suspend fun saveProfile(profile: OsuProfile) {
-        store.edit { it[profileKey] = encodeProfile(profile) }
+    suspend fun saveProfileForSession(profile: OsuProfile, accessToken: String): Boolean {
+        var saved = false
+        store.edit {
+            if (it[accessKey] == accessToken) {
+                it[profileKey] = encodeProfile(profile)
+                saved = true
+            }
+        }
+        return saved
     }
 
     suspend fun markRankHistoryFetched(atMs: Long) {

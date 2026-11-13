@@ -103,7 +103,9 @@ class AccountRepository(
                     }
                 }
             val profile = basicProfile.copy(rankHistory = rankHistory)
-            store.saveProfile(profile)
+            if (!store.saveProfileForSession(profile, bearer)) {
+                return Result.failure(IllegalStateException("osu! account changed while loading the profile"))
+            }
             if (historyRefreshed) store.markRankHistoryFetched(now)
             Result.success(profile)
         } catch (e: CancellationException) {
@@ -132,6 +134,8 @@ class AccountRepository(
     }
 
     suspend fun cachedProfile(): OsuProfile? = store.profile.first()
+
+    suspend fun currentSignedInProfile(): OsuProfile? = store.currentSignedInProfile()
 
     private fun UserDto.toProfile(): OsuProfile {
         val stats = statistics

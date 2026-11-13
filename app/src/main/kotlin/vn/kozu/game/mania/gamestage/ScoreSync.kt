@@ -14,18 +14,20 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import vn.kozu.BuildConfig
+import vn.kozu.data.repository.AccountRepository
+import vn.kozu.domain.model.OsuProfile
 import vn.kozu.game.mania.gamestage.scoring.GameResult
-import vn.kozu.game.mania.gamestage.settings.GameSettings
 import vn.kozu.game.mania.previewstage.model.DifficultyRecord
 import vn.kozu.game.mania.previewstage.model.ScoreRecord
 import vn.kozu.game.mania.previewstage.storage.ScoreDatabase
 
 data class GlobalScore(val place: Long, val userId: String, val score: ScoreRecord)
 data class GlobalLeaderboard(
-    val userId: String,
+    val userId: String?,
     val rows: List<GlobalScore>,
     val pendingCount: Int = 0,
     val profileWarning: Boolean = false,
+    val signedIn: Boolean = false,
 )
 data class RemoteSubmissionResult(
     val isPersonalBest: Boolean,
@@ -34,7 +36,7 @@ data class RemoteSubmissionResult(
     val totalPlayers: Long,
 )
 
-internal class ScoreSync(context: Context) {
+internal class ScoreSync(context: Context, private val accounts: AccountRepository) {
     private val preferences = context.getSharedPreferences("score_sync_session", Context.MODE_PRIVATE)
     private val http = OkHttpClient()
     private val lock = Mutex()
@@ -44,16 +46,19 @@ internal class ScoreSync(context: Context) {
 
     @Volatile var lastSubmission: RemoteSubmissionResult? = null
         private set
-    @Volatile var profileWarning: Boolean = false
+    @Volatile private var profileWarningUserId: Long? = null
         private set
+    fun profileWarning(osuUserId: Long): Boolean = profileWarningUserId == osuUserId
 
-    suspend fun sync(db: ScoreDatabase, playerName: String) = lock.withLock {
+    suspend fun sync(db: ScoreDatabase) = lock.withLock {
         requireConfigured()
-        val pending = db.pendingSubmissions()
-        if (pending.isEmpty() && !preferences.contains("user_id")) return@withLock
-        val session = session()
-        syncName(session, playerName)
+        val profile = signedInProfile() ?: return@withLock
+        val pending = db.pendingSubmissions(profile.id)
+        if (pending.isEmpty() && !preferences.contains(key(profile.id, "user_id"))) return@withLock
+        val session = session(profile.id)
+        syncName(session, profile)
         for ((id, payload) in pending) {
+            if (signedInProfile()?.id != profile.id) return@withLock
             val response = try {
                 JSONObject(request("POST", "/rest/v1/rpc/submit_score", payload, session.accessToken))
             } catch (e: HttpFailure) {
@@ -73,13 +78,14 @@ internal class ScoreSync(context: Context) {
 
     suspend fun leaderboard(songId: Long, difficulty: String): GlobalLeaderboard = lock.withLock {
         requireConfigured()
-        val session = session()
+        val profile = signedInProfile()
+        val userId = profile?.let { preferences.getString(key(it.id, "user_id"), null) }
         val payload = JSONObject()
             .put("p_song_id", songId)
             .put("p_difficulty", difficulty)
             .put("p_limit", 50)
             .put("p_offset", 0)
-        val response = JSONArray(request("POST", "/rest/v1/rpc/get_leaderboard", payload.toString(), session.accessToken))
+        val response = JSONArray(request("POST", "/rest/v1/rpc/get_leaderboard", payload.toString(), null))
         val rows = (0 until response.length()).map { index ->
             val row = response.getJSONObject(index)
             GlobalScore(
@@ -98,21 +104,20 @@ internal class ScoreSync(context: Context) {
                 ),
             )
         }
-        GlobalLeaderboard(session.userId, rows)
+        GlobalLeaderboard(userId, rows, signedIn = profile != null)
     }
 
-    private fun syncName(session: Session, playerName: String) {
-        val name = playerName.trim()
+    private suspend fun signedInProfile(): OsuProfile? =
+        accounts.currentSignedInProfile()?.takeIf { it.id > 0 && it.username.isNotBlank() }
+
+    private fun syncName(session: Session, profile: OsuProfile) {
+        val name = profile.username.trim()
         if (name.codePointCount(0, name.length) !in 2..24) {
-            profileWarning = true
-            Log.w(TAG, "Display name must contain 2 to 24 characters")
-            return
+            profileWarningUserId = profile.id
+            throw IOException("osu! username must contain 2 to 24 characters")
         }
-        // The default name is shared by installations; retain the unique generated profile name.
-        if ((name == GameSettings.DEFAULT_PLAYER_NAME && !preferences.contains("synced_name")) ||
-            preferences.getString("synced_name", null) == name
-        ) {
-            profileWarning = false
+        if (preferences.getString(key(profile.id, "synced_name"), null) == name) {
+            profileWarningUserId = null
             return
         }
         try {
@@ -123,25 +128,26 @@ internal class ScoreSync(context: Context) {
                 session.accessToken,
             )
             if (JSONArray(updated).length() != 1) throw IOException("Supabase profile was not updated")
-            if (!preferences.edit().putString("synced_name", name).commit()) {
+            if (!preferences.edit().putString(key(profile.id, "synced_name"), name).commit()) {
                 throw IOException("Could not save synced display name")
             }
-            profileWarning = false
+            profileWarningUserId = null
         } catch (e: IOException) {
-            profileWarning = true
+            profileWarningUserId = profile.id
             Log.w(TAG, "Could not update Supabase display name", e)
+            throw e
         }
     }
 
-    private fun session(): Session {
-        val access = preferences.getString("access_token", null)
-        val refresh = preferences.getString("refresh_token", null)
-        val userId = preferences.getString("user_id", null)
+    private fun session(osuUserId: Long): Session {
+        val access = preferences.getString(key(osuUserId, "access_token"), null)
+        val refresh = preferences.getString(key(osuUserId, "refresh_token"), null)
+        val userId = preferences.getString(key(osuUserId, "user_id"), null)
         if (access != null && refresh != null && userId != null) {
-            if (preferences.getLong("expires_at", 0) > System.currentTimeMillis() + 60_000) {
+            if (preferences.getLong(key(osuUserId, "expires_at"), 0) > System.currentTimeMillis() + 60_000) {
                 return Session(access, userId)
             }
-            return saveSession(JSONObject(request(
+            return saveSession(osuUserId, JSONObject(request(
                 "POST", "/auth/v1/token?grant_type=refresh_token",
                 JSONObject().put("refresh_token", refresh).toString(), null,
             )))
@@ -149,19 +155,21 @@ internal class ScoreSync(context: Context) {
         if (access != null || refresh != null || userId != null) {
             throw IOException("Incomplete Supabase session; refusing to replace the existing identity")
         }
-        return signInAnonymously()
+        return signInAnonymously(osuUserId)
     }
 
-    private fun signInAnonymously(): Session =
-        saveSession(JSONObject(request("POST", "/auth/v1/signup", "{}", null)))
+    private fun signInAnonymously(osuUserId: Long): Session =
+        saveSession(osuUserId, JSONObject(request("POST", "/auth/v1/signup", "{}", null)))
 
-    private fun saveSession(json: JSONObject): Session {
+    private fun saveSession(osuUserId: Long, json: JSONObject): Session {
         val access = json.getString("access_token")
         val refresh = json.getString("refresh_token")
         val userId = json.getJSONObject("user").getString("id")
         val expiresAt = System.currentTimeMillis() + json.getLong("expires_in") * 1000
-        if (!preferences.edit().putString("access_token", access).putString("refresh_token", refresh)
-                .putString("user_id", userId).putLong("expires_at", expiresAt).commit()
+        if (!preferences.edit().putString(key(osuUserId, "access_token"), access)
+                .putString(key(osuUserId, "refresh_token"), refresh)
+                .putString(key(osuUserId, "user_id"), userId)
+                .putLong(key(osuUserId, "expires_at"), expiresAt).commit()
         ) throw IOException("Could not save Supabase session")
         return Session(access, userId)
     }
@@ -187,6 +195,7 @@ internal class ScoreSync(context: Context) {
 
     private data class Session(val accessToken: String, val userId: String)
     private class HttpFailure(val status: Int) : IOException("Supabase request failed (HTTP $status)")
+    private fun key(osuUserId: Long, field: String) = "osu_${osuUserId}_$field"
 
     companion object {
         private const val TAG = "ScoreSync"

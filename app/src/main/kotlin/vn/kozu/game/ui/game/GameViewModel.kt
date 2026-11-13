@@ -43,7 +43,7 @@ class GameViewModel(private val container: AppContainer) : ViewModel() {
             onlyMania = true
         )
     )
-    val gameModule: GameStageModule = GameStageModule.get(container.appContext, previewModule)
+    val gameModule: GameStageModule = GameStageModule.get(container.appContext, previewModule, container.accounts)
 
     val playerName: StateFlow<String> = combine(
         container.settings.settings,

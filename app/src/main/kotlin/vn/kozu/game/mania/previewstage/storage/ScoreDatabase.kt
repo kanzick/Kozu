@@ -11,8 +11,9 @@ import vn.kozu.game.mania.previewstage.model.ScoreRecord
 class ScoreDatabase private constructor(private val db: SQLiteDatabase) : Closeable {
 
 
-    fun insert(s: ScoreRecord, clientPlayId: String? = null, submission: String? = null): Boolean {
-        require((clientPlayId == null) == (submission == null))
+    fun insert(s: ScoreRecord, clientPlayId: String? = null, submission: String? = null, osuUserId: Long? = null): Boolean {
+        require((clientPlayId == null && submission == null && osuUserId == null) ||
+            (clientPlayId != null && submission != null && osuUserId != null && osuUserId > 0))
         db.beginTransaction()
         try {
             val playedAt = if (s.playedAt > 0) s.playedAt else System.currentTimeMillis()
@@ -20,6 +21,7 @@ class ScoreDatabase private constructor(private val db: SQLiteDatabase) : Closea
                 db.insertOrThrow("score_sync_queue", null, ContentValues().apply {
                     put("client_play_id", clientPlayId)
                     put("submission", submission)
+                    put("osu_user_id", osuUserId)
                 })
             }
             val existingPlayedAt = db.rawQuery(
@@ -116,8 +118,8 @@ class ScoreDatabase private constructor(private val db: SQLiteDatabase) : Closea
             arrayOf(songId.toString(), difficulty, limit.toString())
         ).use { it.toRecords() }
 
-    fun pendingSubmissions(): List<Pair<String, String>> =
-        db.rawQuery("SELECT client_play_id, submission FROM score_sync_queue ORDER BY rowid", null).use { cursor ->
+    fun pendingSubmissions(osuUserId: Long): List<Pair<String, String>> =
+        db.rawQuery("SELECT client_play_id, submission FROM score_sync_queue WHERE osu_user_id = ? ORDER BY rowid", arrayOf(osuUserId.toString())).use { cursor ->
             buildList {
                 while (cursor.moveToNext()) add(cursor.getString(0) to cursor.getString(1))
             }
@@ -180,7 +182,7 @@ class ScoreDatabase private constructor(private val db: SQLiteDatabase) : Closea
 
     companion object {
         const val MAX_SCORES_PER_DIFFICULTY = 50
-        private const val SCHEMA_VERSION = 8
+        private const val SCHEMA_VERSION = 9
 
         fun open(file: File): ScoreDatabase {
             val db = SQLiteDatabase.openOrCreateDatabase(file, null)
@@ -294,6 +296,9 @@ class ScoreDatabase private constructor(private val db: SQLiteDatabase) : Closea
                                 submission TEXT NOT NULL
                             )"""
                         )
+                        if (db.version < 9) {
+                            db.execSQL("ALTER TABLE score_sync_queue ADD COLUMN osu_user_id INTEGER")
+                        }
                         db.version = SCHEMA_VERSION
                     }
                 }

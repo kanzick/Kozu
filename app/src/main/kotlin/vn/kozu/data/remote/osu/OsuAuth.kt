@@ -63,7 +63,7 @@ class OsuAuth(
         val current = settings.settings.first()
         return try {
             val token = api.exchangeCode(current.osuClientId, current.osuClientSecret, code, REDIRECT_URI)
-            saveToken(token, fallbackRefresh = "")
+            saveToken(token, fallbackRefresh = "", clearProfile = true)
             Result.success(Unit)
         } catch (e: CancellationException) {
             throw e
@@ -96,6 +96,7 @@ class OsuAuth(
     private suspend fun saveToken(
         token: TokenDto,
         fallbackRefresh: String,
+        clearProfile: Boolean = false,
     ): String {
         val access = token.accessToken ?: error("osu! did not return a token")
         account.saveSession(
@@ -104,6 +105,7 @@ class OsuAuth(
                 refreshToken = token.refreshToken ?: fallbackRefresh,
                 expiresAtMs = System.currentTimeMillis() + token.expiresIn * 1000L,
             ),
+            clearProfile = clearProfile,
         )
         return access
     }

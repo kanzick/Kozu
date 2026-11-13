@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import vn.kozu.data.repository.AccountRepository
 import vn.kozu.game.mania.gamestage.audio.DefaultHitsound
 import vn.kozu.game.mania.gamestage.chart.ManiaChart
 import vn.kozu.game.mania.gamestage.chart.ManiaChartParser
@@ -36,11 +37,12 @@ data class SubmitOutcome(
 class GameStageModule private constructor(
     context: Context,
     val preview: PreviewStageModule,
+    private val accounts: AccountRepository,
 ) {
     val dataDir: File = File(preview.paths.root, "gamestage")
     private val store = SettingsStore(File(dataDir, "settings.properties"))
     private val defaultHitFile = File(dataDir, "default_hit.wav")
-    private val scoreSync = ScoreSync(context)
+    private val scoreSync = ScoreSync(context, accounts)
     private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val startLock = Mutex()
 
@@ -107,15 +109,16 @@ class GameStageModule private constructor(
     suspend fun globalLeaderboard(song: SongEntry, difficulty: DifficultyRecord): GlobalLeaderboard =
         withContext(Dispatchers.IO) {
             if (scoreSync.configured) syncScores()
+            val profile = accounts.currentSignedInProfile()
             scoreSync.leaderboard(song.songId, difficulty.version).copy(
-                pendingCount = scoreDb().pendingSubmissions().size,
-                profileWarning = scoreSync.profileWarning,
+                pendingCount = profile?.let { scoreDb().pendingSubmissions(it.id).size } ?: 0,
+                profileWarning = profile?.let { scoreSync.profileWarning(it.id) } ?: false,
             )
         }
 
     private suspend fun syncScores() {
         try {
-            scoreSync.sync(scoreDb(), settings.playerName)
+            scoreSync.sync(scoreDb())
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -139,14 +142,22 @@ class GameStageModule private constructor(
                     maxCombo = result.maxCombo,
                     playedAt = System.currentTimeMillis(),
                 )
+            val profile = try {
+                accounts.currentSignedInProfile()?.takeIf { it.id > 0 && it.username.isNotBlank() }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e("GameStageModule", "Could not read osu! account; saving score locally", e)
+                null
+            }
             val id = UUID.randomUUID().toString()
-            val payload = try {
+            val payload = if (profile == null) null else try {
                 ScoreSync.submission(id, score, difficulty, result, settings.speed)
             } catch (e: Exception) {
                 Log.e("GameStageModule", "Could not prepare score for synchronization", e)
                 null
             }
-            val recorded = if (payload == null) db.insert(score) else db.insert(score, id, payload)
+            val recorded = if (payload == null || profile == null) db.insert(score) else db.insert(score, id, payload, profile.id)
             if (payload != null && scoreSync.configured) syncScope.launch { syncScores() }
             val isNewBest = previous == null || result.score > previous.score ||
                 (result.score == previous.score && result.accuracyPercent > previous.accuracy)
@@ -156,9 +167,9 @@ class GameStageModule private constructor(
     companion object {
         @Volatile private var instance: GameStageModule? = null
 
-        fun get(context: Context, preview: PreviewStageModule): GameStageModule =
+        fun get(context: Context, preview: PreviewStageModule, accounts: AccountRepository): GameStageModule =
             instance ?: synchronized(this) {
-                instance ?: GameStageModule(context.applicationContext, preview).also { instance = it }
+                instance ?: GameStageModule(context.applicationContext, preview, accounts).also { instance = it }
             }
     }
 }

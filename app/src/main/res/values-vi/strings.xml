@@ -378,7 +378,8 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="local_top_five">Top 5 của bạn</string>
     <string name="global_top_fifty">Top 50 toàn cầu</string>
     <string name="scores_pending_sync">%1$d lượt chơi đang chờ đồng bộ.</string>
-    <string name="score_name_sync_failed">Không thể đồng bộ tên người chơi. Hãy dùng tên duy nhất có 2–24 ký tự.</string>
+    <string name="score_name_sync_failed">Không thể đồng bộ tên osu!. Tên này có thể đã thuộc một hồ sơ bảng xếp hạng khác; điểm vẫn được giữ để đồng bộ sau.</string>
+    <string name="score_sign_in_required">Đăng nhập osu! để gửi điểm. Điểm chơi khi chưa đăng nhập chỉ lưu trên máy.</string>
     <string name="loading_video_preview">Đang tải bản xem trước video…</string>
     <string name="local_charts_refresh_error">Không thể làm mới chart cục bộ: %1$s</string>
     <string name="locale_translation_system">locale translation system</string>
