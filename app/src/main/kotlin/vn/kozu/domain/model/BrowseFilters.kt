@@ -196,33 +196,37 @@ data class BrowseFilters(
                 ranks.isNotEmpty()
 
     val activeFilters: List<ActiveBrowseFilter>
-        get() =
-            buildList {
-                if (mode != ModeFilter.ANY) add(ActiveBrowseFilter("Mode: ${mode.label}") { it.copy(mode = ModeFilter.ANY) })
-                if (status != BrowseStatus.HAS_LEADERBOARD) {
-                    add(ActiveBrowseFilter("Status: ${status.label}") { it.copy(status = BrowseStatus.HAS_LEADERBOARD) })
-                }
-                if (genre != BrowseGenre.ANY) add(ActiveBrowseFilter("Genre: ${genre.label}") { it.copy(genre = BrowseGenre.ANY) })
-                if (language != BrowseLanguage.ANY) {
-                    add(ActiveBrowseFilter("Language: ${language.label}") { it.copy(language = BrowseLanguage.ANY) })
-                }
-                extras.sortedBy { it.ordinal }.forEach { extra ->
-                    add(ActiveBrowseFilter(extra.label) { it.copy(extras = it.extras - extra) })
-                }
-                general.sortedBy { it.ordinal }.forEach { option ->
-                    add(ActiveBrowseFilter(option.label) { it.copy(general = it.general - option) })
-                }
-                if (played != BrowsePlayed.ANY) add(ActiveBrowseFilter(played.label) { it.copy(played = BrowsePlayed.ANY) })
-                ranks.sortedBy { it.ordinal }.forEach { rank ->
-                    add(ActiveBrowseFilter("Rank: ${rank.label}") { it.copy(ranks = it.ranks - rank) })
-                }
-                if (explicit) add(ActiveBrowseFilter("Explicit content") { it.copy(explicit = false) })
-                if (sortField != null || ascending) {
-                    add(ActiveBrowseFilter("Sort: ${sort.label}") { it.copy(sortField = null, ascending = false) })
-                }
+        get() = activeFilters(BrowseStatus.HAS_LEADERBOARD)
+
+    fun activeFilters(defaultStatus: BrowseStatus): List<ActiveBrowseFilter> =
+        buildList {
+            if (mode != ModeFilter.ANY) add(ActiveBrowseFilter("Mode: ${mode.label}") { it.copy(mode = ModeFilter.ANY) })
+            if (status != defaultStatus) {
+                add(ActiveBrowseFilter("Status: ${status.label}") { it.copy(status = defaultStatus) })
             }
+            if (genre != BrowseGenre.ANY) add(ActiveBrowseFilter("Genre: ${genre.label}") { it.copy(genre = BrowseGenre.ANY) })
+            if (language != BrowseLanguage.ANY) {
+                add(ActiveBrowseFilter("Language: ${language.label}") { it.copy(language = BrowseLanguage.ANY) })
+            }
+            extras.sortedBy { it.ordinal }.forEach { extra ->
+                add(ActiveBrowseFilter(extra.label) { it.copy(extras = it.extras - extra) })
+            }
+            general.sortedBy { it.ordinal }.forEach { option ->
+                add(ActiveBrowseFilter(option.label) { it.copy(general = it.general - option) })
+            }
+            if (played != BrowsePlayed.ANY) add(ActiveBrowseFilter(played.label) { it.copy(played = BrowsePlayed.ANY) })
+            ranks.sortedBy { it.ordinal }.forEach { rank ->
+                add(ActiveBrowseFilter("Rank: ${rank.label}") { it.copy(ranks = it.ranks - rank) })
+            }
+            if (explicit) add(ActiveBrowseFilter("Explicit content") { it.copy(explicit = false) })
+            if (sortField != null || ascending) {
+                add(ActiveBrowseFilter("Sort: ${sort.label}") { it.copy(sortField = null, ascending = false) })
+            }
+        }
 
     val hasActiveFilters: Boolean get() = activeFilters.isNotEmpty()
+
+    fun hasActiveFilters(defaultStatus: BrowseStatus): Boolean = activeFilters(defaultStatus).isNotEmpty()
 
     fun resetFilters(): BrowseFilters = BrowseFilters(query = query)
 

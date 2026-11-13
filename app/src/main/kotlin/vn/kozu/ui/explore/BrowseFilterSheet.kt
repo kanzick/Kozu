@@ -59,12 +59,14 @@ fun BrowseFilterSheet(
     initial: BrowseFilters,
     isLoggedIn: Boolean,
     modeLocked: Boolean = false,
+    resetDefaults: BrowseFilters = initial.resetFilters(),
     onDismiss: () -> Unit,
     onApply: (BrowseFilters) -> Unit,
 ) {
     var draft by remember(initial, modeLocked) {
         mutableStateOf(if (modeLocked) initial.copy(mode = ModeFilter.MANIA) else initial)
     }
+    val resetTarget = if (modeLocked) resetDefaults.copy(mode = ModeFilter.MANIA) else resetDefaults
     val isSupporter = LocalIsSupporter.current
     val sheetState =
         rememberBottomSheetState(
@@ -180,11 +182,9 @@ fun BrowseFilterSheet(
                 ) {
                     TextButton(
                         onClick = {
-                            draft = draft.resetFilters().let {
-                                if (modeLocked) it.copy(mode = ModeFilter.MANIA) else it
-                            }
+                            draft = resetTarget
                         },
-                        enabled = draft.hasActiveFilters,
+                        enabled = draft != resetTarget,
                     ) { Text(stringResource(R.string.reset)) }
                     Button(
                         onClick = {

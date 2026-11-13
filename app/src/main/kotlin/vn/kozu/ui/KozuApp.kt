@@ -233,6 +233,7 @@ private fun KozuShell(
     var newsOpen by rememberSaveable { mutableStateOf(false) }
     var personName by rememberSaveable { mutableStateOf<String?>(null) }
     var personKindKey by rememberSaveable { mutableStateOf(PersonKind.ARTIST.name) }
+    var personOnTopOfPlayer by rememberSaveable { mutableStateOf(false) }
     var lastPersonName by remember { mutableStateOf("") }
     var lastPersonKind by remember { mutableStateOf(PersonKind.ARTIST) }
     LaunchedEffect(personName) {
@@ -254,9 +255,11 @@ private fun KozuShell(
     val statsVisibility = remember { MutableTransitionState(false) }.apply { targetState = statsOpen }
     val newsVisibility = remember { MutableTransitionState(false) }.apply { targetState = newsOpen }
     val playerVisibility = remember { MutableTransitionState(false) }.apply {
-        targetState = playerOpen && state.current != null && personName == null
+        targetState = playerOpen && state.current != null && !personOnTopOfPlayer
     }
-    val personVisibility = remember { MutableTransitionState(false) }.apply { targetState = personName != null }
+    val personVisibility = remember { MutableTransitionState(false) }.apply {
+        targetState = personName != null && (!playerOpen || personOnTopOfPlayer)
+    }
     val onboardingVisibility = remember { MutableTransitionState(false) }.apply { targetState = onboardingOpen }
 
     DisposableEffect(playback) {
@@ -298,6 +301,11 @@ private fun KozuShell(
     fun closeAllBeatmaps() {
         allBeatmapsOpen = false
         formgamepage = false
+    }
+
+    fun closePerson() {
+        personName = null
+        personOnTopOfPlayer = false
     }
 
     val homeList = rememberLazyListState()
@@ -350,17 +358,26 @@ private fun KozuShell(
                     index: Int,
                 ) {
                     playback.playQueue(queue, index)
-                    if (latestSettings.autoOpenPlayer) playerOpen = true
+                    if (latestSettings.autoOpenPlayer) {
+                        personOnTopOfPlayer = false
+                        playerOpen = true
+                    }
                 }
 
                 override fun playShuffled(queue: List<Beatmap>) {
                     playback.playShuffled(queue)
-                    if (latestSettings.autoOpenPlayer) playerOpen = true
+                    if (latestSettings.autoOpenPlayer) {
+                        personOnTopOfPlayer = false
+                        playerOpen = true
+                    }
                 }
 
                 override fun playShuffledWithOrder(queue: List<Beatmap>): List<Beatmap> {
                     val shuffled = playback.playShuffledWithOrder(queue)
-                    if (latestSettings.autoOpenPlayer) playerOpen = true
+                    if (latestSettings.autoOpenPlayer) {
+                        personOnTopOfPlayer = false
+                        playerOpen = true
+                    }
                     return shuffled
                 }
 
@@ -558,7 +575,10 @@ private fun KozuShell(
                                     isPlaying = state.isPlaying,
                                     position = playback.position,
                                     duration = playback.duration,
-                                    onOpen = { playerOpen = true },
+                                    onOpen = {
+                                        personOnTopOfPlayer = false
+                                        playerOpen = true
+                                    },
                                     onPlayPause = playback::togglePlayPause,
                                     onPrevious = playback::previous,
                                     onNext = playback::next,
@@ -684,12 +704,14 @@ private fun KozuShell(
                         onArtistClick = { artist ->
                             if (artist.isNotBlank()) {
                                 personKindKey = PersonKind.ARTIST.name
+                                personOnTopOfPlayer = true
                                 personName = artist
                             }
                         },
                         onMapperClick = { mapper ->
                             if (mapper.isNotBlank()) {
                                 personKindKey = PersonKind.MAPPER.name
+                                personOnTopOfPlayer = true
                                 personName = mapper
                             }
                         },
@@ -715,7 +737,7 @@ private fun KozuShell(
                     )
                 }
             }
-            if (playerOpen) BackHandler { playerOpen = false }
+            if (playerOpen && !personOnTopOfPlayer) BackHandler { playerOpen = false }
 
 
             AnimatedVisibility(
@@ -727,15 +749,18 @@ private fun KozuShell(
                     PersonScreen(
                         kind = personName?.let { PersonKind.valueOf(personKindKey) } ?: lastPersonKind,
                         name = personName ?: lastPersonName,
-                        onBack = { personName = null },
+                        onBack = ::closePerson,
                     )
                 }
             }
-            if (personName != null) BackHandler { personName = null }
+            if (personName != null && (!playerOpen || personOnTopOfPlayer)) BackHandler { closePerson() }
 
 
             AnimatedVisibility(
-                visible = state.current != null && (personName != null || (overlayScreenOpen && !playerOpen)),
+                visible =
+                    state.current != null &&
+                        ((personName != null && (!playerOpen || personOnTopOfPlayer)) ||
+                            (overlayScreenOpen && !playerOpen)),
                 modifier = Modifier.align(Alignment.BottomCenter),
                 enter = fadeIn(tween(160)) + slideInVertically(KozuMotion.spatial()) { it / 2 },
                 exit = fadeOut(tween(120)) + slideOutVertically { it / 2 },
@@ -761,11 +786,7 @@ private fun KozuShell(
                                 position = playback.position,
                                 duration = playback.duration,
                                 onOpen = {
-                                    settingsOpen = false
-                                    allBeatmapsOpen = false
-                                    statsOpen = false
-                                    newsOpen = false
-                                    personName = null
+                                    personOnTopOfPlayer = false
                                     playerOpen = true
                                 },
                                 onPlayPause = playback::togglePlayPause,
