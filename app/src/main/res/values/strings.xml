@@ -81,7 +81,7 @@
     <string name="background_service_recents">background service recents</string>
     <string name="backup_and_restore">Backup &amp; restore</string>
     <string name="backup_and_restore_text">Backup &amp; Restore</string>
-    <string name="backup_description_full">A backup is a single file you save wherever you like. It holds the sections you choose: settings, favorites, playlists and listening history. Restoring merges the file into what you already have and never removes anything. Sign-in tokens, API credentials and proxy passwords are never stored in a backup, and downloaded songs are not included.</string>
+    <string name="backup_description_full">A backup is a single ZIP file you can save wherever you like. Choose settings, favorites, playlists, listening history, downloaded music or game data. Restoring merges library records where possible; restoring game data replaces the current game-data folder. Sign-in tokens, API credentials and proxy passwords are never stored in a backup.</string>
     <string name="balanced">Balanced</string>
     <string name="balanced_calm_colors">Balanced, calm colors</string>
     <string name="bass_boost">Bass boost</string>
@@ -306,6 +306,7 @@
     <string name="free_space_reset">free space reset</string>
     <string name="free_space_thumbnails">free space thumbnails</string>
     <string name="french">French</string>
+    <string name="full_changelog">Full changelog</string>
     <string name="full_song">Full song</string>
     <string name="full_song_mode_description">Full song mode tries the enabled public mirrors and only plays a full audio file. It never silently switches to a short preview. Preview mode is used only when you explicitly select it.
 

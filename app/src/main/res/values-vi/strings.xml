@@ -81,7 +81,7 @@
     <string name="background_service_recents">background service recents</string>
     <string name="backup_and_restore">Sao lưu &amp; khôi phục</string>
     <string name="backup_and_restore_text">Sao lưu &amp; khôi phục</string>
-    <string name="backup_description_full">Bản sao lưu là một tệp duy nhất mà bạn có thể lưu ở bất cứ đâu. Tệp chứa các mục bạn chọn: cài đặt, bài hát yêu thích, danh sách phát và lịch sử nghe. Khi khôi phục, dữ liệu trong tệp sẽ được gộp với dữ liệu hiện có và không xóa bất kỳ nội dung nào. Mã thông báo đăng nhập, thông tin xác thực API và mật khẩu proxy không được lưu trong bản sao lưu; các bài hát đã tải xuống cũng không được bao gồm.</string>
+    <string name="backup_description_full">Bản sao lưu là một tệp ZIP duy nhất có thể lưu ở bất cứ đâu. Bạn có thể chọn cài đặt, bài hát yêu thích, danh sách phát, lịch sử nghe, nhạc đã tải xuống hoặc dữ liệu game. Khi khôi phục, dữ liệu thư viện sẽ được gộp khi có thể; riêng dữ liệu game sẽ thay thế thư mục dữ liệu game hiện tại. Mã thông báo đăng nhập, thông tin xác thực API và mật khẩu proxy không được lưu trong bản sao lưu.</string>
     <string name="balanced">Cân bằng</string>
     <string name="balanced_calm_colors">Màu sắc cân bằng, dịu mắt</string>
     <string name="bass_boost">Tăng âm trầm</string>
@@ -306,6 +306,7 @@
     <string name="free_space_reset">free space reset</string>
     <string name="free_space_thumbnails">free space thumbnails</string>
     <string name="french">Tiếng Pháp</string>
+    <string name="full_changelog">Toàn bộ nhật ký thay đổi</string>
     <string name="full_song">Toàn bộ bài hát</string>
     <string name="full_song_mode_description">Chế độ phát toàn bài sẽ thử các máy chủ công khai đã bật và chỉ phát tệp âm thanh đầy đủ. Ứng dụng không tự chuyển sang bản nghe thử ngắn. Chế độ xem trước chỉ được dùng khi bạn chủ động chọn.
 
