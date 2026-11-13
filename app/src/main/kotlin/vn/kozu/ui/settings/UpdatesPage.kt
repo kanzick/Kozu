@@ -370,6 +370,7 @@ private fun UpdateAvailableSheet(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
 ) {
+    val context = LocalContext.current
     val canDownload = update.downloadUrl != null
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -428,6 +429,9 @@ private fun UpdateAvailableSheet(
                         }
                     }
                 }
+            }
+            TextButton(onClick = { context.openLink(update.url) }, modifier = Modifier.align(Alignment.End)) {
+                Text(stringResource(R.string.full_changelog))
             }
 
             if (downloading) {

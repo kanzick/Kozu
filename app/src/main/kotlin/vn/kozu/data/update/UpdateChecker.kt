@@ -98,7 +98,6 @@ class UpdateChecker(
         }
     }
 
-
     private fun checkViaFeed(): UpdateResult? =
         try {
             val request = Request.Builder().url(RELEASES_FEED_URL).header("Accept", "application/atom+xml").build()
@@ -106,22 +105,17 @@ class UpdateChecker(
                 if (!response.isSuccessful) return@use null
                 val body = response.body.string()
                 val entries = Regex("<entry>([\\s\\S]*?)</entry>").findAll(body).map { it.groupValues[1] }.toList()
-                val best =
-                    entries
-                        .mapNotNull { entry ->
-                            val title = Regex("<title>([^<]*)</title>").find(entry)?.groupValues?.get(1)?.trim()
-                            if (title.isNullOrBlank()) null else title to entry
-                        }.maxWithOrNull { x, y -> compareVersions(x.first, y.first) }
-                    ?: return@use null
+                val candidates = entries.mapNotNull { entry ->
+                    val title = Regex("<title>([^<]*)</title>").find(entry)?.groupValues?.get(1)?.trim()
+                    val link = Regex("<link[^>]*href=\"([^\"]*/releases/tag/[^\"]+)\"").find(entry)?.groupValues?.get(1)
+                    if (title.isNullOrBlank()) null else Triple(title, entry, link ?: RELEASES_URL)
+                }
+                val best = candidates.maxWithOrNull { x, y -> compareVersions(x.first, y.first) } ?: return@use null
                 val latest = best.first.trim()
                 if (compareVersions(latest, currentVersion) > 0) {
-                    val link =
-                        Regex("<link[^>]*href=\"([^\"]*/releases/tag/[^\"]+)\"").find(best.second)?.groupValues?.get(1)
-                            ?: RELEASES_URL
-                    val notes =
-                        Regex("<content[^>]*>([\\s\\S]*?)</content>").find(best.second)?.groupValues?.get(1).orEmpty()
-                    val downloadUrl = "https://github.com/kanzick/Kozu/releases/download/$latest/kozu-universal.apk"
-                    UpdateResult.Available(latest, link, htmlToText(notes), downloadUrl)
+                    val notes = Regex("<content[^>]*>([\\s\\S]*?)</content>").find(best.second)?.groupValues?.get(1).orEmpty()
+                    val assetUrl = findFallbackAssetUrl(latest)
+                    UpdateResult.Available(latest, best.third, cleanReleaseNotes(htmlToText(notes)), assetUrl)
                 } else {
                     UpdateResult.UpToDate(currentVersion)
                 }
@@ -262,6 +256,33 @@ class UpdateChecker(
             .coerceIn(1, MAX_COMMIT_PAGES)
     }
 
+    private fun preferredApkNames(): List<String> =
+        Build.SUPPORTED_ABIS
+            .distinct()
+            .map { "kozu-$it.apk" } + "kozu-universal.apk"
+
+    private fun isTrustedReleaseAsset(url: String): Boolean = runCatching {
+        val parsed = java.net.URL(url)
+        parsed.protocol == "https" &&
+            parsed.host.equals("github.com", ignoreCase = true) &&
+            parsed.path.startsWith("/kanzick/Kozu/releases/download/")
+    }.getOrDefault(false)
+
+    private fun findFallbackAssetUrl(tag: String): String? {
+        for (name in preferredApkNames()) {
+            val candidate = "$RELEASE_DOWNLOAD_URL/$tag/$name"
+            val request = Request.Builder().url(candidate).head().build()
+            try {
+                client.newCall(request).execute().use { response ->
+                    if (response.isSuccessful || response.code in 300..399) return candidate
+                }
+            } catch (_: Exception) {
+                continue
+            }
+        }
+        return null
+    }
+
     private fun parseReleases(body: String): UpdateResult {
         val releases =
             try {
@@ -270,11 +291,12 @@ class UpdateChecker(
                 return UpdateResult.Failed("Unexpected response from GitHub")
             }
 
-
         val release =
             (0 until releases.length())
                 .mapNotNull { releases.optJSONObject(it) }
-                .filter { !it.optBoolean("draft") && it.optString("tag_name").isNotBlank() }
+                .filter {
+                    !it.optBoolean("draft") && it.optString("tag_name").isNotBlank()
+                }
                 .maxWithOrNull { x, y -> compareVersions(x.optString("tag_name"), y.optString("tag_name")) }
                 ?: return UpdateResult.UpToDate(currentVersion)
 
@@ -282,7 +304,7 @@ class UpdateChecker(
         val url = release.optString("html_url").ifBlank { RELEASES_URL }
         val downloadUrl = findApkDownloadUrl(release)
         return if (compareVersions(tag, currentVersion) > 0) {
-            UpdateResult.Available(tag, url, release.optString("body").trim(), downloadUrl)
+            UpdateResult.Available(tag, url, cleanReleaseNotes(release.optString("body")), downloadUrl)
         } else {
             UpdateResult.UpToDate(currentVersion)
         }
@@ -298,8 +320,20 @@ class UpdateChecker(
                 if (name.isNotBlank() && url.isNotBlank()) put(name, url)
             }
         }
-        val preferredNames = Build.SUPPORTED_ABIS.map { "kozu-$it.apk" } + "kozu-universal.apk"
-        return preferredNames.firstNotNullOfOrNull(urlsByName::get)
+        return preferredApkNames().firstNotNullOfOrNull { name ->
+            urlsByName[name]?.takeIf(::isTrustedReleaseAsset)
+        }
+    }
+
+    private fun cleanReleaseNotes(body: String): String {
+        val fullChangelog = Regex(
+            "(?im)^\\s*(?:#{1,6}\\s*)?(?:📝\\s*)?(?:\\*\\*)?Full Changelog(?:\\*\\*)?(?:\\s*:.*)?$",
+        ).find(body)?.range?.first
+        val downloads = Regex(
+            "(?im)^\\s*(?:#{1,6}\\s*)?(?:📥\\s*)?(?:\\*\\*)?(?:Downloads|Assets)(?:\\*\\*)?(?:\\s*(?:⬇️|↓))?(?:\\s*:.*)?$",
+        ).find(body)?.range?.first
+        val end = listOfNotNull(fullChangelog, downloads).minOrNull() ?: body.length
+        return body.substring(0, end).trim()
     }
 
     suspend fun downloadApk(
@@ -310,7 +344,7 @@ class UpdateChecker(
         val parsedUrl = runCatching { java.net.URL(url) }.getOrElse {
             throw IOException("The download URL is invalid.", it)
         }
-        if (parsedUrl.protocol != "https" || parsedUrl.host != "github.com") {
+        if (parsedUrl.protocol != "https" || parsedUrl.host != "github.com" || !isTrustedReleaseAsset(url)) {
             throw IOException("The update download URL is not trusted.")
         }
 
@@ -368,6 +402,7 @@ class UpdateChecker(
         const val MAX_COMMIT_PAGES = 1_000
         const val REPOSITORY_URL = "https://github.com/kanzick/Kozu"
         const val RELEASES_URL = "https://github.com/kanzick/Kozu/releases"
+        const val RELEASE_DOWNLOAD_URL = "https://github.com/kanzick/Kozu/releases/download"
         const val RELEASES_FEED_URL = "https://github.com/kanzick/Kozu/releases.atom"
         const val DAY_MS = 24L * 60L * 60L * 1000L
         const val DEFAULT_BRANCH = "main"
