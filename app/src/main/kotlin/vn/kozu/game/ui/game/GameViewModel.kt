@@ -36,10 +36,7 @@ class GameViewModel(private val container: AppContainer) : ViewModel() {
     val previewModule: PreviewStageModule = PreviewStageModule.get(
         context = container.appContext,
         config = PreviewStageConfig(
-            rootDir = File(
-                container.appContext.getExternalFilesDir(null) ?: container.appContext.filesDir,
-                "addmap"
-            ),
+            rootDir = PreviewStageModule.defaultRootDir(container.appContext),
             onlyMania = true
         )
     )

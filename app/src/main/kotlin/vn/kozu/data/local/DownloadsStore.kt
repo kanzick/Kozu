@@ -44,6 +44,19 @@ class DownloadsStore(
             listOf(set) + list.filterNot { it.beatmap.id == set.beatmap.id }
         }
 
+    suspend fun importAll(incoming: List<DownloadedSet>): Int {
+        var changed = 0
+        update { current ->
+            val byId = current.associateBy { it.beatmap.id }.toMutableMap()
+            incoming.forEach { set ->
+                if (set.beatmap.id <= 0L) return@forEach
+                if (byId[set.beatmap.id] != set) changed++
+                byId[set.beatmap.id] = set
+            }
+            byId.values.sortedByDescending { it.downloadedAt }
+        }
+        return changed
+    }
 
     suspend fun updateSizes(sizes: Map<Long, Long>) =
         update { list ->

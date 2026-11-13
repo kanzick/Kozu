@@ -84,8 +84,8 @@ private val rootPageGroups = listOf(
     listOf(SettingsPage.ACCOUNT, SettingsPage.STATS),
     listOf(SettingsPage.APPEARANCE, SettingsPage.LANGUAGE, SettingsPage.CONTENT),
     listOf(SettingsPage.MUSIC, SettingsPage.PLAYBACK, SettingsPage.EQUALIZER, SettingsPage.SOURCES),
-    listOf(SettingsPage.BEHAVIOR, SettingsPage.DEVICE, SettingsPage.DEVELOPER),
     listOf(SettingsPage.DOWNLOADS, SettingsPage.STORAGE, SettingsPage.BACKUP),
+    listOf(SettingsPage.BEHAVIOR, SettingsPage.DEVICE, SettingsPage.DEVELOPER),
     listOf(SettingsPage.UPDATES, SettingsPage.ABOUT),
 )
 

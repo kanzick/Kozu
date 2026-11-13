@@ -86,7 +86,7 @@ class AppContainer(
     }
 
     val updates = UpdateChecker(appContext, httpClient)
-    val backup = BackupManager(settings, favorites, playlists, history)
+    val backup = BackupManager(appContext, settings, favorites, playlists, history, downloadsStore)
     val cacheCleaner = CacheCleaner(appContext, streams, settings)
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)

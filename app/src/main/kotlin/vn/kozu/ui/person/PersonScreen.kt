@@ -3,10 +3,8 @@ package vn.kozu.ui.person
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -30,10 +28,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.Modifier
@@ -43,6 +44,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import vn.kozu.R
+import vn.kozu.domain.model.BrowseFilters
+import vn.kozu.domain.model.BrowseStatus
 import vn.kozu.ui.components.CenteredHeader
 import vn.kozu.ui.components.EmptyState
 import vn.kozu.ui.components.HeaderAction
@@ -50,6 +53,9 @@ import vn.kozu.ui.components.KozuLoading
 import vn.kozu.ui.components.LocalTrackActions
 import vn.kozu.ui.components.softTopEdge
 import vn.kozu.ui.components.TrackRow
+import vn.kozu.ui.explore.ActiveFilterChips
+import vn.kozu.ui.explore.BrowseFilterSheet
+import vn.kozu.ui.explore.FilterAction
 
 @Composable
 fun PersonScreen(
@@ -63,6 +69,8 @@ fun PersonScreen(
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val actions = LocalTrackActions.current
     val listState = rememberLazyListState()
+    var showFilters by rememberSaveable { mutableStateOf(false) }
+    val activeFilters = ui.filters.activeFilters(BrowseStatus.ANY)
 
     val nearEnd by remember {
         derivedStateOf {
@@ -74,6 +82,7 @@ fun PersonScreen(
     LaunchedEffect(nearEnd, ui.items.size, ui.hasMore) {
         if (nearEnd && ui.hasMore && !ui.isLoadingMore) viewModel.loadMore()
     }
+    LaunchedEffect(ui.filters) { listState.scrollToItem(0) }
 
     Column(
         modifier =
@@ -93,8 +102,22 @@ fun PersonScreen(
                     startPadding = 0.dp,
                 )
             },
-            trailing = {},
+            trailing = {
+                FilterAction(
+                    active = ui.filters.hasActiveFilters(BrowseStatus.ANY),
+                    onClick = { showFilters = true },
+                )
+            },
         )
+
+        if (activeFilters.isNotEmpty()) {
+            ActiveFilterChips(
+                filters = activeFilters,
+                onRemove = { viewModel.applyFilters(it.clear(ui.filters)) },
+                onReset = viewModel::resetFilters,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
+        }
 
         when {
             ui.isLoading -> KozuLoading()
@@ -173,5 +196,22 @@ fun PersonScreen(
                     if (ui.isLoadingMore) item(key = "more") { KozuLoading() }
                 }
         }
+    }
+
+    if (showFilters) {
+        BrowseFilterSheet(
+            initial = ui.filters,
+            isLoggedIn = ui.isLoggedIn,
+            resetDefaults = BrowseFilters(
+                query = name,
+                status = BrowseStatus.ANY,
+                explicit = ui.filters.explicit,
+            ),
+            onDismiss = { showFilters = false },
+            onApply = {
+                viewModel.applyFilters(it)
+                showFilters = false
+            },
+        )
     }
 }
