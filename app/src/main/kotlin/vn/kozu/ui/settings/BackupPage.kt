@@ -42,7 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import java.io.ByteArrayOutputStream
+import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -51,16 +51,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import vn.kozu.data.backup.BackupException
+import vn.kozu.data.backup.MAX_BACKUP_ARCHIVE_BYTES
 import vn.kozu.data.backup.BackupInfo
 import vn.kozu.data.backup.BackupSection
 import vn.kozu.R
-private const val MAX_BACKUP_BYTES = 25_000_000
-
 private sealed interface BackupPicker {
     data object Create : BackupPicker
 
     data class Restore(
-        val json: String,
+        val file: File,
         val info: BackupInfo,
     ) : BackupPicker
 }
@@ -86,19 +85,17 @@ fun BackupPage(
 
     val createLauncher =
         rememberLauncherForActivityResult(
-            ActivityResultContracts.CreateDocument("application/json"),
+            ActivityResultContracts.CreateDocument("application/zip"),
         ) { uri ->
             if (uri == null) return@rememberLauncherForActivityResult
             scope.launch {
                 busy = true
                 outcome =
                     try {
-                        val json = backup.create(pending)
                         withContext(Dispatchers.IO) {
-                            val stream =
-                                context.contentResolver.openOutputStream(uri, "wt")
-                                    ?: throw IOException("Could not open the selected file")
-                            stream.use { it.write(json.toByteArray(Charsets.UTF_8)) }
+                            val stream = context.contentResolver.openOutputStream(uri, "wt")
+                                ?: throw IOException("Could not open the selected file")
+                            stream.use { backup.create(pending, it) }
                         }
                         BackupOutcome(true, "Backup saved with ${pending.joinToString { it.label.lowercase() }}.")
                     } catch (e: BackupException) {
@@ -118,14 +115,31 @@ fun BackupPage(
             scope.launch {
                 busy = true
                 try {
-                    val json =
+                    val temp = File(context.cacheDir, "kozu-restore-${System.currentTimeMillis()}.backup")
+                    try {
                         withContext(Dispatchers.IO) {
-                            val stream =
-                                context.contentResolver.openInputStream(uri)
-                                    ?: throw IOException("Could not open the selected file")
-                            stream.use { readLimited(it) }
+                            val stream = context.contentResolver.openInputStream(uri)
+                                ?: throw IOException("Could not open the selected file")
+                            stream.use { input ->
+                                temp.outputStream().buffered().use { output ->
+                                    val buffer = ByteArray(64 * 1024)
+                                    var total = 0L
+                                    while (true) {
+                                        val count = input.read(buffer)
+                                        if (count < 0) break
+                                        total += count
+                                        if (total > MAX_BACKUP_ARCHIVE_BYTES) throw IOException("The backup archive is too large")
+                                        output.write(buffer, 0, count)
+                                    }
+                                }
+                            }
                         }
-                    picker = BackupPicker.Restore(json, backup.inspect(json))
+                        val info = withContext(Dispatchers.IO) { backup.inspect(temp) }
+                        picker = BackupPicker.Restore(temp, info)
+                    } catch (error: Exception) {
+                        temp.delete()
+                        throw error
+                    }
                 } catch (e: BackupException) {
                     outcome = BackupOutcome(false, e.message ?: "Invalid backup")
                 } catch (e: Exception) {
@@ -171,7 +185,7 @@ fun BackupPage(
                     picker = null
                     pending = selected
                     val stamp = SimpleDateFormat("yyyyMMdd-HHmm", Locale.US).format(Date())
-                    createLauncher.launch("kozu-backup-$stamp.kozubackup")
+                    createLauncher.launch("kozu-backup-$stamp.zip")
                 },
                 onDismiss = { picker = null },
             )
@@ -188,35 +202,30 @@ fun BackupPage(
                     picker = null
                     scope.launch {
                         busy = true
-                        outcome =
-                            try {
-                                BackupOutcome(true, backup.restore(current.json, selected))
-                            } catch (e: BackupException) {
-                                BackupOutcome(false, e.message ?: "Restore failed")
-                            } catch (e: Exception) {
-                                BackupOutcome(false, "Restore failed: ${e.message ?: "unknown error"}")
-                            }
-                        busy = false
+                        try {
+                            outcome =
+                                try {
+                                    BackupOutcome(true, backup.restore(current.file, selected))
+                                } catch (e: BackupException) {
+                                    BackupOutcome(false, e.message ?: "Restore failed")
+                                } catch (e: Exception) {
+                                    BackupOutcome(false, "Restore failed: ${e.message ?: "unknown error"}")
+                                }
+                        } finally {
+                            current.file.delete()
+                            busy = false
+                        }
                     }
                 },
-                onDismiss = { picker = null },
+                onDismiss = {
+                    current.file.delete()
+                    picker = null
+                },
             )
         }
 
         null -> {}
     }
-}
-
-private fun readLimited(stream: java.io.InputStream): String {
-    val output = ByteArrayOutputStream()
-    val buffer = ByteArray(16 * 1024)
-    while (true) {
-        val count = stream.read(buffer)
-        if (count < 0) break
-        output.write(buffer, 0, count)
-        if (output.size() > MAX_BACKUP_BYTES) throw BackupException("This file is too large to be a Kozu backup")
-    }
-    return output.toString(Charsets.UTF_8.name())
 }
 
 @Composable
@@ -281,7 +290,7 @@ private fun SectionSheet(
     onConfirm: (Set<BackupSection>) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var selected by remember { mutableStateOf(available.toSet()) }
+    var selected by remember(available) { mutableStateOf(available.toSet()) }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         dragHandle = { KozuSheetHandle() },

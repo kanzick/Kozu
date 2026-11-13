@@ -35,9 +35,7 @@ class PreviewStageModule private constructor(
     private val appContext = context.applicationContext
     private val config = config
 
-    val paths: ModulePaths = ModulePaths(
-        config.rootDir ?: File(appContext.getExternalFilesDir(null) ?: appContext.filesDir, "maniamodule")
-    )
+    val paths: ModulePaths = ModulePaths(config.rootDir ?: defaultRootDir(appContext))
     val catalog = KozuCatalog()
 
     private val startLock = Mutex()
@@ -85,6 +83,78 @@ class PreviewStageModule private constructor(
             throw IOException(summary.failed.joinToString("; ") { "${it.fileName}: ${it.reason}" })
         }
         buildReport(summary, catalog.all(), t0).also { report = it }
+    }
+
+    suspend fun exportDataFiles(consume: (File) -> Unit) = startLock.withLock {
+        val wasStarted = kozuDb != null || scoreDb != null
+        closeDatabases()
+        try {
+            consume(paths.root)
+        } finally {
+            if (wasStarted) openDatabases()
+        }
+    }
+
+    suspend fun restoreDataFiles(source: File) = startLock.withLock {
+        if (!source.isDirectory) throw IOException("The game backup is missing its data folder")
+        val wasStarted = kozuDb != null || scoreDb != null
+        stopPreview()
+        closeDatabases()
+
+        val parent = paths.root.parentFile ?: throw IOException("The game data folder is unavailable")
+        if (!parent.exists() && !parent.mkdirs()) {
+            if (wasStarted) openDatabases()
+            throw IOException("Could not prepare the game data folder")
+        }
+        val stamp = System.currentTimeMillis()
+        val staging = File(parent, ".${paths.root.name}.restore-$stamp")
+        val previous = File(parent, ".${paths.root.name}.previous-$stamp")
+        var previousMoved = false
+        var restoredInstalled = false
+
+        try {
+            staging.deleteRecursively()
+            source.copyRecursively(staging, overwrite = true)
+
+            if (paths.root.exists()) {
+                if (!paths.root.renameTo(previous)) throw IOException("Could not stage the current game data")
+                previousMoved = true
+            }
+            if (!staging.renameTo(paths.root)) throw IOException("Could not install the restored game data")
+            restoredInstalled = true
+
+            if (wasStarted) report = doStart()
+            previous.deleteRecursively()
+        } catch (error: Exception) {
+            closeDatabases()
+            if (restoredInstalled) paths.root.deleteRecursively()
+            if (previousMoved && previous.exists() && !previous.renameTo(paths.root)) {
+                error.addSuppressed(IOException("Could not roll back the previous game data"))
+            }
+            if (wasStarted) {
+                try {
+                    report = doStart()
+                } catch (restoreError: Exception) {
+                    error.addSuppressed(restoreError)
+                }
+            }
+            throw error
+        } finally {
+            staging.deleteRecursively()
+        }
+    }
+
+    private fun closeDatabases() {
+        scoreDb?.close()
+        scoreDb = null
+        kozuDb?.close()
+        kozuDb = null
+    }
+
+    private fun openDatabases() {
+        paths.ensureLayout()
+        kozuDb = KozuDatabase.open(paths.kozuDb)
+        scoreDb = ScoreDatabase.open(paths.scoreDb)
     }
 
     suspend fun collectionNames(): List<String> = startLock.withLock {
@@ -219,6 +289,8 @@ class PreviewStageModule private constructor(
 
         @Volatile private var instance: PreviewStageModule? = null
 
+        fun defaultRootDir(context: Context): File =
+            File(context.applicationContext.getExternalFilesDir(null) ?: context.applicationContext.filesDir, "addmap")
 
         fun peek(): PreviewStageModule? = instance
 
