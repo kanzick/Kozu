@@ -11,6 +11,10 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
+    <queries>
+        <package android:name="sh.ppy.osulazer" />
+    </queries>
+
     <application
         android:name=".KozuApplication"
         android:allowBackup="true"
@@ -44,6 +48,35 @@
                 <data android:host="osu.ppy.sh" />
                 <data android:pathPrefix="/beatmapsets/" />
                 <data android:pathPrefix="/s/" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/zip" />
+                <data android:mimeType="application/x-zip-compressed" />
+                <data android:mimeType="application/octet-stream" />
+                <data android:mimeType="application/x-osu-beatmap-archive" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="application/x-osu-beatmap-archive" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:host="*" />
+                <data android:mimeType="*/*" />
+                <data android:pathPattern=".*\\.osz" />
+                <data android:pathPattern=".*\\..*\\.osz" />
+                <data android:pathPattern=".*\\..*\\..*\\.osz" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\.osz" />
             </intent-filter>
         </activity>
 
