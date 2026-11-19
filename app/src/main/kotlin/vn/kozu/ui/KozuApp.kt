@@ -89,6 +89,7 @@ import vn.kozu.R
 import vn.kozu.ui.components.BeatmapInfoSheet
 import vn.kozu.ui.components.DownloadInfo
 import vn.kozu.ui.components.LocalAppSettings
+import vn.kozu.domain.model.isLocal
 import vn.kozu.ui.components.LocalBackgroundResolver
 import vn.kozu.ui.components.LocalDownloads
 import vn.kozu.ui.components.LocalFavoriteIds
@@ -427,6 +428,7 @@ private fun KozuShell(
     }
     LaunchedEffect(playback) { playback.messages.collect { notify(it) } }
     LaunchedEffect(container) { container.downloads.events.collect { notify(it) } }
+    LaunchedEffect(container) { container.lazerImporter.events.collect { notify(it) } }
     LaunchedEffect(container) { container.accounts.events.collect { notify(it) } }
     LaunchedEffect(container) {
         if (container.settings.settings
@@ -874,14 +876,18 @@ private fun KozuShell(
                     menuTarget = null
                 },
                 onOpenInOsu = {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, beatmap.webUrl.toUri()))
+                    if (!beatmap.isLocal) context.startActivity(Intent(Intent.ACTION_VIEW, beatmap.webUrl.toUri()))
                     menuTarget = null
                 },
                 onShare = {
                     val send =
                         Intent(Intent.ACTION_SEND).apply {
                             type = "text/plain"
-                            putExtra(Intent.EXTRA_TEXT, "${beatmap.title} — ${beatmap.artist}\n${beatmap.webUrl}")
+                            putExtra(
+                                Intent.EXTRA_TEXT,
+                                listOfNotNull("${beatmap.title} — ${beatmap.artist}", beatmap.webUrl.takeUnless { beatmap.isLocal })
+                                    .joinToString("\n"),
+                            )
                         }
                     context.startActivity(Intent.createChooser(send, null))
                     menuTarget = null

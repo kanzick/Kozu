@@ -3,11 +3,13 @@ package vn.kozu
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.content.IntentCompat
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import vn.kozu.data.local.SettingsStore
@@ -28,7 +30,7 @@ class MainActivity : ComponentActivity() {
         }
         super.onCreate(savedInstanceState)
         applyRefreshRate((application as KozuApplication).container.settings.cachedHighRefreshRate)
-        if (savedInstanceState == null) handleOAuthIntent(intent)
+        if (savedInstanceState == null) handleIncomingIntent(intent)
         setContent { KozuApp() }
     }
 
@@ -47,7 +49,47 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        handleOAuthIntent(intent)
+        handleIncomingIntent(intent)
+    }
+
+    private fun handleIncomingIntent(intent: Intent?) {
+        if (!handleArchiveIntent(intent)) handleOAuthIntent(intent)
+    }
+
+    private fun handleArchiveIntent(intent: Intent?): Boolean {
+        if (intent == null) return false
+        val uris = LinkedHashSet<Uri>()
+        when (intent.action) {
+            Intent.ACTION_SEND -> {
+                IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)?.let(uris::add)
+                collectClipUris(intent, uris)
+            }
+
+            Intent.ACTION_SEND_MULTIPLE -> {
+                IntentCompat.getParcelableArrayListExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)?.let(uris::addAll)
+                collectClipUris(intent, uris)
+            }
+
+            Intent.ACTION_VIEW -> {
+                val data = intent.data
+                if (data != null && (data.scheme == "content" || data.scheme == "file")) uris += data
+            }
+        }
+        if (uris.isEmpty()) return false
+        (application as KozuApplication).container.lazerImporter.importUris(uris.toList())
+        intent.removeExtra(Intent.EXTRA_STREAM)
+        intent.clipData = null
+        intent.data = null
+        intent.action = Intent.ACTION_MAIN
+        return true
+    }
+
+    private fun collectClipUris(
+        intent: Intent,
+        into: MutableSet<Uri>,
+    ) {
+        val clip = intent.clipData ?: return
+        for (index in 0 until clip.itemCount) clip.getItemAt(index).uri?.let(into::add)
     }
 
     private fun handleOAuthIntent(intent: Intent?) {
