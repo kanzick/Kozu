@@ -28,6 +28,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -72,6 +73,7 @@ import java.util.Calendar
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.ListeningStats
 import vn.kozu.domain.model.OsuProfile
+import vn.kozu.domain.model.QuickPicksLayout
 import vn.kozu.R
 import vn.kozu.ui.components.BeatmapArt
 import vn.kozu.ui.components.bounceClick
@@ -85,6 +87,7 @@ import vn.kozu.ui.components.SectionHeader
 import vn.kozu.ui.components.segmentedShape
 import vn.kozu.ui.components.SettingsAction
 import vn.kozu.ui.components.softTopEdge
+import vn.kozu.ui.components.CoverCard
 import vn.kozu.ui.components.TrackPill
 import vn.kozu.ui.components.TrackRow
 import vn.kozu.ui.theme.KozuCookies
@@ -213,6 +216,24 @@ fun HomeScreen(
                                 playedOrder = actions.playShuffledWithOrder(ui.mix)
                             }
                         )
+                    }
+                }
+
+                if (appSettings.showQuickPicks && ui.quickPicks.isNotEmpty()) {
+                    item(key = "quick-picks") {
+                        Column {
+                            Spacer(Modifier.height(32.dp))
+                            SectionHeader(
+                                title = stringResource(R.string.quick_picks),
+                                subtitle = stringResource(R.string.quick_picks_subtitle),
+                            )
+                            Spacer(Modifier.height(14.dp))
+                            QuickPicks(
+                                picks = ui.quickPicks,
+                                layout = appSettings.quickPicksLayout,
+                                onPlay = { index -> actions.play(ui.quickPicks, index) },
+                            )
+                        }
                     }
                 }
 
@@ -535,6 +556,56 @@ private fun YourMixCard(mix: List<Beatmap>, totalCount: Int, onShuffle: () -> Un
                     Text(text = stringResource(R.string.mix_refreshed_daily, totalCount),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuickPicks(
+    picks: List<Beatmap>,
+    layout: QuickPicksLayout,
+    onPlay: (Int) -> Unit,
+) {
+    when (layout) {
+        QuickPicksLayout.CAROUSEL ->
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                itemsIndexed(picks, key = { _, beatmap -> "pick-${beatmap.id}" }) { index, beatmap ->
+                    CoverCard(
+                        beatmap = beatmap,
+                        onClick = { onPlay(index) },
+                    )
+                }
+            }
+
+        QuickPicksLayout.COMPACT -> {
+            val colors = MaterialTheme.colorScheme
+            val palette =
+                listOf(
+                    colors.primaryContainer to colors.onPrimaryContainer,
+                    colors.secondaryContainer to colors.onSecondaryContainer,
+                    colors.tertiaryContainer to colors.onTertiaryContainer,
+                    colors.surfaceContainerHighest to colors.onSurface,
+                )
+            LazyHorizontalGrid(
+                rows = GridCells.Fixed(2),
+                modifier = Modifier.fillMaxWidth().height(56.dp * 2 + 10.dp),
+                contentPadding = PaddingValues(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                items(picks.size) { index ->
+                    val (container, content) = palette[index % palette.size]
+                    TrackPill(
+                        beatmap = picks[index],
+                        containerColor = container,
+                        contentColor = content,
+                        onClick = { onPlay(index) },
                     )
                 }
             }

@@ -396,10 +396,12 @@ class PlaybackService : MediaSessionService() {
         val player = player ?: return
         val settings = currentSettings
         applyEqualizer(player, settings)
+        val effectsOn = settings.equalizerEnabled
         audioEffects?.apply(
             audioSessionId = player.audioSessionId,
-            bassBoost = settings.bassBoost,
-            loudness = settings.loudness,
+            bassBoost = if (effectsOn) settings.bassBoost else 0,
+            virtualizer = if (effectsOn) settings.virtualizer else 0,
+            loudness = if (effectsOn) settings.loudness else 0,
         )
     }
 

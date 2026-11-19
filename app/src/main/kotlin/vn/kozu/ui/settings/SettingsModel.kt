@@ -30,7 +30,9 @@ import androidx.compose.material.icons.rounded.Dns
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Equalizer
 import androidx.compose.material.icons.rounded.Explore
+import androidx.compose.material.icons.rounded.FileOpen
 import androidx.compose.material.icons.rounded.FilterAlt
+import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.FormatBold
 import androidx.compose.material.icons.rounded.FormatSize
 import androidx.compose.material.icons.rounded.GraphicEq
@@ -60,6 +62,7 @@ import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material.icons.rounded.SwapHoriz
@@ -95,6 +98,7 @@ enum class SettingsPage(
     PLAYBACK(R.string.playback, R.string.audio_settings, Icons.Rounded.MusicNote),
     BEHAVIOR(R.string.behavior, R.string.controls_and_gestures, Icons.Rounded.TouchApp),
     BACKUP(R.string.backup_and_restore, R.string.export_and_restore_data, Icons.Rounded.Upload),
+    LAZER(R.string.lazer_title, R.string.lazer_subtitle, Icons.Rounded.SwapHoriz),
     DEVELOPER(R.string.developer_options, R.string.advanced_maintenance, Icons.Rounded.DeveloperMode),
     STORAGE(R.string.storage, R.string.cache_and_downloads, Icons.Rounded.Storage),
     EQUALIZER(R.string.equalizer, R.string.sound_settings, Icons.Rounded.GraphicEq),
@@ -201,6 +205,27 @@ enum class Setting(
         R.string.show_explicit_content,
         R.string.include_explicit_maps_in_search_results,
         "nsfw adult mature",
+    ),
+    SHOW_QUICK_PICKS(
+        SettingsPage.CONTENT,
+        Icons.Rounded.Bolt,
+        R.string.show_quick_picks,
+        R.string.show_quick_picks_desc,
+        "home recommendations suggestions",
+    ),
+    QUICK_PICKS_SOURCE(
+        SettingsPage.CONTENT,
+        Icons.Rounded.AutoAwesome,
+        R.string.quick_picks_source,
+        R.string.quick_picks_source_desc,
+        "home trending new loved mix recommendations",
+    ),
+    QUICK_PICKS_LAYOUT(
+        SettingsPage.CONTENT,
+        Icons.Rounded.ViewCarousel,
+        R.string.quick_picks_layout,
+        R.string.quick_picks_layout_desc,
+        "home carousel compact cards",
     ),
     SHOW_MIX_CARD(SettingsPage.CONTENT, Icons.Rounded.Shuffle, R.string.show_your_mix, R.string.display_the_shuffle_mix_card_on_home, "collage home"),
     MIX_SIZE(SettingsPage.CONTENT, Icons.Rounded.Shuffle, R.string.your_mix_size, R.string.choose_how_many_songs_play_when_you_shuffle_your_mix, "mix shuffle queue songs count"),
@@ -803,6 +828,42 @@ enum class Setting(
         "save",
     ),
     IMPORT_BACKUP(SettingsPage.BACKUP, Icons.Rounded.Restore, R.string.import_backup, R.string.import_a_kozu_backup, "restore load"),
+
+    LAZER_IMPORT_FILES(
+        SettingsPage.LAZER,
+        Icons.Rounded.FileOpen,
+        R.string.lazer_import_files,
+        R.string.lazer_import_files_desc,
+        "osz osu lazer beatmap import file archive",
+    ),
+    LAZER_IMPORT_FOLDER(
+        SettingsPage.LAZER,
+        Icons.Rounded.FolderOpen,
+        R.string.lazer_import_folder,
+        R.string.lazer_import_folder_desc,
+        "osz osu lazer beatmap import folder scan",
+    ),
+    LAZER_ADD_TO_GAME(
+        SettingsPage.LAZER,
+        Icons.Rounded.SportsEsports,
+        R.string.lazer_add_to_game,
+        R.string.lazer_add_to_game_desc,
+        "osu lazer mania chart game import",
+    ),
+    LAZER_REPLACE(
+        SettingsPage.LAZER,
+        Icons.Rounded.Autorenew,
+        R.string.lazer_replace_existing,
+        R.string.lazer_replace_existing_desc,
+        "osu lazer overwrite duplicate import",
+    ),
+    LAZER_EXPORT(
+        SettingsPage.LAZER,
+        Icons.Rounded.Upload,
+        R.string.lazer_export,
+        R.string.lazer_export_desc,
+        "osz osu lazer beatmap export send share",
+    ),
 
     RESET_SETTINGS(
         SettingsPage.DEVELOPER,

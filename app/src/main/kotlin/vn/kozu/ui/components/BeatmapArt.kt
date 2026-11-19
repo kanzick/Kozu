@@ -33,6 +33,7 @@ import coil3.request.ImageRequest
 import java.io.File
 import vn.kozu.domain.model.ArtworkQuality
 import vn.kozu.domain.model.Beatmap
+import vn.kozu.domain.model.isLocal
 import vn.kozu.R
 
 @Composable
@@ -56,6 +57,13 @@ fun BeatmapArt(
         }
     val context = LocalContext.current
     val colors = MaterialTheme.colorScheme
+    val localResolver = LocalBackgroundResolver.current
+    var localCover by remember(beatmap.id) { mutableStateOf<File?>(null) }
+    if (beatmap.isLocal) {
+        LaunchedEffect(beatmap.id) {
+            if (localCover == null) localCover = localResolver?.invoke(beatmap.id, false)
+        }
+    }
 
     Box(
         modifier =
@@ -71,19 +79,21 @@ fun BeatmapArt(
             modifier = Modifier.size(if (large) 56.dp else 28.dp),
         )
         val request =
-            remember(url) {
+            remember(url, localCover) {
                 ImageRequest
                     .Builder(context)
-                    .data(url)
+                    .data(localCover ?: url)
                     .crossfade(200)
                     .build()
             }
-        AsyncImage(
-            model = request,
-            contentDescription = stringResource(R.string.cover_for, beatmap.title),
-            contentScale = ContentScale.Fit,
-            modifier = Modifier.fillMaxSize(),
-        )
+        if (!beatmap.isLocal || localCover != null) {
+            AsyncImage(
+                model = request,
+                contentDescription = stringResource(R.string.cover_for, beatmap.title),
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
     }
 }
 

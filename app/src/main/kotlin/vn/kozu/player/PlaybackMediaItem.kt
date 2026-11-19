@@ -6,6 +6,9 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import vn.kozu.domain.model.Beatmap
 
+private const val KEY_TITLE_UNICODE = "title_unicode"
+private const val KEY_ARTIST_UNICODE = "artist_unicode"
+
 internal fun Beatmap.toMediaItem(): MediaItem {
     val extras = Bundle().apply {
         putLong(PlaybackController.KEY_ID, id)
@@ -13,6 +16,8 @@ internal fun Beatmap.toMediaItem(): MediaItem {
         putString(PlaybackController.KEY_STATUS, status)
         putLong(PlaybackController.KEY_UPDATED, updatedAt)
         putIntArray(PlaybackController.KEY_MODES, modes.toIntArray())
+        putString(KEY_TITLE_UNICODE, titleUnicode)
+        putString(KEY_ARTIST_UNICODE, artistUnicode)
     }
     val metadata = MediaMetadata.Builder()
         .setTitle(title)
@@ -37,6 +42,8 @@ internal fun MediaItem.toBeatmap(): Beatmap? {
         mapper = extras.getString(PlaybackController.KEY_MAPPER).orEmpty(),
         status = extras.getString(PlaybackController.KEY_STATUS).orEmpty(),
         updatedAt = extras.getLong(PlaybackController.KEY_UPDATED),
-        modes = extras.getIntArray(PlaybackController.KEY_MODES)?.toSet().orEmpty()
+        modes = extras.getIntArray(PlaybackController.KEY_MODES)?.toSet().orEmpty(),
+        titleUnicode = extras.getString(KEY_TITLE_UNICODE).orEmpty(),
+        artistUnicode = extras.getString(KEY_ARTIST_UNICODE).orEmpty(),
     )
 }

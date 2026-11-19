@@ -21,6 +21,7 @@ import vn.kozu.data.local.HistoryStore
 import vn.kozu.data.local.PlaylistStore
 import vn.kozu.data.local.SettingsStore
 import vn.kozu.domain.model.Beatmap
+import vn.kozu.domain.model.LOCAL_BEATMAP_ID_BASE
 
 data class SyncReport(
     val checked: Int,
@@ -56,6 +57,7 @@ class LibrarySync(
                 playlists.playlists.first().forEach { playlist -> playlist.tracks.forEach { ids.add(it.id) } }
                 history.knownIds(80).forEach { ids.add(it) }
                 sets.forEach { ids.add(it.beatmap.id) }
+                ids.removeAll { it >= LOCAL_BEATMAP_ID_BASE }
 
                 val gate = Semaphore(4)
                 val fresh = HashMap<Long, Beatmap>()

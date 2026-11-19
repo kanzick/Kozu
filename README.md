@@ -19,7 +19,7 @@ Listen your favourite songs from osu! without launching the base game. It aims t
 
 **Quick links**
 
-- [Download](https://github.com/kanzick/Kozu/releases): grab the latest APK from GitHub Releases
+- [Download](https://github.com/kanzick/Kozu/releases)
 - [Report a bug / request a feature](https://github.com/kanzick/Kozu/issues)
 - [Build from source](#build-from-source)
 
@@ -65,8 +65,16 @@ cd Kozu
 ./gradlew installDebug
 ```
 
-You can also open the project in Android Studio.
+## osu!lazer import & export
 
+Settings → **osu!lazer** moves beatmaps between osu!lazer and Kozu using standard `.osz` archives.
+
+- **Import:** pick `.osz` files, scan a whole folder or share beatmaps straight from osu!lazer to Kozu. Several files are queued and imported in the background.
+- **Mania charts:** beatmaps with osu!mania difficulties can also be added to the Game library automatically.
+- **Duplicates:** sets already in your library are skipped, or replaced if you turn on *Replace existing beatmaps*. Beatmaps that have no online ID get a stable local ID so re-importing never creates copies.
+- **Export:** choose beatmaps from your library (and Game charts) and hand them to osu!lazer in batches, share them with any app or save the `.osz` files into a folder.
+
+osu!lazer keeps its database in a realm file that other apps cannot read, so `.osz` is the supported exchange format.
 
 ## Contributing
 

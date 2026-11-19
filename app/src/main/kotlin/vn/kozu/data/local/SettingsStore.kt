@@ -165,6 +165,9 @@ class SettingsStore(
         val autoSyncLibrary = booleanPreferencesKey("auto_sync_library")
         val downloadLimitMb = intPreferencesKey("download_limit_mb")
         val autoCleanCache = booleanPreferencesKey("auto_clean_cache")
+        val showQuickPicks = booleanPreferencesKey("show_quick_picks")
+        val lazerReplaceExisting = booleanPreferencesKey("lazer_replace_existing")
+        val lazerAddToGame = booleanPreferencesKey("lazer_add_to_game")
         val autoUpdateCheck = booleanPreferencesKey("auto_update_check")
         val lastUpdateCheck = longPreferencesKey("last_update_check")
         val updateChannel = stringPreferencesKey("update_channel")
@@ -329,6 +332,9 @@ class SettingsStore(
                     autoUpdateCheck = prefs[Keys.autoUpdateCheck] ?: true,
                     lastUpdateCheckAt = prefs[Keys.lastUpdateCheck] ?: 0L,
                     updateChannel = UpdateChannel.fromKey(prefs[Keys.updateChannel]),
+                    showQuickPicks = prefs[Keys.showQuickPicks] ?: true,
+                    lazerReplaceExisting = prefs[Keys.lazerReplaceExisting] ?: false,
+                    lazerAddToGame = prefs[Keys.lazerAddToGame] ?: true,
                 )
                 latestSnapshot = snapshot
                 val cachedImageLimit = snapshot.imageCacheMb
@@ -588,6 +594,12 @@ class SettingsStore(
     suspend fun setDownloadLimitMb(value: Int) = store.edit { it[Keys.downloadLimitMb] = value.coerceAtLeast(0) }
 
     suspend fun setAutoCleanCache(enabled: Boolean) = store.edit { it[Keys.autoCleanCache] = enabled }
+
+    suspend fun setShowQuickPicks(enabled: Boolean) = store.edit { it[Keys.showQuickPicks] = enabled }
+
+    suspend fun setLazerReplaceExisting(enabled: Boolean) = store.edit { it[Keys.lazerReplaceExisting] = enabled }
+
+    suspend fun setLazerAddToGame(enabled: Boolean) = store.edit { it[Keys.lazerAddToGame] = enabled }
 
     suspend fun setAutoUpdateCheck(enabled: Boolean) = store.edit { it[Keys.autoUpdateCheck] = enabled }
 

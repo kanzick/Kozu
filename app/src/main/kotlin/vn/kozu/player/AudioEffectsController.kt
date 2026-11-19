@@ -3,6 +3,7 @@ package vn.kozu.player
 import android.media.audiofx.AudioEffect
 import android.media.audiofx.BassBoost
 import android.media.audiofx.LoudnessEnhancer
+import android.media.audiofx.Virtualizer
 import android.util.Log
 
 class AudioEffectsController(
@@ -12,6 +13,20 @@ class AudioEffectsController(
         Slot(
             label = "Bass boost",
             create = { BassBoost(0, it) },
+            configure = { effect, value ->
+                if (!effect.strengthSupported) {
+                    false
+                } else {
+                    effect.setStrength(value.coerceIn(0, MAX_STRENGTH).toShort())
+                    true
+                }
+            },
+        )
+
+    private val virtualizer =
+        Slot(
+            label = "Virtualizer",
+            create = { Virtualizer(0, it) },
             configure = { effect, value ->
                 if (!effect.strengthSupported) {
                     false
@@ -35,14 +50,17 @@ class AudioEffectsController(
     fun apply(
         audioSessionId: Int,
         bassBoost: Int,
+        virtualizer: Int,
         loudness: Int,
     ) {
         this.bassBoost.apply(audioSessionId, bassBoost)
+        this.virtualizer.apply(audioSessionId, virtualizer)
         this.loudness.apply(audioSessionId, loudness)
     }
 
     fun release() {
         bassBoost.release()
+        virtualizer.release()
         loudness.release()
     }
 

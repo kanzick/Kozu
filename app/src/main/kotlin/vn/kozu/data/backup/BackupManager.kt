@@ -606,6 +606,7 @@ class BackupManager(
                 "avoid_repeats", "dedupe_queue", "preload_next", "haptic_feedback", "auto_open_player",
                 "artwork_swipe", "keep_screen_on", "double_tap_search", "prefer_unicode", "show_mapper",
                 "auto_sync_library", "auto_clean_cache", "auto_update_check",
+                "lazer_replace_existing", "lazer_add_to_game", "show_quick_picks",
             ).forEach { put(it, "b") }
             listOf(
                 "stream_cache_mb", "blur_intensity", "nav_corner_radius", "image_cache_mb", "bass_boost",

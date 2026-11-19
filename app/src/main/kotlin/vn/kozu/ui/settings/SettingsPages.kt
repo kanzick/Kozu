@@ -502,6 +502,23 @@ fun ContentPage(
             ) { size -> viewModel.save { setTopSize(size) } }
         }
         SettingsSection(stringResource(R.string.home)) {
+            switch(Setting.SHOW_QUICK_PICKS, settings.showQuickPicks) { enabled ->
+                viewModel.save { setShowQuickPicks(enabled) }
+            }
+            dropdown(
+                Setting.QUICK_PICKS_SOURCE,
+                settings.quickPicksSource,
+                QuickPicksSource.entries.toList(),
+                { it.label },
+                enabled = settings.showQuickPicks,
+            ) { source -> viewModel.save { setQuickPicksSource(source) } }
+            dropdown(
+                Setting.QUICK_PICKS_LAYOUT,
+                settings.quickPicksLayout,
+                QuickPicksLayout.entries.toList(),
+                { it.label },
+                enabled = settings.showQuickPicks,
+            ) { layout -> viewModel.save { setQuickPicksLayout(layout) } }
             switch(Setting.SHOW_MIX_CARD, settings.showMixCard) { enabled ->
                 viewModel.save { setShowMixCard(enabled) }
             }

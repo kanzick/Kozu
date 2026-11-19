@@ -56,6 +56,7 @@ import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.CancellationException
 import vn.kozu.domain.model.Beatmap
+import vn.kozu.domain.model.isLocal
 import vn.kozu.domain.model.BeatmapDifficultyInfo
 import vn.kozu.domain.model.BeatmapSetInfo
 import vn.kozu.domain.model.BrowseGenre
@@ -281,6 +282,7 @@ fun BeatmapInfoSheet(
 
             Button(
                 onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, shown.webUrl.toUri())) },
+                enabled = !shown.isLocal,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(Icons.Rounded.Language, contentDescription = null, modifier = Modifier.size(18.dp))
