@@ -84,7 +84,7 @@ private val rootPageGroups = listOf(
     listOf(SettingsPage.ACCOUNT, SettingsPage.STATS),
     listOf(SettingsPage.APPEARANCE, SettingsPage.LANGUAGE, SettingsPage.CONTENT),
     listOf(SettingsPage.MUSIC, SettingsPage.PLAYBACK, SettingsPage.EQUALIZER, SettingsPage.SOURCES),
-    listOf(SettingsPage.DOWNLOADS, SettingsPage.STORAGE, SettingsPage.BACKUP),
+    listOf(SettingsPage.DOWNLOADS, SettingsPage.STORAGE, SettingsPage.BACKUP, SettingsPage.LAZER),
     listOf(SettingsPage.BEHAVIOR, SettingsPage.DEVICE, SettingsPage.DEVELOPER),
     listOf(SettingsPage.UPDATES, SettingsPage.ABOUT),
 )
@@ -176,6 +176,7 @@ fun SettingsScreen(
                         SettingsPage.PLAYBACK -> PlaybackPage(viewModel, { page = SettingsPage.EQUALIZER }, close)
                         SettingsPage.BEHAVIOR -> BehaviorPage(viewModel, close)
                         SettingsPage.BACKUP -> BackupPage(viewModel, close)
+                        SettingsPage.LAZER -> LazerPage(viewModel, close)
                         SettingsPage.DEVELOPER -> DeveloperPage(viewModel, close)
                         SettingsPage.STORAGE -> StoragePage(viewModel, close)
                         SettingsPage.EQUALIZER -> EqualizerPage(viewModel, close)

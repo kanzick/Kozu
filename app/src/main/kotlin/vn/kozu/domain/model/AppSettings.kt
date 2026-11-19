@@ -407,6 +407,9 @@ data class AppSettings(
     val autoUpdateCheck: Boolean = true,
     val lastUpdateCheckAt: Long = 0L,
     val updateChannel: UpdateChannel = UpdateChannel.STABLE,
+    val showQuickPicks: Boolean = true,
+    val lazerReplaceExisting: Boolean = false,
+    val lazerAddToGame: Boolean = true,
 ) {
     val hasCredentials: Boolean get() = osuClientId.isNotBlank() && osuClientSecret.isNotBlank()
     val activeMirrors: List<Mirror> get() = Mirrors.active(customMirrors, disabledMirrors)
