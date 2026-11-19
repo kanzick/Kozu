@@ -1,13 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-
-
-
-
-
-
 <full-backup-content>
-
-
-
-
+    <exclude domain="file" path="beatmaps" />
+    <exclude domain="external" path="." />
 </full-backup-content>

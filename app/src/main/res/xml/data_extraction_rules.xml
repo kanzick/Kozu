@@ -1,19 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-
-
-
-
 <data-extraction-rules>
     <cloud-backup>
-
-
-
-
+        <exclude domain="file" path="beatmaps" />
+        <exclude domain="external" path="." />
     </cloud-backup>
-
-
-
-
-
-
 </data-extraction-rules>

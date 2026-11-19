@@ -12,7 +12,15 @@ data class OsuDifficulty(
     val audioFile: String,
     val previewTime: Int,
     val beatmapId: Long,
-    val background: String?
+    val background: String?,
+    val title: String = "",
+    val titleUnicode: String = "",
+    val artist: String = "",
+    val artistUnicode: String = "",
+    val creator: String = "",
+    val beatmapSetId: Long = 0L,
+    val source: String = "",
+    val tags: String = "",
 ) {
     val modeName: String
         get() = when (mode) {
@@ -38,6 +46,14 @@ object OsuBeatmapParser {
         var hp = 5f
         var objects = 0
         var background: String? = null
+        var title = ""
+        var titleUnicode = ""
+        var artist = ""
+        var artistUnicode = ""
+        var creator = ""
+        var setId = 0L
+        var source = ""
+        var tags = ""
 
         for (rawLine in text.lineSequence()) {
             val line = rawLine.trim().removePrefix("\uFEFF")
@@ -58,6 +74,14 @@ object OsuBeatmapParser {
                     when (k) {
                         "Version" -> version = v
                         "BeatmapID" -> beatmapId = v.toLongOrNull() ?: 0L
+                        "BeatmapSetID" -> setId = v.toLongOrNull() ?: 0L
+                        "Title" -> title = v
+                        "TitleUnicode" -> titleUnicode = v
+                        "Artist" -> artist = v
+                        "ArtistUnicode" -> artistUnicode = v
+                        "Creator" -> creator = v
+                        "Source" -> source = v
+                        "Tags" -> tags = v
                     }
                 }
                 "Difficulty" -> keyValue(line)?.let { (k, v) ->
@@ -89,7 +113,15 @@ object OsuBeatmapParser {
             audioFile = audio,
             previewTime = preview,
             beatmapId = beatmapId,
-            background = background
+            background = background,
+            title = title,
+            titleUnicode = titleUnicode,
+            artist = artist,
+            artistUnicode = artistUnicode,
+            creator = creator,
+            beatmapSetId = setId,
+            source = source,
+            tags = tags,
         )
     }
 
