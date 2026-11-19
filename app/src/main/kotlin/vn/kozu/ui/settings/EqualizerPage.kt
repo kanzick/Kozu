@@ -94,11 +94,13 @@ fun EqualizerPage(viewModel: SettingsViewModel, onBack: () -> Unit) {
                 valueLabel = { percent(it) },
                 enabled = enabled
             ) { value -> viewModel.save { setBassBoost(value.toInt()) } }
-            switch(
+            slider(
                 Setting.VIRTUALIZER,
-                settings.virtualizer > 0,
-                enabled = enabled,
-            ) { checked -> viewModel.save { setVirtualizer(if (checked) 1000 else 0) } }
+                settings.virtualizer.toFloat(),
+                0f..1000f,
+                valueLabel = { percent(it) },
+                enabled = enabled
+            ) { value -> viewModel.save { setVirtualizer(value.toInt()) } }
             slider(
                 Setting.LOUDNESS,
                 settings.loudness.toFloat(),
