@@ -35,6 +35,7 @@ import vn.kozu.domain.model.ArtworkShape
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.displayArtist
 import vn.kozu.domain.model.displayTitle
+import vn.kozu.domain.model.isLocal
 import vn.kozu.player.PlaybackState
 import vn.kozu.player.SleepTimer
 import vn.kozu.ui.components.LocalAppSettings
@@ -206,7 +207,10 @@ fun PlayerScreen(
                                 type = "text/plain"
                                 putExtra(
                                     Intent.EXTRA_TEXT,
-                                    "${beatmap.displayTitle(settings.preferUnicode)} - $artistName\n${beatmap.webUrl}",
+                                    listOfNotNull(
+                                        "${beatmap.displayTitle(settings.preferUnicode)} - $artistName",
+                                        beatmap.webUrl.takeUnless { beatmap.isLocal },
+                                    ).joinToString("\n"),
                                 )
                             }
                         runCatching { context.startActivity(Intent.createChooser(send, null)) }
