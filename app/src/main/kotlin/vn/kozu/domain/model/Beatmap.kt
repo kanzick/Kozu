@@ -34,6 +34,10 @@ data class Beatmap(
     val webUrl: String get() = "https://osu.ppy.sh/beatmapsets/$id"
 }
 
+const val LOCAL_BEATMAP_ID_BASE = 1_000_000_000_000L
+
+val Beatmap.isLocal: Boolean get() = id >= LOCAL_BEATMAP_ID_BASE
+
 fun Beatmap.displayTitle(preferUnicode: Boolean): String = if (preferUnicode && titleUnicode.isNotBlank()) titleUnicode else title
 
 fun Beatmap.displayArtist(preferUnicode: Boolean): String = if (preferUnicode && artistUnicode.isNotBlank()) artistUnicode else artist
