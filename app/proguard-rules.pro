@@ -29,3 +29,13 @@
 
 # Coroutines
 -keep,allowobfuscation,allowshrinking class kotlin.coroutines.Continuation
+
+-keep class io.realm.kotlin.internal.interop.** { *; }
+-keep class vn.kozu.data.lazer.shizuku.LazerFileService { *; }
+-keep class vn.kozu.data.lazer.ILazerFileService { *; }
+-keep class vn.kozu.data.lazer.ILazerFileService$Stub { *; }
+-dontwarn io.realm.kotlin.**
+-dontwarn rikka.shizuku.**
+
+-keep class rikka.shizuku.Shizuku { *; }
+-keep class rikka.shizuku.ShizukuRemoteProcess { *; }
