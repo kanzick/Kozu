@@ -11,7 +11,6 @@
   <p>
     <a href="https://github.com/kanzick/Kozu/releases/latest"><strong>Tải xuống</strong></a> ·
     <a href="#tinh-nang"><strong>Tính năng</strong></a> ·
-    <a href="#ket-noi-osulazer"><strong>osu!lazer</strong></a> ·
     <a href="#build-tu-ma-nguon"><strong>Build</strong></a> ·
     <a href="https://github.com/kanzick/Kozu/issues"><strong>Hỗ trợ</strong></a>
   </p>
@@ -118,12 +117,11 @@ Danh sách beatmap, metadata, ảnh bìa và preview được lấy từ osu!. C
 
 Chuyển beatmap giữa Kozu và osu!lazer mà không cần tự xây dựng lại thư viện.
 
-| Nhập vào Kozu | Xuất từ Kozu |
+| Nhập | Xuất |
 |---|---|
 | Nhập file `.osz`, nhiều file cùng lúc hoặc cả thư mục. | Gửi beatmap đã chọn sang osu!lazer. |
 | Chia sẻ trực tiếp beatmap đã xuất từ osu!lazer. | Lưu hoặc chia sẻ archive `.osz` tiêu chuẩn. |
 | Đọc thư viện lazer từ thư mục dữ liệu hoặc dùng Shizuku nếu khả dụng. | Có thể kèm chart Game đã tải trong bản xuất. |
-| Tùy chọn tạo playlist Kozu từ các collection của lazer. | |
 
 Khi đọc trực tiếp thư viện, hãy đóng osu!lazer trước để cơ sở dữ liệu không bị ứng dụng sử dụng. Kozu chỉ đọc một bản sao và không chỉnh sửa dữ liệu của lazer.
 
@@ -147,7 +145,7 @@ Tải APK phù hợp với thiết bị tại [GitHub Releases](https://github.c
 
 **Yêu cầu**
 
-- Android Studio và Android SDK.
+- Android Studio.
 - JDK 17 trở lên.
 - Thiết bị hoặc trình giả lập chạy Android 9+ để cài và thử ứng dụng.
 
