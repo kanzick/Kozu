@@ -111,6 +111,7 @@ android {
 
     buildFeatures {
         compose = true
+        aidl = true
     }
 
     lint {
@@ -173,6 +174,9 @@ dependencies {
     implementation(libs.reorderables)
     implementation(libs.aboutlibraries.core)
     implementation(libs.jsoup)
+    implementation(libs.realm.library.base)
+    implementation(libs.shizuku.api)
+    implementation(libs.shizuku.provider)
     implementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.junit)
     debugImplementation(libs.androidx.compose.ui.tooling)
