@@ -843,6 +843,13 @@ enum class Setting(
         R.string.lazer_import_folder_desc,
         "osz osu lazer beatmap import folder scan",
     ),
+    LAZER_LIBRARY(
+        SettingsPage.LAZER,
+        Icons.Rounded.FolderOpen,
+        R.string.lazer_library,
+        R.string.lazer_library_desc,
+        "osu lazer realm database shizuku library read direct",
+    ),
     LAZER_ADD_TO_GAME(
         SettingsPage.LAZER,
         Icons.Rounded.SportsEsports,

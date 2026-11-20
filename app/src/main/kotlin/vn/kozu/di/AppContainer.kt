@@ -16,6 +16,7 @@ import vn.kozu.data.local.HistoryStore
 import vn.kozu.data.local.PlaylistStore
 import vn.kozu.data.lazer.LazerExporter
 import vn.kozu.data.lazer.LazerImporter
+import vn.kozu.data.lazer.LazerLibrary
 import vn.kozu.data.local.SettingsStore
 import vn.kozu.data.mirror.MirrorTester
 import vn.kozu.data.mirror.StreamResolver
@@ -63,8 +64,9 @@ class AppContainer(
             history = history,
         )
     val mirrorTester = MirrorTester(httpClient)
-    val lazerImporter = LazerImporter(appContext, downloads, downloadsStore, settings)
+    val lazerImporter = LazerImporter(appContext, downloads, downloadsStore, settings, playlists)
     val lazerExporter = LazerExporter(appContext, downloadsStore)
+    val lazerLibrary = LazerLibrary(appContext)
 
     val sync =
         LibrarySync(

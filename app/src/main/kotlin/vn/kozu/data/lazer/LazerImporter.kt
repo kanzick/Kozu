@@ -9,6 +9,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
 import java.nio.charset.Charset
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.zip.CRC32
 import java.util.zip.ZipFile
 import kotlinx.coroutines.CancellationException
@@ -30,6 +31,7 @@ import vn.kozu.R
 import vn.kozu.data.download.DownloadManager
 import vn.kozu.data.download.OszExtractor
 import vn.kozu.data.local.DownloadsStore
+import vn.kozu.data.local.PlaylistStore
 import vn.kozu.data.local.SettingsStore
 import vn.kozu.domain.model.AppSettings
 import vn.kozu.domain.model.Beatmap
@@ -75,10 +77,16 @@ class LazerImporter(
     private val downloads: DownloadManager,
     private val store: DownloadsStore,
     private val settings: SettingsStore,
+    private val playlists: PlaylistStore,
 ) {
-    private data class Entry(
-        val uri: Uri,
+    private class Entry(
+        val uri: Uri?,
         val name: String,
+        val build: (suspend (File) -> Unit)? = null,
+        val setId: Long = 0L,
+        val expectedId: Long = 0L,
+        val key: String = "",
+        val finished: (() -> Unit)? = null,
     )
 
     private sealed interface Outcome {
@@ -94,6 +102,8 @@ class LazerImporter(
     private var worker: Job? = null
     private val workDir = File(appContext.cacheDir, WORK_DIRECTORY)
 
+    private val resolvedIds = java.util.concurrent.ConcurrentHashMap<String, Long>()
+
     private val _state = MutableStateFlow(LazerImportState())
     val state: StateFlow<LazerImportState> = _state.asStateFlow()
 
@@ -108,6 +118,42 @@ class LazerImporter(
         val entries = uris.distinct().map { Entry(it, displayName(it)) }
         if (entries.isEmpty()) return
         enqueue(entries)
+    }
+
+    fun importLibrary(
+        source: LazerDataSource,
+        library: LazerLibrary,
+        sets: List<LazerLibrarySet>,
+        collections: List<LazerCollection> = emptyList(),
+    ) {
+        if (sets.isEmpty()) {
+            source.close()
+            if (collections.isNotEmpty()) scope.launch { createPlaylists(collections) }
+            return
+        }
+        val remaining = AtomicInteger(sets.size)
+        val release: () -> Unit = {
+            if (remaining.decrementAndGet() == 0) {
+                try {
+                    source.close()
+                } catch (_: Exception) {
+                }
+                if (collections.isNotEmpty()) scope.launch { createPlaylists(collections) }
+            }
+        }
+        enqueue(
+            sets.map { set ->
+                Entry(
+                    uri = null,
+                    name = listOf(set.artist, set.title).filter { it.isNotBlank() }.joinToString(" - ").ifBlank { set.key },
+                    build = { target -> library.writeArchive(source, set, target) },
+                    setId = set.onlineId.takeIf { it > 0L } ?: 0L,
+                    expectedId = set.expectedId,
+                    key = set.key,
+                    finished = release,
+                )
+            },
+        )
     }
 
     fun importTree(tree: Uri) {
@@ -148,7 +194,10 @@ class LazerImporter(
                     LazerImportState(running = true, total = entries.size)
                 }
             }
-            if (!wasRunning) _events.tryEmit(localized(R.string.lazer_import_started, entries.size))
+            if (!wasRunning) {
+                resolvedIds.clear()
+                _events.tryEmit(localized(R.string.lazer_import_started, entries.size))
+            }
             if (worker == null) worker = scope.launch { drain() }
         }
     }
@@ -166,7 +215,7 @@ class LazerImporter(
             var problem: String? = null
             val outcome =
                 try {
-                    process(entry, config)
+                    precheck(entry, config) ?: process(entry, config)
                 } catch (e: CancellationException) {
                     synchronized(lock) { worker = null }
                     throw e
@@ -174,6 +223,8 @@ class LazerImporter(
                     Log.w(TAG, "Could not import ${entry.name}", e)
                     problem = "${entry.name}: ${e.message ?: e.javaClass.simpleName}"
                     null
+                } finally {
+                    entry.finished?.invoke()
                 }
             val failure: String? = problem
             _state.update { current ->
@@ -207,6 +258,43 @@ class LazerImporter(
         )
     }
 
+    private suspend fun precheck(
+        entry: Entry,
+        config: AppSettings,
+    ): Outcome? {
+        if (entry.expectedId <= 0L || config.lazerReplaceExisting) return null
+        val existing = store.find(entry.expectedId) ?: return null
+        if (!store.folder(existing.beatmap.id).isDirectory) return null
+        if (entry.key.isNotEmpty()) resolvedIds[entry.key] = existing.beatmap.id
+        return Outcome.Skipped
+    }
+
+    private suspend fun createPlaylists(collections: List<LazerCollection>) {
+        try {
+            val current = playlists.playlists.first()
+            var touched = 0
+            for (collection in collections) {
+                val beatmaps =
+                    collection.sets
+                        .mapNotNull { set ->
+                            val id = resolvedIds[set.key] ?: set.expectedId
+                            store.find(id)?.takeIf { store.folder(id).isDirectory }?.beatmap
+                        }.distinctBy { it.id }
+                if (beatmaps.isEmpty()) continue
+                val match = current.firstOrNull { it.name.trim().equals(collection.name.trim(), ignoreCase = true) }
+                val playlistId = match?.id ?: playlists.create(collection.name)
+                val have = match?.tracks?.map { it.id }?.toSet().orEmpty()
+                beatmaps.filter { it.id !in have }.forEach { playlists.addTrack(playlistId, it) }
+                touched++
+            }
+            if (touched > 0) _events.tryEmit(localized(R.string.lazer_playlists_done, touched))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not create playlists from osu!lazer collections", e)
+        }
+    }
+
     private suspend fun process(
         entry: Entry,
         config: AppSettings,
@@ -215,11 +303,22 @@ class LazerImporter(
         val pending = File(workDir, "pending-${System.nanoTime()}.osz")
         var staged = pending
         try {
-            copyToTemp(entry.uri, pending)
+            val builder = entry.build
+            if (builder != null) {
+                builder(pending)
+            } else {
+                copyToTemp(requireNotNull(entry.uri), pending)
+            }
             val info = inspect(pending)
-            val id = if (info.setId > 0L) info.setId else localId(info)
+            val id =
+                when {
+                    entry.setId > 0L -> entry.setId
+                    info.setId > 0L -> info.setId
+                    else -> localId(info)
+                }
             val existing = store.find(id)
             val present = existing != null && store.folder(id).isDirectory
+            if (entry.key.isNotEmpty()) resolvedIds[entry.key] = id
             if (present && !config.lazerReplaceExisting) return Outcome.Skipped
 
             val renamed = File(workDir, "$id.osz")
@@ -350,11 +449,7 @@ class LazerImporter(
         return output.toString(Charsets.UTF_8.name())
     }
 
-    private fun localId(info: ArchiveInfo): Long {
-        val crc = CRC32()
-        crc.update("${info.artist}|${info.title}|${info.creator}".lowercase().toByteArray(Charsets.UTF_8))
-        return LOCAL_BEATMAP_ID_BASE + (crc.value and 0xFFFFFFFFL)
-    }
+    private fun localId(info: ArchiveInfo): Long = localIdFor(info.artist, info.title, info.creator)
 
     private fun fallbackTitle(fileName: String): String =
         fileName
@@ -423,17 +518,27 @@ class LazerImporter(
         vararg args: Any,
     ): String = AppLocaleManager.wrapContext(appContext).getString(resource, *args)
 
-    private companion object {
-        const val TAG = "LazerImporter"
-        const val SOURCE_NAME = "osu!lazer"
-        const val WORK_DIRECTORY = "lazer-import"
-        const val MAX_ARCHIVE_BYTES = 2L * 1024L * 1024L * 1024L
-        const val MAX_OSU_BYTES = 8L * 1024L * 1024L
-        const val MAX_PROBLEMS = 6
-        const val MAX_SCAN_DEPTH = 6
-        const val MAX_SCAN_RESULTS = 5_000
-        const val STALE_AFTER_MS = 60L * 60L * 1000L
-        val CHARSETS: List<Charset> =
+    companion object {
+        fun localIdFor(
+            artist: String,
+            title: String,
+            creator: String,
+        ): Long {
+            val crc = CRC32()
+            crc.update("$artist|$title|$creator".lowercase().toByteArray(Charsets.UTF_8))
+            return LOCAL_BEATMAP_ID_BASE + (crc.value and 0xFFFFFFFFL)
+        }
+
+        private const val TAG = "LazerImporter"
+        private const val SOURCE_NAME = "osu!lazer"
+        private const val WORK_DIRECTORY = "lazer-import"
+        private const val MAX_ARCHIVE_BYTES = 2L * 1024L * 1024L * 1024L
+        private const val MAX_OSU_BYTES = 8L * 1024L * 1024L
+        private const val MAX_PROBLEMS = 6
+        private const val MAX_SCAN_DEPTH = 6
+        private const val MAX_SCAN_RESULTS = 5_000
+        private const val STALE_AFTER_MS = 60L * 60L * 1000L
+        private val CHARSETS: List<Charset> =
             listOf(Charsets.UTF_8, Charset.forName("windows-1252"), Charset.forName("Shift_JIS"))
     }
 }
