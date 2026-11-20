@@ -11,7 +11,6 @@
   <p>
     <a href="https://github.com/kanzick/Kozu/releases/latest"><strong>Download</strong></a> ·
     <a href="#features"><strong>Features</strong></a> ·
-    <a href="#osu-lazer-bridge"><strong>osu!lazer</strong></a> ·
     <a href="#build-from-source"><strong>Build</strong></a> ·
     <a href="https://github.com/kanzick/Kozu/issues"><strong>Support</strong></a>
   </p>
@@ -100,7 +99,7 @@
 
 Kozu also includes osu! news, optional profile integration, configurable audio sources, storage tools, and selective backup and restore.
 
-## Audio sources, clearly explained
+## Audio sources
 
 Kozu offers two playback modes:
 
@@ -117,14 +116,13 @@ Beatmap listings, metadata, covers, and previews are obtained from osu!. Optiona
 
 Move beatmaps between Kozu and osu!lazer without rebuilding your collection by hand.
 
-| Into Kozu | Out of Kozu |
+| Import | Export |
 |---|---|
 | Import `.osz` files, multiple files, or an entire folder. | Send selected beatmaps to osu!lazer. |
 | Share exported beatmaps directly from osu!lazer. | Save or share standard `.osz` archives. |
-| Read the lazer library from its data folder, or use Shizuku where available. | Include downloaded Game charts in an export. |
-| Optionally create Kozu playlists from lazer collections. | |
+| Read the osu!lazer data folder or use Shizuku where available. | Include downloaded Game charts in an export. |
 
-For direct library reading, close osu!lazer first so its database is not in use. Kozu reads a copy and does not modify lazer's data.
+For direct reading, close osu!lazer first so its database is not in use. Kozu reads a copy and does not modify lazer's data.
 
 ## Download
 
@@ -132,7 +130,7 @@ For direct library reading, close osu!lazer first so its database is not in use.
 
 Download the APK that matches your device from [GitHub Releases](https://github.com/kanzick/Kozu/releases). Release builds are published in these variants:
 
-| APK | For |
+| APK | Devices |
 |---|---|
 | `kozu-universal.apk` | Most straightforward choice if you are unsure. |
 | `kozu-arm64-v8a.apk` | Most modern Android phones and tablets. |
@@ -145,9 +143,9 @@ Download the APK that matches your device from [GitHub Releases](https://github.
 
 **Requirements**
 
-- Android Studio with an Android SDK installed.
+- Android Studio.
 - JDK 17 or newer.
-- An Android 9+ device or emulator to run the app.
+- An Android 9+ device or emulators.
 
 ```bash
 git clone https://github.com/kanzick/Kozu.git
