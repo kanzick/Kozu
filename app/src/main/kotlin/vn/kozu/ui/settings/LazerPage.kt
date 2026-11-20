@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.io.File
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import vn.kozu.R
 import vn.kozu.data.lazer.ExportCandidate
@@ -71,6 +72,7 @@ fun LazerPage(
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val state by importer.state.collectAsStateWithLifecycle()
     var exportOpen by rememberSaveable { mutableStateOf(false) }
+    var libraryOpen by rememberSaveable { mutableStateOf(false) }
     val installed = remember { exporter.isLazerInstalled() }
     val busy = state.running || state.scanning
 
@@ -83,6 +85,7 @@ fun LazerPage(
             if (tree != null) importer.importTree(tree)
         }
 
+    val openLibrary = stringResource(R.string.lazer_library_open)
     val pickFiles = stringResource(R.string.lazer_pick_files)
     val pickFolder = stringResource(R.string.lazer_pick_folder)
     val chooseBeatmaps = stringResource(R.string.lazer_choose_beatmaps)
@@ -95,6 +98,9 @@ fun LazerPage(
             custom { shape ->
                 NoteCard(shape, stringResource(R.string.lazer_how_title), stringResource(R.string.lazer_how_body))
             }
+        }
+        SettingsSection(stringResource(R.string.lazer_library_section)) {
+            action(Setting.LAZER_LIBRARY, label = openLibrary, enabled = !busy) { libraryOpen = true }
         }
         SettingsSection(stringResource(R.string.lazer_import_section)) {
             action(Setting.LAZER_IMPORT_FILES, label = pickFiles, enabled = !busy) {
@@ -119,6 +125,15 @@ fun LazerPage(
             info(Icons.Rounded.CheckCircle, statusTitle, statusValue, statusHint)
             action(Setting.LAZER_EXPORT, label = chooseBeatmaps) { exportOpen = true }
         }
+    }
+
+    if (libraryOpen) {
+        LazerLibrarySheet(
+            library = container.lazerLibrary,
+            importer = importer,
+            libraryIds = { container.downloadsStore.sets.first().map { it.beatmap.id }.toSet() },
+            onDismiss = { libraryOpen = false },
+        )
     }
 
     if (exportOpen) {
