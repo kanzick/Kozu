@@ -47,11 +47,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.SupervisorJob
 import vn.kozu.data.mirror.StreamResolver
 import vn.kozu.data.mirror.ZipAudioDataSource
@@ -162,10 +160,7 @@ class PlaybackService : MediaSessionService() {
         val cacheDirectory = File(cacheDir, MEDIA_CACHE_DIRECTORY)
         val databaseProvider = StandaloneDatabaseProvider(this)
 
-        val initialSettings =
-            runBlocking(Dispatchers.IO) {
-                container.settings.settings.first()
-            }
+        val initialSettings = container.settings.cachedSettings
         currentSettings = initialSettings
         hiFiAtBuild = initialSettings.hiFiMode
         val configuredCacheMb = initialSettings.streamCacheMb.coerceIn(MIN_CACHE_MB, MAX_CACHE_MB)
@@ -401,10 +396,12 @@ class PlaybackService : MediaSessionService() {
         val player = player ?: return
         val settings = currentSettings
         applyEqualizer(player, settings)
+        val effectsOn = settings.equalizerEnabled
         audioEffects?.apply(
             audioSessionId = player.audioSessionId,
-            bassBoost = settings.bassBoost,
-            loudness = settings.loudness,
+            bassBoost = if (effectsOn) settings.bassBoost else 0,
+            virtualizer = if (effectsOn) settings.virtualizer else 0,
+            loudness = if (effectsOn) settings.loudness else 0,
         )
     }
 

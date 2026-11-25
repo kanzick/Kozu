@@ -1,5 +1,6 @@
 package vn.kozu.ui.library
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
@@ -20,6 +21,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import vn.kozu.data.download.DownloadStatus
 import vn.kozu.data.local.DownloadedSet
+import vn.kozu.R
 import vn.kozu.di.AppContainer
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.Playlist
@@ -27,23 +29,23 @@ import vn.kozu.ui.containerFactory
 
 enum class LibraryTab(
     val key: String,
-    val label: String,
+    @StringRes val labelRes: Int,
 ) {
-    SONGS("songs", "Songs"),
-    LIKED("liked", "Liked"),
-    PLAYLISTS("playlists", "Playlists"),
-    DOWNLOADS("downloads", "Downloads"),
+    SONGS("songs", R.string.songs),
+    LIKED("liked", R.string.liked),
+    PLAYLISTS("playlists", R.string.playlists),
+    DOWNLOADS("downloads", R.string.downloads),
 }
 
 enum class LibrarySort(
     val key: String,
-    val label: String,
+    @StringRes val labelRes: Int,
 ) {
-    RECENT("recent", "Date added"),
-    TITLE("title", "Title"),
-    ARTIST("artist", "Artist"),
-    MAPPER("mapper", "Mapper"),
-    CUSTOM("custom", "Custom"),
+    RECENT("recent", R.string.date_added),
+    TITLE("title", R.string.title),
+    ARTIST("artist", R.string.artist),
+    MAPPER("mapper", R.string.mapper),
+    CUSTOM("custom", R.string.custom),
     ;
 
     companion object {
@@ -208,7 +210,7 @@ class LibraryViewModel(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
-                _syncError.value = "Could not refresh your library. Check your connection and try again."
+                _syncError.value = container.appContext.getString(R.string.library_refresh_failed)
             }
         }
 

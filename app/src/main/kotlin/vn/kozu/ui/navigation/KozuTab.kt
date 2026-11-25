@@ -1,5 +1,6 @@
 package vn.kozu.ui.navigation
 
+import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Home
@@ -12,16 +13,17 @@ import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.ui.graphics.vector.ImageVector
+import vn.kozu.R
 
 enum class KozuTab(
-    val title: String,
+    @StringRes val titleRes: Int,
     val icon: ImageVector,
     val outlinedIcon: ImageVector,
     val inPill: Boolean = true,
 ) {
-    HOME("Home", Icons.Rounded.Home, Icons.Outlined.Home),
-    EXPLORE("Explore", Icons.Rounded.Explore, Icons.Outlined.Explore),
-    LIBRARY("Library", Icons.Rounded.LibraryMusic, Icons.Outlined.LibraryMusic),
-    GAME("Game", Icons.Rounded.SportsEsports, Icons.Outlined.SportsEsports),
-    SEARCH("Search", Icons.Rounded.Search, Icons.Outlined.Search, inPill = false),
+    HOME(R.string.home, Icons.Rounded.Home, Icons.Outlined.Home),
+    EXPLORE(R.string.explore, Icons.Rounded.Explore, Icons.Outlined.Explore),
+    LIBRARY(R.string.library, Icons.Rounded.LibraryMusic, Icons.Outlined.LibraryMusic),
+    GAME(R.string.game, Icons.Rounded.SportsEsports, Icons.Outlined.SportsEsports),
+    SEARCH(R.string.search, Icons.Rounded.Search, Icons.Outlined.Search, inPill = false),
 }

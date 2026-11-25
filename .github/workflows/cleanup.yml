@@ -2,23 +2,23 @@
 
 on:
   schedule:
-    - cron: "0 3 * * 0"
+    - cron: '0 17 * * 6'
   workflow_dispatch:
     inputs:
       keep_runs:
         description: Workflow runs to keep per workflow
         required: true
-        default: "5"
+        default: "1"
         type: string
       artifact_days:
         description: Delete artifacts older than this many days
         required: true
-        default: "5"
+        default: "1"
         type: string
       keep_releases:
-        description: Releases to keep (0 = never delete releases)
+        description: Releases to keep (0 = never delete)
         required: true
-        default: "10"
+        default: "0"
         type: string
 
 permissions:

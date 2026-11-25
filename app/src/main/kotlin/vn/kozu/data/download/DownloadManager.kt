@@ -59,6 +59,7 @@ class DownloadManager(
 ) {
     private companion object {
         const val BYTES_PER_MB = 1024L * 1024L
+        const val MAX_ARCHIVE_DOWNLOAD_BYTES = 2L * 1024L * 1024L * 1024L
     }
 
     private val appContext = context.applicationContext
@@ -276,36 +277,11 @@ class DownloadManager(
             }
 
             setStatus(id, DownloadStatus.Running(1f, "Extracting"))
-            val destination = store.folder(id)
-            val staging = File(destination.parentFile, "$id.tmp")
-            staging.deleteRecursively()
-
-            val result = OszExtractor.extract(temp, staging, current.keepFullBeatmap)
-            if (!reserveSpace(id, result.sizeBytes, current.downloadLimitMb)) {
-                staging.deleteRecursively()
+            try {
+                installArchive(beatmap, temp, usedSource)
+            } finally {
                 temp.delete()
-                fail(
-                    id,
-                    "Not enough room under the ${formatLimit(current.downloadLimitMb)} download limit. Raise it in Storage Sense."
-                )
-                return
             }
-            destination.deleteRecursively()
-            if (!staging.renameTo(destination)) {
-                throw IOException("Could not store the beatmap files")
-            }
-            temp.delete()
-
-            store.upsert(
-                DownloadedSet(
-                    beatmap = beatmap,
-                    audioFile = result.audioFile,
-                    backgroundFile = result.backgroundFile,
-                    sizeBytes = result.sizeBytes,
-                    downloadedAt = System.currentTimeMillis(),
-                    source = usedSource
-                )
-            )
 
             clearStatus(id)
             _events.tryEmit("Downloaded ${beatmap.title}")
@@ -318,6 +294,48 @@ class DownloadManager(
             jobs.remove(id)
         }
     }
+
+    suspend fun installArchive(beatmap: Beatmap, archive: File, source: String): DownloadedSet =
+        withContext(Dispatchers.IO) {
+            val id = beatmap.id
+            val current = settings.settings.first()
+            val destination = store.folder(id)
+            val staging = File(destination.parentFile, "$id.tmp")
+            staging.deleteRecursively()
+
+            val maxExtractBytes = if (current.downloadLimitMb > 0) {
+                current.downloadLimitMb.toLong() * BYTES_PER_MB
+            } else {
+                2L * 1024L * 1024L * 1024L
+            }
+            val result = try {
+                OszExtractor.extract(archive, staging, current.keepFullBeatmap, maxExtractBytes)
+            } catch (e: Exception) {
+                staging.deleteRecursively()
+                throw e
+            }
+            if (!reserveSpace(id, result.sizeBytes, current.downloadLimitMb)) {
+                staging.deleteRecursively()
+                throw IOException(
+                    "Not enough room under the ${formatLimit(current.downloadLimitMb)} download limit. Raise it in Storage Sense."
+                )
+            }
+            destination.deleteRecursively()
+            if (!staging.renameTo(destination)) {
+                staging.deleteRecursively()
+                throw IOException("Could not store the beatmap files")
+            }
+            val set = DownloadedSet(
+                beatmap = beatmap,
+                audioFile = result.audioFile,
+                backgroundFile = result.backgroundFile,
+                sizeBytes = result.sizeBytes,
+                downloadedAt = System.currentTimeMillis(),
+                source = source,
+            )
+            store.upsert(set)
+            set
+        }
 
     private suspend fun reserveSpace(id: Long, needed: Long, limitMb: Int): Boolean {
         if (limitMb <= 0) return true
@@ -400,6 +418,9 @@ class DownloadManager(
 
             val body = response.body
             val total = body.contentLength()
+            if (total > MAX_ARCHIVE_DOWNLOAD_BYTES) {
+                throw IOException("The beatmap archive exceeds the 2 GB download limit")
+            }
             var read = 0L
             var lastReport = 0L
 
@@ -411,6 +432,9 @@ class DownloadManager(
                         val count = input.read(buffer)
                         if (count < 0) break
 
+                        if (count.toLong() > MAX_ARCHIVE_DOWNLOAD_BYTES - read) {
+                            throw IOException("The beatmap archive exceeds the 2 GB download limit")
+                        }
                         output.write(buffer, 0, count)
                         read += count
 

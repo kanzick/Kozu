@@ -120,13 +120,17 @@ fun TrackRow(
                     style = if (compact) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
                     color = if (isCurrent) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    softWrap = false,
+                    overflow = TextOverflow.Clip,
+                    modifier = Modifier.loopingMarquee(),
                 )
                 Text(text = beatmap.displayArtist(LocalAppSettings.current.preferUnicode) + subtitleSuffix.orEmpty(),
                     style = if (compact) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    softWrap = false,
+                    overflow = TextOverflow.Clip,
+                    modifier = Modifier.loopingMarquee(),
                 )
                 if (showDownloadBadge && !compact) {
                     DownloadBadge(
@@ -226,7 +230,9 @@ private fun DownloadBadge(
                 style = MaterialTheme.typography.labelSmall,
                 color = muted,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                softWrap = false,
+                overflow = TextOverflow.Clip,
+                modifier = Modifier.loopingMarquee(),
             )
         }
     }

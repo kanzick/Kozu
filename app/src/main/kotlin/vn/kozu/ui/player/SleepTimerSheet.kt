@@ -1,5 +1,6 @@
 package vn.kozu.ui.player
 
+import vn.kozu.ui.components.KozuSheetHandle
 import android.os.SystemClock
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,7 +47,6 @@ import kotlinx.coroutines.delay
 import vn.kozu.player.SleepTimer
 import vn.kozu.R
 import vn.kozu.ui.components.bounceClick
-import vn.kozu.ui.components.KozuSheetHandle
 import vn.kozu.ui.components.rememberKozuHaptics
 
 private val Presets = listOf(5, 10, 15, 30, 45, 60)

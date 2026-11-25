@@ -17,7 +17,6 @@ import org.jsoup.Jsoup
 import retrofit2.HttpException
 import vn.kozu.data.remote.osu.OsuApi
 
-/** A lightweight view model for an osu! news post. Article HTML is fetched only when opened. */
 data class NewsPost(
     val id: Long,
     val slug: String,
@@ -54,11 +53,9 @@ class NewsFeed(
     private val api: OsuApi,
     private val publicTokenProvider: suspend () -> String? = { null },
 ) {
-    // Serialize first-page refreshes so repeated taps cannot launch overlapping loads.
     private val latestLoadMutex = Mutex()
     private val gson = Gson()
 
-    /** Always requests fresh data. No persistent or in-memory article/feed cache is used. */
     suspend fun load(): NewsFeedPage = latestLoadMutex.withLock {
         val listing = requestListing()
         val newestPosts = listing.newsPosts.mapNotNull(::toPost)
@@ -103,7 +100,6 @@ class NewsFeed(
         )
     }
 
-    /** Fetches full article content on demand; only the lightweight list item is kept beforehand. */
     suspend fun loadDetail(post: NewsPost): NewsPost {
         val detail = requestNewsPost(post.slug)
         val content = detail.content
@@ -122,8 +118,6 @@ class NewsFeed(
         year: Int? = null,
         cursorString: String? = null,
     ): NewsListingDto = try {
-        // osu!'s public website embeds the same listing payload and avoids the API 403
-        // that this client can receive. Try it first to avoid a slow failed request.
         requestWebListing(year, cursorString)
     } catch (cancelled: CancellationException) {
         throw cancelled
@@ -153,7 +147,6 @@ class NewsFeed(
         )
     }
 
-    /** The public HTML page embeds the same listing JSON used by osu!'s website React screen. */
     private suspend fun requestWebListing(year: Int?, cursorString: String?): NewsListingDto =
         withContext(Dispatchers.IO) {
             api.newsWebPage(year = year, cursorString = cursorString).use { response ->
@@ -171,8 +164,6 @@ class NewsFeed(
         }
 
     private suspend fun requestNewsPost(slug: String): NewsPostDto = try {
-        // Fetch the article page directly: its embedded JSON contains the full article
-        // body, and avoids waiting for the API endpoint when it responds with 403.
         withContext(Dispatchers.IO) {
             api.newsWebArticle(slug).use { response ->
                 val document = Jsoup.parse(response.string(), "$SITE_URL/$slug")

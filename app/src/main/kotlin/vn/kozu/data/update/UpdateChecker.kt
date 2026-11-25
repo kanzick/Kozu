@@ -2,10 +2,15 @@ package vn.kozu.data.update
 
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
+import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -35,6 +40,7 @@ sealed interface UpdateResult {
         val version: String,
         val url: String,
         val notes: String,
+        val downloadUrl: String? = null,
     ) : UpdateResult
 
     data class UpToDate(
@@ -52,7 +58,6 @@ class UpdateChecker(
 ) {
     private val appContext = context.applicationContext
     private val currentVersion: String get() = installedVersion(appContext)
-
 
     @Suppress("UNUSED_PARAMETER")
     suspend fun check(channel: UpdateChannel = UpdateChannel.STABLE): UpdateResult =
@@ -93,7 +98,6 @@ class UpdateChecker(
         }
     }
 
-
     private fun checkViaFeed(): UpdateResult? =
         try {
             val request = Request.Builder().url(RELEASES_FEED_URL).header("Accept", "application/atom+xml").build()
@@ -101,21 +105,17 @@ class UpdateChecker(
                 if (!response.isSuccessful) return@use null
                 val body = response.body.string()
                 val entries = Regex("<entry>([\\s\\S]*?)</entry>").findAll(body).map { it.groupValues[1] }.toList()
-                val best =
-                    entries
-                        .mapNotNull { entry ->
-                            val title = Regex("<title>([^<]*)</title>").find(entry)?.groupValues?.get(1)?.trim()
-                            if (title.isNullOrBlank()) null else title to entry
-                        }.maxWithOrNull { x, y -> compareVersions(x.first, y.first) }
-                    ?: return@use null
-                val latest = best.first.removePrefix("v").removePrefix("V")
+                val candidates = entries.mapNotNull { entry ->
+                    val title = Regex("<title>([^<]*)</title>").find(entry)?.groupValues?.get(1)?.trim()
+                    val link = Regex("<link[^>]*href=\"([^\"]*/releases/tag/[^\"]+)\"").find(entry)?.groupValues?.get(1)
+                    if (title.isNullOrBlank()) null else Triple(title, entry, link ?: RELEASES_URL)
+                }
+                val best = candidates.maxWithOrNull { x, y -> compareVersions(x.first, y.first) } ?: return@use null
+                val latest = best.first.trim()
                 if (compareVersions(latest, currentVersion) > 0) {
-                    val link =
-                        Regex("<link[^>]*href=\"([^\"]*/releases/tag/[^\"]+)\"").find(best.second)?.groupValues?.get(1)
-                            ?: RELEASES_URL
-                    val notes =
-                        Regex("<content[^>]*>([\\s\\S]*?)</content>").find(best.second)?.groupValues?.get(1).orEmpty()
-                    UpdateResult.Available(latest, link, htmlToText(notes))
+                    val notes = Regex("<content[^>]*>([\\s\\S]*?)</content>").find(best.second)?.groupValues?.get(1).orEmpty()
+                    val assetUrl = findFallbackAssetUrl(latest)
+                    UpdateResult.Available(latest, best.third, cleanReleaseNotes(htmlToText(notes)), assetUrl)
                 } else {
                     UpdateResult.UpToDate(currentVersion)
                 }
@@ -256,6 +256,33 @@ class UpdateChecker(
             .coerceIn(1, MAX_COMMIT_PAGES)
     }
 
+    private fun preferredApkNames(): List<String> =
+        Build.SUPPORTED_ABIS
+            .distinct()
+            .map { "kozu-$it.apk" } + "kozu-universal.apk"
+
+    private fun isTrustedReleaseAsset(url: String): Boolean = runCatching {
+        val parsed = java.net.URL(url)
+        parsed.protocol == "https" &&
+            parsed.host.equals("github.com", ignoreCase = true) &&
+            parsed.path.startsWith("/kanzick/Kozu/releases/download/")
+    }.getOrDefault(false)
+
+    private fun findFallbackAssetUrl(tag: String): String? {
+        for (name in preferredApkNames()) {
+            val candidate = "$RELEASE_DOWNLOAD_URL/$tag/$name"
+            val request = Request.Builder().url(candidate).head().build()
+            try {
+                client.newCall(request).execute().use { response ->
+                    if (response.isSuccessful || response.code in 300..399) return candidate
+                }
+            } catch (_: Exception) {
+                continue
+            }
+        }
+        return null
+    }
+
     private fun parseReleases(body: String): UpdateResult {
         val releases =
             try {
@@ -264,31 +291,118 @@ class UpdateChecker(
                 return UpdateResult.Failed("Unexpected response from GitHub")
             }
 
-
         val release =
             (0 until releases.length())
                 .mapNotNull { releases.optJSONObject(it) }
-                .filter { !it.optBoolean("draft") && it.optString("tag_name").isNotBlank() }
+                .filter {
+                    !it.optBoolean("draft") && it.optString("tag_name").isNotBlank()
+                }
                 .maxWithOrNull { x, y -> compareVersions(x.optString("tag_name"), y.optString("tag_name")) }
                 ?: return UpdateResult.UpToDate(currentVersion)
 
         val tag = release.optString("tag_name").trim()
-        val latest = tag.removePrefix("v").removePrefix("V")
         val url = release.optString("html_url").ifBlank { RELEASES_URL }
-        return if (compareVersions(latest, currentVersion) > 0) {
-            UpdateResult.Available(latest, url, release.optString("body").trim())
+        val downloadUrl = findApkDownloadUrl(release)
+        return if (compareVersions(tag, currentVersion) > 0) {
+            UpdateResult.Available(tag, url, cleanReleaseNotes(release.optString("body")), downloadUrl)
         } else {
             UpdateResult.UpToDate(currentVersion)
         }
     }
 
+    private fun findApkDownloadUrl(release: org.json.JSONObject): String? {
+        val assets = release.optJSONArray("assets") ?: return null
+        val urlsByName = buildMap {
+            for (index in 0 until assets.length()) {
+                val asset = assets.optJSONObject(index) ?: continue
+                val name = asset.optString("name").trim()
+                val url = asset.optString("browser_download_url").trim()
+                if (name.isNotBlank() && url.isNotBlank()) put(name, url)
+            }
+        }
+        return preferredApkNames().firstNotNullOfOrNull { name ->
+            urlsByName[name]?.takeIf(::isTrustedReleaseAsset)
+        }
+    }
+
+    private fun cleanReleaseNotes(body: String): String {
+        val fullChangelog = Regex(
+            "(?im)^\\s*(?:#{1,6}\\s*)?(?:📝\\s*)?(?:\\*\\*)?Full Changelog(?:\\*\\*)?(?:\\s*:.*)?$",
+        ).find(body)?.range?.first
+        val downloads = Regex(
+            "(?im)^\\s*(?:#{1,6}\\s*)?(?:📥\\s*)?(?:\\*\\*)?(?:Downloads|Assets)(?:\\*\\*)?(?:\\s*(?:⬇️|↓))?(?:\\s*:.*)?$",
+        ).find(body)?.range?.first
+        val end = listOfNotNull(fullChangelog, downloads).minOrNull() ?: body.length
+        return body.substring(0, end).trim()
+    }
+
+    suspend fun downloadApk(
+        url: String,
+        destination: File,
+        onProgress: (downloaded: Long, total: Long) -> Unit,
+    ): File = withContext(Dispatchers.IO) {
+        val parsedUrl = runCatching { java.net.URL(url) }.getOrElse {
+            throw IOException("The download URL is invalid.", it)
+        }
+        if (parsedUrl.protocol != "https" || parsedUrl.host != "github.com" || !isTrustedReleaseAsset(url)) {
+            throw IOException("The update download URL is not trusted.")
+        }
+
+        val request = Request.Builder().url(url).header("Accept", "application/octet-stream").build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) throw IOException("GitHub returned HTTP ${response.code} while downloading the update.")
+            val body = response.body
+            val total = body.contentLength()
+            if (total > MAX_UPDATE_SIZE_BYTES) throw IOException("The update APK is larger than expected.")
+            destination.parentFile?.let { parent ->
+                if (!parent.exists() && !parent.mkdirs()) throw IOException("Could not create the update folder.")
+            }
+
+            try {
+                body.byteStream().use { input ->
+                    FileOutputStream(destination).use { output ->
+                        val buffer = ByteArray(64 * 1024)
+                        var downloaded = 0L
+                        var lastReported = 0L
+                        while (true) {
+                            currentCoroutineContext().ensureActive()
+                            val count = input.read(buffer)
+                            if (count < 0) break
+                            output.write(buffer, 0, count)
+                            downloaded += count
+                            if (downloaded > MAX_UPDATE_SIZE_BYTES) {
+                                throw IOException("The update APK is larger than expected.")
+                            }
+                            if (downloaded - lastReported >= PROGRESS_INTERVAL_BYTES || downloaded == total) {
+                                onProgress(downloaded, total)
+                                lastReported = downloaded
+                            }
+                        }
+                        output.fd.sync()
+                        if (downloaded <= 0L || (total > 0L && downloaded != total)) {
+                            throw IOException("The update download was incomplete.")
+                        }
+                        onProgress(downloaded, total)
+                    }
+                }
+            } catch (error: Exception) {
+                destination.delete()
+                throw error
+            }
+        }
+        destination
+    }
+
     companion object {
+        const val MAX_UPDATE_SIZE_BYTES = 200L * 1024L * 1024L
+        private const val PROGRESS_INTERVAL_BYTES = 256L * 1024L
         const val RELEASES_URL_API = "https://api.github.com/repos/kanzick/Kozu/releases?per_page=50"
         const val COMMITS_URL_API = "https://api.github.com/repos/kanzick/Kozu/commits"
         const val COMMITS_PER_PAGE = 30
         const val MAX_COMMIT_PAGES = 1_000
         const val REPOSITORY_URL = "https://github.com/kanzick/Kozu"
         const val RELEASES_URL = "https://github.com/kanzick/Kozu/releases"
+        const val RELEASE_DOWNLOAD_URL = "https://github.com/kanzick/Kozu/releases/download"
         const val RELEASES_FEED_URL = "https://github.com/kanzick/Kozu/releases.atom"
         const val DAY_MS = 24L * 60L * 60L * 1000L
         const val DEFAULT_BRANCH = "main"

@@ -120,23 +120,23 @@ fun TrackMenuSheet(
         Column(Modifier.navigationBarsPadding()) {
             SheetTrackHeader(beatmap)
             Spacer(Modifier.height(8.dp))
-            SheetAction(Icons.AutoMirrored.Rounded.PlaylistPlay, "Play next", onPlayNext)
-            SheetAction(Icons.AutoMirrored.Rounded.QueueMusic, "Add to queue", onAddToQueue)
+            SheetAction(Icons.AutoMirrored.Rounded.PlaylistPlay, stringResource(R.string.play_next), onPlayNext)
+            SheetAction(Icons.AutoMirrored.Rounded.QueueMusic, stringResource(R.string.add_to_queue), onAddToQueue)
             SheetAction(
                 if (isFavorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                if (isFavorite) "Remove from liked songs" else "Add to liked songs",
+                stringResource(if (isFavorite) R.string.remove_from_liked_songs else R.string.add_to_liked_songs),
                 onToggleFavorite
             )
-            SheetAction(Icons.AutoMirrored.Rounded.PlaylistAdd, "Add to playlist", onAddToPlaylist)
+            SheetAction(Icons.AutoMirrored.Rounded.PlaylistAdd, stringResource(R.string.add_to_playlist), onAddToPlaylist)
             if (isDownloaded) {
-                if (isOutdated) SheetAction(Icons.Rounded.Update, "Update offline copy", onDownload)
-                SheetAction(Icons.Rounded.Delete, "Remove download", onRemoveDownload)
+                if (isOutdated) SheetAction(Icons.Rounded.Update, stringResource(R.string.update_offline_copy), onDownload)
+                SheetAction(Icons.Rounded.Delete, stringResource(R.string.remove_download), onRemoveDownload)
             } else {
-                SheetAction(Icons.Rounded.Download, "Download for offline", onDownload)
+                SheetAction(Icons.Rounded.Download, stringResource(R.string.download_for_offline), onDownload)
             }
-            SheetAction(Icons.Rounded.Info, "Beatmap info", onInfo)
-            SheetAction(Icons.Rounded.Language, "Open on osu!", onOpenInOsu)
-            SheetAction(Icons.Rounded.Share, "Share", onShare)
+            SheetAction(Icons.Rounded.Info, stringResource(R.string.beatmap_info), onInfo)
+            SheetAction(Icons.Rounded.Language, stringResource(R.string.open_on_osu), onOpenInOsu)
+            SheetAction(Icons.Rounded.Share, stringResource(R.string.share), onShare)
             Spacer(Modifier.height(16.dp))
         }
     }
@@ -166,13 +166,14 @@ fun PlaylistPickerSheet(
             )
             SheetTrackHeader(beatmap)
             Spacer(Modifier.height(8.dp))
-            SheetAction(Icons.Rounded.Add, "New playlist") { showCreate = true }
+            SheetAction(Icons.Rounded.Add, stringResource(R.string.new_playlist)) { showCreate = true }
+            val addedLabel = stringResource(R.string.added)
             LazyColumn {
                 items(playlists, key = { it.id }) { playlist ->
                     val already = playlist.tracks.any { it.id == beatmap.id }
                     SheetAction(
                         icon = Icons.AutoMirrored.Rounded.QueueMusic,
-                        label = if (already) "${playlist.name} · added" else playlist.name,
+                        label = if (already) "${playlist.name} · $addedLabel" else playlist.name,
                         onClick = { if (!already) onPick(playlist) }
                     )
                 }
@@ -183,8 +184,8 @@ fun PlaylistPickerSheet(
 
     if (showCreate) {
         NamePlaylistDialog(
-            title = "New playlist",
-            confirmLabel = "Create",
+            title = stringResource(R.string.new_playlist),
+            confirmLabel = stringResource(R.string.create),
             onDismiss = { showCreate = false },
             onConfirm = {
                 showCreate = false

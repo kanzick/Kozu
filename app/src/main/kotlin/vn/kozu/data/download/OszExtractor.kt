@@ -1,6 +1,8 @@
 package vn.kozu.data.download
 
+import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.InputStream
 import java.io.IOException
 import java.nio.charset.Charset
 import java.util.zip.ZipEntry
@@ -15,6 +17,8 @@ data class ExtractResult(
 )
 
 object OszExtractor {
+    private const val MAX_OSU_ENTRY_BYTES = 8L * 1024L * 1024L
+    private const val DEFAULT_MAX_EXTRACT_BYTES = 2L * 1024L * 1024L * 1024L
     private val videoExtensions = setOf("mp4", "avi", "flv", "mov", "wmv", "mkv", "webm", "m4v", "mpg", "mpeg")
     private val audioExtensions = setOf("mp3", "ogg", "wav", "m4a", "flac", "aac", "opus")
     private val imageExtensions = setOf("jpg", "jpeg", "png", "bmp", "webp")
@@ -33,14 +37,16 @@ object OszExtractor {
         osz: File,
         destination: File,
         keepFull: Boolean,
+        maxExtractBytes: Long = DEFAULT_MAX_EXTRACT_BYTES,
     ): ExtractResult {
+        require(maxExtractBytes > 0L)
         val charsets = listOf(Charsets.UTF_8, Charset.forName("windows-1252"), Charset.forName("Shift_JIS"))
         var failure: Exception? = null
         for (charset in charsets) {
             try {
                 destination.deleteRecursively()
                 destination.mkdirs()
-                return extractWith(osz, destination, keepFull, charset)
+                return extractWith(osz, destination, keepFull, charset, maxExtractBytes)
             } catch (e: IllegalArgumentException) {
                 failure = e
             } catch (e: ZipException) {
@@ -55,6 +61,7 @@ object OszExtractor {
         destination: File,
         keepFull: Boolean,
         charset: Charset,
+        maxExtractBytes: Long,
     ): ExtractResult {
         ZipFile(osz, charset).use { zip ->
             val entries =
@@ -69,7 +76,7 @@ object OszExtractor {
             var audioName = ""
             var backgroundName = ""
             for (entry in osuEntries) {
-                val text = zip.getInputStream(entry).use { it.readBytes().toString(Charsets.UTF_8) }
+                val text = zip.getInputStream(entry).use { readTextLimited(it, MAX_OSU_ENTRY_BYTES) }
                 val parsed = OsuBeatmapParser.parse(entry.name, text)
                 if (audioName.isEmpty() && parsed.audioFile.isNotEmpty()) audioName = parsed.audioFile
                 if (backgroundName.isEmpty() && !parsed.background.isNullOrEmpty()) backgroundName = parsed.background
@@ -99,14 +106,42 @@ object OszExtractor {
                 val target = File(destination, relative)
                 val canonicalRoot = destination.canonicalPath + File.separator
                 if (!target.canonicalPath.startsWith(canonicalRoot)) continue
+                if (entry.size > maxExtractBytes - total) {
+                    throw IOException("Beatmap archive exceeds the extraction size limit")
+                }
                 target.parentFile?.mkdirs()
                 zip.getInputStream(entry).use { input ->
-                    target.outputStream().buffered().use { output -> total += input.copyTo(output) }
+                    target.outputStream().buffered().use { output ->
+                        val buffer = ByteArray(32 * 1024)
+                        while (true) {
+                            val count = input.read(buffer)
+                            if (count < 0) break
+                            if (count.toLong() > maxExtractBytes - total) {
+                                throw IOException("Beatmap archive exceeds the extraction size limit")
+                            }
+                            output.write(buffer, 0, count)
+                            total += count
+                        }
+                    }
                 }
             }
 
             return ExtractResult(normalizedAudio, normalizedBackground, total)
         }
+    }
+
+    private fun readTextLimited(input: InputStream, maxBytes: Long): String {
+        val output = ByteArrayOutputStream(minOf(maxBytes, 64L * 1024L).toInt())
+        val buffer = ByteArray(8 * 1024)
+        var total = 0L
+        while (true) {
+            val count = input.read(buffer)
+            if (count < 0) break
+            total += count
+            if (total > maxBytes) throw IOException("Beatmap metadata file is too large")
+            output.write(buffer, 0, count)
+        }
+        return output.toString(Charsets.UTF_8.name())
     }
 
     private fun findEntry(

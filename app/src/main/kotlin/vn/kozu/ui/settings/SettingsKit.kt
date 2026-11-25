@@ -1,5 +1,6 @@
 package vn.kozu.ui.settings
 
+import vn.kozu.ui.components.KozuSheetHandle
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.Spring
@@ -86,7 +87,6 @@ import androidx.compose.ui.unit.lerp as lerpDp
 import kotlinx.coroutines.delay
 import vn.kozu.R
 import vn.kozu.ui.components.bounceClick
-import vn.kozu.ui.components.KozuSheetHandle
 import vn.kozu.ui.components.KozuSlider
 import vn.kozu.ui.components.LocalOverlayBottomInset
 import vn.kozu.ui.components.LocalPerformanceMode

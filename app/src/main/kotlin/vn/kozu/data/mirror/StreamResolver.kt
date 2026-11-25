@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.core.net.toUri
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
 import java.util.Collections
@@ -832,7 +833,19 @@ class StreamResolver(
                 it.name.endsWith(".osu", ignoreCase = true) && it.uncompressedSize in 1L..BACKGROUND_OSU_MAX_BYTES
             } ?: return null
         return try {
-            val text = RemoteZip.openEntryStream(source, osu).use { it.readBytes() }.toString(Charsets.UTF_8)
+            val text = RemoteZip.openEntryStream(source, osu).use { input ->
+                val output = ByteArrayOutputStream(minOf(BACKGROUND_OSU_MAX_BYTES.toInt(), 64 * 1024))
+                val buffer = ByteArray(8 * 1024)
+                var total = 0
+                while (true) {
+                    val count = input.read(buffer)
+                    if (count < 0) break
+                    total += count
+                    if (total > BACKGROUND_OSU_MAX_BYTES) throw IOException("Beatmap metadata entry is too large")
+                    output.write(buffer, 0, count)
+                }
+                String(output.toByteArray(), Charsets.UTF_8)
+            }
             BACKGROUND_EVENT.find(text)?.groupValues?.get(1)
         } catch (e: Exception) {
             null

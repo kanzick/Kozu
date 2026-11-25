@@ -203,7 +203,7 @@ private fun HeroCard(
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(12.dp))
-            ValueChip("v$version")
+            ValueChip(version)
             Spacer(Modifier.height(14.dp))
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),

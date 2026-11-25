@@ -1,5 +1,6 @@
 package vn.kozu.ui.explore
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
@@ -8,6 +9,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
+import vn.kozu.R
 import vn.kozu.di.AppContainer
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.ui.containerFactory
@@ -15,7 +17,8 @@ import vn.kozu.ui.containerFactory
 data class LibraryCollection(
     val id: String,
     val title: String,
-    val label: String,
+    @StringRes val titleRes: Int? = null,
+    @StringRes val labelRes: Int,
     val tracks: List<Beatmap>,
 )
 
@@ -44,13 +47,38 @@ class ExploreViewModel(
             val collections =
                 buildList {
                     if (favorites.isNotEmpty()) {
-                        add(LibraryCollection("liked", "Liked songs", "Liked", favorites))
+                        add(
+                            LibraryCollection(
+                                id = "liked",
+                                title = "",
+                                titleRes = R.string.liked_songs,
+                                labelRes = R.string.liked,
+                                tracks = favorites,
+                            ),
+                        )
                     }
                     val most = history.mostPlayed.take(settings.topSize.count)
                     if (most.isNotEmpty()) {
-                        add(LibraryCollection("most-played", "Most played", "Auto", most))
+                        add(
+                            LibraryCollection(
+                                id = "most-played",
+                                title = "",
+                                titleRes = R.string.most_played,
+                                labelRes = R.string.auto,
+                                tracks = most,
+                            ),
+                        )
                     }
-                    playlists.forEach { add(LibraryCollection(it.id, it.name, "Playlist", it.tracks)) }
+                    playlists.forEach {
+                        add(
+                            LibraryCollection(
+                                id = it.id,
+                                title = it.name,
+                                labelRes = R.string.playlist_label_short,
+                                tracks = it.tracks,
+                            ),
+                        )
+                    }
                 }
 
             ExploreUiState(

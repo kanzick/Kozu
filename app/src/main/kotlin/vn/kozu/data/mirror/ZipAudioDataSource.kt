@@ -49,26 +49,34 @@ class ZipAudioDataSource(
             ?: throw IOException("Missing archive source id")
 
         val session = resolver.openArchiveAudio(setId, sourceId)
+        val position = dataSpec.position
+        var cacheOutput: OutputStream? = null
+        try {
+            if (position < 0L || position > session.expectedLength) {
+                throw IOException("Invalid audio seek position")
+            }
+            if (position > 0L) {
+                skipFully(session.input, position)
+            } else if (dataSpec.length == C.LENGTH_UNSET.toLong() || dataSpec.length >= session.expectedLength) {
+                session.temporaryFile.parentFile?.mkdirs()
+                cacheOutput = session.temporaryFile.outputStream().buffered()
+            }
+        } catch (e: Exception) {
+            runCatching { cacheOutput?.close() }
+            runCatching { session.input.close() }
+            session.temporaryFile.delete()
+            throw e
+        }
+
         input = session.input
         expectedLength = session.expectedLength
         temporaryFile = session.temporaryFile
         targetFile = session.cacheFile
         openedUri = uri
-        startPosition = dataSpec.position
+        startPosition = position
         requestedLength = dataSpec.length
         bytesRead = 0L
-
-        if (startPosition < 0L || startPosition > expectedLength) {
-            throw IOException("Invalid audio seek position")
-        }
-
-        if (startPosition > 0L) {
-            skipFully(input!!, startPosition)
-        } else if (requestedLength == C.LENGTH_UNSET.toLong() || requestedLength >= expectedLength) {
-            temporaryFile?.parentFile?.mkdirs()
-            output = temporaryFile?.outputStream()?.buffered()
-        }
-
+        output = cacheOutput
         opened = true
         listeners.forEach { listener ->
         }

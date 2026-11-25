@@ -20,6 +20,8 @@ room = "2.8.5"
 reorderables = "3.1.0"
 aboutLibraries = "15.3.0"
 jsoup = "1.24.1"
+realm = "3.0.0"
+shizuku = "13.1.5"
 ksp = "2.3.13"
 junit = "4.13.2"
 
@@ -58,6 +60,9 @@ androidx-profileinstaller = { module = "androidx.profileinstaller:profileinstall
 reorderables = { group = "sh.calvin.reorderable", name = "reorderable", version.ref = "reorderables" }
 aboutlibraries-core = { module = "com.mikepenz:aboutlibraries-core", version.ref = "aboutLibraries" }
 jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
+realm-library-base = { module = "io.realm.kotlin:library-base", version.ref = "realm" }
+shizuku-api = { module = "dev.rikka.shizuku:api", version.ref = "shizuku" }
+shizuku-provider = { module = "dev.rikka.shizuku:provider", version.ref = "shizuku" }
 
 [plugins]
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

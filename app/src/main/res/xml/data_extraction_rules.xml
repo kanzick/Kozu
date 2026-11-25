@@ -1,23 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-
-
-
-
 <data-extraction-rules>
     <cloud-backup>
-        <exclude domain="sharedpref" path="score_sync_session.xml" />
-
-
-
-
+        <exclude domain="file" path="beatmaps" />
+        <exclude domain="external" path="." />
     </cloud-backup>
-    <device-transfer>
-        <exclude domain="sharedpref" path="score_sync_session.xml" />
-    </device-transfer>
-
-
-
-
-
-
 </data-extraction-rules>

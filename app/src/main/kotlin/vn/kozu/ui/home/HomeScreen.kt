@@ -1,5 +1,6 @@
 package vn.kozu.ui.home
 
+import android.content.Context
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
@@ -27,6 +28,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -57,6 +59,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -70,6 +73,7 @@ import java.util.Calendar
 import vn.kozu.domain.model.Beatmap
 import vn.kozu.domain.model.ListeningStats
 import vn.kozu.domain.model.OsuProfile
+import vn.kozu.domain.model.QuickPicksLayout
 import vn.kozu.R
 import vn.kozu.ui.components.BeatmapArt
 import vn.kozu.ui.components.bounceClick
@@ -83,6 +87,7 @@ import vn.kozu.ui.components.SectionHeader
 import vn.kozu.ui.components.segmentedShape
 import vn.kozu.ui.components.SettingsAction
 import vn.kozu.ui.components.softTopEdge
+import vn.kozu.ui.components.CoverCard
 import vn.kozu.ui.components.TrackPill
 import vn.kozu.ui.components.TrackRow
 import vn.kozu.ui.theme.KozuCookies
@@ -214,11 +219,29 @@ fun HomeScreen(
                     }
                 }
 
+                if (appSettings.showQuickPicks && ui.quickPicks.isNotEmpty()) {
+                    item(key = "quick-picks") {
+                        Column {
+                            Spacer(Modifier.height(32.dp))
+                            SectionHeader(
+                                title = stringResource(R.string.quick_picks),
+                                subtitle = stringResource(R.string.quick_picks_subtitle),
+                            )
+                            Spacer(Modifier.height(14.dp))
+                            QuickPicks(
+                                picks = ui.quickPicks,
+                                layout = appSettings.quickPicksLayout,
+                                onPlay = { index -> actions.play(ui.quickPicks, index) },
+                            )
+                        }
+                    }
+                }
+
                 if (ui.recent.isNotEmpty()) {
                     item(key = "recent") {
                         Column {
                             Spacer(Modifier.height(32.dp))
-                            SectionHeader(title = "Recently Played")
+                            SectionHeader(title = stringResource(R.string.recently_played))
                             Spacer(Modifier.height(14.dp))
                             RecentlyPlayedGrid(recent = ui.recent) { index -> actions.play(ui.recent, index) }
                         }
@@ -241,8 +264,8 @@ fun HomeScreen(
                         Column {
                             Spacer(Modifier.height(32.dp))
                             SectionHeader(
-                                title = "osu! Updates",
-                                subtitle = "Recently updated beatmaps",
+                                title = stringResource(R.string.osu_updates),
+                                subtitle = stringResource(R.string.recently_updated_beatmaps),
                                 onAction = onOpenExplore
                             )
                             Spacer(Modifier.height(14.dp))
@@ -266,6 +289,7 @@ fun HomeScreen(
 
 @Composable
 private fun OsuPulseCard(profile: OsuProfile) {
+    val context = LocalContext.current
     val ranks = profile.rankHistory.takeLast(90).filter { it > 0 }
     val numberFormat = NumberFormat.getIntegerInstance()
     Surface(
@@ -305,12 +329,12 @@ private fun OsuPulseCard(profile: OsuProfile) {
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 RankMetric(
-                    title = "Global rank",
-                    value = if (profile.globalRank > 0) "#${numberFormat.format(profile.globalRank)}" else "Unranked",
+                    title = stringResource(R.string.global_rank),
+                    value = if (profile.globalRank > 0) "#${numberFormat.format(profile.globalRank)}" else stringResource(R.string.unranked),
                     modifier = Modifier.weight(1f)
                 )
                 RankMetric(
-                    title = "Country rank",
+                    title = stringResource(R.string.country_rank),
                     value = if (profile.countryRank > 0) "#${numberFormat.format(profile.countryRank)}" else "—",
                     modifier = Modifier.weight(1f)
                 )
@@ -337,8 +361,8 @@ private fun OsuPulseCard(profile: OsuProfile) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 OsuStat("pp", numberFormat.format(profile.pp.toLong()), Modifier.weight(1f))
-                OsuStat("Plays", compactOsuCount(profile.playCount), Modifier.weight(1f))
-                OsuStat("Play time", formatOsuPlayTime(profile.playTimeSeconds), Modifier.weight(1.2f))
+                OsuStat(stringResource(R.string.plays), compactOsuCount(profile.playCount), Modifier.weight(1f))
+                OsuStat(stringResource(R.string.play_time), formatOsuPlayTime(context, profile.playTimeSeconds), Modifier.weight(1.2f))
             }
             Spacer(Modifier.height(8.dp))
         }
@@ -383,10 +407,14 @@ private fun compactOsuCount(value: Int): String = when {
     else -> NumberFormat.getIntegerInstance().format(value)
 }
 
-private fun formatOsuPlayTime(seconds: Long): String {
+private fun formatOsuPlayTime(context: Context, seconds: Long): String {
     val hours = seconds.coerceAtLeast(0) / 3_600
     val days = hours / 24
-    return if (days > 0) "${days}d ${hours % 24}h" else "${hours}h"
+    return if (days > 0) {
+        context.getString(R.string.duration_days_hours, days, hours % 24)
+    } else {
+        context.getString(R.string.duration_hours, hours)
+    }
 }
 
 @Composable
@@ -449,17 +477,17 @@ private fun OsuRankHistoryChart(values: List<Int>) {
 private fun Greeting(name: String) {
     val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
     val line = when (hour) {
-        in 5..11 -> "Good morning"
-        in 12..17 -> "Good afternoon"
-        in 18..22 -> "Good evening"
-        else -> "Still up?"
+        in 5..11 -> stringResource(R.string.greeting_morning)
+        in 12..17 -> stringResource(R.string.greeting_afternoon)
+        in 18..22 -> stringResource(R.string.greeting_evening)
+        else -> stringResource(R.string.greeting_late_night)
     }
     Column(Modifier.padding(horizontal = 20.dp)) {
         Text(text = line,
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Text(text = "${name.ifBlank { "osu! Player" }}",
+        Text(text = name.ifBlank { stringResource(R.string.default_player_name) },
             style = MaterialTheme.typography.displaySmall,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
@@ -481,8 +509,7 @@ private fun YourMixCard(mix: List<Beatmap>, totalCount: Int, onShuffle: () -> Un
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     val big = MaterialTheme.typography.displayLarge.copy(lineHeight = 56.sp)
-                    Text(stringResource(R.string.your), style = big)
-                    Text(stringResource(R.string.mix), style = big)
+                    Text(stringResource(R.string.your_mix_card_title), style = big)
                     Spacer(Modifier.height(6.dp))
                     Text(text = stringResource(R.string.todays_mix_for_you),
                         style = MaterialTheme.typography.titleMedium,
@@ -537,6 +564,56 @@ private fun YourMixCard(mix: List<Beatmap>, totalCount: Int, onShuffle: () -> Un
 }
 
 @Composable
+private fun QuickPicks(
+    picks: List<Beatmap>,
+    layout: QuickPicksLayout,
+    onPlay: (Int) -> Unit,
+) {
+    when (layout) {
+        QuickPicksLayout.CAROUSEL ->
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                itemsIndexed(picks, key = { _, beatmap -> "pick-${beatmap.id}" }) { index, beatmap ->
+                    CoverCard(
+                        beatmap = beatmap,
+                        onClick = { onPlay(index) },
+                    )
+                }
+            }
+
+        QuickPicksLayout.COMPACT -> {
+            val colors = MaterialTheme.colorScheme
+            val palette =
+                listOf(
+                    colors.primaryContainer to colors.onPrimaryContainer,
+                    colors.secondaryContainer to colors.onSecondaryContainer,
+                    colors.tertiaryContainer to colors.onTertiaryContainer,
+                    colors.surfaceContainerHighest to colors.onSurface,
+                )
+            LazyHorizontalGrid(
+                rows = GridCells.Fixed(2),
+                modifier = Modifier.fillMaxWidth().height(56.dp * 2 + 10.dp),
+                contentPadding = PaddingValues(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                items(picks.size) { index ->
+                    val (container, content) = palette[index % palette.size]
+                    TrackPill(
+                        beatmap = picks[index],
+                        containerColor = container,
+                        contentColor = content,
+                        onClick = { onPlay(index) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun RecentlyPlayedGrid(recent: List<Beatmap>, onPlay: (Int) -> Unit) {
     val colors = MaterialTheme.colorScheme
     val palette = listOf(
@@ -572,6 +649,7 @@ private fun ListeningStatsCard(
     onOpenHistory: () -> Unit,
     onPlayTop: (Beatmap) -> Unit
 ) {
+    val context = LocalContext.current
     Surface(
         modifier = Modifier
             .padding(horizontal = 20.dp)
@@ -603,15 +681,15 @@ private fun ListeningStatsCard(
             }
 
             Spacer(Modifier.height(20.dp))
-            Text(text = formatDuration(stats.totalMs),
+            Text(text = formatDuration(context, stats.totalMs),
                 style = MaterialTheme.typography.displaySmall,
                 color = MaterialTheme.colorScheme.primary
             )
 
             Spacer(Modifier.height(16.dp))
             Row {
-                StatBlock("Total plays", stats.plays.toString(), Modifier.weight(1f))
-                StatBlock("Avg per day", formatDuration(stats.avgPerDayMs), Modifier.weight(1f))
+                StatBlock(stringResource(R.string.total_plays), stats.plays.toString(), Modifier.weight(1f))
+                StatBlock(stringResource(R.string.avg_per_day), formatDuration(context, stats.avgPerDayMs), Modifier.weight(1f))
             }
 
             val top = stats.topTrack
@@ -659,7 +737,16 @@ private fun StatBlock(label: String, value: String, modifier: Modifier = Modifie
 @Composable
 private fun WeekBars(stats: ListeningStats) {
     val max = (stats.dayMs.maxOrNull() ?: 0L).coerceAtLeast(1L)
-    val letters = listOf("M", "T", "W", "T", "F", "S", "S")
+    // The week always starts on Monday (see ListeningStats), so index 0 is Monday.
+    val letters = listOf(
+        stringResource(R.string.weekday_letter_mon),
+        stringResource(R.string.weekday_letter_tue),
+        stringResource(R.string.weekday_letter_wed),
+        stringResource(R.string.weekday_letter_thu),
+        stringResource(R.string.weekday_letter_fri),
+        stringResource(R.string.weekday_letter_sat),
+        stringResource(R.string.weekday_letter_sun),
+    )
     Row(
         modifier = Modifier
             .fillMaxWidth()

@@ -14,6 +14,9 @@ import vn.kozu.data.local.DownloadsStore
 import vn.kozu.data.local.FavoritesStore
 import vn.kozu.data.local.HistoryStore
 import vn.kozu.data.local.PlaylistStore
+import vn.kozu.data.lazer.LazerExporter
+import vn.kozu.data.lazer.LazerImporter
+import vn.kozu.data.lazer.LazerLibrary
 import vn.kozu.data.local.SettingsStore
 import vn.kozu.data.mirror.MirrorTester
 import vn.kozu.data.mirror.StreamResolver
@@ -61,6 +64,9 @@ class AppContainer(
             history = history,
         )
     val mirrorTester = MirrorTester(httpClient)
+    val lazerImporter = LazerImporter(appContext, downloads, downloadsStore, settings, playlists)
+    val lazerExporter = LazerExporter(appContext, downloadsStore)
+    val lazerLibrary = LazerLibrary(appContext)
 
     val sync =
         LibrarySync(
@@ -86,7 +92,7 @@ class AppContainer(
     }
 
     val updates = UpdateChecker(appContext, httpClient)
-    val backup = BackupManager(settings, favorites, playlists, history)
+    val backup = BackupManager(appContext, settings, favorites, playlists, history, downloadsStore)
     val cacheCleaner = CacheCleaner(appContext, streams, settings)
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -99,5 +105,6 @@ class AppContainer(
                 .collect { ProxyController.update(it) }
         }
         scope.launch { runCatching { cacheCleaner.cleanIfNeeded() } }
+        scope.launch { runCatching { lazerExporter.cleanup(maxAgeMs = 24L * 60L * 60L * 1000L) } }
     }
 }

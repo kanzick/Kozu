@@ -4,6 +4,7 @@
     <string name="accent_color">Màu nhấn</string>
     <string name="accent_switches_to_custom">Chọn màu nhấn sẽ chuyển sang thiết lập màu nhấn tùy chỉnh.</string>
     <string name="account">Tài khoản</string>
+    <string name="account_sync_summary">Đăng nhập và quản lý đồng bộ tài khoản</string>
     <string name="account_manage_summary">Hồ sơ osu! · quản lý tài khoản</string>
     <string name="account_sign_in_summary">Đăng nhập để đồng bộ với osu!</string>
     <string name="adapt_to_artwork">Thích ứng với ảnh bìa</string>
@@ -39,6 +40,7 @@
     <string name="appearance">Giao diện</string>
     <string name="apply">Áp dụng</string>
     <string name="artist">Nghệ sĩ</string>
+    <string name="auto">Tự động</string>
     <string name="artwork_cache_limit">Giới hạn bộ nhớ đệm ảnh bìa</string>
     <string name="artwork_colors">Màu sắc từ ảnh bìa</string>
     <string name="artwork_gestures">Thao tác với ảnh bìa</string>
@@ -50,6 +52,23 @@
     <string name="audio_sources">Nguồn âm thanh</string>
     <string name="auto_update_downloads">Tự động cập nhật bản tải xuống</string>
     <string name="automatic_checks">Kiểm tra tự động</string>
+    <string name="not_checked">Chưa kiểm tra</string>
+    <string name="up_to_date_version">Ứng dụng đã mới nhất · %1$s</string>
+    <string name="loading_history">Đang tải lịch sử commit…</string>
+    <string name="no_commits_found">Không tìm thấy commit nào.</string>
+    <string name="recent_commits">Commit gần đây</string>
+    <string name="recent_commits_count">%1$d commit gần đây</string>
+    <string name="previous_page">Trang trước</string>
+    <string name="next_page">Trang tiếp theo</string>
+    <string name="update_available_title">Đã có bản cập nhật</string>
+    <string name="update_release_notes">Có gì mới</string>
+    <string name="download_and_install">Tải xuống và cài đặt</string>
+    <string name="update_download_progress">Đang tải %1$d%%</string>
+    <string name="update_download_failed">Không thể tải bản cập nhật</string>
+    <string name="update_install_permission">Cho phép Kozu cài đặt bản cập nhật trong phần cài đặt Android, sau đó quay lại đây và nhấn Cài đặt lần nữa.</string>
+    <string name="update_download_ready">Đã tải xong. Đang mở trình cài đặt Android…</string>
+    <string name="update_apk_unavailable">Bản phát hành này không có tệp APK để cài đặt.</string>
+    <string name="install_update">Cài đặt bản cập nhật</string>
     <string name="automatic_cleanup">Dọn dẹp tự động</string>
     <string name="autoplaying_similar_music">Tự động phát nhạc tương tự</string>
     <string name="avatar">Ảnh đại diện</string>
@@ -62,7 +81,7 @@
     <string name="background_service_recents">background service recents</string>
     <string name="backup_and_restore">Sao lưu &amp; khôi phục</string>
     <string name="backup_and_restore_text">Sao lưu &amp; khôi phục</string>
-    <string name="backup_description_full">Bản sao lưu là một tệp duy nhất mà bạn có thể lưu ở bất cứ đâu. Tệp chứa các mục bạn chọn: cài đặt, bài hát yêu thích, danh sách phát và lịch sử nghe. Khi khôi phục, dữ liệu trong tệp sẽ được gộp với dữ liệu hiện có và không xóa bất kỳ nội dung nào. Mã thông báo đăng nhập, thông tin xác thực API và mật khẩu proxy không được lưu trong bản sao lưu; các bài hát đã tải xuống cũng không được bao gồm.</string>
+    <string name="backup_description_full">Bản sao lưu là một tệp ZIP duy nhất có thể lưu ở bất cứ đâu. Bạn có thể chọn cài đặt, bài hát yêu thích, danh sách phát, lịch sử nghe, nhạc đã tải xuống hoặc dữ liệu game. Khi khôi phục, dữ liệu thư viện sẽ được gộp khi có thể; riêng dữ liệu game sẽ thay thế thư mục dữ liệu game hiện tại. Mã thông báo đăng nhập, thông tin xác thực API và mật khẩu proxy không được lưu trong bản sao lưu.</string>
     <string name="balanced">Cân bằng</string>
     <string name="balanced_calm_colors">Màu sắc cân bằng, dịu mắt</string>
     <string name="bass_boost">Tăng âm trầm</string>
@@ -84,6 +103,7 @@
     <string name="cached_streams_artwork_and_catalog_pages_will_be_del">Bộ nhớ đệm luồng phát, ảnh bìa và trang danh mục sẽ bị xóa. Nội dung đã tải xuống không bị ảnh hưởng.</string>
     <string name="callback_url">URL callback</string>
     <string name="cancel">Hủy</string>
+    <string name="cancel_download">Hủy tải xuống</string>
     <string name="carousel">Băng chuyền</string>
     <string name="catalog">Kho beatmap</string>
     <string name="catalog_and_library_sync">Đồng bộ kho beatmap và thư viện</string>
@@ -94,7 +114,7 @@
     <string name="chinese">Tiếng Trung</string>
     <string name="choose_a_mini_player_layout">Chọn bố cục mini player.</string>
     <string name="choose_a_tab_or_change_its_order">Chọn tab hoặc thay đổi thứ tự.</string>
-    <string name="choose_how_many_songs_play_when_you_shuffle_your_mix">Chọn số bài hát phát khi trộn Your Mix.</string>
+    <string name="choose_how_many_songs_play_when_you_shuffle_your_mix">Chọn số bài hát được phát khi bạn phát ngẫu nhiên Mix của bạn.</string>
     <string name="choose_library_tab">Chọn tab thư viện</string>
     <string name="choose_light_dark_or_system_theme">Chọn giao diện sáng, tối hoặc theo hệ thống.</string>
     <string name="choose_mini_player_colors">Chọn màu mini player.</string>
@@ -286,12 +306,14 @@
     <string name="free_space_reset">free space reset</string>
     <string name="free_space_thumbnails">free space thumbnails</string>
     <string name="french">Tiếng Pháp</string>
+    <string name="full_changelog">Toàn bộ nhật ký thay đổi</string>
     <string name="full_song">Toàn bộ bài hát</string>
     <string name="full_song_mode_description">Chế độ phát toàn bài sẽ thử các máy chủ công khai đã bật và chỉ phát tệp âm thanh đầy đủ. Ứng dụng không tự chuyển sang bản nghe thử ngắn. Chế độ xem trước chỉ được dùng khi bạn chủ động chọn.
 
 Người dùng khách và người đã đăng nhập có cùng quyền truy cập danh mục, phát trực tuyến và tải xuống.</string>
     <string name="gain_amplify">gain amplify</string>
-    <string name="game">Trò chơi</string>
+    <string name="game">Game</string>
+    <string name="hide">Ẩn</string>
     <string name="game_paused">Đã tạm dừng trò chơi</string>
     <string name="game_settings">Cài đặt trò chơi</string>
     <string name="game_settings_error">Không thể lưu cài đặt: %1$s</string>
@@ -360,6 +382,7 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="level">Cấp %1$d</string>
     <string name="level_english">Level %1$d</string>
     <string name="library">Thư viện</string>
+    <string name="library_refresh_failed">Không thể làm mới thư viện. Hãy kiểm tra kết nối rồi thử lại.</string>
     <string name="library_compact_dense_spacing">library compact dense spacing</string>
     <string name="library_navigation">Điều hướng thư viện</string>
     <string name="library_rows">Các hàng trong thư viện</string>
@@ -369,10 +392,12 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="like">Thích</string>
     <string name="like_songs_or_build_a_playlist_and_it_will_live_here">Thích bài hát hoặc tạo danh sách phát; chúng sẽ xuất hiện tại đây.</string>
     <string name="liked">Yêu thích</string>
+    <string name="liked_songs">Bài hát yêu thích</string>
     <string name="listen_again">Nghe lại</string>
     <string name="listening_history">Lịch sử nghe</string>
     <string name="listening_stats">Thống kê nghe nhạc</string>
     <string name="listening_stats_text">Thống kê nghe nhạc</string>
+    <string name="listening_stats_description">Bài hát, nghệ sĩ hàng đầu và xu hướng nghe nhạc</string>
     <string name="loading_personal_scores">Đang tải điểm cá nhân…</string>
     <string name="loading_scores">Đang tải điểm…</string>
     <string name="local_top_five">Top 5 của bạn</string>
@@ -411,7 +436,6 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="minutes">%1$d phút</string>
     <string name="minutes_english">%1$d min</string>
     <string name="mirrors">Máy chủ mirror</string>
-    <string name="mix">Trộn</string>
     <string name="mix_refreshed_daily">%1$d bài hát · làm mới mỗi ngày</string>
     <string name="mix_shuffle_queue_songs_count">mix shuffle queue songs count</string>
     <string name="mixed_picks">Lựa chọn pha trộn</string>
@@ -497,6 +521,8 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="pill_floating_classic">Thanh nổi bo tròn (cổ điển)</string>
     <string name="pink">Hồng</string>
     <string name="play">Phát</string>
+    <string name="play_in_order">Phát theo thứ tự</string>
+    <string name="play_playlist">Nghe</string>
     <string name="play_a_few_songs_and_your_week_will_show_up_here">Hãy nghe vài bài, thống kê tuần của bạn sẽ xuất hiện tại đây.</string>
     <string name="play_all">Phát tất cả</string>
     <string name="play_arrow">Mũi tên phát</string>
@@ -508,7 +534,7 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="play_item">Phát %1$s</string>
     <string name="play_pause_control_icon">Biểu tượng phát / tạm dừng</string>
     <string name="play_preview">Phát thử</string>
-    <string name="play_your_mix_shuffled">Phát ngẫu nhiên Your Mix</string>
+    <string name="play_your_mix_shuffled">Phát ngẫu nhiên Mix của bạn</string>
     <string name="playback">Phát nhạc</string>
     <string name="playback_cache_size">Dung lượng bộ nhớ đệm phát nhạc</string>
     <string name="playback_icon">Biểu tượng phát</string>
@@ -528,7 +554,9 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="playing_from">Đang phát từ %1$s</string>
     <string name="playing_from_your_queue">Đang phát từ hàng đợi</string>
     <string name="playlist_name">Tên danh sách phát</string>
-    <string name="playlists">Danh sách phát</string>
+    <string name="playlists">Playlist</string>
+    <string name="playlist">Playlist</string>
+    <string name="playlist_label_short">Playlist</string>
     <string name="plays">Lượt phát</string>
     <string name="plays_and_favorites">Lượt phát và yêu thích</string>
     <string name="plays_english">%1$d plays</string>
@@ -659,7 +687,7 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="saving_score">Đang lưu điểm…</string>
     <string name="scrolling_style">Kiểu cuộn</string>
     <string name="search">Tìm kiếm</string>
-    <string name="search_maps">Tìm bản đồ</string>
+    <string name="search_maps">Tìm maps</string>
     <string name="search_settings">Tìm cài đặt</string>
     <string name="see_all">Xem tất cả %1$s</string>
     <string name="selected">Đã chọn</string>
@@ -706,6 +734,10 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="share_app">Chia sẻ ứng dụng</string>
     <string name="sharpest_covers">Ảnh bìa sắc nét nhất</string>
     <string name="show_artist">Hiện nghệ sĩ</string>
+    <string name="show_as_grid">Hiển thị dạng lưới</string>
+    <string name="show_as_list">Hiển thị dạng danh sách</string>
+    <string name="show">Hiện</string>
+    <string name="show_current_song">Hiển thị bài hát hiện tại</string>
     <string name="show_audio_details_in_the_player">Hiển thị thông tin âm thanh trong trình phát.</string>
     <string name="show_explicit_content">Hiển thị nội dung nhạy cảm</string>
     <string name="show_player_file_info">Hiển thị thông tin tệp trong trình phát</string>
@@ -716,8 +748,8 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="show_the_artist_name">Hiển thị tên nghệ sĩ.</string>
     <string name="show_volume_bar">Hiển thị thanh âm lượng</string>
     <string name="show_volume_bar_desc">Thêm thanh trượt âm lượng đa phương tiện. Có sẵn với các thiết kế Immersive, Immersive Extended và Material Extended.</string>
-    <string name="show_your_mix">Hiển thị Your Mix</string>
-    <string name="shuffle">Phát ngẫu nhiên</string>
+    <string name="show_your_mix">Hiển thị Mix của bạn</string>
+    <string name="shuffle">Xáo trộn</string>
     <string name="shuffle_repeat_and_like_row">Hàng nút trộn, lặp và yêu thích</string>
     <string name="shuffle_repeat_favorite">shuffle repeat favorite</string>
     <string name="sign_in_again">Đăng nhập lại</string>
@@ -733,7 +765,7 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="skip_silence">Bỏ qua đoạn im lặng</string>
     <string name="slim_down_downloads">Thu gọn bản tải xuống</string>
     <string name="slim_down_downloads_desc">Xóa hitsound, hình ảnh và storyboard khỏi các bài hát ngoại tuyến.</string>
-    <string name="sleep_timer">Hẹn giờ tắt nhạc</string>
+    <string name="sleep_timer">Hẹn giờ</string>
     <string name="slider_style">Kiểu thanh trượt</string>
     <string name="smart_storage">smart storage</string>
     <string name="some_archives_could_not_be_imported">Không thể nhập một số tệp lưu trữ</string>
@@ -745,6 +777,7 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     </plurals>
     <string name="songs">Bài hát</string>
     <string name="sort">Sắp xếp</string>
+    <string name="sort_downloads">Sắp xếp nội dung tải xuống</string>
     <string name="sort_by">Sắp xếp theo</string>
     <string name="sort_playlist">Sắp xếp danh sách phát</string>
     <string name="sorted_by">Sắp xếp theo %1$s</string>
@@ -815,8 +848,8 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="titles_and_cards">Tiêu đề &amp; thẻ</string>
     <string name="titles_and_catalog_preferences">Tùy chọn tiêu đề và kho beatmap</string>
     <string name="today">Hôm nay</string>
-    <string name="today_s_mix_for_you">Bản trộn dành cho bạn hôm nay</string>
-    <string name="todays_mix_for_you">Bản phối hôm nay dành cho bạn</string>
+    <string name="today_s_mix_for_you">Mix hôm nay dành cho bạn</string>
+    <string name="todays_mix_for_you">Mix hôm nay dành cho bạn</string>
     <string name="tonal_spot">Tông màu dịu</string>
     <string name="tonal_vibrant_expressive_neutral_monochrome">tonal vibrant expressive neutral monochrome</string>
     <string name="top_songs">Bài hát hàng đầu</string>
@@ -838,7 +871,7 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="typography_preview_description">Văn bản nội dung luôn dễ đọc ở mọi kích thước. Toàn bộ ứng dụng sử dụng phông chữ này để danh sách, hộp thoại và trình phát luôn đồng nhất.</string>
     <string name="unicode_romanised_japanese">unicode romanised japanese</string>
     <string name="unknown">Không xác định</string>
-    <string name="unplayed">Chưa phát</string>
+    <string name="unplayed">Chưa xếp hạng</string>
     <string name="unspecified">Không xác định</string>
     <string name="unsupported_video_format">Định dạng video này không thể phát trực tiếp.</string>
     <string name="unused_old_downloads_review">unused old downloads review</string>
@@ -876,8 +909,7 @@ Người dùng khách và người đã đăng nhập có cùng quyền truy c�
     <string name="will_play_next">Sẽ phát tiếp theo</string>
     <string name="will_play_next_text">Sẽ phát tiếp theo</string>
     <string name="yellow">Vàng</string>
-    <string name="your">Của bạn</string>
     <string name="your_downloaded_charts_all_in_one_place">Tất cả biểu đồ đã tải xuống ở cùng một nơi.</string>
     <string name="your_library">Thư viện của bạn</string>
-    <string name="your_mix_size">Số bài trong Your Mix</string>
+    <string name="your_mix_size">Số bài trong Mix của bạn</string>
 </resources>

@@ -117,12 +117,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import java.io.File
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.Lifecycle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import vn.kozu.data.backup.BackupException
+import vn.kozu.data.backup.MAX_BACKUP_ARCHIVE_BYTES
 import vn.kozu.data.update.UpdateChecker
 import vn.kozu.di.AppContainer
 import vn.kozu.domain.model.AppSettings
@@ -144,8 +146,6 @@ val LocalReplayOnboarding = androidx.compose.runtime.compositionLocalOf<(() -> U
 
 
 private const val STEP_COUNT = 10
-private const val MAX_BACKUP_BYTES = 32 * 1024 * 1024
-
 @Composable
 fun OnboardingScreen(
     container: AppContainer,
@@ -636,7 +636,7 @@ private fun WelcomeStep() {
             color = colors.primary,
             textAlign = TextAlign.Center,
         )
-        Text(text = "v$version",
+        Text(text = version,
             style = MaterialTheme.typography.titleMedium.copy(fontSize = 19.sp),
             fontWeight = FontWeight.SemiBold,
             color = colors.onSurfaceVariant,
@@ -758,14 +758,30 @@ private fun BackupStep(
         scope.launch {
             busy = true
             result = try {
-                val json = withContext(Dispatchers.IO) {
-                    val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                        ?: throw java.io.IOException("Could not open the selected file")
-                    if (bytes.size > MAX_BACKUP_BYTES) throw BackupException("That file is too large to be a backup")
-                    String(bytes, Charsets.UTF_8)
+                withContext(Dispatchers.IO) {
+                    val temp = File(context.cacheDir, "kozu-onboarding-restore-${System.currentTimeMillis()}.backup")
+                    try {
+                        val input = context.contentResolver.openInputStream(uri)
+                            ?: throw java.io.IOException("Could not open the selected file")
+                        input.use { source ->
+                            temp.outputStream().buffered().use { target ->
+                                val buffer = ByteArray(64 * 1024)
+                                var total = 0L
+                                while (true) {
+                                    val count = source.read(buffer)
+                                    if (count < 0) break
+                                    total += count
+                                    if (total > MAX_BACKUP_ARCHIVE_BYTES) throw java.io.IOException("The backup archive is too large")
+                                    target.write(buffer, 0, count)
+                                }
+                            }
+                        }
+                        val info = container.backup.inspect(temp)
+                        container.backup.restore(temp, info.sections)
+                    } finally {
+                        temp.delete()
+                    }
                 }
-                val info = container.backup.inspect(json)
-                container.backup.restore(json, info.sections)
             } catch (e: BackupException) {
                 e.message ?: "Invalid backup"
             } catch (e: Exception) {
@@ -1273,7 +1289,7 @@ private fun NavPreview(
                                             enter = fadeIn(tween(160)) + expandHorizontally(KozuMotion.spatial()),
                                             exit = fadeOut(tween(90)) + shrinkHorizontally(tween(160)),
                                         ) {
-                                            Text(text = tab.title,
+                                            Text(text = stringResource(tab.titleRes),
                                                 modifier = Modifier.padding(start = 8.dp),
                                                 style = MaterialTheme.typography.labelLarge,
                                                 color = itemContent,

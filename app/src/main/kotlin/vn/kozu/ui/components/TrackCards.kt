@@ -112,15 +112,17 @@ fun CoverCard(
             style = MaterialTheme.typography.titleMedium,
             color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 4.dp),
+            softWrap = false,
+            overflow = TextOverflow.Clip,
+            modifier = Modifier.padding(horizontal = 4.dp).loopingMarquee(),
         )
         Text(text = beatmap.displayArtist(LocalAppSettings.current.preferUnicode),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 4.dp),
+            softWrap = false,
+            overflow = TextOverflow.Clip,
+            modifier = Modifier.padding(horizontal = 4.dp).loopingMarquee(),
         )
     }
 }
@@ -152,13 +154,17 @@ fun TrackPill(
                 Text(text = beatmap.displayTitle(LocalAppSettings.current.preferUnicode),
                     style = MaterialTheme.typography.titleSmall,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    softWrap = false,
+                    overflow = TextOverflow.Clip,
+                    modifier = Modifier.fillMaxWidth().loopingMarquee(),
                 )
                 Text(text = beatmap.displayArtist(LocalAppSettings.current.preferUnicode),
                     style = MaterialTheme.typography.bodySmall,
                     color = contentColor.copy(alpha = 0.7f),
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    softWrap = false,
+                    overflow = TextOverflow.Clip,
+                    modifier = Modifier.fillMaxWidth().loopingMarquee(),
                 )
             }
         }

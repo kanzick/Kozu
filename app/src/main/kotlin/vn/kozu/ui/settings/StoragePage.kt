@@ -1,5 +1,6 @@
 package vn.kozu.ui.settings
 
+import vn.kozu.ui.components.KozuSheetHandle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -53,8 +54,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import vn.kozu.data.local.DownloadedSet
 import vn.kozu.R
-import vn.kozu.ui.components.KozuSheetHandle
-
 private const val FORGOTTEN_DAYS = 60L
 private const val DAY_MS = 24L * 60L * 60L * 1000L
 
